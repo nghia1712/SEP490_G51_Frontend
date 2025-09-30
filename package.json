@@ -2,38 +2,60 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-  },
+   "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "dev:fast": "vite --force",
+    "dev:debug": "vite --debug",
+    "build": "vite build",
+    "build:analyze": "vite build --mode analyze",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext js,jsx --fix",
+    "clean": "rm -rf node_modules/.vite dist",
+    "start": "vite"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
+    "@mui/x-charts": "^8.9.0",
+    "antd": "^5.18.0",
+    "axios": "^1.7.2",
+    "bootstrap": "^5.3.3",
+    "chart.js": "^4.4.3",
+    "formik": "^2.4.6",
+    "framer-motion": "^11.2.10",
+    "html2pdf.js": "^0.10.1",
+    "jwt-decode": "^4.0.0",
+    "mongodb": "^6.7.0",
+    "mongoose": "^8.4.1",
+    "mooc": "file:",
+    "notyf": "^3.10.0",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.2",
+    "react-bootstrap-icons": "^1.11.4",
+    "react-chartjs-2": "^5.2.0",
+    "react-datepicker": "^7.1.0",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.2.1",
+    "react-quill": "^2.0.0",
+    "react-router-dom": "^6.23.1",
+    "react-select": "^5.8.0",
+    "react-toastify": "^10.0.5",
+    "recharts": "^2.12.7",
+    "socket.io-client": "^4.8.1",
+    "yup": "^1.4.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "vite": "^5.2.13"
   }
 }
