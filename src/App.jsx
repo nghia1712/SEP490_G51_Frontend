@@ -15,6 +15,8 @@ import SearchMedicine from "./Components/Guest_Components/SearchMedicine";
 import useAuth from "./Hooks/useAuth";
 import ListAllUsers from "./Components/Manager_Components/ListAllUsers";
 import CreateEmployee from "./Components/Manager_Components/CreateEmployee";
+import ProductList from "./Components/Product_Components/ProductList";
+import ListCategory from "./Components/Category_Components/ListCategory";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -34,6 +36,25 @@ export const useAuthContext = () => {
   return context;
 };
 
+// Component để hiển thị trang chủ phù hợp với từng loại user
+const ConditionalHome = () => {
+  const { user, loading } = useAuthContext();
+  const currentToken = localStorage.getItem("authToken");
+  
+  // Nếu đang loading, hiển thị loading
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  // Nếu có user hoặc token, hiển thị Landing page
+  if (user || currentToken) {
+    return <Landing />;
+  }
+  
+  // Nếu là guest, hiển thị SearchMedicine
+  return <SearchMedicine />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -43,8 +64,8 @@ function App() {
           <Header />
           <Box component="main" sx={{ flexGrow: 1 }}>
             <Routes>
-              {/* Route mặc định, trỏ đến trang Landing */}
-              <Route path="/" element={<Landing />} />
+              {/* Route mặc định - hiển thị SearchMedicine cho guest, Landing cho user đã đăng nhập */}
+              <Route path="/" element={<ConditionalHome />} />
               
               {/* Routes cho xác thực */}
               <Route path="/login" element={<Login />} />
@@ -58,7 +79,14 @@ function App() {
               <Route path="/contact" element={<div>Liên hệ - Đang phát triển</div>} />
               
               {/* Routes cho Staff */}
-              <Route path="/product" element={<div>Quản lý sản phẩm - Đang phát triển</div>} />
+              <Route 
+                path="/product" 
+                element={
+                  <ProtectedRoute allowedRoles={['staff']}>
+                    <ProductList />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/receipts" element={<div>Nhập hàng - Đang phát triển</div>} />
               <Route path="/export" element={<div>Xuất hàng - Đang phát triển</div>} />
               <Route path="/stocktaking" element={<div>Kiểm kê - Đang phát triển</div>} />
@@ -68,7 +96,14 @@ function App() {
               <Route path="/purchase-history" element={<div>Lịch sử mua hàng - Đang phát triển</div>} />
               
               {/* Routes cho Manager/Employee */}
-              <Route path="/category" element={<div>Danh mục - Đang phát triển</div>} />
+              <Route 
+                path="/category" 
+                element={
+                  <ProtectedRoute allowedRoles={['staff']}>
+                    <ListCategory />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
               <Route 
                 path="/manager/get-all-user" 

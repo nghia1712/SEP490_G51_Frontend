@@ -1,6 +1,8 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../App";
+import { jwtDecode } from "jwt-decode";
+
 // Utility functions để tối ưu performance
 const safeLocalStorage = {
   getItem: (key) => {
@@ -28,7 +30,6 @@ const safeLocalStorage = {
     }
   }
 };
-// import { jwtDecode } from "jwt-decode"; // Đã xóa do lỗi phân giải
 import {
   Box,
   Container,
@@ -54,48 +55,16 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import GridViewIcon from "@mui/icons-material/GridView";
 // import useUser from "../../Hooks/useUser"; // Đã xóa do lỗi phân giải
 
-// --- HOOK VÀ HÀM GIẢ LẬP ĐỂ SỬA LỖI ---
-
-// Giả lập useUser hook để giải quyết lỗi dependency
-const useUser = () => {
-  const getProfile = () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          fullName: "Test User",
-          profile: {
-            avatar: null, // Sẽ sử dụng avatar mặc định
-          },
-        });
-      }, 500);
-    });
-  };
-  return { getProfile };
-};
-
-// Giả lập hàm jwtDecode để giải quyết lỗi dependency
-const jwtDecode = (token) => {
-    // Đây là một giả lập cơ bản. Trong kịch bản thực tế, bạn sẽ phân tích JWT.
-    // Đối với component này, chúng ta chỉ cần vai trò (role).
-    if (token && token.startsWith('demo-token-')) {
-        const userId = token.split('-')[2];
-        return { 
-          roleId: userId === '1' || userId === '3' ? 1 : 2,
-          userId: parseInt(userId)
-        };
-    }
-    return {};
-};
+// --- HÀM HELPER ---
 
 
 // --- DỮ LIỆU CHỨC NĂNG ---
 const mainFunctions = [
-  // Chức năng cho Guest (không cần đăng nhập)
   {
-    title: "Tìm kiếm thuốc",
+    title: "Quản lý thuốc",
     icon: <Inventory2Icon />,
-    path: "/search-medicine",
-    allowedRoles: ["guest", "staff", "customer"],
+    path: "/product",
+    allowedRoles: ["staff"],
   },
   {
     title: "Danh mục thuốc",
@@ -114,14 +83,6 @@ const mainFunctions = [
     icon: <HandshakeIcon />,
     path: "/contact",
     allowedRoles: ["guest", "staff", "customer"],
-  },
-  
-  // Chức năng cho Staff (cần đăng nhập)
-  {
-    title: "Quản lý sản phẩm",
-    icon: <Inventory2Icon />,
-    path: "/product",
-    allowedRoles: ["staff"],
   },
   {
     title: "Nhập hàng",
@@ -162,12 +123,6 @@ const mainFunctions = [
   //   allowedRoles: ["manager", "employee"],
   // },
   {
-    title: "Danh mục",
-    icon: <CategoryIcon />,
-    path: "/category",
-    allowedRoles: ["manager", "employee"],
-  },
-  {
     title: "Giao dịch",
     icon: <ViewListIcon />,
     path: "/list-transaction",
@@ -180,8 +135,12 @@ const getUserRole = () => {
   const token = safeLocalStorage.getItem("authToken");
   if (!token) return null;
   try {
-    // Sử dụng hàm jwtDecode giả lập
     const decoded = jwtDecode(token);
+    // Xử lý token từ mock data hoặc real token
+    if (token.startsWith('demo-token-')) {
+      const userId = token.split('-')[2];
+      return userId === '1' || userId === '3' ? 'staff' : 'customer';
+    }
     return decoded.roleId === 1 ? 'staff' : 'customer';
   } catch (error) {
     console.error("Không thể giải mã token:", error);
@@ -190,7 +149,7 @@ const getUserRole = () => {
 };
 
 // --- COMPONENT CON CHO NÚT APP KIỂU ODOO ---
-const OdooAppButton = ({ title, icon, onClick }) => {
+const OdooAppButton = ({ title, icon, onClick, isMain = false }) => {
   return (
     <Box
       onClick={onClick}
@@ -200,40 +159,45 @@ const OdooAppButton = ({ title, icon, onClick }) => {
         alignItems: "center",
         textAlign: "center",
         cursor: "pointer",
-        p: 2,
-        borderRadius: "8px",
-        transition: "all 0.2s ease-in-out",
+        p: isMain ? 3 : 2,
+        borderRadius: "12px",
+        transition: "all 0.3s ease-in-out",
+        border: isMain ? "2px solid rgba(255, 255, 255, 0.3)" : "none",
+        backgroundColor: isMain ? "rgba(255, 255, 255, 0.1)" : "transparent",
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.15)",
-          transform: "translateY(-3px)",
+          backgroundColor: isMain ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.15)",
+          transform: isMain ? "translateY(-5px) scale(1.05)" : "translateY(-3px)",
+          border: isMain ? "2px solid rgba(255, 255, 255, 0.5)" : "none",
         },
       }}
     >
       <Box
         sx={{
-          width: 72,
-          height: 72,
-          borderRadius: "12px",
-          backgroundColor: "#fff",
+          width: isMain ? 84 : 72,
+          height: isMain ? 84 : 72,
+          borderRadius: "16px",
+          backgroundColor: isMain ? "#fff" : "#fff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           mb: 1,
-          boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
-          color: "#155E64",
+          boxShadow: isMain ? "0 6px 12px rgba(0,0,0,0.2)" : "0 4px 8px rgba(0,0,0,0.15)",
+          color: isMain ? "#1976d2" : "#155E64",
+          border: isMain ? "3px solid #1976d2" : "none",
         }}
       >
-        {React.cloneElement(icon, { sx: { fontSize: 40 } })}
+        {React.cloneElement(icon, { sx: { fontSize: isMain ? 48 : 40 } })}
       </Box>
       <Typography
-        variant="body2"
+        variant={isMain ? "body1" : "body2"}
         sx={{
-          fontWeight: "500",
+          fontWeight: isMain ? "600" : "500",
           color: "#fff",
-          width: "90px",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
+          width: isMain ? "120px" : "100px",
+          whiteSpace: "normal",
+          textAlign: "center",
+          lineHeight: 1.2,
+          textShadow: isMain ? "0 2px 4px rgba(0,0,0,0.3)" : "none",
         }}
       >
         {title}
@@ -252,6 +216,7 @@ function Landing() {
   const isAuthenticated = useMemo(() => {
     return !!user || !!safeLocalStorage.getItem("authToken");
   }, [user]);
+
 
   // Lấy role từ user nếu có - memoized để tránh re-render
   const userRole = useMemo(() => {
@@ -294,11 +259,14 @@ function Landing() {
 
   // Memoized accessible functions để tránh re-calculate không cần thiết
   const accessibleFunctions = useMemo(() => {
-    return mainFunctions
+    // Xác định role hiện tại
+    const currentRole = userRole || getUserRole();
+    
+    const filtered = mainFunctions
       .filter((func) => {
         // Nếu user đã đăng nhập, kiểm tra role
-        if (userRole) {
-          return func.allowedRoles.includes(userRole);
+        if (currentRole) {
+          return func.allowedRoles.includes(currentRole);
         }
         // Nếu là guest, chỉ hiển thị chức năng public
         return func.allowedRoles.includes('guest');
@@ -306,18 +274,24 @@ function Landing() {
       .filter((func) =>
         func.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    
+    // Trả về danh sách đã lọc mà không sắp xếp đặc biệt
+    return filtered;
   }, [userRole, searchTerm]);
 
   const avatarUrl = user?.profile?.avatar
     ? `http://localhost:9999${user.profile.avatar}`
-    : "/images/avatar/imageDefault.jpg";
+    : "/images/avatar/image1.png";
 
   return (
     <Box
       id="landing-root"
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #2A7D82 0%, #4285BC 50%, #5A8DF6 100%)",
+        backgroundImage: "url('/images/backgroundMedical2.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
         pt: 2,
         pb: 6,
         position: "relative",
@@ -330,8 +304,8 @@ function Landing() {
           left: 0,
           right: 0,
           bottom: 0,
-          background:
-            "radial-gradient(circle at center, transparent 10%, rgba(255,255,255,0.06) 70%)",
+          backgroundColor: "rgba(0, 0, 0, 0.45)",
+          backdropFilter: "blur(1.5px)",
           pointerEvents: "none",
           zIndex: 0,
         },
@@ -453,21 +427,24 @@ function Landing() {
           </Box>
         )}
 
-        {/* Lưới chức năng */}
+
+        {/* Lưới chức năng chung */}
         <Grid
           container
           spacing={3}
           justifyContent="center"
         >
-          {accessibleFunctions.map((func) => (
-            <Grid item key={func.title} md={2}>
-              <OdooAppButton
-                title={func.title}
-                icon={func.icon}
-                onClick={() => handleNavigate(func.path)}
-              />
-            </Grid>
-          ))}
+          {accessibleFunctions
+            .map((func) => (
+              <Grid item key={func.title} md={2}>
+                <OdooAppButton
+                  title={func.title}
+                  icon={func.icon}
+                  onClick={() => handleNavigate(func.path)}
+                  isMain={false}
+                />
+              </Grid>
+            ))}
         </Grid>
 
         {/* Thông báo không tìm thấy chức năng */}

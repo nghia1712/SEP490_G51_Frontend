@@ -64,6 +64,7 @@ function Header() {
   const location = useLocation();
   const currentToken = localStorage.getItem("authToken");
   const userRole = getUserRole();
+  // Cả guest và user đều có trang chủ là "/"
   const isHomePage = location.pathname === "/";
   // --- STATE MANAGEMENT ---
   const [profile, setProfile] = useState(null);
@@ -78,11 +79,14 @@ function Header() {
   const { getProfile } = useUser();
   useEffect(() => {
     if (currentToken) {
-      getProfile().then((data) => {
+      getProfile().then((response) => {
+        const data = response?.data || response;
         setProfile(data);
+      }).catch((error) => {
+        console.error("Error fetching profile:", error);
       });
     }
-  }, [currentToken]);
+  }, [currentToken, getProfile]);
 
   // --- HANDLERS ---
   const handleTransactionMenuClick = (event) =>
@@ -160,29 +164,55 @@ function Header() {
       </Typography>
       <Divider />
       <List>
-        {visibleNavItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        {visiblePartnerItems.length > 0 && <Divider>Đối tác</Divider>}
-        {visiblePartnerItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        {visibleTransactionItems.length > 0 && <Divider>Giao dịch</Divider>}
-        {visibleTransactionItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {/* Guest navigation */}
+        {!currentToken && (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate("/search-medicine")}>
+                <ListItemText primary="Tìm kiếm thuốc" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate("/medicine-categories")}>
+                <ListItemText primary="Danh mục thuốc" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate("/contact")}>
+                <ListItemText primary="Liên hệ" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        )}
+        
+        {/* Authenticated user navigation */}
+        {currentToken && (
+          <>
+            {visibleNavItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            {visiblePartnerItems.length > 0 && <Divider>Đối tác</Divider>}
+            {visiblePartnerItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            {visibleTransactionItems.length > 0 && <Divider>Giao dịch</Divider>}
+            {visibleTransactionItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </>
+        )}
       </List>
     </Box>
   );
@@ -200,8 +230,8 @@ function Header() {
       >
         <Container maxWidth="xl">
           <Toolbar disableGutters>
-            {/* Mobile hamburger */}
-            {isMobile && currentToken && !isHomePage && (
+            {/* Mobile hamburger - hiển thị khi không phải trang chủ */}
+            {isMobile && !isHomePage && (
               <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle}>
                 <MenuIcon />
               </IconButton>
@@ -222,7 +252,7 @@ function Header() {
               Pharmacy
             </Typography>
 
-            {/* Desktop nav buttons */}
+            {/* Desktop nav buttons - chỉ hiển thị khi đã đăng nhập và không phải trang chủ */}
             {!isMobile && currentToken && !isHomePage && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
                 {visibleNavItems.map((item) => (
@@ -260,6 +290,21 @@ function Header() {
                     </Menu>
                   </>
                 )}
+              </Box>
+            )}
+
+            {/* Guest navigation - chỉ hiển thị khi chưa đăng nhập */}
+            {!isMobile && !currentToken && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
+                <Button color="inherit" onClick={() => navigate("/search-medicine")} sx={navButtonHoverStyle}>
+                  Tìm kiếm thuốc
+                </Button>
+                <Button color="inherit" onClick={() => navigate("/medicine-categories")} sx={navButtonHoverStyle}>
+                  Danh mục thuốc
+                </Button>
+                <Button color="inherit" onClick={() => navigate("/contact")} sx={navButtonHoverStyle}>
+                  Liên hệ
+                </Button>
               </Box>
             )}
 

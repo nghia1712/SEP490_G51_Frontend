@@ -3,7 +3,7 @@ import axios from 'axios';
 import authAPI from '../authAPI';
 
 // Create Axios instance
-const authorApi = axios.create({
+const formDataApi = axios.create({
     baseURL: 'http://localhost:9999',
     headers: {
         "Content-Type": "multipart/form-data"
@@ -12,7 +12,7 @@ const authorApi = axios.create({
 });
 
 // Request Interceptor
-authorApi.interceptors.request.use(config => {
+formDataApi.interceptors.request.use(config => {
     // ✅ THÊM: Lấy token từ localStorage và gắn vào header
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -24,7 +24,7 @@ authorApi.interceptors.request.use(config => {
 });
 
 // Response Interceptor
-authorApi.interceptors.response.use(
+formDataApi.interceptors.response.use(
     response => response,
     async error => {
         const originalRequest = error.config;
@@ -39,11 +39,11 @@ authorApi.interceptors.response.use(
                 if (response && response.data && response.data.accessToken) {
                     localStorage.setItem('authToken', response.data.accessToken);
                     originalRequest.headers['Authorization'] = `Bearer ${response.data.accessToken}`;
-                    return authorApi(originalRequest);
+                    return formDataApi(originalRequest);
                 } else if (response && response.accessToken) {
                     localStorage.setItem('authToken', response.accessToken);
                     originalRequest.headers['Authorization'] = `Bearer ${response.accessToken}`;
-                    return authorApi(originalRequest);
+                    return formDataApi(originalRequest);
                 } else {
                     console.error('Refresh token response không có accessToken');
                     localStorage.removeItem('authToken');
@@ -60,5 +60,5 @@ authorApi.interceptors.response.use(
     }
 );
 
-export default authorApi;
+export default formDataApi;
 

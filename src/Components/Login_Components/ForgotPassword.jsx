@@ -10,7 +10,6 @@ import {
   Card, // Sử dụng Card để thống nhất UI
 } from "react-bootstrap";
 import { FaEnvelope, FaPhone } from "react-icons/fa";
-import axios from "axios";
 import { useAuthContext } from "../../App";
 
 // Import các thành phần cần thiết từ Framer Motion
@@ -30,9 +29,9 @@ const ForgotPassword = () => {
 
     try {
       const response = await forgotPassword({ email, phoneNumber });
-      setMessage(response.status || "Yêu cầu đã được gửi thành công!");
+      setMessage(response.message || "Yêu cầu đã được gửi thành công!");
     } catch (err) {
-      setError(err.response?.data?.message || "Có lỗi xảy ra! Vui lòng thử lại.");
+      setError(err.message || "Có lỗi xảy ra! Vui lòng thử lại.");
     }
   };
 
@@ -163,7 +162,7 @@ const ForgotPassword = () => {
             <Col md={6} className="d-none d-md-block p-0">
               <motion.div variants={imageVariants} initial="hidden" animate="visible" style={{ height: '100%' }}>
                 <Card.Img
-                  src={"/images/login_image.png"}
+                  src={"/images/login_image.jpg"}
                   alt="Forgot Password"
                   style={{ objectFit: "cover", height: '100%' }}
                 />

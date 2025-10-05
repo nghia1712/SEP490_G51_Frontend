@@ -10,14 +10,15 @@ import {
   Card,
 } from "react-bootstrap";
 import { FaUser, FaEnvelope, FaPhone, FaLock } from "react-icons/fa";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import useAuth from "../../Hooks/useAuth";
 
 // Import các thành phần cần thiết từ Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -37,17 +38,20 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post(
-        "http://localhost:9999/authentication/register",
-        { fullName, email, phoneNumber, password, confirmPassword }
-      );
+      const response = await register({ 
+        fullName, 
+        email, 
+        phoneNumber, 
+        password, 
+        confirmPassword 
+      });
 
-      if (response.status === 201) {
+      if (response) {
         setSuccess(true);
         setTimeout(() => navigate("/login"), 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Đăng ký thất bại!");
+      setError(err.message || "Đăng ký thất bại!");
     }
   };
 
@@ -204,7 +208,7 @@ const Register = () => {
             <Col md={6} className="d-none d-md-block p-0">
               <motion.div variants={imageVariants} initial="hidden" animate="visible" style={{ height: '100%' }}>
                 <Card.Img
-                  src={"/images/login_image.png"}
+                  src={"/images/login_image.jpg"}
                   alt="Register"
                   style={{ objectFit: "cover", height: '100%' }}
                 />
