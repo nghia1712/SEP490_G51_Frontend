@@ -181,7 +181,7 @@ const ProductDetails = ({ show, handleClose, product }) => {
                                 <div>
                                   {product.location.map((loc, index) => (
                                     <div key={index} style={{ marginLeft: 8, marginTop: 4 }}>
-                                      • {loc.inventoryId?.name || `Kệ ${index + 1}`}: {loc.stock || 0} sản phẩm
+                                      • {loc.inventoryId?.name || `Kệ ${index + 1}`}: {loc.stock || 0} thuốc
                                       {loc.price && <span> - Giá: {loc.price.toLocaleString()} VND</span>}
                                     </div>
                                   ))}

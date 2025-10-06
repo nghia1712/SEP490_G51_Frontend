@@ -12,7 +12,7 @@ import {
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import useAuth from "../../Hooks/useAuth"; // Giả sử bạn có hook này để quản lý xác thực
+import { useAuthContext } from "../../App"; // Dùng context dùng chung cho toàn app
 // Import các thành phần cần thiết từ Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -22,7 +22,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const { login } = useAuth(); // Giả sử bạn có hook này để quản lý xác thực
+  const { login } = useAuthContext();
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");

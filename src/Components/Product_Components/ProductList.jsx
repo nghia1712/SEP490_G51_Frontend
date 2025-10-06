@@ -203,7 +203,7 @@ const ProductList = () => {
   );
   const headCells = [
     { id: "productImage", label: "Hình Ảnh", sortable: false },
-    { id: "productName", label: "Tên Sản Phẩm", sortable: true },
+    { id: "productName", label: "Tên Thuốc", sortable: true },
     { id: "totalStock", label: "Tổng SL", sortable: true, align: "center" },
     { id: "importPrice", label: "Giá Nhập", sortable: true, align: "right" },
     { id: "unit", label: "Đơn Vị", sortable: true },
@@ -267,7 +267,7 @@ const ProductList = () => {
               mb: 2,
             }}
           >
-            Quản Lý Sản Phẩm
+            Quản Lý Thuốc
           </Typography>
         </Box>
 
@@ -292,7 +292,7 @@ const ProductList = () => {
             },
           }}
         >
-          Thêm Sản Phẩm
+          Thêm Thuốc
         </Button>
 
         {/* Nhóm các control tìm kiếm và lọc vào một Stack */}
@@ -303,7 +303,7 @@ const ProductList = () => {
           sx={{ width: { xs: "100%", md: "auto" } }}
         >
           <TextField
-            placeholder={filterText ? "" : "Tìm kiếm sản phẩm..."}
+            placeholder={filterText ? "" : "Tìm kiếm thuốc..."}
             variant="outlined"
             size="small"
             fullWidth

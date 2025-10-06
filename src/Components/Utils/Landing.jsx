@@ -69,8 +69,8 @@ const mainFunctions = [
   {
     title: "Danh mục thuốc",
     icon: <CategoryIcon />,
-    path: "/medicine-categories",
-    allowedRoles: ["guest", "staff", "customer"],
+    path: "/category",
+    allowedRoles: ["staff", "manager"],
   },
   {
     title: "Thông tin thuốc",

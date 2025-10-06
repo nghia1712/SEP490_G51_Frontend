@@ -95,11 +95,11 @@ function App() {
               <Route path="/my-orders" element={<div>Đơn hàng của tôi - Đang phát triển</div>} />
               <Route path="/purchase-history" element={<div>Lịch sử mua hàng - Đang phát triển</div>} />
               
-              {/* Routes cho Manager/Employee */}
+              {/* Routes cho Manager/Staff */}
               <Route 
                 path="/category" 
                 element={
-                  <ProtectedRoute allowedRoles={['staff']}>
+                  <ProtectedRoute allowedRoles={['manager','staff']}>
                     <ListCategory />
                   </ProtectedRoute>
                 } 

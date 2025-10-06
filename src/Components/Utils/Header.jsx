@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+// import { jwtDecode } from "jwt-decode";
 import useUser from "../../Hooks/useUser";
 
 // MUI Imports (thêm responsive & drawer)
@@ -45,18 +45,21 @@ const navButtonHoverStyle = {
     backgroundColor: palette.dark,
     color: palette.white,
   },
+  letterSpacing: "0.08em",
 };
 
+// Parser dành cho demo token dạng "demo-token-<id>"
 const getUserRole = () => {
   const token = localStorage.getItem("authToken");
   if (!token) return null;
-  try {
-    const decodedToken = jwtDecode(token);
-    return decodedToken.role;
-  } catch (error) {
-    console.error("Invalid token:", error);
-    return null;
+  // Map userId -> role theo mockData
+  if (token.startsWith("demo-token-")) {
+    const userId = token.split("-")[2];
+    if (userId === "4") return "manager";
+    if (userId === "1" || userId === "3") return "staff";
+    return "customer";
   }
+  return null;
 };
 
 function Header() {
@@ -128,22 +131,22 @@ function Header() {
   // --- NAVIGATION ITEMS ---
   const navItems = [
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager"] },
-    { label: "Sản phẩm", path: "/product", allowedRoles: ["manager", "employee"] },
-    { label: "Danh mục", path: "/category", allowedRoles: ["manager"] },
+    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "staff"] },
+    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "staff"] },
+    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "staff"] },
+    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "staff"] },
     { label: "Nhân viên", path: "/manager/get-all-user", allowedRoles: ["manager"] },
-    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "employee"] },
-    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "employee"] },
   ];
 
   const partnerMenuItems = [
-    { label: "Nhà cung cấp", path: "/get-list-suppliers", allowedRoles: ["manager", "employee"] },
+    { label: "Nhà cung cấp", path: "/get-list-suppliers", allowedRoles: ["manager", "staff"] },
     { label: "Quản lý Nhà cung cấp - Sản phẩm", path: "/manager/manage-supplier-products", allowedRoles: ["manager"] },
-    { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "employee"] },
+    { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "staff"] },
   ];
 
   const transactionMenuItems = [
     { label: "Phiếu Nhập Kho", path: "/receipts", allowedRoles: ["manager"] },
-    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "employee"] },
+    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "staff"] },
     { label: "Danh Sách Giao Dịch", path: "/list-transaction", allowedRoles: ["manager"] },
   ];
 

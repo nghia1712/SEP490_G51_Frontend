@@ -102,13 +102,13 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
 
   const validate = async () => {
     let tempErrors = {};
-    tempErrors.productName = productData.productName ? "" : "Tên sản phẩm không được bỏ trống.";
+    tempErrors.productName = productData.productName ? "" : "Tên thuốc không được bỏ trống.";
     tempErrors.categoryId = productData.categoryId ? "" : "Vui lòng chọn danh mục.";
     tempErrors.unit = productData.unit ? "" : "Đơn vị không được bỏ trống.";
     tempErrors.location = productData.location ? "" : "Vị trí không được bỏ trống.";
 
     if (!productData.productImage) {
-      tempErrors.productImage = "Vui lòng chọn hình ảnh sản phẩm.";
+      tempErrors.productImage = "Vui lòng chọn hình ảnh thuốc.";
     } else if (!["image/jpeg", "image/png"].includes(productData.productImage.type)) {
       tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
     } else {
@@ -125,12 +125,12 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
       try {
         const response = await axios.get(`http://localhost:9999/products/checkProductName?name=${productData.productName}`);
         if (response.data.exists) {
-          setErrors(prev => ({ ...prev, productName: "Sản phẩm đã tồn tại trong kho." }));
+          setErrors(prev => ({ ...prev, productName: "Thuốc đã tồn tại trong kho." }));
           return false;
         }
       } catch (error) {
         console.error("Error checking product name:", error);
-        setErrors(prev => ({ ...prev, general: "Có lỗi xảy ra khi kiểm tra tên sản phẩm." }));
+        setErrors(prev => ({ ...prev, general: "Có lỗi xảy ra khi kiểm tra tên thuốc." }));
         return false;
       }
     }
@@ -161,7 +161,7 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
         console.error("Error creating product:", error);
         setErrors((prev) => ({
           ...prev,
-          general: error.response?.data?.message || "Có lỗi xảy ra khi thêm sản phẩm.",
+          general: error.response?.data?.message || "Có lỗi xảy ra khi thêm thuốc.",
         }));
       } finally {
         setLoading(false);
@@ -172,7 +172,7 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
   return (
     // Dialog sẽ tự động quản lý zIndex và vị trí
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Thêm Sản Phẩm Mới</DialogTitle>
+      <DialogTitle>Thêm Thuốc Mới</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {errors.general && <Alert severity="error">{errors.general}</Alert>}
@@ -180,7 +180,7 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
           <TextField
             autoFocus
             name="productName"
-            label="Tên Sản Phẩm"
+            label="Tên Thuốc"
             value={productData.productName}
             onChange={handleChange}
             error={!!errors.productName}
@@ -280,7 +280,7 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <img
                 src={imagePreview}
-                alt="Xem trước sản phẩm"
+                alt="Xem trước thuốc"
                 style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }}
               />
             </Box>
@@ -293,7 +293,7 @@ const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
           Hủy
         </Button>
         <Button onClick={handleSave} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : "Lưu Sản Phẩm"}
+          {loading ? <CircularProgress size={24} /> : "Lưu Thuốc"}
         </Button>
       </DialogActions>
     </Dialog>

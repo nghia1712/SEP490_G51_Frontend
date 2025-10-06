@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Container, Box, Typography, TextField, Button, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Checkbox, IconButton, Stack, Alert,
+  TableHead, TableRow, Paper, Checkbox, IconButton, Stack, Alert, ButtonGroup,
   Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel,
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
@@ -22,6 +22,7 @@ function ListCategory() {
   const [filterText, setFilterText] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: 'categoryName', direction: 'asc' });
   const [statusFirst, setStatusFirst] = useState('active'); // 'active' hoặc 'inactive'
+  const [statusFilter, setStatusFilter] = useState(null); // null | true(active) | false(inactive)
   const [error, setError] = useState(null);
 
   // States để quản lý các dialog
@@ -65,6 +66,10 @@ function ListCategory() {
         item.categoryName.toLowerCase().includes(filterText.toLowerCase())
       );
     }
+    // Lọc theo trạng thái (nếu có)
+    if (statusFilter !== null) {
+      sortableItems = sortableItems.filter(item => item.status === (statusFilter ? 'active' : 'inactive'));
+    }
     
     // Sắp xếp theo cột
     sortableItems.sort((a, b) => {
@@ -98,31 +103,115 @@ function ListCategory() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Stack direction={{xs: 'column', sm: 'row'}} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Quản Lý Danh Mục
-        </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddDialogOpen(true)}>
-          Tạo mới
-        </Button>
-      </Stack>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundImage: "url('/images/backgroundMedical2.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.10)',
+          backdropFilter: 'blur(0.5px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        },
+      }}
+    >
+      <Container maxWidth={false} disableGutters sx={{ p: { xs: 1, sm: 2, md: 3 }, position: 'relative', zIndex: 1, pt: 4 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography variant="h3" component="h1" color="white" fontWeight="bold" sx={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)', mb: 2 }}>
+            Quản Lý Danh Mục
+          </Typography>
+        </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          label="Tìm theo tên danh mục"
-          variant="outlined"
-          size="small"
-          fullWidth
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-        />
-      </Box>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between" sx={{ mb: 3 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setIsAddDialogOpen(true)}
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+            }}
+          >
+            Thêm Danh Mục
+          </Button>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
+            <TextField
+              placeholder={filterText ? '' : 'Tìm tên danh mục...'}
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              sx={{
+                minWidth: { sm: 250, md: 300 },
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                  '&.Mui-focused fieldset': { borderColor: 'white' },
+                },
+                '& input::placeholder': { color: 'rgba(0, 0, 0, 0.6)', opacity: 1 },
+              }}
+            />
+            <ButtonGroup variant="outlined" fullWidth>
+              <Button
+                onClick={() => setStatusFilter(true)}
+                variant={statusFilter === true ? 'contained' : 'outlined'}
+                sx={{
+                  backgroundColor: statusFilter === true ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
+                }}
+              >
+                Kích Hoạt
+              </Button>
+              <Button
+                onClick={() => setStatusFilter(false)}
+                variant={statusFilter === false ? 'contained' : 'outlined'}
+                sx={{
+                  backgroundColor: statusFilter === false ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
+                }}
+              >
+                Vô Hiệu
+              </Button>
+              <Button
+                onClick={() => setStatusFilter(null)}
+                variant={statusFilter === null ? 'contained' : 'outlined'}
+                sx={{
+                  backgroundColor: statusFilter === null ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
+                }}
+              >
+                Tất Cả
+              </Button>
+            </ButtonGroup>
+          </Stack>
+        </Stack>
 
-      <TableContainer component={Paper}>
-        <Table stickyHeader>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+        <Paper sx={{ width: '100%', overflow: 'hidden', backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)' }}>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <Table stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell sortDirection={sortConfig.key === 'categoryName' ? sortConfig.direction : false}>
@@ -171,19 +260,8 @@ function ListCategory() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Box
-                    sx={{
-                      bgcolor: cat.status === 'active' ? 'success.light' : 'error.light',
-                      color: 'white',
-                      p: '4px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-block',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {cat.status === "active" ? "Kích hoạt" : "Vô hiệu"}
+                  <Box component="span" sx={{ color: 'white', bgcolor: cat.status === 'active' ? 'success.main' : 'error.main', p: '4px 10px', borderRadius: '16px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 'bold', textAlign: 'center' }}>
+                    {cat.status === 'active' ? 'Kích Hoạt' : 'Vô Hiệu'}
                   </Box>
                 </TableCell>
                 <TableCell sx={{maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={cat.description}>
@@ -215,6 +293,7 @@ function ListCategory() {
           </TableBody>
         </Table>
       </TableContainer>
+        </Paper>
 
       {/* --- Dialogs --- */}
       <AddCategoryDialog
@@ -261,7 +340,8 @@ function ListCategory() {
             </DialogActions>
         </Dialog>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 }
 

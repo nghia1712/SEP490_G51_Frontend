@@ -159,13 +159,13 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
 
     const validate = async () => {
         let tempErrors = {};
-        tempErrors.productName = productData.productName ? "" : "Tên sản phẩm không được bỏ trống.";
+        tempErrors.productName = productData.productName ? "" : "Tên thuốc không được bỏ trống.";
         tempErrors.categoryId = productData.categoryId ? "" : "Vui lòng chọn danh mục.";
         tempErrors.unit = productData.unit ? "" : "Đơn vị không được bỏ trống.";
         tempErrors.totalStock = productData.totalStock && Number(productData.totalStock) >= 0 ? "" : "Tổng số lượng phải là số dương.";
         tempErrors.quantitative = productData.quantitative !== "" && !isNaN(productData.quantitative) ? "" : "Định lượng không hợp lệ.";
         if (!productData.productImage) {
-            tempErrors.productImage = "Vui lòng chọn hình ảnh sản phẩm.";
+            tempErrors.productImage = "Vui lòng chọn hình ảnh thuốc.";
         } else if (!["image/jpeg", "image/png"].includes(productData.productImage.type)) {
             tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
         } else {
@@ -221,11 +221,11 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Thêm Sản Phẩm</DialogTitle>
+            <DialogTitle>Thêm Thuốc</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                     {errors.general && <Alert severity="error">{errors.general}</Alert>}
-                    <TextField autoFocus name="productName" label="Tên Sản Phẩm" value={productData.productName} onChange={handleChange} error={!!errors.productName} helperText={errors.productName} fullWidth />
+                    <TextField autoFocus name="productName" label="Tên Thuốc" value={productData.productName} onChange={handleChange} error={!!errors.productName} helperText={errors.productName} fullWidth />
                     <FormControl fullWidth error={!!errors.categoryId}>
                         <InputLabel id="category-select-label">Danh Mục</InputLabel>
                         <Select labelId="category-select-label" name="categoryId" value={productData.categoryId} label="Danh Mục" onChange={handleChange}>
@@ -325,7 +325,7 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
                         <input type="file" hidden accept="image/png, image/jpeg" onChange={handleFileChange} />
                     </Button>
                     {errors.productImage && <FormHelperText error>{errors.productImage}</FormHelperText>}
-                    {imagePreview && <Box sx={{ mt: 2, textAlign: 'center' }}><img src={imagePreview} alt="Xem trước sản phẩm" style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }} /></Box>}
+                    {imagePreview && <Box sx={{ mt: 2, textAlign: 'center' }}><img src={imagePreview} alt="Xem trước thuốc" style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }} /></Box>}
                     {/* Supplier checkbox and selection */}
                     <Box sx={{ mt: 2 }}>
                         <FormControlLabel
@@ -336,7 +336,7 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
                                     color="primary"
                                 />
                             }
-                            label="Sản phẩm này có nhà cung cấp"
+                            label="Thuốc này có nhà cung cấp"
                         />
                         {hasSupplier && (
                             <FormControl fullWidth sx={{ mt: 2 }} error={!!errors.supplierId}>
@@ -360,7 +360,7 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
             </DialogContent>
             <DialogActions sx={{ p: '16px 24px' }}>
                 <Button onClick={handleClose} disabled={loading} color="secondary">Hủy</Button>
-                <Button onClick={handleSave} variant="contained" disabled={loading}>{loading ? <CircularProgress size={24} /> : "Lưu Sản Phẩm"}</Button>
+                <Button onClick={handleSave} variant="contained" disabled={loading}>{loading ? <CircularProgress size={24} /> : "Lưu Thuốc"}</Button>
             </DialogActions>
         </Dialog>
     );

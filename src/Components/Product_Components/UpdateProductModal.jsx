@@ -170,7 +170,7 @@ const UpdateProductModal = ({
 
   const validate = async () => {
     let tempErrors = {};
-    tempErrors.productName = productData.productName ? "" : "Tên sản phẩm không được bỏ trống.";
+    tempErrors.productName = productData.productName ? "" : "Tên thuốc không được bỏ trống.";
     tempErrors.categoryId = productData.categoryId ? "" : "Vui lòng chọn danh mục.";
     tempErrors.unit = productData.unit ? "" : "Đơn vị không được bỏ trống.";
     tempErrors.totalStock = productData.totalStock && Number(productData.totalStock) >= 0 ? "" : "Tổng số lượng phải là số dương.";
@@ -183,10 +183,10 @@ const UpdateProductModal = ({
     }
 
 
-    // Kiểm tra tổng số lượng tồn kho phải bằng tổng số lượng sản phẩm
+    // Kiểm tra tổng số lượng tồn kho phải bằng tổng số lượng thuốc
     // const totalLocationStock = productData.location.reduce((sum, inv) => sum + Number(inv.stock || 0), 0); // Commented out - will be developed later
     // if (totalLocationStock !== Number(productData.totalStock)) { // Commented out - will be developed later
-    //   tempErrors.location = "Số lượng sản phẩm trong các kệ phải bằng với tổng số lượng sản phẩm"; // Commented out - will be developed later
+    //   tempErrors.location = "Số lượng thuốc trong các kệ phải bằng với tổng số lượng thuốc"; // Commented out - will be developed later
     // }
 
     if (hasSupplier && !productData.supplierId) {
@@ -233,11 +233,11 @@ const UpdateProductModal = ({
   console.log("Product Data:", product);
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Cập Nhật Sản Phẩm</DialogTitle>
+    <DialogTitle>Cập Nhật Thuốc</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {errors.general && <Alert severity="error">{errors.general}</Alert>}
-          <TextField autoFocus name="productName" label="Tên Sản Phẩm" value={productData.productName} onChange={handleChange} error={!!errors.productName} helperText={errors.productName} fullWidth />
+          <TextField autoFocus name="productName" label="Tên Thuốc" value={productData.productName} onChange={handleChange} error={!!errors.productName} helperText={errors.productName} fullWidth />
           <FormControl fullWidth error={!!errors.categoryId}>
             <InputLabel id="category-select-label">Danh Mục</InputLabel>
             <Select labelId="category-select-label" name="categoryId" value={productData.categoryId} label="Danh Mục" onChange={handleChange}>
@@ -279,7 +279,7 @@ const UpdateProductModal = ({
             <input type="file" hidden accept="image/png, image/jpeg" onChange={handleFileChange} />
           </Button>
           {errors.productImage && <FormHelperText error>{errors.productImage}</FormHelperText>}
-          {imagePreview && <Box sx={{ mt: 2, textAlign: 'center' }}><img src={imagePreview} alt="Xem trước sản phẩm" style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }} /></Box>}
+          {imagePreview && <Box sx={{ mt: 2, textAlign: 'center' }}><img src={imagePreview} alt="Xem trước thuốc" style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }} /></Box>}
           {/* Supplier checkbox and selection */}
           <Box sx={{ mt: 2 }}>
             <FormControlLabel
@@ -290,7 +290,7 @@ const UpdateProductModal = ({
                   color="primary"
                 />
               }
-              label="Sản phẩm này có nhà cung cấp"
+              label="Thuốc này có nhà cung cấp"
             />
             {hasSupplier && (
               <FormControl fullWidth sx={{ mt: 2 }} error={!!errors.supplierId}>
@@ -314,7 +314,7 @@ const UpdateProductModal = ({
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
         <Button onClick={handleClose} disabled={loading} color="secondary">Đóng</Button>
-        <Button onClick={handleUpdate} variant="contained" disabled={loading}>{loading ? <CircularProgress size={24} /> : "Cập Nhật Sản Phẩm"}</Button>
+        <Button onClick={handleUpdate} variant="contained" disabled={loading}>{loading ? <CircularProgress size={24} /> : "Cập Nhật Thuốc"}</Button>
       </DialogActions>
     </Dialog>
   );
