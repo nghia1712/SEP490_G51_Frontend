@@ -3,7 +3,7 @@ import authAPI from '../authAPI';
 
 // Create Axios instance
 const authorApi = axios.create({
-    baseURL: 'http://localhost:9999',
+    baseURL: 'http://localhost:3001', // Thay đổi port nếu cần
     headers: {
         'Content-Type': 'application/json'
     },

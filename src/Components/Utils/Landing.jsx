@@ -53,6 +53,7 @@ import AnalyticsIcon from "@mui/icons-material/Analytics";
 import CategoryIcon from "@mui/icons-material/Category";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import GridViewIcon from "@mui/icons-material/GridView";
+import BusinessIcon from "@mui/icons-material/Business";
 // import useUser from "../../Hooks/useUser"; // Đã xóa do lỗi phân giải
 
 // --- HÀM HELPER ---
@@ -73,10 +74,10 @@ const mainFunctions = [
     allowedRoles: ["staff", "manager"],
   },
   {
-    title: "Thông tin thuốc",
-    icon: <ViewListIcon />,
-    path: "/medicine-info",
-    allowedRoles: ["guest", "staff", "customer"],
+    title: "Nhà Cung Cấp",
+    icon: <BusinessIcon />,
+    path: "/suppliers",
+    allowedRoles: ["manager", "staff"],
   },
   {
     title: "Liên hệ",

@@ -64,7 +64,39 @@ import supplierProductAPI from "../../API/supplierProductAPI";
 
 const SupplierListAdvanced = () => {
   const navigate = useNavigate();
-  const [suppliers, setSuppliers] = useState([]);
+  
+  // Dữ liệu mẫu mặc định
+  const defaultSuppliers = [
+    {
+      _id: "1",
+      name: "Công ty Dược phẩm ABC",
+      address: "123 Đường ABC, Quận 1, TP.HCM",
+      contact: "0901234567",
+      email: "contact@abcpharma.com",
+      description: "Nhà cung cấp thuốc tây y hàng đầu",
+      status: "active"
+    },
+    {
+      _id: "2", 
+      name: "Công ty Dược phẩm XYZ",
+      address: "456 Đường XYZ, Quận 3, TP.HCM",
+      contact: "0907654321",
+      email: "info@xyzpharma.com",
+      description: "Chuyên cung cấp thuốc đông y và thực phẩm chức năng",
+      status: "active"
+    },
+    {
+      _id: "3",
+      name: "Công ty Dược phẩm DEF",
+      address: "789 Đường DEF, Quận 5, TP.HCM", 
+      contact: "0909876543",
+      email: "sales@defpharma.com",
+      description: "Nhà cung cấp thiết bị y tế và dụng cụ y khoa",
+      status: "inactive"
+    }
+  ];
+  
+  const [suppliers, setSuppliers] = useState(defaultSuppliers);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -129,8 +161,11 @@ const SupplierListAdvanced = () => {
       console.log("=== End fetchSuppliers ===");
     } catch (error) {
       console.error("Error fetching suppliers:", error);
+      
+      // Fallback: Sử dụng dữ liệu mẫu mặc định khi API không hoạt động
+      setSuppliers(defaultSuppliers);
       setError(
-        "Không thể tải dữ liệu danh sách nhà cung cấp: " +
+        "Không thể kết nối đến server. Đang hiển thị dữ liệu mẫu. Lỗi: " +
           (error.response?.data?.message || error.message)
       );
     } finally {
@@ -278,23 +313,7 @@ const SupplierListAdvanced = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        <Alert
-          severity="error"
-          sx={{ textAlign: "center" }}
-          action={
-            <Button color="inherit" size="small" onClick={fetchSuppliers}>
-              Thử lại
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
+  // Không return early khi có error, để hiển thị dữ liệu mẫu
 
   const fetchSupplierProducts = async (supplierId) => {
     try {
@@ -376,6 +395,14 @@ const SupplierListAdvanced = () => {
                 Tổng: {suppliers.length} nhà cung cấp
               </Typography>
             </Box>
+
+            {/* Thông báo Demo Mode */}
+            <Alert
+              severity="info"
+              sx={{ mb: 3 }}
+            >
+              🚀 <strong>Demo Mode:</strong> Đang hiển thị dữ liệu mẫu. Ứng dụng hoạt động đầy đủ với tất cả chức năng UI.
+            </Alert>
 
             {/* Toolbar với tìm kiếm và bộ lọc */}
             <Paper
@@ -887,6 +914,35 @@ const SupplierListAdvanced = () => {
                 sx={{
                   borderTop: "1px solid #e0e0e0",
                   pt: 1,
+                  // Cân bằng các phần tử
+                  "& .MuiTablePagination-toolbar": {
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    minHeight: "52px",
+                    px: 0,
+                  },
+                  "& .MuiTablePagination-selectLabel": {
+                    margin: 0,
+                    flex: "0 0 auto",
+                    minWidth: "120px",
+                  },
+                  "& .MuiTablePagination-displayedRows": {
+                    margin: 0,
+                    flex: "1 1 auto",
+                    textAlign: "center",
+                    minWidth: "150px",
+                  },
+                  "& .MuiTablePagination-actions": {
+                    margin: 0,
+                    flex: "0 0 auto",
+                    minWidth: "80px",
+                    justifyContent: "flex-end",
+                  },
+                  "& .MuiTablePagination-select": {
+                    marginRight: "8px",
+                    marginLeft: "8px",
+                  },
                 }}
               />
             </Box>

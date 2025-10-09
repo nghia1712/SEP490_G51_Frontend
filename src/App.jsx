@@ -17,6 +17,10 @@ import ListAllUsers from "./Components/Manager_Components/ListAllUsers";
 import CreateEmployee from "./Components/Manager_Components/CreateEmployee";
 import ProductList from "./Components/Product_Components/ProductList";
 import ListCategory from "./Components/Category_Components/ListCategory";
+import SupplierListAdvanced from "./Components/Supplier_Components/SupplierListAdvanced";
+import AddNewSupplier from "./Components/Supplier_Components/AddNewSupplier";
+import ManageSupplierProducts from "./Components/Supplier_Components/ManageSupplierProducts";
+import SupplierProductDetail from "./Components/Supplier_Components/SupplierProductDetail";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -118,6 +122,40 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['manager']}>
                     <CreateEmployee />
+                  </ProtectedRoute>
+                }
+              />
+              
+              {/* Routes cho Supplier Management */}
+              <Route 
+                path="/suppliers" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                    <SupplierListAdvanced />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/manager/add-suppliers" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                    <AddNewSupplier />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/manager/manage-supplier-products" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <ManageSupplierProducts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/manager/supplier-products/:id" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                    <SupplierProductDetail />
                   </ProtectedRoute>
                 }
               />

@@ -12,7 +12,7 @@ const addCacheBusting = (url) => {
 
 const supplierAPI = {
   getAll: () => {
-    return authorApi.get(addCacheBusting(`${API_URL}/get-list-suppliers`), {
+    return authorApi.get(addCacheBusting(`${API_URL}`), {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         Pragma: "no-cache",
@@ -21,7 +21,7 @@ const supplierAPI = {
     });
   },
   getList: () => {
-    return authorApi.get(addCacheBusting(`${API_URL}/get-list-suppliers`), {
+    return authorApi.get(addCacheBusting(`${API_URL}`), {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         Pragma: "no-cache",
@@ -30,6 +30,7 @@ const supplierAPI = {
     });
   },
   getMinimal: () => authorApi.get(`${API_URL}/getAllSuppliers`), // Minimal data (id, name, status only)
+  getById: (id) => authorApi.get(`${API_URL}/getSupplierById/${id}`),
   add: (data) => authorApi.post(`${API_URL}/addSupplier`, data),
   update: (id, data) => authorApi.put(`${API_URL}/updateSupplier/${id}`, data),
   updateStatus: (id, data) =>

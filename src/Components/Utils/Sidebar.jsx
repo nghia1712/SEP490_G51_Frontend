@@ -10,7 +10,7 @@ const Sidebar = () => {
         { path: '/product', label: 'Sản phẩm' },
         { path: '/category', label: 'Danh mục' },
         { path: '/manager/get-all-user', label: 'Nhân viên' },
-        { path: '/get-list-suppliers', label: 'Nhà cung cấp' },
+        { path: '/suppliers', label: 'Nhà cung cấp' },
     ];
 
   return (

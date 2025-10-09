@@ -139,7 +139,7 @@ function Header() {
   ];
 
   const partnerMenuItems = [
-    { label: "Nhà cung cấp", path: "/get-list-suppliers", allowedRoles: ["manager", "staff"] },
+    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "staff"] },
     { label: "Quản lý Nhà cung cấp - Sản phẩm", path: "/manager/manage-supplier-products", allowedRoles: ["manager"] },
     { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "staff"] },
   ];
