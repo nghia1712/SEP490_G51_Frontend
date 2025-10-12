@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -7,76 +7,48 @@ import {
   Button,
   Table,
   Form,
-  InputGroup,
   Alert,
   Card,
   Badge,
 } from "react-bootstrap";
-import inventoryAPI from "../../API/inventoryAPI";
-import productAPI from "../../API/productAPI";
+import useInventory from "../../Hooks/useInventory";
+import useProduct from "../../Hooks/useProduct";
 
 function ProductWarehouse() {
-  const [shelves, setShelves] = useState([]);
+  // Sử dụng useInventory và useProduct hooks
+  const {
+    inventories: shelves,
+    loading: inventoryLoading,
+    error: inventoryError,
+    fetchInventories,
+    addProductToShelf,
+    removeProductFromShelf,
+  } = useInventory();
+
+  const {
+    products,
+    loading: productLoading,
+    error: productError,
+    fetchProducts,
+  } = useProduct();
+
+  // Local state cho UI
   const [selectedShelf, setSelectedShelf] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  // Form state
   const [formMode, setFormMode] = useState(""); // "import" hoặc "export" hoặc "optimize" hoặc ""
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [weight, setWeight] = useState(1);
   const [optimizedShelves, setOptimizedShelves] = useState([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 创建一个可以重用的加载数据函数
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      // 获取货架布局数据，这会包含货架上的产品信息
-      const shelvesRes = await inventoryAPI.getLayout();
-      setShelves(shelvesRes.data);
-
-      // 获取所有产品
-      const productsRes = await productAPI.getAll();
-      setProducts(productsRes.data);
-
-      setLoading(false);
-    } catch (err) {
-      console.error("加载数据错误:", err);
-      setError("Đã xảy ra lỗi khi tải dữ liệu");
-      setLoading(false);
-    }
-  }, []);
-
-  // 首次加载时获取数据
+  // Khởi tạo dữ liệu khi component mount
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // 刷新选定货架的信息
-  const refreshSelectedShelf = useCallback(async () => {
-    if (!selectedShelf) return;
-
-    try {
-      const shelvesRes = await inventoryAPI.getLayout();
-      const updatedShelves = shelvesRes.data;
-      setShelves(updatedShelves);
-
-      // 更新选中的货架信息
-      const updatedSelectedShelf = updatedShelves.find(
-        (s) => s._id === selectedShelf._id
-      );
-
-      if (updatedSelectedShelf) {
-        setSelectedShelf(updatedSelectedShelf);
-      }
-    } catch (err) {
-      console.error("刷新货架数据错误:", err);
-    }
-  }, [selectedShelf]);
+    fetchInventories();
+    fetchProducts();
+  }, [fetchInventories, fetchProducts]);
 
   // Tạo grid layout đơn giản dựa trên location (ví dụ: A1, B2...)
   // Giả sử location là dạng "A1", "A2", "B1", ...
@@ -131,21 +103,16 @@ function ProductWarehouse() {
             (s) => s._id === shelf?._id
           );
 
-          // 计算货架的使用率
+          // Tính toán sử dụng kệ và màu sắc
           const usageRate = shelf
-            ? Math.round(
-                (shelf.currentQuantitative / shelf.maxQuantitative) * 100
-              )
+            ? Math.round((shelf.currentQuantitative / shelf.maxQuantitative) * 100)
             : 0;
-
-          // 根据使用率设置颜色
-          let shelfColorClass = "primary";
+          
+          let shelfColorClass = "secondary";
           if (shelf && shelf.status === "active") {
             if (usageRate >= 90) shelfColorClass = "danger";
             else if (usageRate >= 70) shelfColorClass = "warning";
             else shelfColorClass = "primary";
-          } else {
-            shelfColorClass = "secondary";
           }
 
           return (
@@ -230,18 +197,15 @@ function ProductWarehouse() {
     setLoading(true);
     setError("");
     try {
-      await inventoryAPI.addProductToShelf({
+      await addProductToShelf({
         inventoryId: selectedShelf._id,
         productId: selectedProduct,
         quantity: parseInt(quantity),
         weight: parseFloat(weight),
       });
 
-      // 刷新数据
-      await loadData();
-      // 更新选定的货架信息
-      await refreshSelectedShelf();
-
+      // Refresh data
+      await fetchInventories();
       setSuccess("Nhập hàng thành công");
       setFormMode("");
       setQuantity(1);
@@ -263,17 +227,14 @@ function ProductWarehouse() {
     setLoading(true);
     setError("");
     try {
-      await inventoryAPI.removeProductFromShelf({
+      await removeProductFromShelf({
         inventoryId: selectedShelf._id,
         productId: selectedProduct,
         quantity: parseInt(quantity),
       });
 
-      // 刷新数据
-      await loadData();
-      // 更新选定的货架信息
-      await refreshSelectedShelf();
-
+      // Refresh data
+      await fetchInventories();
       setSuccess("Xuất hàng thành công");
       setFormMode("");
       setQuantity(1);
@@ -302,8 +263,8 @@ function ProductWarehouse() {
         return;
       }
 
-      // 首先获取最新的货架数据
-      await loadData();
+      // Tải dữ liệu kho mới nhất
+      await fetchInventories();
 
       // Tìm các kệ phù hợp với loại sản phẩm và còn trống
       const compatibleShelves = shelves.filter(
@@ -312,9 +273,7 @@ function ProductWarehouse() {
           shelf.category?._id === product.categoryId
       );
 
-      // Sắp xếp kệ theo thứ tự ưu tiên:
-      // 1. Kệ đã có sản phẩm này
-      // 2. Kệ còn nhiều chỗ trống nhất
+      // Sắp xếp kệ theo thứ tự ưu tiên
       const optimized = compatibleShelves
         .map((shelf) => {
           // Kiểm tra xem kệ đã có sản phẩm này chưa
@@ -337,7 +296,7 @@ function ProductWarehouse() {
             spacePercentage,
           };
         })
-        .filter((shelf) => shelf.spaceLeft > 0 && shelf.status === "active") // Chỉ lấy kệ còn trống và đang hoạt động
+        .filter((shelf) => shelf.spaceLeft > 0 && shelf.status === "active")
         .sort((a, b) => {
           // Ưu tiên kệ đã có sản phẩm
           if (a.hasProduct && !b.hasProduct) return -1;
@@ -710,7 +669,7 @@ function ProductWarehouse() {
           </Button>
           <Button
             variant="primary"
-            onClick={refreshSelectedShelf}
+            onClick={fetchInventories}
             disabled={loading}
           >
             Làm mới dữ liệu

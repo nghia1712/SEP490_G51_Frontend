@@ -56,7 +56,9 @@ const getUserRole = () => {
   if (token.startsWith("demo-token-")) {
     const userId = token.split("-")[2];
     if (userId === "4") return "manager";
-    if (userId === "1" || userId === "3") return "staff";
+    if (userId === "1" || userId === "6") return "sales_staff";
+    if (userId === "3") return "purchases_staff";
+    if (userId === "5") return "warehouse_staff";
     return "customer";
   }
   return null;
@@ -131,22 +133,25 @@ function Header() {
   // --- NAVIGATION ITEMS ---
   const navItems = [
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager"] },
-    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "staff"] },
-    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "staff"] },
-    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "staff"] },
-    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "staff"] },
+    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff"] },
+    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff"] },
+    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "warehouse_staff"] },
+    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff"] },
+    { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff"] },
     { label: "Nhân viên", path: "/manager/get-all-user", allowedRoles: ["manager"] },
+    { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff"] },
+    { label: "Mua hàng", path: "/purchases", allowedRoles: ["manager", "purchases_staff"] },
   ];
 
   const partnerMenuItems = [
-    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "staff"] },
+    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "purchases_staff"] },
     { label: "Quản lý Nhà cung cấp - Sản phẩm", path: "/manager/manage-supplier-products", allowedRoles: ["manager"] },
-    { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "staff"] },
+    { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "sales_staff"] },
   ];
 
   const transactionMenuItems = [
-    { label: "Phiếu Nhập Kho", path: "/receipts", allowedRoles: ["manager"] },
-    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "staff"] },
+    { label: "Phiếu Nhập Kho", path: "/receipts", allowedRoles: ["manager", "purchases_staff"] },
+    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "warehouse_staff"] },
     { label: "Danh Sách Giao Dịch", path: "/list-transaction", allowedRoles: ["manager"] },
   ];
 

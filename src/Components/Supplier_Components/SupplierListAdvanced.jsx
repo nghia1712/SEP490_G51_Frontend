@@ -377,9 +377,30 @@ const SupplierListAdvanced = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Card elevation={3} sx={{ borderRadius: 2 }}>
-        <CardContent sx={{ p: 3 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundImage: "url('/images/backgroundMedical2.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "linear-gradient(135deg, rgba(0, 150, 136, 0.4) 0%, rgba(0, 121, 107, 0.45) 25%, rgba(0, 96, 100, 0.5) 50%, rgba(0, 77, 64, 0.45) 75%, rgba(0, 60, 50, 0.4) 100%)",
+          zIndex: 0,
+        },
+      }}
+    >
+      <Container maxWidth="xl" sx={{ mt: 0, mb: 4, position: "relative", zIndex: 1, pt: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}>
+          <CardContent sx={{ p: 3 }}>
           {/* Header */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -947,10 +968,10 @@ const SupplierListAdvanced = () => {
               />
             </Box>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Menu hành động */}
+        {/* Menu hành động */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -1005,14 +1026,15 @@ const SupplierListAdvanced = () => {
         </Fab>
       </Zoom>
 
-      {/* Modal chỉnh sửa */}
-      <EditSuppliers
-        user={editingSupplier}
-        closeModal={() => setEditingSupplier(null)}
-        users={suppliers}
-        setUsers={setSuppliers}
-      />
-    </Container>
+        {/* Modal chỉnh sửa */}
+        <EditSuppliers
+          user={editingSupplier}
+          closeModal={() => setEditingSupplier(null)}
+          users={suppliers}
+          setUsers={setSuppliers}
+        />
+      </Container>
+    </Box>
   );
 };
 

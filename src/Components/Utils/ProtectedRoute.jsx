@@ -68,7 +68,14 @@ const ProtectedRoute = ({ children, allowedRoles, redirectTo = '/login' }) => {
                 console.log('Decoded token:', decodedToken);
                 
                 if (decodedToken && decodedToken.roleId) {
-                    const userRole = decodedToken.roleId === 1 ? 'staff' : decodedToken.roleId === 3 ? 'manager' : 'customer';
+                    let userRole;
+                    if (decodedToken.roleId === 1) userRole = 'sales_staff';
+                    else if (decodedToken.roleId === 2) userRole = 'purchases_staff';
+                    else if (decodedToken.roleId === 3) userRole = 'warehouse_staff';
+                    else if (decodedToken.roleId === 4) userRole = 'customer';
+                    else if (decodedToken.roleId === 5) userRole = 'manager';
+                    else userRole = 'customer';
+                    
                     console.log('User role:', userRole, 'Allowed roles:', allowedRoles);
                     
                     if (allowedRoles.includes(userRole)) {

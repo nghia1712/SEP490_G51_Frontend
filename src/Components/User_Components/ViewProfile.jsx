@@ -39,11 +39,15 @@ const Profile = () => {
 	const getRoleLabel = (role) => {
 		if (!role) return "-";
 		const id = role.id ?? role.roleId ?? role.role_id;
-		if (id === 1) return "Nhân viên";
-		if (id === 2) return "Khách hàng";
-		if (id === 3) return "Quản lý";
+		if (id === 1) return "Nhân viên bán hàng";
+		if (id === 2) return "Nhân viên mua hàng";
+		if (id === 3) return "Nhân viên kho";
+		if (id === 4) return "Khách hàng";
+		if (id === 5) return "Quản lý";
 		const name = String(role.name || "").toLowerCase();
-		if (name === "staff") return "Nhân viên";
+		if (name === "sales_staff") return "Nhân viên bán hàng";
+		if (name === "purchases_staff") return "Nhân viên mua hàng";
+		if (name === "warehouse_staff") return "Nhân viên kho";
 		if (name === "customer") return "Khách hàng";
 		if (name === "manager") return "Quản lý";
 		return role.name || "-";

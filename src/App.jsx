@@ -5,6 +5,7 @@ import Header from "./Components/Utils/Header";
 import Footer from "./Components/Utils/Footer";
 import Landing from "./Components/Utils/Landing";
 import ProtectedRoute from "./Components/Utils/ProtectedRoute";
+import DevelopmentPage from "./Components/Utils/CommonComponents/DevelopmentPage";
 import Login from "./Components/Login_Components/Login";
 import Register from "./Components/Login_Components/Register";
 import ForgotPassword from "./Components/Login_Components/ForgotPassword";
@@ -21,6 +22,12 @@ import SupplierListAdvanced from "./Components/Supplier_Components/SupplierListA
 import AddNewSupplier from "./Components/Supplier_Components/AddNewSupplier";
 import ManageSupplierProducts from "./Components/Supplier_Components/ManageSupplierProducts";
 import SupplierProductDetail from "./Components/Supplier_Components/SupplierProductDetail";
+import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
+import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
+import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
+import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
+import InventoryCheck from "./Components/Inventory_Components/InventoryCheck";
+import Stocktaking from "./Components/Inventory_Components/Stocktaking";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -62,7 +69,7 @@ const ConditionalHome = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         {/* Box chính bao bọc toàn bộ ứng dụng để đảm bảo Footer luôn ở cuối trang */}
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Header />
@@ -82,18 +89,103 @@ function App() {
               <Route path="/medicine-info" element={<div>Thông tin thuốc - Đang phát triển</div>} />
               <Route path="/contact" element={<div>Liên hệ - Đang phát triển</div>} />
               
-              {/* Routes cho Staff */}
+              {/* Routes cho Sales Staff */}
+              <Route 
+                path="/sales" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                    <SalesDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Routes cho Sales Staff */}
+              <Route 
+                path="/sales-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                    <SalesDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Routes cho Purchases Staff */}
+              <Route 
+                path="/purchases-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                    <PurchasesDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/purchases" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                    <PurchasesDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Routes cho Warehouse Staff */}
+              <Route 
+                path="/warehouse-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                    <WarehouseDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/warehouse" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                    <WarehouseDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/warehouse-products" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                    <ProductWarehouse />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Routes cho tất cả Staff */}
               <Route 
                 path="/product" 
                 element={
-                  <ProtectedRoute allowedRoles={['staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff']}>
                     <ProductList />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Route cho trang đang phát triển */}
+              <Route 
+                path="/development" 
+                element={<DevelopmentPage />} 
+              />
+              <Route 
+                path="/inventory-check" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                    <InventoryCheck />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/stocktaking" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                    <Stocktaking />
                   </ProtectedRoute>
                 } 
               />
               <Route path="/receipts" element={<div>Nhập hàng - Đang phát triển</div>} />
               <Route path="/export" element={<div>Xuất hàng - Đang phát triển</div>} />
-              <Route path="/stocktaking" element={<div>Kiểm kê - Đang phát triển</div>} />
               
               {/* Routes cho Customer */}
               <Route path="/my-orders" element={<div>Đơn hàng của tôi - Đang phát triển</div>} />
@@ -103,7 +195,7 @@ function App() {
               <Route 
                 path="/category" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager','staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff']}>
                     <ListCategory />
                   </ProtectedRoute>
                 } 
@@ -130,7 +222,7 @@ function App() {
               <Route 
                 path="/suppliers" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
                     <SupplierListAdvanced />
                   </ProtectedRoute>
                 }
@@ -138,7 +230,7 @@ function App() {
               <Route 
                 path="/manager/add-suppliers" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
                     <AddNewSupplier />
                   </ProtectedRoute>
                 }
@@ -154,7 +246,7 @@ function App() {
               <Route 
                 path="/manager/supplier-products/:id" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
                     <SupplierProductDetail />
                   </ProtectedRoute>
                 }
@@ -164,7 +256,7 @@ function App() {
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute allowedRoles={['staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
                     <ViewProfile />
                   </ProtectedRoute>
                 } 
@@ -172,7 +264,7 @@ function App() {
               <Route 
                 path="/edit-profile" 
                 element={
-                  <ProtectedRoute allowedRoles={['staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
                     <EditProfile />
                   </ProtectedRoute>
                 } 
@@ -180,7 +272,7 @@ function App() {
               <Route 
                 path="/change-password" 
                 element={
-                  <ProtectedRoute allowedRoles={['staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
                     <ChangePassword />
                   </ProtectedRoute>
                 } 

@@ -65,43 +65,63 @@ const mainFunctions = [
     title: "Quản lý thuốc",
     icon: <Inventory2Icon />,
     path: "/product",
-    allowedRoles: ["staff"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
   },
   {
     title: "Danh mục thuốc",
     icon: <CategoryIcon />,
     path: "/category",
-    allowedRoles: ["staff", "manager"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
   },
   {
     title: "Nhà Cung Cấp",
     icon: <BusinessIcon />,
     path: "/suppliers",
-    allowedRoles: ["manager", "staff"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
   },
   {
     title: "Liên hệ",
     icon: <HandshakeIcon />,
     path: "/contact",
-    allowedRoles: ["guest", "staff", "customer"],
+    allowedRoles: ["guest", "sales_staff", "purchases_staff", "warehouse_staff", "customer", "manager"],
   },
   {
     title: "Nhập hàng",
     icon: <MoveToInboxIcon />,
     path: "/receipts",
-    allowedRoles: ["staff"],
+    allowedRoles: ["purchases_staff", "warehouse_staff", "manager"],
   },
   {
     title: "Xuất hàng",
     icon: <OutputIcon />,
     path: "/export",
-    allowedRoles: ["staff"],
+    allowedRoles: ["sales_staff", "warehouse_staff", "manager"],
   },
   {
     title: "Kiểm kê",
     icon: <FactCheckIcon />,
     path: "/stocktaking",
-    allowedRoles: ["staff"],
+    allowedRoles: ["warehouse_staff", "manager"],
+  },
+  
+  // Dashboard cho từng vai trò
+  {
+    title: "Dashboard Bán Hàng",
+    icon: <AnalyticsIcon />,
+    path: "/sales-dashboard",
+    allowedRoles: ["sales_staff", "manager"],
+  },
+  {
+    title: "Dashboard Mua Hàng",
+    icon: <MoveToInboxIcon />,
+    path: "/purchases-dashboard",
+    allowedRoles: ["purchases_staff", "manager"],
+  },
+  {
+    title: "Dashboard Kho",
+    icon: <Inventory2Icon />,
+    path: "/warehouse-dashboard",
+    allowedRoles: ["warehouse_staff", "manager"],
   },
   
   // Chức năng cho Customer (cần đăng nhập)
@@ -140,9 +160,18 @@ const getUserRole = () => {
     // Xử lý token từ mock data hoặc real token
     if (token.startsWith('demo-token-')) {
       const userId = token.split('-')[2];
-      return userId === '1' || userId === '3' ? 'staff' : 'customer';
+      if (userId === '1' || userId === '6') return 'sales_staff';
+      if (userId === '3') return 'purchases_staff';
+      if (userId === '5') return 'warehouse_staff';
+      if (userId === '4') return 'manager';
+      return 'customer';
     }
-    return decoded.roleId === 1 ? 'staff' : 'customer';
+    if (decoded.roleId === 1) return 'sales_staff';
+    if (decoded.roleId === 2) return 'purchases_staff';
+    if (decoded.roleId === 3) return 'warehouse_staff';
+    if (decoded.roleId === 4) return 'customer';
+    if (decoded.roleId === 5) return 'manager';
+    return 'customer';
   } catch (error) {
     console.error("Không thể giải mã token:", error);
     return null;

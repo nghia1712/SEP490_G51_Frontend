@@ -44,7 +44,7 @@ const AddProductModal = ({ open, handleClose, onSaveSuccess, createProduct, chec
         } else {
             setProductData({
                 productName: "", categoryId: "", totalStock: 0,
-                productImage: null, unit: "", location: "", status: "active",
+                productImage: null, unit: "", status: "active",
                 location: [],
                 supplierId: "",
             });

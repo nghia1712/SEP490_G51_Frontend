@@ -103,7 +103,7 @@ const Login = () => {
         <Card className="shadow-lg" style={{ border: 'none', overflow: 'hidden', borderRadius: '15px' }}>
           <Row className="g-0">
             {/* Cột Form */}
-            <Col xs={12} md={6} className="d-flex flex-column justify-content-center">
+            <Col xs={12} md={6  } className="d-flex flex-column justify-content-center">
               {/* Bọc Card.Body bằng motion.div để áp dụng stagger animation */}
               <motion.div
                 className="p-4 p-md-5"
@@ -160,15 +160,15 @@ const Login = () => {
                     </Form.Group>
                   </motion.div>
 
-                  <motion.div variants={itemVariants} className="d-flex flex-column flex-sm-row justify-content-sm-between align-items-center gap-3">
+                  <motion.div variants={itemVariants} className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                     <a href="/forgot-password" className="text-decoration-none" style={{ color: '#155E64' }}>Quên mật khẩu?</a>
                     {/* Bọc Button trong motion.div để có hiệu ứng hover/tap */}
                     <motion.div
-                      className="w-100 w-sm-auto"
+                      className="d-inline-block"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button type="submit" className="w-100" style={{ backgroundColor: "#48C1A6", border: "none", padding: '10px 25px' }}>
+                      <Button type="submit" style={{ backgroundColor: "#48C1A6", border: "none", padding: '10px 25px' }}>
                         Đăng nhập
                       </Button>
                     </motion.div>

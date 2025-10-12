@@ -120,7 +120,7 @@ const EditProfile = () => {
 		formData.append("address", profile.address);
 
 		// Thêm thông tin profile dựa trên role
-		if (profile.role?.name === "staff" && profile.profile) {
+		if ((profile.role?.name === "sales_staff" || profile.role?.name === "purchases_staff" || profile.role?.name === "warehouse_staff") && profile.profile) {
 			formData.append("employee_code", profile.profile.employee_code || "");
 			formData.append("department", profile.profile.department || "");
 			formData.append("notes", profile.profile.notes || "");
@@ -212,7 +212,7 @@ const EditProfile = () => {
 									</Row>
 									
 									{/* Hiển thị form dựa trên role */}
-									{profile.role?.name === "staff" && profile.profile && (
+									{(profile.role?.name === "sales_staff" || profile.role?.name === "purchases_staff" || profile.role?.name === "warehouse_staff") && profile.profile && (
 										<>
 											<hr />
 											<h5>Thông tin nhân viên</h5>

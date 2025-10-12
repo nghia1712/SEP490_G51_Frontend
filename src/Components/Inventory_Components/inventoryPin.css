@@ -1,0 +1,255 @@
+/* --- Pin battery style --- */
+.inventory-pin-box {
+  position: relative;
+  width: 70px;
+  height: 26px;
+  background: linear-gradient(90deg, #f8fafc 60%, #e0e7ef 100%);
+  border-radius: 14px;
+  border: 2px solid #d1d5db;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inventory-pin-bar {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.4s;
+  box-shadow: 0 0 4px 0 rgba(0,0,0,0.10) inset;
+}
+
+.inventory-pin-bar.low {
+  background: linear-gradient(90deg, #ff6161 60%, #ffb199 100%);
+}
+.inventory-pin-bar.medium {
+  background: linear-gradient(90deg, #ffe066 60%, #ffd700 100%);
+}
+.inventory-pin-bar.high {
+  background: linear-gradient(90deg, #4ade80 60%, #22d3ee 100%);
+}
+
+.inventory-pin-head {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 14px;
+  background: #d1d5db;
+  border-radius: 3px;
+  border: 1.5px solid #bdbdbd;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+}
+
+/* Hover effect for pin */
+.inventory-pin-box:hover {
+  box-shadow: 0 4px 16px rgba(34,197,94,0.12), 0 2px 8px rgba(0,0,0,0.10);
+  border-color: #22d3ee;
+}
+
+/* --- Table style --- */
+.MuiTableContainer-root {
+  margin-top: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+.MuiTable-root {
+  background: #f9fafb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.MuiTableHead-root th {
+  background: #e0e7ef;
+  color: #22223b;
+  font-weight: 600;
+  font-size: 1rem;
+  border-bottom: 2px solid #bdbdbd;
+}
+
+.MuiTableBody-root tr {
+  transition: background 0.2s;
+}
+
+.MuiTableBody-root tr:hover {
+  background: #f1f5f9;
+}
+
+.MuiTableCell-root {
+  font-size: 0.98rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+}
+
+.MuiTableCell-root:last-child {
+  text-align: center;
+}
+
+/* --- Button style --- */
+.MuiButton-contained {
+  background: linear-gradient(90deg, #22d3ee 0%, #4ade80 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.08);
+  transition: background 0.2s;
+}
+
+.MuiButton-contained:hover {
+  background: linear-gradient(90deg, #4ade80 0%, #22d3ee 100%);
+}
+
+/* --- Dialog style --- */
+.MuiDialog-paper {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(34,197,94,0.10);
+}
+
+.MuiDialogTitle-root {
+  font-weight: 700;
+  color: #22d3ee;
+  letter-spacing: 1px;
+}
+
+.MuiDialogActions-root {
+  padding-bottom: 20px;
+}
+
+/* --- Form style --- */
+.MuiFormControl-root,
+.MuiTextField-root {
+  margin-bottom: 12px !important;
+}
+
+.MuiInputLabel-root {
+  color: #22d3ee !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #22d3ee !important;
+}
+
+.MuiSelect-root,
+.MuiOutlinedInput-input {
+  background: #f8fafc;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .MuiTableCell-root {
+    font-size: 0.92rem;
+    padding: 8px 6px;
+  }
+  .inventory-pin-box {
+    width: 48px;
+    height: 18px;
+    border-radius: 9px;
+  }
+  .inventory-pin-head {
+    width: 5px;
+    height: 9px;
+    border-radius: 2px;
+    right: -5px;
+  }
+}
+
+/* Card từng kệ: nền trắng, viền xanh, bo góc lớn */
+.shelf-card {
+  background: #fff;
+  border: 4px solid #7dbbaa;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
+  padding: 20px 20px 0 20px;
+  min-height: 400px;
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+  width: 320px;
+  max-width: 100%;
+  margin: 0 auto;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.shelf-card:hover {
+  transform: scale(1.04) translateY(-8px);
+  box-shadow: 0 16px 40px 0 rgba(31,38,135,0.18);
+  border-color: #5cae96;
+}
+
+/* Badge và nút */
+.shelf-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 8px 0 8px;
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+/* SVG kệ */
+.shelf-card-svg {
+  width: 220px;
+  height: 200px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+/* Thông tin tên, loại, phần trăm */
+.shelf-card-title {
+    color: #1976d2;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 8px #22d3ee33;
+  font-size: 20px;   /* tăng kích thước chữ lên */
+  line-height: 1.2;
+}
+
+.shelf-card-category {
+  color: #22d3ee;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 20px;
+}
+
+.shelf-card-progress {
+  width: 100%;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Chip số lượng và cân nặng */
+.shelf-card-chips {
+   display: flex;
+  flex-direction: row;      /* đổi từ column sang row */
+  align-items: center;
+  justify-content: center;  /* căn giữa ngang */
+  width: 100%;
+  gap: 8px;                 /* khoảng cách giữa hai chip */
+  padding-bottom: 18px;
+  margin-bottom: 8px;
+}
+
+.shelf-card-chips .MuiChip-root {
+   width: 48%;
+  max-width: 100%;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 0; 
+}

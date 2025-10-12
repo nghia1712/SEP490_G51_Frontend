@@ -1,8 +1,10 @@
 // Mock data cho demo frontend theo cấu trúc database thực tế
 export const mockRoles = [
-  { id: 1, name: "staff" },
-  { id: 2, name: "customer" },
-  { id: 3, name: "manager" }
+  { id: 1, name: "sales_staff" },
+  { id: 2, name: "purchases_staff" },
+  { id: 3, name: "warehouse_staff" },
+  { id: 4, name: "customer" },
+  { id: 5, name: "manager" }
 ];
 
 export const mockAccounts = [
@@ -13,7 +15,7 @@ export const mockAccounts = [
     password: "123456",
     phoneNumber: "0123456789",
     address: "123 Đường ABC, Quận 1, TP.HCM",
-    roleId: 1, // staff
+    roleId: 1, // sales_staff
     status: "active",
     createAt: "2024-01-15T08:00:00Z"
   },
@@ -24,7 +26,7 @@ export const mockAccounts = [
     password: "123456",
     phoneNumber: "0987654321",
     address: "456 Đường XYZ, Quận 2, TP.HCM",
-    roleId: 2, // customer
+    roleId: 4, // customer
     status: "active",
     createAt: "2024-01-20T10:30:00Z"
   },
@@ -35,11 +37,10 @@ export const mockAccounts = [
     password: "123456",
     phoneNumber: "0369852147",
     address: "789 Đường DEF, Quận 3, TP.HCM",
-    roleId: 1, // staff
+    roleId: 2, // purchases_staff
     status: "active",
     createAt: "2024-02-01T14:15:00Z"
-  }
-  ,
+  },
   {
     id: 4,
     fullName: "Quản Trị Viên",
@@ -47,9 +48,31 @@ export const mockAccounts = [
     password: "123456",
     phoneNumber: "0900000000",
     address: "1 Đường Quản Trị, Quận 1, TP.HCM",
-    roleId: 3, // manager
+    roleId: 5, // manager
     status: "active",
     createAt: "2024-02-10T09:00:00Z"
+  },
+  {
+    id: 5,
+    fullName: "Phạm Thị D",
+    email: "phamthid@example.com",
+    password: "123456",
+    phoneNumber: "0369852148",
+    address: "321 Đường GHI, Quận 4, TP.HCM",
+    roleId: 3, // warehouse_staff
+    status: "active",
+    createAt: "2024-02-15T11:20:00Z"
+  },
+  {
+    id: 6,
+    fullName: "Hoàng Văn E",
+    email: "hoangvane@example.com",
+    password: "123456",
+    phoneNumber: "0369852149",
+    address: "654 Đường JKL, Quận 5, TP.HCM",
+    roleId: 1, // sales_staff
+    status: "active",
+    createAt: "2024-02-20T13:45:00Z"
   }
 ];
 
@@ -57,16 +80,30 @@ export const mockStaffProfiles = [
   {
     staff_profile_id: 1,
     user_id: 1,
-    employee_code: "EMP001",
-    department: "IT Department",
-    notes: "Nhân viên IT chuyên về frontend development"
+    employee_code: "SALES001",
+    department: "Sales Department",
+    notes: "Nhân viên bán hàng chuyên về thuốc kê đơn"
   },
   {
     staff_profile_id: 2,
     user_id: 3,
-    employee_code: "EMP002", 
-    department: "Marketing Department",
-    notes: "Nhân viên Marketing chuyên về digital marketing"
+    employee_code: "PURCHASES001", 
+    department: "Purchases Department",
+    notes: "Nhân viên mua hàng chuyên về thuốc và thiết bị y tế"
+  },
+  {
+    staff_profile_id: 3,
+    user_id: 5,
+    employee_code: "WAREHOUSE001",
+    department: "Warehouse Department",
+    notes: "Nhân viên kho chuyên về quản lý tồn kho và xuất nhập"
+  },
+  {
+    staff_profile_id: 4,
+    user_id: 6,
+    employee_code: "SALES002",
+    department: "Sales Department",
+    notes: "Nhân viên bán hàng chuyên về thuốc không kê đơn"
   }
 ];
 
@@ -85,22 +122,32 @@ export const mockCustomerProfiles = [
 export const mockTokens = {
   "demo-token-1": {
     userId: 1,
-    roleId: 1, // staff
+    roleId: 1, // sales_staff
     exp: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
   },
   "demo-token-2": {
     userId: 2,
-    roleId: 2, // customer
+    roleId: 4, // customer
     exp: Date.now() + 24 * 60 * 60 * 1000
   },
   "demo-token-3": {
     userId: 3,
-    roleId: 1, // staff
+    roleId: 2, // purchases_staff
     exp: Date.now() + 24 * 60 * 60 * 1000
   },
   "demo-token-4": {
     userId: 4,
-    roleId: 3, // manager
+    roleId: 5, // manager
+    exp: Date.now() + 24 * 60 * 60 * 1000
+  },
+  "demo-token-5": {
+    userId: 5,
+    roleId: 3, // warehouse_staff
+    exp: Date.now() + 24 * 60 * 60 * 1000
+  },
+  "demo-token-6": {
+    userId: 6,
+    roleId: 1, // sales_staff
     exp: Date.now() + 24 * 60 * 60 * 1000
   }
 };
@@ -113,9 +160,9 @@ const getUserWithProfile = (accountId) => {
   const role = mockRoles.find(r => r.id === account.roleId);
   let profile = null;
   
-  if (account.roleId === 1) { // staff
+  if (account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff
     profile = mockStaffProfiles.find(p => p.user_id === accountId);
-  } else if (account.roleId === 2) { // customer
+  } else if (account.roleId === 4) { // customer
     profile = mockCustomerProfiles.find(p => p.user_id === accountId);
   }
   
@@ -202,14 +249,14 @@ export const mockResponses = {
     account.address = formData.get("address") || account.address;
     
     // Cập nhật thông tin profile dựa trên role
-    if (account.roleId === 1) { // staff
+    if (account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff
       const staffProfile = mockStaffProfiles.find(p => p.user_id === account.id);
       if (staffProfile) {
         staffProfile.employee_code = formData.get("employee_code") || staffProfile.employee_code;
         staffProfile.department = formData.get("department") || staffProfile.department;
         staffProfile.notes = formData.get("notes") || staffProfile.notes;
       }
-    } else if (account.roleId === 2) { // customer
+    } else if (account.roleId === 4) { // customer
       const customerProfile = mockCustomerProfiles.find(p => p.user_id === account.id);
       if (customerProfile) {
         customerProfile.MST = formData.get("MST") || customerProfile.MST;
