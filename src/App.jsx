@@ -1,4 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
+import getUserRoleFromToken from "./Utils/getUserRoleFromToken.jsx";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import Header from "./Components/Utils/Header";
@@ -9,13 +10,13 @@ import DevelopmentPage from "./Components/Utils/CommonComponents/DevelopmentPage
 import Login from "./Components/Login_Components/Login";
 import Register from "./Components/Login_Components/Register";
 import ForgotPassword from "./Components/Login_Components/ForgotPassword";
+import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
 import EditProfile from "./Components/User_Components/EditProfile";
-import ChangePassword from "./Components/User_Components/ChangePassword";
 import SearchMedicine from "./Components/Guest_Components/SearchMedicine";
 import useAuth from "./Hooks/useAuth";
-import ListAllUsers from "./Components/Manager_Components/ListAllUsers";
-import CreateEmployee from "./Components/Manager_Components/CreateEmployee";
+import ListAllUsers from "./Components/Admin_Components/ListAllUsers";
+import CreateStaff from "./Components/Admin_Components/CreateStaff";
 import ProductList from "./Components/Product_Components/ProductList";
 import ListCategory from "./Components/Category_Components/ListCategory";
 import SupplierListAdvanced from "./Components/Supplier_Components/SupplierListAdvanced";
@@ -25,9 +26,12 @@ import SupplierProductDetail from "./Components/Supplier_Components/SupplierProd
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
+import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard";
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
 import InventoryCheck from "./Components/Inventory_Components/InventoryCheck";
 import Stocktaking from "./Components/Inventory_Components/Stocktaking";
+import { NotificationProvider, setGlobalNotification, useNotification } from "./Components/Utils/NotificationProvider";
+import sessionManager from "./Utils/sessionManager";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -36,6 +40,20 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const auth = useAuth();
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+};
+
+// NotificationWrapper component để thiết lập global notification
+const NotificationWrapper = ({ children }) => {
+  const { showNotification } = useNotification();
+  
+  useEffect(() => {
+    setGlobalNotification(showNotification);
+    
+    // Khởi tạo session manager
+    sessionManager.init();
+  }, [showNotification]);
+  
+  return children;
 };
 
 // Hook để sử dụng AuthContext
@@ -51,12 +69,19 @@ export const useAuthContext = () => {
 const ConditionalHome = () => {
   const { user, loading } = useAuthContext();
   const currentToken = localStorage.getItem("authToken");
+  // Đọc vai trò từ token để điều hướng admin về trang quản trị
+  const roleFromToken = getUserRoleFromToken();
   
   // Nếu đang loading, hiển thị loading
   if (loading) {
     return <div>Loading...</div>;
   }
   
+  // Admin: đưa về danh sách quản lý người dùng - quản lý
+  if ((user || currentToken) && roleFromToken === 'admin') {
+    return <Navigate to="/admin/users/manager" replace />;
+  }
+
   // Nếu có user hoặc token, hiển thị Landing page
   if (user || currentToken) {
     return <Landing />;
@@ -66,22 +91,101 @@ const ConditionalHome = () => {
   return <SearchMedicine />;
 };
 
+// Wrapper components với backgroundLogin cho các trang authentication
+const LoginWithBackground = () => (
+  <Box sx={{ 
+    backgroundImage: "url('/images/backgroundLogin.jpg')", 
+    backgroundSize: 'cover', 
+    backgroundRepeat: 'no-repeat', 
+    backgroundPosition: 'center', 
+    backgroundAttachment: 'fixed',
+    minHeight: 'calc(100vh - 120px)', // Trừ đi chiều cao header và footer
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 0', // Padding trên dưới để căn giữa
+  }}>
+    <Login />
+  </Box>
+);
+
+const RegisterWithBackground = () => (
+  <Box sx={{ 
+    backgroundImage: "url('/images/backgroundLogin.jpg')", 
+    backgroundSize: 'cover', 
+    backgroundRepeat: 'no-repeat', 
+    backgroundPosition: 'center', 
+    backgroundAttachment: 'fixed',
+    minHeight: 'calc(100vh - 120px)', // Trừ đi chiều cao header và footer
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 0', // Padding trên dưới để căn giữa
+  }}>
+    <Register />
+  </Box>
+);
+
+const ForgotPasswordWithBackground = () => (
+  <Box sx={{ 
+    backgroundImage: "url('/images/backgroundLogin.jpg')", 
+    backgroundSize: 'cover', 
+    backgroundRepeat: 'no-repeat', 
+    backgroundPosition: 'center', 
+    backgroundAttachment: 'fixed',
+    minHeight: 'calc(100vh - 120px)', // Trừ đi chiều cao header và footer
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 0', // Padding trên dưới để căn giữa
+  }}>
+    <ForgotPassword />
+  </Box>
+);
+
+const ChangePasswordWithBackground = () => (
+  <Box sx={{ 
+    backgroundImage: "url('/images/backgroundLogin.jpg')", 
+    backgroundSize: 'cover', 
+    backgroundRepeat: 'no-repeat', 
+    backgroundPosition: 'center', 
+    backgroundAttachment: 'fixed',
+    minHeight: 'calc(100vh - 120px)', // Trừ đi chiều cao header và footer
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 0', // Padding trên dưới để căn giữa
+  }}>
+    <ChangePassword />
+  </Box>
+);
+
 function App() {
   return (
-    <AuthProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        {/* Box chính bao bọc toàn bộ ứng dụng để đảm bảo Footer luôn ở cuối trang */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <Header />
-          <Box component="main" sx={{ flexGrow: 1 }}>
+    <NotificationProvider>
+      <AuthProvider>
+        <NotificationWrapper>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            {/* Box chính bao bọc toàn bộ ứng dụng để đảm bảo Footer luôn ở cuối trang */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <Header />
+              <Box component="main" sx={{ 
+                flexGrow: 1, 
+                backgroundImage: "url('/images/backgroundMedical2.jpg')", 
+                backgroundSize: 'cover', 
+                backgroundRepeat: 'no-repeat', 
+                backgroundPosition: 'center', 
+                backgroundAttachment: 'fixed' 
+              }}>
             <Routes>
               {/* Route mặc định - hiển thị SearchMedicine cho guest, Landing cho user đã đăng nhập */}
               <Route path="/" element={<ConditionalHome />} />
               
-              {/* Routes cho xác thực */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Routes cho xác thực - sử dụng backgroundLogin */}
+              <Route path="/login" element={<LoginWithBackground />} />
+              <Route path="/register" element={<RegisterWithBackground />} />
+              <Route path="/forgot-password" element={<ForgotPasswordWithBackground />} />
+              <Route path="/change-password" element={<ChangePasswordWithBackground />} />
               
               {/* Routes cho Guest (không cần đăng nhập) */}
               <Route path="/search-medicine" element={<SearchMedicine />} />
@@ -93,7 +197,7 @@ function App() {
               <Route 
                 path="/sales" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
                     <SalesDashboard />
                   </ProtectedRoute>
                 } 
@@ -103,7 +207,7 @@ function App() {
               <Route 
                 path="/sales-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
                     <SalesDashboard />
                   </ProtectedRoute>
                 } 
@@ -113,7 +217,7 @@ function App() {
               <Route 
                 path="/purchases-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
                     <PurchasesDashboard />
                   </ProtectedRoute>
                 } 
@@ -121,8 +225,18 @@ function App() {
               <Route 
                 path="/purchases" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
                     <PurchasesDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Routes cho Manager Dashboard */}
+              <Route 
+                path="/manager-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'accountant_staff', 'admin']}>
+                    <ManagerDashboard />
                   </ProtectedRoute>
                 } 
               />
@@ -131,7 +245,7 @@ function App() {
               <Route 
                 path="/warehouse-dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <WarehouseDashboard />
                   </ProtectedRoute>
                 } 
@@ -139,7 +253,7 @@ function App() {
               <Route 
                 path="/warehouse" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <WarehouseDashboard />
                   </ProtectedRoute>
                 } 
@@ -147,7 +261,7 @@ function App() {
               <Route 
                 path="/warehouse-products" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <ProductWarehouse />
                   </ProtectedRoute>
                 } 
@@ -157,7 +271,7 @@ function App() {
               <Route 
                 path="/product" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <ProductList />
                   </ProtectedRoute>
                 } 
@@ -171,7 +285,7 @@ function App() {
               <Route 
                 path="/inventory-check" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <InventoryCheck />
                   </ProtectedRoute>
                 } 
@@ -179,7 +293,7 @@ function App() {
               <Route 
                 path="/stocktaking" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
                     <Stocktaking />
                   </ProtectedRoute>
                 } 
@@ -195,25 +309,42 @@ function App() {
               <Route 
                 path="/category" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff']}>
                     <ListCategory />
                   </ProtectedRoute>
                 } 
               />
               <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
+              {/* Removed legacy /admin/users route */}
               <Route 
-                path="/manager/get-all-user" 
+                path="/admin/users/customer" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager']}>
-                    <ListAllUsers />
+                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ListAllUsers roleGroup="customer" />
                   </ProtectedRoute>
                 }
               />
               <Route 
-                path="/manager/create-employee" 
+                path="/admin/users/staff" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager']}>
-                    <CreateEmployee />
+                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ListAllUsers roleGroup="staff" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/users/manager" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <ListAllUsers roleGroup="manager" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/create-staff" 
+                element={
+                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                    <CreateStaff />
                   </ProtectedRoute>
                 }
               />
@@ -222,7 +353,7 @@ function App() {
               <Route 
                 path="/suppliers" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
                     <SupplierListAdvanced />
                   </ProtectedRoute>
                 }
@@ -238,7 +369,7 @@ function App() {
               <Route 
                 path="/manager/manage-supplier-products" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager']}>
+                  <ProtectedRoute allowedRoles={['manager', 'admin']}> 
                     <ManageSupplierProducts />
                   </ProtectedRoute>
                 }
@@ -246,7 +377,7 @@ function App() {
               <Route 
                 path="/manager/supplier-products/:id" 
                 element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
                     <SupplierProductDetail />
                   </ProtectedRoute>
                 }
@@ -256,7 +387,7 @@ function App() {
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
                     <ViewProfile />
                   </ProtectedRoute>
                 } 
@@ -264,7 +395,7 @@ function App() {
               <Route 
                 path="/edit-profile" 
                 element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
                     <EditProfile />
                   </ProtectedRoute>
                 } 
@@ -272,7 +403,7 @@ function App() {
               <Route 
                 path="/change-password" 
                 element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'customer', 'manager']}>
+                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
                     <ChangePassword />
                   </ProtectedRoute>
                 } 
@@ -281,11 +412,13 @@ function App() {
               {/* Route fallback - chuyển hướng về trang chủ nếu không tìm thấy */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </Box>
-          <Footer />
-        </Box>
-      </Router>
-    </AuthProvider>
+              </Box>
+              <Footer />
+            </Box>
+          </Router>
+        </NotificationWrapper>
+      </AuthProvider>
+    </NotificationProvider>
   );
 }
 

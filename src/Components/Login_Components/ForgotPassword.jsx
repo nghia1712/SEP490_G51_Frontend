@@ -78,13 +78,10 @@ const ForgotPassword = () => {
 
 
   return (
-    <Container
-      fluid
-      className="vh-100 d-flex align-items-center justify-content-center p-3"
-      style={{
-        background: "url('/images/backgroundLogin.jpg') no-repeat center center / cover",
-      }}
-    >
+      <Container
+        fluid
+        className="d-flex align-items-center justify-content-center p-3"
+      >
       {/* Hiệu ứng fade-in và trôi lên cho toàn bộ card */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -127,7 +124,15 @@ const ForgotPassword = () => {
                       <Form.Group className="mb-3">
                         <InputGroup>
                           <InputGroup.Text><FaEnvelope /></InputGroup.Text>
-                          <Form.Control type="email" placeholder="Nhập email của bạn" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                          <Form.Control 
+                            type="email" 
+                            placeholder="Nhập email của bạn" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
                         </InputGroup>
                       </Form.Group>
                     </motion.div>
@@ -136,7 +141,15 @@ const ForgotPassword = () => {
                       <Form.Group className="mb-4">
                         <InputGroup>
                           <InputGroup.Text><FaPhone /></InputGroup.Text>
-                          <Form.Control type="text" placeholder="Nhập số điện thoại" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required />
+                          <Form.Control 
+                            type="text" 
+                            placeholder="Nhập số điện thoại" 
+                            value={phoneNumber} 
+                            onChange={(e) => setPhoneNumber(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
                         </InputGroup>
                       </Form.Group>
                     </motion.div>

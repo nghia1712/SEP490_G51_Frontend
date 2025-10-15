@@ -18,7 +18,7 @@ const Footer = () => {
       sx={{
         backgroundColor: 'rgba(0, 0, 0, 0.2)', // Nền tối hơn một chút
         color: palette.white,
-        py: 3,
+        py: 1,
         mt: 'auto', // Đẩy footer xuống cuối trang
       }}
     >

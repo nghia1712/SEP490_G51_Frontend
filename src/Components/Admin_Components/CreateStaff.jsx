@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   Container,
   Row,
@@ -9,9 +8,9 @@ import {
   Alert,
   Card,
 } from "react-bootstrap";
-import axios from "axios";
+import adminAPI from "../../API/adminAPI";
 
-function CreateEmployee() {
+function CreateStaff() {
   const [data, setFormData] = useState({
     fullName: "",
     email: "",
@@ -48,7 +47,6 @@ function CreateEmployee() {
     }
   }, [data.type]);
 
-  // Chọn ngày làm viêjc
   const toggleWorkDay = (day) => {
     setFormData((prevData) => {
       const updatedDays = prevData.workDays.includes(day)
@@ -58,8 +56,6 @@ function CreateEmployee() {
     });
   };
 
-  console.log(data);
-  // Ham tinh tuoi
   const calculateAge = (dob) => {
     const birthDate = new Date(dob);
     const today = new Date();
@@ -76,19 +72,16 @@ function CreateEmployee() {
     setIsError(false);
     setStatusMessage("");
 
-    // Kiem tra xem nguoi dung co du 18 tuoi khong
     if (data.dob && calculateAge(data.dob) < 18) {
       setStatusMessage('Nhân viên chưa đủ 18 tuổi');
       setIsError(true);
       return;
     }
-    //kiểm tra căn cước đủ 12 số không
     if (data.idCard.length !== 12) {
       setStatusMessage('CMND chưa đủ 12 số');
       setIsError(true);
       return;
     }
-    //kiểm tra tên nhân viên
     if (data.fullName.trim().length === 0) {
       setStatusMessage('Vui lòng nhập tên nhân viên');
       setIsError(true);
@@ -96,11 +89,8 @@ function CreateEmployee() {
     }
 
     try {
-      const response = await axios.post(
-        "http://localhost:9999/users/add-employee",
-        data
-      );
-      setStatusMessage(response.data.message);
+      const response = await adminAPI.createStaffAccount(data);
+      setStatusMessage(response.data?.message || 'Tạo nhân viên thành công');
     } catch (error) {
       setIsError(true);
       const errorMessage =
@@ -115,28 +105,7 @@ function CreateEmployee() {
   };
 
   return (
-    <div
-      style={{
-        background:
-          "url('/images/backgroundLogin.jpg') no-repeat center center / cover",
-        minHeight: "100vh",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <Container>
-        <Button
-          variant="link"
-          style={{
-            alignSelf: "flex-start",
-            color: "#48C1A6",
-            fontSize: "20px",
-          }}
-        >
-          <Link to="/manager/get-all-user">Trở về danh sách nhân viên</Link>
-        </Button>
-      </Container>
-      <Container className="mt-3 d-flex justify-content-center">
+      <Container className="mt-1 d-flex justify-content-center">
         <Card
           className="p-4 shadow-lg"
           style={{
@@ -218,7 +187,7 @@ function CreateEmployee() {
                         name="phoneNumber"
                         value={data.phoneNumber}
                         onChange={handleChange}
-                        pattern="[0-9]{10}" // Chỉ cho phép số điện thoại có 11 chữ số
+                        pattern="[0-9]{10}"
                         required
                         style={{ borderColor: "#48C1A6" }}
                       />
@@ -297,7 +266,7 @@ function CreateEmployee() {
                         name="salary"
                         value={data.salary}
                         onChange={handleSalaryChange}
-                        min="0" // Prevent negative values
+                        min="0"
                         required
                         style={{ borderColor: "#48C1A6" }}
                       />
@@ -329,8 +298,7 @@ function CreateEmployee() {
                       <Col md={6}>
                         <Form.Group>
                           <Form.Label>
-                            Ngày làm việc{" "}
-                            <span style={{ color: "red" }}>*</span>
+                            Ngày làm việc <span style={{ color: "red" }}>*</span>
                           </Form.Label>
                           <div className="d-flex flex-wrap gap-2">
                             {[
@@ -350,11 +318,15 @@ function CreateEmployee() {
                                   }`}
                                 onClick={() => toggleWorkDay(day)}
                               >
-                                {
-                                  ["T2", "T3", "T4", "T5", "T6", "T7", "CN"][
-                                  index
-                                  ]
-                                }
+                                {[
+                                  "T2",
+                                  "T3",
+                                  "T4",
+                                  "T5",
+                                  "T6",
+                                  "T7",
+                                  "CN",
+                                ][index]}
                               </div>
                             ))}
                           </div>
@@ -365,8 +337,7 @@ function CreateEmployee() {
                           <Col md={3}>
                             <Form.Group>
                               <Form.Label>
-                                Giờ bắt đầu{" "}
-                                <span style={{ color: "red" }}>*</span>
+                                Giờ bắt đầu <span style={{ color: "red" }}>*</span>
                               </Form.Label>
                               <Form.Control
                                 type="time"
@@ -380,8 +351,7 @@ function CreateEmployee() {
                           <Col md={3}>
                             <Form.Group>
                               <Form.Label>
-                                Giờ kết thúc{" "}
-                                <span style={{ color: "red" }}>*</span>
+                                Giờ kết thúc <span style={{ color: "red" }}>*</span>
                               </Form.Label>
                               <Form.Control
                                 type="time"
@@ -397,8 +367,7 @@ function CreateEmployee() {
                         <Col md={6}>
                           <Form.Group>
                             <Form.Label>
-                              Ca làm việc{" "}
-                              <span style={{ color: "red" }}>*</span>
+                              Ca làm việc <span style={{ color: "red" }}>*</span>
                             </Form.Label>
                             <div className="d-flex gap-3">
                               {["Morning", "Afternoon", "Evening"].map(
@@ -410,8 +379,8 @@ function CreateEmployee() {
                                       shift === "Morning"
                                         ? "Sáng"
                                         : shift === "Afternoon"
-                                          ? "Chiều"
-                                          : "Tối"
+                                        ? "Chiều"
+                                        : "Tối"
                                     }
                                     name="shifts"
                                     value={shift}
@@ -419,8 +388,6 @@ function CreateEmployee() {
                                     onChange={() => {
                                       const newShifts = [shift];
                                       let startTime, endTime;
-
-                                      // Set time based on the selected shift
                                       if (shift === "Morning") {
                                         startTime = "08:00";
                                         endTime = "11:00";
@@ -431,12 +398,11 @@ function CreateEmployee() {
                                         startTime = "17:00";
                                         endTime = "21:00";
                                       }
-
                                       setFormData({
                                         ...data,
                                         shifts: newShifts,
-                                        startTime, // Set startTime based on the shift
-                                        endTime, // Set endTime based on the shift
+                                        startTime,
+                                        endTime,
                                       });
                                     }}
                                   />
@@ -482,8 +448,9 @@ function CreateEmployee() {
           </Row>
         </Card>
       </Container>
-    </div>
   );
 }
 
-export default CreateEmployee;
+export default CreateStaff;
+
+

@@ -122,10 +122,7 @@ function ChangePassword() {
     <>
       <Container
         fluid
-        className="vh-100 d-flex align-items-center justify-content-center p-3"
-        style={{
-          background: "url('/images/backgroundLogin.jpg') no-repeat center center / cover",
-        }}
+        className="d-flex align-items-center justify-content-center p-3"
       >
         {/* Bọc Card trong motion.div để có hiệu ứng xuất hiện ban đầu */}
         <motion.div
@@ -176,6 +173,8 @@ function ChangePassword() {
                             value={form.oldPassword} 
                             onChange={handleChange} 
                             required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
                           />
                           <InputGroup.Text 
                             style={{ cursor: 'pointer' }}
@@ -198,6 +197,8 @@ function ChangePassword() {
                             value={form.newPassword} 
                             onChange={handleChange} 
                             required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
                           />
                           <InputGroup.Text 
                             style={{ cursor: 'pointer' }}
@@ -220,6 +221,8 @@ function ChangePassword() {
                             value={form.confirmPassword} 
                             onChange={handleChange} 
                             required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
                           />
                           <InputGroup.Text 
                             style={{ cursor: 'pointer' }}

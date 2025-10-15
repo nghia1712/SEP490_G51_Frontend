@@ -160,7 +160,7 @@ const getUserWithProfile = (accountId) => {
   const role = mockRoles.find(r => r.id === account.roleId);
   let profile = null;
   
-  if (account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff
+  if (account.roleId === 0 || account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff, accountant_staff
     profile = mockStaffProfiles.find(p => p.user_id === accountId);
   } else if (account.roleId === 4) { // customer
     profile = mockCustomerProfiles.find(p => p.user_id === accountId);
@@ -249,7 +249,7 @@ export const mockResponses = {
     account.address = formData.get("address") || account.address;
     
     // Cập nhật thông tin profile dựa trên role
-    if (account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff
+    if (account.roleId === 0 || account.roleId === 1 || account.roleId === 2 || account.roleId === 3) { // sales_staff, purchases_staff, warehouse_staff, accountant_staff
       const staffProfile = mockStaffProfiles.find(p => p.user_id === account.id);
       if (staffProfile) {
         staffProfile.employee_code = formData.get("employee_code") || staffProfile.employee_code;

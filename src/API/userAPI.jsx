@@ -4,7 +4,7 @@ import formDataApi from "./baseAPI/formDataAPI";
 const API_URL = "/users";
 
 const userAPI = {
-    getProfile: () => authorApi.get(`${API_URL}/view-profile`),
+    getProfile: () => authorApi.get('/User/viewprofile'),
     editProfile: (formData) => formDataApi.put(`${API_URL}/edit-profile`, formData),
     getAllUsers: () => authorApi.get(`${API_URL}/get-all-user`),
     changePassword: (data) => authorApi.put(`${API_URL}/change-password`, data),

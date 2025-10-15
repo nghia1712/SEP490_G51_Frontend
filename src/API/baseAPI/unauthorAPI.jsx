@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// Use Vite proxy to call backend at /api
 const unauthorApi = axios.create({
-    baseURL: 'http://localhost:9999',
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json'
     },

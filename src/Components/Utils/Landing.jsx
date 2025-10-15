@@ -65,19 +65,19 @@ const mainFunctions = [
     title: "Quản lý thuốc",
     icon: <Inventory2Icon />,
     path: "/product",
-    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
   },
   {
     title: "Danh mục thuốc",
     icon: <CategoryIcon />,
     path: "/category",
-    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
   },
   {
     title: "Nhà Cung Cấp",
     icon: <BusinessIcon />,
     path: "/suppliers",
-    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "manager"],
+    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
   },
   {
     title: "Liên hệ",
@@ -121,7 +121,13 @@ const mainFunctions = [
     title: "Dashboard Kho",
     icon: <Inventory2Icon />,
     path: "/warehouse-dashboard",
-    allowedRoles: ["warehouse_staff", "manager"],
+    allowedRoles: ["warehouse_staff", "accountant_staff", "manager"],
+  },
+  {
+    title: "Dashboard Kế Toán",
+    icon: <AnalyticsIcon />,
+    path: "/manager-dashboard", // Tạm thời sử dụng manager dashboard
+    allowedRoles: ["accountant_staff", "manager"],
   },
   
   // Chức năng cho Customer (cần đăng nhập)
@@ -151,6 +157,14 @@ const mainFunctions = [
   },
 ];
 
+// Chỉ hiển thị các tính năng đã có API BE kết nối để tránh lỗi UI
+const enabledPaths = new Set([
+  	"/product",
+  	"/category",
+  	"/suppliers",
+  	"/contact",
+]);
+
 // Hàm helper để lấy vai trò người dùng
 const getUserRole = () => {
   const token = safeLocalStorage.getItem("authToken");
@@ -166,9 +180,10 @@ const getUserRole = () => {
       if (userId === '4') return 'manager';
       return 'customer';
     }
-    if (decoded.roleId === 1) return 'sales_staff';
-    if (decoded.roleId === 2) return 'purchases_staff';
-    if (decoded.roleId === 3) return 'warehouse_staff';
+    if (decoded.roleId === 0) return 'sales_staff';
+    if (decoded.roleId === 1) return 'purchases_staff';
+    if (decoded.roleId === 2) return 'warehouse_staff';
+    if (decoded.roleId === 3) return 'accountant_staff';
     if (decoded.roleId === 4) return 'customer';
     if (decoded.roleId === 5) return 'manager';
     return 'customer';
@@ -301,6 +316,8 @@ function Landing() {
         // Nếu là guest, chỉ hiển thị chức năng public
         return func.allowedRoles.includes('guest');
       })
+      // Ẩn các chức năng chưa có API BE
+      .filter((func) => enabledPaths.has(func.path))
       .filter((func) =>
         func.title.toLowerCase().includes(searchTerm.toLowerCase())
       );

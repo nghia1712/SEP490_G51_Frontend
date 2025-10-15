@@ -1,16 +1,13 @@
 import authorApi from "./baseAPI/authorAPI";
 
-const API_URL = "/categories";
+// Backend controller: /api/Category
+const API_URL = "/Category";
 
 const categoryAPI = {
-    getAll: () => authorApi.get(`${API_URL}/getAllCategories`),
-    get: (id) => authorApi.get(`${API_URL}/getCategoryById/${id}`),
-    add: (data) => authorApi.post(`${API_URL}/addCategory`, data),
-    update: (id, data) => authorApi.put(`${API_URL}/updateCategory/${id}`, data),
-    inactivate: (id) => authorApi.put(`${API_URL}/inactivateCategory/${id}`),
-    addSub: (categoryId, data) => authorApi.post(`${API_URL}/${categoryId}/sub/add`, data),
-    updateSub: (categoryId, subId, data) => authorApi.put(`${API_URL}/${categoryId}/sub/update/${subId}`, data),
-    deleteSub: (categoryId, subId) => authorApi.delete(`${API_URL}/${categoryId}/sub/delete/${subId}`),
+    getAll: () => authorApi.get(`${API_URL}/all`),
+    get: (id) => authorApi.get(`${API_URL}/getbyid/${id}`),
+    add: (data) => authorApi.post(`${API_URL}/create`, data),
+    // Missing in backend: update/inactivate/subcategory endpoints
 };
 
 export default categoryAPI;

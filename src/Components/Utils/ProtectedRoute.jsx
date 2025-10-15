@@ -1,14 +1,26 @@
 // import { jwtDecode } from 'jwt-decode'; // Tạm thời comment để tránh xung đột
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import getUserRoleFromToken from '../../Utils/getUserRoleFromToken.jsx';
 
-// Hàm jwtDecode giả lập để tránh xung đột
+// Hàm jwtDecode giả lập và trích xuất role từ token thực nếu có
 const jwtDecode = (token) => {
+    // Ưu tiên: Token JWT thật (có 2 dấu chấm)
+    if (token && token.includes('.')) {
+        try {
+            const [, payload] = token.split('.');
+            const data = JSON.parse(atob(payload));
+            return data;
+        } catch (e) {
+            // fallback demo token bên dưới
+        }
+    }
     if (token && token.startsWith('demo-token-')) {
         const userId = token.split('-')[2];
         let roleId = 2; // default customer
         if (userId === '1' || userId === '3') roleId = 1; // staff
         if (userId === '4') roleId = 3; // manager
+        if (userId === '9') roleId = 6; // admin demo
         return { 
           roleId,
           userId: parseInt(userId),
@@ -53,41 +65,24 @@ const ProtectedRoute = ({ children, allowedRoles, redirectTo = '/login' }) => {
 
     useEffect(() => {
         const checkAuth = () => {
-            console.log('Checking auth with token:', token);
-            
             if (!token) {
-                console.log('No token found');
                 setIsAuthenticated(false);
                 setIsLoading(false);
                 return;
             }
 
-            // Đơn giản hóa: chỉ cần có token là được
             try {
-                const decodedToken = jwtDecode(token);
-                console.log('Decoded token:', decodedToken);
-                
-                if (decodedToken && decodedToken.roleId) {
-                    let userRole;
-                    if (decodedToken.roleId === 1) userRole = 'sales_staff';
-                    else if (decodedToken.roleId === 2) userRole = 'purchases_staff';
-                    else if (decodedToken.roleId === 3) userRole = 'warehouse_staff';
-                    else if (decodedToken.roleId === 4) userRole = 'customer';
-                    else if (decodedToken.roleId === 5) userRole = 'manager';
-                    else userRole = 'customer';
-                    
-                    console.log('User role:', userRole, 'Allowed roles:', allowedRoles);
-                    
-                    if (allowedRoles.includes(userRole)) {
-                        setIsAuthenticated(true);
-                    } else {
-                        setIsAuthenticated(false);
-                    }
-                } else {
+                // Nếu token đã hết hạn -> logout cứng và báo message
+                if (checkTokenExpiration()) {
+                    // Lưu thông báo để hiển thị sau redirect
+                    sessionStorage.setItem('postLogoutMessage', 'Vui lòng đăng nhập để tiếp tục sử dụng các chức năng');
                     setIsAuthenticated(false);
+                    setIsLoading(false);
+                    return;
                 }
+                const userRole = getUserRoleFromToken();
+                setIsAuthenticated(allowedRoles.includes(userRole));
             } catch (error) {
-                console.error('Token decode error:', error);
                 setIsAuthenticated(false);
             } finally {
                 setIsLoading(false);
@@ -102,7 +97,9 @@ const ProtectedRoute = ({ children, allowedRoles, redirectTo = '/login' }) => {
     }
 
     console.log('ProtectedRoute - isAuthenticated:', isAuthenticated);
-    return isAuthenticated ? children : <Navigate to={redirectTo} replace />;
+    if (isAuthenticated) return children;
+    // Nếu có thông điệp sau logout, chuyển kèm state để màn hình login hiện notice
+    return <Navigate to={redirectTo} replace state={{ notice: sessionStorage.getItem('postLogoutMessage') }} />;
 };
 
 export default ProtectedRoute;

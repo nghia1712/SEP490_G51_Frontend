@@ -1,26 +1,26 @@
 import axios from 'axios';
 import authAPI from '../authAPI';
+import tokenManager from '../../Utils/tokenManager';
 
-// Create Axios instance
+// Create Axios instance (proxied to backend via Vite at /api)
 const authorApi = axios.create({
-    baseURL: 'http://localhost:3001', // Thay đổi port nếu cần
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json'
     },
-    withCredentials: true // Ensures cookies are sent with requests
+    withCredentials: true
 });
 
 // Request Interceptor
-authorApi.interceptors.request.use(config => {
-    // Get the token from localStorage or cookies
-    const token = localStorage.getItem('authToken');
-    console.log("Token from localStorage:", token);
+authorApi.interceptors.request.use(async config => {
+    // Sử dụng TokenManager để lấy token hợp lệ
+    const token = await tokenManager.getValidToken();
+    
     if (token) {
         // Attach the token to the Authorization header
         config.headers['Authorization'] = `Bearer ${token}`;
     }
-    // Optionally, you can log the request or modify it further
-    // Return the modified config
+    
     return config;
 }, (error) => {
     return Promise.reject(error);
@@ -36,28 +36,33 @@ authorApi.interceptors.response.use(
             originalRequest._retry = true; // Prevent infinite loops
 
             try {
-                const response = await authAPI.refreshToken();
+                console.log('Token hết hạn, đang refresh token...');
+                
+                // Backend returns plain string access token
+                const newAccessToken = await authAPI.refreshToken();
 
-                // ✅ SỬA: Kiểm tra response và accessToken trước khi sử dụng
-                if (response && response.data && response.data.accessToken) {
-                    localStorage.setItem('authToken', response.data.accessToken);
-                    // Cập nhật token cho request hiện tại
-                    originalRequest.headers['Authorization'] = `Bearer ${response.data.accessToken}`;
-                    return authorApi(originalRequest);
-                } else if (response && response.accessToken) {
-                    // Trường hợp response.accessToken trực tiếp
-                    localStorage.setItem('authToken', response.accessToken);
-                    originalRequest.headers['Authorization'] = `Bearer ${response.accessToken}`;
+                if (newAccessToken && typeof newAccessToken === 'string') {
+                    console.log('Refresh token thành công');
+                    localStorage.setItem('authToken', newAccessToken);
+                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
                     return authorApi(originalRequest);
                 } else {
-                    // Không có accessToken, chuyển về login
-                    console.error('Refresh token response không có accessToken');
+                    console.error('Refresh token response không hợp lệ');
                     localStorage.removeItem('authToken');
+                    // Clear any user data
+                    localStorage.removeItem('user');
                     window.location.href = '/login';
                 }
             } catch (refreshError) {
                 console.error('Refresh token failed:', refreshError);
                 localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                
+                // Show notification to user if available
+                if (window.showNotification) {
+                    window.showNotification('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'warning');
+                }
+                
                 window.location.href = '/login';
             }
         }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button, Modal, Form, Alert } from "react-bootstrap";
-import axios from "axios";
+import adminAPI from "../../API/adminAPI";
 
 const EditUserModal = ({ user, closeModal, users, setUsers }) => {
     const [salary, setSalary] = useState(0);
@@ -141,3 +141,5 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
 };
 
 export default EditUserModal;
+
+

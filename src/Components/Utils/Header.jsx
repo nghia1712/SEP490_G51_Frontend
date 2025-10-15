@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { jwtDecode } from "jwt-decode";
 import useUser from "../../Hooks/useUser";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 
 // MUI Imports (thêm responsive & drawer)
 import {
@@ -48,21 +49,21 @@ const navButtonHoverStyle = {
   letterSpacing: "0.08em",
 };
 
-// Parser dành cho demo token dạng "demo-token-<id>"
-const getUserRole = () => {
-  const token = localStorage.getItem("authToken");
-  if (!token) return null;
-  // Map userId -> role theo mockData
-  if (token.startsWith("demo-token-")) {
-    const userId = token.split("-")[2];
-    if (userId === "4") return "manager";
-    if (userId === "1" || userId === "6") return "sales_staff";
-    if (userId === "3") return "purchases_staff";
-    if (userId === "5") return "warehouse_staff";
-    return "customer";
-  }
-  return null;
+// Active state for the current route
+const activeNavStyle = {
+  backgroundColor: "#1B6B6F",
+  color: palette.white,
+  fontWeight: 700,
+  borderRadius: "8px",
+  px: 2,
+  "&:hover": {
+    backgroundColor: "#155E64",
+    color: palette.white,
+  },
 };
+
+// Parser dành cho demo token dạng "demo-token-<id>"
+const getUserRole = () => getUserRoleFromToken();
 
 function Header() {
   const navigate = useNavigate();
@@ -108,6 +109,11 @@ function Header() {
   };
 
   const handleNavigate = (path) => {
+    // For admin navigating to user management pages, do a hard refresh to the full URL
+    if (userRole === "admin" && path.startsWith("/admin/users")) {
+      window.location.replace(`http://localhost:3000${path}`);
+      return;
+    }
     navigate(path);
     handleTransactionMenuClose();
     handleProfileMenuClose();
@@ -132,15 +138,14 @@ function Header() {
 
   // --- NAVIGATION ITEMS ---
   const navItems = [
-    { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager"] },
-    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff"] },
-    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff"] },
-    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "warehouse_staff"] },
-    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff"] },
-    { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff"] },
-    { label: "Nhân viên", path: "/manager/get-all-user", allowedRoles: ["manager"] },
-    { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff"] },
-    { label: "Mua hàng", path: "/purchases", allowedRoles: ["manager", "purchases_staff"] },
+    { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
+    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
+    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
+    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "warehouse_staff", "admin"] },
+    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
+    { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
+    { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff", "admin"] },
+    { label: "Mua hàng", path: "/purchases", allowedRoles: ["manager", "purchases_staff", "admin"] },
   ];
 
   const partnerMenuItems = [
@@ -155,15 +160,40 @@ function Header() {
     { label: "Danh Sách Giao Dịch", path: "/list-transaction", allowedRoles: ["manager"] },
   ];
 
-  const visibleNavItems = navItems.filter(
-    (item) => userRole && item.allowedRoles.includes(userRole)
-  );
-  const visiblePartnerItems = partnerMenuItems.filter(
-    (item) => userRole && item.allowedRoles.includes(userRole)
-  );
-  const visibleTransactionItems = transactionMenuItems.filter(
-    (item) => userRole && item.allowedRoles.includes(userRole)
-  );
+  // Determine visible items based on role.
+  // For admin: show three user account categories, hide partner/transaction menus.
+  const adminNavItems = [
+    { label: "Tài khoản khách hàng", path: "/admin/users/customer" },
+    { label: "Tài khoản nhân viên", path: "/admin/users/staff" },
+    { label: "Tài khoản quản lý", path: "/admin/users/manager" },
+  ];
+  // Role-specific single entry for non-admins
+  const getRoleAccountItem = (role) => {
+    if (role === "customer") return { label: "Tài khoản khách hàng", path: "/admin/users/customer" };
+    if (["sales_staff", "purchases_staff", "warehouse_staff"].includes(role)) return { label: "Tài khoản nhân viên", path: "/admin/users/staff" };
+    if (["manager", "admin"].includes(role)) return { label: "Tài khoản quản lý", path: "/admin/users/manager" };
+    return null;
+  };
+
+  const baseVisible = navItems.filter((item) => userRole && item.allowedRoles.includes(userRole));
+  const roleAccountItem = getRoleAccountItem(userRole);
+
+  const visibleNavItems =
+    userRole === "admin"
+      ? adminNavItems
+      : roleAccountItem
+        ? [roleAccountItem, ...baseVisible]
+        : baseVisible;
+
+  const visiblePartnerItems =
+    userRole === "admin"
+      ? []
+      : partnerMenuItems.filter((item) => userRole && item.allowedRoles.includes(userRole));
+
+  const visibleTransactionItems =
+    userRole === "admin"
+      ? []
+      : transactionMenuItems.filter((item) => userRole && item.allowedRoles.includes(userRole));
 
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: "center" }}>
@@ -198,7 +228,11 @@ function Header() {
           <>
             {visibleNavItems.map((item) => (
               <ListItem key={item.path} disablePadding>
-                <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
+                <ListItemButton
+                  selected={location.pathname.startsWith(item.path)}
+                  sx={{ textAlign: "left" }}
+                  onClick={() => handleNavigate(item.path)}
+                >
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
@@ -248,7 +282,14 @@ function Header() {
             {/* Logo */}
             <Typography
               variant="h6"
-              onClick={() => navigate("/")}
+              onClick={() => {
+                if (userRole === "admin") {
+                  // Refresh current page for admin
+                  window.location.reload();
+                } else {
+                  navigate("/");
+                }
+              }}
               sx={{
                 fontWeight: "bold",
                 cursor: "pointer",
@@ -264,7 +305,12 @@ function Header() {
             {!isMobile && currentToken && !isHomePage && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
                 {visibleNavItems.map((item) => (
-                  <Button key={item.path} color="inherit" onClick={() => navigate(item.path)} sx={navButtonHoverStyle}>
+                  <Button
+                    key={item.path}
+                    color="inherit"
+                    onClick={() => handleNavigate(item.path)}
+                    sx={{ ...(location.pathname.startsWith(item.path) ? activeNavStyle : navButtonHoverStyle) }}
+                  >
                     {item.label}
                   </Button>
                 ))}
@@ -323,13 +369,15 @@ function Header() {
             <Box>
               {currentToken ? (
                 <>
-                  <Tooltip title="Thông báo">
-                    <IconButton color="inherit" aria-label="show notifications">
-                      <Badge badgeContent={4} color="error">
-                        <NotificationsIcon sx={{ color: isHomePage ? "action" : "inherit" }} />
-                      </Badge>
-                    </IconButton>
-                  </Tooltip>
+                  {userRole !== "admin" && (
+                    <Tooltip title="Thông báo">
+                      <IconButton color="inherit" aria-label="show notifications">
+                        <Badge badgeContent={4} color="error">
+                          <NotificationsIcon sx={{ color: isHomePage ? "action" : "inherit" }} />
+                        </Badge>
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   <Tooltip title={profile?.fullName || "Tài khoản"}>
                     <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5, borderRadius: "8px" }}>
                       <Avatar alt={profile?.fullName} src={avatarUrl} sx={{ width: 32, height: 32 }} />
@@ -344,7 +392,7 @@ function Header() {
                     open={Boolean(profileMenuAnchor)}
                     onClose={handleProfileMenuClose}
                   >
-                    <MenuItem onClick={() => handleNavigate("/profile")}>Tài khoản</MenuItem>
+                    {userRole !== "admin" && <MenuItem onClick={() => handleNavigate("/profile")}>Tài khoản</MenuItem>}
                     <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
                   </Menu>
                 </>

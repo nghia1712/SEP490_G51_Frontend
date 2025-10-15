@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import userAPI from '../API/userAPI';
-import { mockAPI } from '../mockAPI';
 
 const useUser = () => {
   const [loading, setLoading] = useState(false);
@@ -8,33 +7,35 @@ const useUser = () => {
   const [profile, setProfile] = useState(null);
   const [users, setUsers] = useState([]);
 
-  const getProfile = async () => {
+  const getProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("authToken");
-      // Sử dụng mock API thay vì API thật
-      const res = await mockAPI.getCurrentUser(token);
-      setProfile(res);
-      setLoading(false);
-      return { data: res };
+      if (!token) throw new Error('Chưa đăng nhập');
+      
+      // Call API để lấy thông tin profile từ backend
+      const response = await userAPI.getProfile();
+      if (response && response.data) {
+        setProfile(response.data);
+        setLoading(false);
+        return response;
+      } else {
+        throw new Error('Không thể lấy thông tin profile');
+      }
     } catch (err) {
-      setError(err.message || 'Get profile failed');
+      setError(err.response?.data?.message || err.message || 'Get profile failed');
       setLoading(false);
       return null;
     }
-  };
+  }, []);
 
   const editProfile = async (formData) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("authToken");
-      // Sử dụng mock API thay vì API thật
-      const res = await mockAPI.editProfile(token, formData);
-      setProfile(res.user);
-      setLoading(false);
-      return { data: res };
+      // Backend hiện chưa có endpoint edit profile trong UserController
+      throw new Error('Chức năng chỉnh sửa hồ sơ chưa được hỗ trợ trên backend');
     } catch (err) {
       setError(err.message || 'Edit profile failed');
       setLoading(false);
@@ -61,11 +62,8 @@ const useUser = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("authToken");
-      // Sử dụng mock API thay vì API thật
-      const res = await mockAPI.changePassword(token, data);
-      setLoading(false);
-      return res;
+      // Backend hiện chưa có endpoint đổi mật khẩu trong UserController
+      throw new Error('Chức năng đổi mật khẩu chưa được hỗ trợ trên backend');
     } catch (err) {
       setError(err.message || 'Change password failed');
       setLoading(false);

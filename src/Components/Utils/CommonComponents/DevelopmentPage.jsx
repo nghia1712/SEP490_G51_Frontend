@@ -44,9 +44,10 @@ const getUserRole = () => {
       if (userId === '4') return 'manager';
       return 'customer';
     }
-    if (decoded.roleId === 1) return 'sales_staff';
-    if (decoded.roleId === 2) return 'purchases_staff';
-    if (decoded.roleId === 3) return 'warehouse_staff';
+    if (decoded.roleId === 0) return 'sales_staff';
+    if (decoded.roleId === 1) return 'purchases_staff';
+    if (decoded.roleId === 2) return 'warehouse_staff';
+    if (decoded.roleId === 3) return 'accountant_staff';
     if (decoded.roleId === 4) return 'customer';
     if (decoded.roleId === 5) return 'manager';
     return 'customer';

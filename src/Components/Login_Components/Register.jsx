@@ -9,7 +9,7 @@ import {
   InputGroup,
   Card,
 } from "react-bootstrap";
-import { FaUser, FaEnvelope, FaPhone, FaLock } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaLock, FaMapMarkerAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../Hooks/useAuth";
 
@@ -19,11 +19,12 @@ import { motion, AnimatePresence } from "framer-motion";
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -39,11 +40,12 @@ const Register = () => {
 
     try {
       const response = await register({ 
-        fullName, 
+        username,
+        phoneNumber,
         email, 
-        phoneNumber, 
         password, 
-        confirmPassword 
+        confirmPassword,
+        address
       });
 
       if (response) {
@@ -101,29 +103,26 @@ const Register = () => {
   return (
     <Container
       fluid
-      className="vh-100 d-flex align-items-center justify-content-center p-3"
-      style={{
-        background: "url('/images/backgroundLogin.jpg') no-repeat center center / cover",
-      }}
+      className="d-flex align-items-center justify-content-center p-3"
     >
       {/* Hiệu ứng lật trang cho toàn bộ card */}
       <motion.div
         initial={{ opacity: 0, rotateY: -90 }}
         animate={{ opacity: 1, rotateY: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        style={{ maxWidth: '900px', width: '100%', perspective: '1000px' }}
+        style={{ maxWidth: '950px', width: '100%', perspective: '1000px' }}
       >
         <Card className="shadow-lg" style={{ border: 'none', overflow: 'hidden', borderRadius: '15px' }}>
           <Row className="g-0">
             {/* Cột Form */}
             <Col xs={12} md={6} className="d-flex flex-column justify-content-center">
               <motion.div
-                className="p-4 p-md-5"
+                className="p-3 p-md-4"
                 variants={formContainerVariants}
                 initial="hidden"
                 animate="visible"
               >
-                <motion.h2 variants={inputVariants} className="text-center mb-4 fw-bold" style={{ color: '#155E64' }}>
+                <motion.h2 variants={inputVariants} className="text-center mb-3 fw-bold" style={{ color: '#155E64' }}>
                   Tạo Tài Khoản
                 </motion.h2>
 
@@ -143,28 +142,86 @@ const Register = () => {
                 <Form onSubmit={handleSubmit}>
                     {/* Các Form.Group được bọc trong motion.div */}
                     <motion.div variants={inputVariants}>
-                      <Form.Group className="mb-3">
+                      <Form.Group className="mb-2">
                         <InputGroup>
                           <InputGroup.Text><FaUser /></InputGroup.Text>
-                          <Form.Control type="text" placeholder="Họ và tên" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                          <Form.Control 
+                            type="text" 
+                            placeholder="Tên đăng nhập" 
+                            value={username} 
+                            onChange={(e) => setUsername(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
                         </InputGroup>
                       </Form.Group>
                     </motion.div>
 
                     <motion.div variants={inputVariants}>
-                      <Form.Group className="mb-3">
-                        <InputGroup>
-                          <InputGroup.Text><FaEnvelope /></InputGroup.Text>
-                          <Form.Control type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                        </InputGroup>
-                      </Form.Group>
-                    </motion.div>
-
-                    <motion.div variants={inputVariants}>
-                      <Form.Group className="mb-3">
+                      <Form.Group className="mb-2">
                         <InputGroup>
                           <InputGroup.Text><FaPhone /></InputGroup.Text>
-                          <Form.Control type="tel" placeholder="Số điện thoại" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required />
+                          <Form.Control 
+                            type="tel" 
+                            placeholder="Số điện thoại" 
+                            value={phoneNumber} 
+                            onChange={(e) => setPhoneNumber(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
+                        </InputGroup>
+                      </Form.Group>
+                    </motion.div>
+
+                    <motion.div variants={inputVariants}>
+                      <Form.Group className="mb-2">
+                        <InputGroup>
+                          <InputGroup.Text><FaMapMarkerAlt /></InputGroup.Text>
+                          <Form.Control 
+                            type="text" 
+                            placeholder="Địa chỉ" 
+                            value={address} 
+                            onChange={(e) => setAddress(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
+                        </InputGroup>
+                      </Form.Group>
+                    </motion.div>
+
+                    <motion.div variants={inputVariants}>
+                      <Form.Group className="mb-2">
+                        <InputGroup>
+                          <InputGroup.Text><FaEnvelope /></InputGroup.Text>
+                          <Form.Control 
+                            type="email" 
+                            placeholder="Email" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng nhập đúng email")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
+                        </InputGroup>
+                      </Form.Group>
+                    </motion.div>
+                    
+                    <motion.div variants={inputVariants}>
+                      <Form.Group className="mb-2">
+                        <InputGroup>
+                          <InputGroup.Text><FaLock /></InputGroup.Text>
+                          <Form.Control 
+                            type="password" 
+                            placeholder="Mật khẩu" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
                         </InputGroup>
                       </Form.Group>
                     </motion.div>
@@ -173,16 +230,15 @@ const Register = () => {
                       <Form.Group className="mb-3">
                         <InputGroup>
                           <InputGroup.Text><FaLock /></InputGroup.Text>
-                          <Form.Control type="password" placeholder="Mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                        </InputGroup>
-                      </Form.Group>
-                    </motion.div>
-                    
-                    <motion.div variants={inputVariants}>
-                      <Form.Group className="mb-4">
-                        <InputGroup>
-                          <InputGroup.Text><FaLock /></InputGroup.Text>
-                          <Form.Control type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                          <Form.Control 
+                            type="password" 
+                            placeholder="Nhập lại mật khẩu" 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)} 
+                            required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
                         </InputGroup>
                       </Form.Group>
                     </motion.div>
@@ -195,7 +251,7 @@ const Register = () => {
                     </motion.div>
                   </motion.div>
                 </Form>
-                 <motion.div variants={inputVariants} className="text-center mt-4">
+                 <motion.div variants={inputVariants} className="text-center mt-3">
                   <span className="text-muted">Đã có tài khoản? </span>
                   <a href="/login" className="text-decoration-none fw-bold" style={{ color: '#155E64' }}>
                     Đăng nhập ngay

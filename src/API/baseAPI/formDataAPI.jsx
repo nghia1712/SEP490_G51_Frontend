@@ -4,11 +4,11 @@ import authAPI from '../authAPI';
 
 // Create Axios instance
 const formDataApi = axios.create({
-    baseURL: 'http://localhost:9999',
+    baseURL: '/api',
     headers: {
         "Content-Type": "multipart/form-data"
     },
-    withCredentials: true // Ensures cookies are sent with requests
+    withCredentials: true
 });
 
 // Request Interceptor
@@ -33,19 +33,14 @@ formDataApi.interceptors.response.use(
             originalRequest._retry = true; // Prevent infinite loops
 
             try {
-                const response = await authAPI.refreshToken();
+                const newAccessToken = await authAPI.refreshToken();
 
-                // ✅ SỬA: Kiểm tra response và accessToken trước khi sử dụng
-                if (response && response.data && response.data.accessToken) {
-                    localStorage.setItem('authToken', response.data.accessToken);
-                    originalRequest.headers['Authorization'] = `Bearer ${response.data.accessToken}`;
-                    return formDataApi(originalRequest);
-                } else if (response && response.accessToken) {
-                    localStorage.setItem('authToken', response.accessToken);
-                    originalRequest.headers['Authorization'] = `Bearer ${response.accessToken}`;
+                if (newAccessToken && typeof newAccessToken === 'string') {
+                    localStorage.setItem('authToken', newAccessToken);
+                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
                     return formDataApi(originalRequest);
                 } else {
-                    console.error('Refresh token response không có accessToken');
+                    console.error('Refresh token response không hợp lệ');
                     localStorage.removeItem('authToken');
                     window.location.href = '/login';
                 }

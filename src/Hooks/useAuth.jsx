@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import authAPI from "../API/authAPI";
-import { mockAPI } from "../mockAPI";
+import tokenManager from "../Utils/tokenManager";
+import sessionManager from "../Utils/sessionManager";
 
 const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -14,8 +15,9 @@ const useAuth = () => {
       if (!token) return null;
 
       setLoading(true);
-      // Sử dụng mock API thay vì API thật
-      const data = await mockAPI.getCurrentUser(token);
+      // Tạm thời decode payload từ JWT để lấy thông tin cơ bản
+      const [, payload] = token.split(".");
+      const data = JSON.parse(atob(payload));
       setUser(data);
       setLoading(false);
       return data;
@@ -28,23 +30,35 @@ const useAuth = () => {
     }
   }, []);
 
-  // Tự động kiểm tra user khi hook được gọi
+  // Tự động kiểm tra user khi hook được gọi và thiết lập auto-refresh
   useEffect(() => {
     if (!user && localStorage.getItem("authToken")) {
       getCurrentUser();
     }
+    
+    // Thiết lập auto-refresh token
+    tokenManager.setupAutoRefresh();
+    
+    // Thiết lập session manager với token manager
+    tokenManager.setSessionManager(sessionManager);
   }, [getCurrentUser]);
 
   const login = async (credentials) => {
     setLoading(true);
     setError(null);
     try {
-      // Sử dụng mock API thay vì API thật
-      const data = await mockAPI.login(credentials);
-      setUser(data.user);
-      localStorage.setItem("authToken", data.token);
+      const accessToken = await authAPI.login(credentials);
+      localStorage.setItem("authToken", accessToken);
+      
+      // Thiết lập auto-refresh sau khi login thành công
+      tokenManager.setupAutoRefresh();
+      
+      // Khởi tạo session sau khi login thành công
+      sessionManager.updateActivity();
+      
+      await getCurrentUser();
       setLoading(false);
-      return data;
+      return { token: accessToken };
     } catch (err) {
       setError(err.message || "Login failed");
       setLoading(false);
@@ -56,8 +70,7 @@ const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Sử dụng mock API thay vì API thật
-      const data = await mockAPI.register(form);
+      const data = await authAPI.register(form);
       setLoading(false);
       return data;
     } catch (err) {
@@ -71,10 +84,10 @@ const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Sử dụng mock API thay vì API thật
-      const data = await mockAPI.refreshToken();
+      const newToken = await authAPI.refreshToken();
+      if (newToken) localStorage.setItem("authToken", newToken);
       setLoading(false);
-      return data;
+      return newToken;
     } catch (err) {
       setError(err.message || "Token refresh failed");
       setLoading(false);
@@ -86,10 +99,12 @@ const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Sử dụng mock API thay vì API thật
-      const data = await mockAPI.logout();
+      const data = await authAPI.logout();
       setUser(null);
-      localStorage.removeItem("authToken");
+      
+      // Sử dụng TokenManager để clear tokens
+      tokenManager.clearTokens();
+      
       setLoading(false);
       return data;
     } catch (err) {
@@ -103,8 +118,7 @@ const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Sử dụng mock API thay vì API thật
-      const result = await mockAPI.forgotPassword(data);
+      const result = await authAPI.forgotPassword(data);
       setLoading(false);
       return result;
     } catch (err) {

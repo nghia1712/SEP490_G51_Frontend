@@ -23,6 +23,9 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const { login } = useAuthContext();
+  // Hiển thị thông báo sau khi bị force logout
+  const notice = history.state && history.state.usr && history.state.usr.notice;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -86,13 +89,10 @@ const Login = () => {
   // --- KẾT THÚC ĐỊNH NGHĨA ANIMATION ---
 
   return (
-    <Container
-      fluid
-      className="vh-100 d-flex align-items-center justify-content-center p-3"
-      style={{
-        background: "url('/images/backgroundLogin.jpg') no-repeat center center / cover",
-      }}
-    >
+      <Container
+        fluid
+        className="d-flex align-items-center justify-content-center p-3"
+      >
       {/* Bọc Card trong motion.div để có hiệu ứng xuất hiện ban đầu */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -111,12 +111,23 @@ const Login = () => {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.h2 variants={itemVariants} className="text-center mb-4 fw-bold" style={{ color: '#155E64' }}>
+                <motion.h2 variants={itemVariants} className="text-center mb-5 fw-bold" style={{ color: '#155E64' }}>
                   Đăng Nhập
                 </motion.h2>
 
                 {/* Sử dụng AnimatePresence để tạo hiệu ứng exit cho Alert */}
                 <AnimatePresence>
+                  {notice && (
+                    <motion.div
+                      key="notice"
+                      variants={alertVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    >
+                      <Alert variant="warning">{notice}</Alert>
+                    </motion.div>
+                  )}
                   {error && (
                     <motion.div
                       key="error"
@@ -146,7 +157,15 @@ const Login = () => {
                     <Form.Group className="mb-3">
                       <InputGroup>
                         <InputGroup.Text><FaEnvelope /></InputGroup.Text>
-                        <Form.Control type="email" placeholder="Nhập email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                        <Form.Control 
+                          type="email" 
+                          placeholder="Nhập email" 
+                          value={email} 
+                          onChange={(e) => setEmail(e.target.value)} 
+                          required 
+                          onInvalid={(e) => e.target.setCustomValidity("Vui lòng nhập đúng email")}
+                          onInput={(e) => e.target.setCustomValidity("")}
+                        />
                       </InputGroup>
                     </Form.Group>
                   </motion.div>
@@ -155,7 +174,15 @@ const Login = () => {
                     <Form.Group className="mb-4">
                       <InputGroup>
                         <InputGroup.Text><FaLock /></InputGroup.Text>
-                        <Form.Control type="password" placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <Form.Control 
+                          type="password" 
+                          placeholder="Nhập mật khẩu" 
+                          value={password} 
+                          onChange={(e) => setPassword(e.target.value)} 
+                          required 
+                          onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                          onInput={(e) => e.target.setCustomValidity("")}
+                        />
                       </InputGroup>
                     </Form.Group>
                   </motion.div>
@@ -174,7 +201,7 @@ const Login = () => {
                     </motion.div>
                   </motion.div>
                   
-                  <motion.div variants={itemVariants} className="text-center mt-4">
+                  <motion.div variants={itemVariants} className="text-center mt-5">
                     <span className="text-muted">Chưa có tài khoản? </span>
                     <a href="/register" className="text-decoration-none fw-bold" style={{ color: '#155E64' }}>Đăng ký ngay</a>
                   </motion.div>

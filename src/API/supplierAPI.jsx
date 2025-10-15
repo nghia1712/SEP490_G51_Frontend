@@ -1,6 +1,7 @@
 import authorApi from "./baseAPI/authorAPI";
 
-const API_URL = "/suppliers";
+// Backend controller: /api/Supplier
+const API_URL = "/Supplier";
 
 // Cache-busting utility
 const addCacheBusting = (url) => {
@@ -11,30 +12,16 @@ const addCacheBusting = (url) => {
 };
 
 const supplierAPI = {
-  getAll: () => {
-    return authorApi.get(addCacheBusting(`${API_URL}`), {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+  getList: (page = 1, pageSize = 20, keyword) => {
+    const params = new URLSearchParams({ page, pageSize });
+    if (keyword) params.append('keyword', keyword);
+    return authorApi.get(addCacheBusting(`${API_URL}/list?${params.toString()}`));
   },
-  getList: () => {
-    return authorApi.get(addCacheBusting(`${API_URL}`), {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
-  },
-  getMinimal: () => authorApi.get(`${API_URL}/getAllSuppliers`), // Minimal data (id, name, status only)
-  getById: (id) => authorApi.get(`${API_URL}/getSupplierById/${id}`),
-  add: (data) => authorApi.post(`${API_URL}/addSupplier`, data),
-  update: (id, data) => authorApi.put(`${API_URL}/updateSupplier/${id}`, data),
-  updateStatus: (id, data) =>
-    authorApi.put(`${API_URL}/update-status/${id}`, data),
+  getById: (id) => authorApi.get(`${API_URL}/detail?id=${id}`),
+  add: (data) => authorApi.post(`${API_URL}/create`, data),
+  update: (id, data) => authorApi.put(`${API_URL}/update?id=${id}`, data),
+  enable: (supplierId) => authorApi.post(`${API_URL}/enable?supplierId=${encodeURIComponent(supplierId)}`),
+  disable: (supplierId) => authorApi.post(`${API_URL}/disable?supplierId=${encodeURIComponent(supplierId)}`),
 };
 
 export default supplierAPI;

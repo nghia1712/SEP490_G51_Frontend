@@ -48,9 +48,10 @@ const getUserRole = () => {
       if (userId === '4') return 'manager';
       return 'customer';
     }
-    if (decoded.roleId === 1) return 'sales_staff';
-    if (decoded.roleId === 2) return 'purchases_staff';
-    if (decoded.roleId === 3) return 'warehouse_staff';
+    if (decoded.roleId === 0) return 'sales_staff';
+    if (decoded.roleId === 1) return 'purchases_staff';
+    if (decoded.roleId === 2) return 'warehouse_staff';
+    if (decoded.roleId === 3) return 'accountant_staff';
     if (decoded.roleId === 4) return 'customer';
     if (decoded.roleId === 5) return 'manager';
     return 'customer';
@@ -90,6 +91,9 @@ const LandingNew = () => {
       case 'warehouse_staff':
         functions = warehouseStaffFunctions;
         break;
+      case 'accountant_staff':
+        functions = []; // Tạm thời để trống, có thể thêm config sau
+        break;
       case 'manager':
         functions = managerFunctions;
         break;
@@ -114,6 +118,8 @@ const LandingNew = () => {
         return <PurchasesStaffDashboard />;
       case 'warehouse_staff':
         return <WarehouseStaffDashboard />;
+      case 'accountant_staff':
+        return <ManagerDashboard />; // Tạm thời sử dụng ManagerDashboard, có thể tạo riêng sau
       case 'manager':
         return <ManagerDashboard />;
       case 'customer':
