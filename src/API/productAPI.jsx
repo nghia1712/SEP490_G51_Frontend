@@ -6,10 +6,13 @@ const API_URL = "/Product";
 
 const productAPI = {
   getAll: () => authorApi.get(`${API_URL}/all`),
+  getActive: () => authorApi.get(`${API_URL}/active`),
   getById: (id) => authorApi.get(`${API_URL}/getbyid/${id}`),
-  create: (data) => authorApi.post(`${API_URL}/create`, data),
-  update: (id, data) => authorApi.put(`${API_URL}/update/${id}`, data),
-  setStatus: (id, status) => authorApi.put(`${API_URL}/${id}/status`, status),
+  // Create/Update use multipart/form-data per backend
+  create: (data) => formDataApi.post(`${API_URL}/create`, data),
+  update: (id, data) => formDataApi.put(`${API_URL}/update/${id}`, data),
+  // Backend expects raw boolean in body, not an object
+  setStatus: (id, statusBool) => authorApi.put(`${API_URL}/${id}/status`, statusBool),
 };
 
 export default productAPI;

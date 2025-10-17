@@ -1,6 +1,6 @@
 // File: EditCategory.js
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import categoryAPI from '../../API/categoryAPI';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
@@ -64,7 +64,8 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
 
     // Nếu là sub đã có, gọi API để xóa
     try {
-      await axios.delete(`http://localhost:9999/categories/${category._id}/sub/delete/${subIdToDelete}`);
+      // Backend hiện tại không có endpoint xóa danh mục con trong controller Category.
+      // Tạm thời chỉ xóa trong state cho phù hợp yêu cầu hiện tại.
       setSubcategories(subcategories.filter(sub => sub._id !== subIdToDelete));
     } catch (error) {
       setError("Lỗi khi xóa danh mục con. Vui lòng thử lại.");
@@ -81,21 +82,14 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
     setLoading(true);
     setError('');
     try {
-      // 1. Cập nhật thông tin danh mục cha
-      await axios.put(`http://localhost:9999/categories/updateCategory/${category._id}`, formData);
-
-      // 2. Xử lý danh mục con (thêm mới hoặc cập nhật)
-      for (const sub of subcategories) {
-        if (sub.name.trim()) { // Chỉ xử lý nếu có tên
-          if (sub._id.toString().startsWith("temp_")) { // Thêm mới
-            await axios.post(`http://localhost:9999/categories/${category._id}/sub/add`, { name: sub.name, description: sub.description });
-          } else { // Cập nhật
-            await axios.put(`http://localhost:9999/categories/${category._id}/sub/update/${sub._id}`, { name: sub.name, description: sub.description });
-          }
-        }
-      }
-      onCategoryUpdated(); // Refresh danh sách
-      onClose(); // Đóng dialog
+      const payload = {
+        CategoryID: category.categoryID || category.CategoryID || category.id || 0,
+        Name: formData.categoryName,
+        Description: formData.description,
+      };
+      await categoryAPI.update(payload);
+      onCategoryUpdated && onCategoryUpdated();
+      onClose && onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Lỗi khi cập nhật danh mục.');
     } finally {

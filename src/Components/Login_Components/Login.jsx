@@ -9,7 +9,7 @@ import {
   InputGroup,
   Card,
 } from "react-bootstrap";
-import { FaEnvelope, FaLock } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../App"; // Dùng context dùng chung cho toàn app
@@ -22,6 +22,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthContext();
   // Hiển thị thông báo sau khi bị force logout
   const notice = history.state && history.state.usr && history.state.usr.notice;
@@ -175,7 +176,7 @@ const Login = () => {
                       <InputGroup>
                         <InputGroup.Text><FaLock /></InputGroup.Text>
                         <Form.Control 
-                          type="password" 
+                          type={showPassword ? "text" : "password"} 
                           placeholder="Nhập mật khẩu" 
                           value={password} 
                           onChange={(e) => setPassword(e.target.value)} 
@@ -183,6 +184,9 @@ const Login = () => {
                           onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
                           onInput={(e) => e.target.setCustomValidity("")}
                         />
+                        <InputGroup.Text style={{ cursor: 'pointer' }} onClick={() => setShowPassword((s) => !s)}>
+                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </InputGroup.Text>
                       </InputGroup>
                     </Form.Group>
                   </motion.div>

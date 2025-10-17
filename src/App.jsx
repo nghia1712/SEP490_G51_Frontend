@@ -9,6 +9,8 @@ import ProtectedRoute from "./Components/Utils/ProtectedRoute";
 import DevelopmentPage from "./Components/Utils/CommonComponents/DevelopmentPage";
 import Login from "./Components/Login_Components/Login";
 import Register from "./Components/Login_Components/Register";
+import ConfirmEmail from "./Components/Login_Components/ConfirmEmail";
+import ResetPassword from "./Components/Login_Components/ResetPassword";
 import ForgotPassword from "./Components/Login_Components/ForgotPassword";
 import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
@@ -184,6 +186,8 @@ function App() {
               {/* Routes cho xác thực - sử dụng backgroundLogin */}
               <Route path="/login" element={<LoginWithBackground />} />
               <Route path="/register" element={<RegisterWithBackground />} />
+              <Route path="/confirm-email" element={<ConfirmEmail />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/forgot-password" element={<ForgotPasswordWithBackground />} />
               <Route path="/change-password" element={<ChangePasswordWithBackground />} />
               

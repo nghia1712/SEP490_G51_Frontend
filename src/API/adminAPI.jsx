@@ -3,7 +3,7 @@ import authorApi from './baseAPI/authorAPI';
 const adminAPI = {
   createStaffAccount: (payload) => authorApi.post('/Admin/create-staff-account', payload),
   getAccountList: (params) => authorApi.get('/Admin/get-account-list', { params }),
-  getAccountDetails: (accountId) => authorApi.get('/Admin/get-account-details', { params: { accountId } }),
+  getAccountDetails: (userId) => authorApi.get('/Admin/get-account-details', { params: { userId } }),
   updateStaffAccount: (payload) => authorApi.put('/Admin/update-staff-account', payload),
   suspendAccount: (userId) => authorApi.post(`/Admin/suspend-account?userId=${userId}`),
   activeAccount: (userId) => authorApi.post(`/Admin/active-account?userID=${userId}`),

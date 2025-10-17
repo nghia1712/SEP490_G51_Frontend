@@ -8,11 +8,32 @@ const useProduct = () => {
   const [product, setProduct] = useState(null);
   const [productSupplier, setProductSupplier] = useState(null);
 
-  const fetchProducts = async () => {
+  // Helper: normalize varied API shapes to a flat array
+  const normalizeToArray = (possibleArray) => {
+    if (Array.isArray(possibleArray)) return possibleArray;
+    if (possibleArray && typeof possibleArray === 'object') {
+      if (Array.isArray(possibleArray.data)) return possibleArray.data;
+      if (Array.isArray(possibleArray.items)) return possibleArray.items;
+      // Try to find the first array field in the object (fallback for unknown shapes)
+      const firstArray = Object.values(possibleArray).find(Array.isArray);
+      if (Array.isArray(firstArray)) return firstArray;
+    }
+    return [];
+  };
+
+  const fetchProducts = async (options = {}) => {
     setLoading(true);
     try {
-      const response = await productAPI.getAll();
-      setProducts(response.data);
+      const { onlyActive } = options;
+      const response = onlyActive ? await productAPI.getActive() : await productAPI.getAll();
+      const normalized = normalizeToArray(response?.data);
+      // Normalize ID field into _pid for consistent usage in UI/actions
+      const withPid = normalized.map((p) => ({
+        ...p,
+        _pid: p?.ProductID ?? p?.productID ?? p?.ProductId ?? p?.productId ?? p?.id ?? p?._id ?? null,
+      }));
+      console.log('Loaded products sample for shape check:', withPid?.[0]);
+      setProducts(withPid);
     } catch (err) {
       setError(err.message || "Failed to fetch products");
     } finally {
@@ -36,7 +57,8 @@ const useProduct = () => {
     setLoading(true);
     try {
       const response = await productAPI.create(formData);
-      setProducts([...products, response.data]);
+      const created = response?.data?.data ?? response?.data ?? null;
+      setProducts(created ? [...products, created] : products);
     } catch (err) {
       setError(err.message || "Failed to create product");
     } finally {
@@ -48,7 +70,8 @@ const useProduct = () => {
     setLoading(true);
     try {
       const response = await productAPI.update(id, formData);
-      setProducts(products.map((p) => (p._id === id ? response.data : p)));
+      const updated = response?.data?.data ?? response?.data ?? null;
+      setProducts(products.map((p) => (p._id === id ? (updated || p) : p)));
     } catch (err) {
       setError(err.message || "Failed to update product");
     } finally {
@@ -86,20 +109,45 @@ const useProduct = () => {
     }
   };
 
-  const inactiveProduct = async (id) => {
+  const inactiveProduct = async (productOrId) => {
     setLoading(true);
     try {
-      // 获取当前产品状态
-      const currentProduct = products.find((p) => p._id === id);
-      // 切换状态，如果是 active 就改为 inactive，否则改为 active
-      const newStatus =
-        currentProduct && currentProduct.status === "active"
-          ? "inactive"
-          : "active";
-      await productAPI.inactivate(id, newStatus);
+      // Accept whole product object or raw id
+      let id = typeof productOrId === 'object' && productOrId !== null
+        ? (productOrId._pid ?? productOrId.ProductID ?? productOrId.productID ?? productOrId.ProductId ?? productOrId.productId ?? productOrId.id ?? productOrId._id)
+        : productOrId;
+      const currentProduct = typeof productOrId === 'object' && productOrId !== null
+        ? productOrId
+        : products.find((p) => (
+            p?._id === id || p?.id === id || p?.ProductID === id || p?.productID === id || p?.ProductId === id || p?.productId === id
+          ));
+
+      // Fallback: if no id resolved, query server and try to resolve by name
+      if (!id) {
+        try {
+          const res = await productAPI.getAll();
+          const serverList = Array.isArray(res?.data?.data) ? res.data.data : (Array.isArray(res?.data) ? res.data : []);
+          const matched = serverList.find((p) => {
+            const name = p?.ProductName ?? p?.productName;
+            return currentProduct && name && String(name).toLowerCase() === String(currentProduct.productName || '').toLowerCase();
+          });
+          id = matched?._pid ?? matched?.ProductID ?? matched?.productID ?? matched?.ProductId ?? matched?.productId ?? matched?.id ?? matched?._id;
+        } catch {}
+      }
+
+      if (!id) throw new Error('Không tìm thấy mã sản phẩm để đổi trạng thái');
+      // Toggle boolean per BE
+      const isActive = (currentProduct?.Status === true) || (currentProduct?.status === 'active') || (currentProduct?.status === true);
+      const newStatusBool = !isActive;
+      await productAPI.setStatus(id, newStatusBool);
       // 更新本地状态
       setProducts(
-        products.map((p) => (p._id === id ? { ...p, status: newStatus } : p))
+        products.map((p) => {
+          const isTarget = p?._id === id || p?.id === id || p?.ProductID === id || p?.productID === id || p?.ProductId === id || p?.productId === id;
+          if (!isTarget) return p;
+          // Keep both boolean and string forms consistent for UI
+          return { ...p, Status: newStatusBool, status: newStatusBool ? 'active' : 'inactive' };
+        })
       );
     } catch (err) {
       setError(err.message || "Failed to inactivate product");

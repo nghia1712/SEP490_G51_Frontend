@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
-import axios from 'axios';
+import authAPI from '../../API/authAPI';
 
 function ResetPassword() {
-    const { id, token } = useParams();
+    const [searchParams] = useSearchParams();
+    const id = searchParams.get('userId') || searchParams.get('UserId') || '';
+    const token = searchParams.get('token') || searchParams.get('Token') || '';
     const navigate = useNavigate();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,19 +32,17 @@ function ResetPassword() {
 
 
         try {
-            const response = await axios.post(
-                `http://localhost:9999/authentication/reset-password/${id}/${token}`,
-                { password, confirmPassword }
-            );
-            setStatusMessage(response.data.message);
+            const response = await authAPI.resetPassword({
+                UserId: id,
+                Token: token,
+                NewPassword: password,
+                ConfirmPassword: confirmPassword
+            });
+            setStatusMessage(response.message || 'Đặt lại mật khẩu thành công');
             setTimeout(() => navigate('/login'), 2000);
         } catch (error) {
             setIsError(true);
-            const errorMessage =
-                error.response && error.response.data
-                    ? error.response.data.status
-                    : 'Something went wrong!';
-            setStatusMessage(errorMessage);
+            setStatusMessage(error.response?.data?.message || error.message || 'Có lỗi xảy ra!');
         }
     };
 

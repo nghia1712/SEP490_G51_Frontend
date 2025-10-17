@@ -19,7 +19,7 @@ const authAPI = {
 
   register: (form) => {
     const payload = {
-      UserName: form.fullName,
+      UserName: form.username,
       Email: form.email,
       PhoneNumber: form.phoneNumber,
       Password: form.password,
@@ -43,12 +43,29 @@ const authAPI = {
       .post("/Token/logout")
       .then((response) => response.data),
 
+  // Xác nhận email qua link trong mail: GET /api/User/confirm-email?userId=...&token=...
+  confirmEmail: (userId, token) =>
+    unauthorApi
+      .get('/User/confirm-email', { params: { userId, token } })
+      .then((response) => response.data),
+
+  // Gửi lại email xác nhận
+  resendConfirmEmail: (emailOrUsername) =>
+    unauthorApi
+      .post('/User/resend-confirm-email', { EmailOrUsername: emailOrUsername })
+      .then((response) => response.data),
+
   // Backend doesn't expose current-user endpoint; derive from token on client if needed
   getCurrentUser: async () => null,
 
-  forgotPassword: (data) =>
+  forgotPassword: ({ Email }) =>
     unauthorApi
-      .post("/User/forgot-password", data)
+      .post("/User/forgot-password", { Email })
+      .then((response) => response.data),
+
+  resetPassword: ({ UserId, Token, NewPassword, ConfirmPassword }) =>
+    unauthorApi
+      .post('/User/reset-password', { UserId, Token, NewPassword, ConfirmPassword })
       .then((response) => response.data),
 };
 

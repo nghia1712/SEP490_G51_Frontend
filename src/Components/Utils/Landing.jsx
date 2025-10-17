@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../App";
 import { jwtDecode } from "jwt-decode";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 
 // Utility functions để tối ưu performance
 const safeLocalStorage = {
@@ -305,8 +306,13 @@ function Landing() {
   // Memoized accessible functions để tránh re-calculate không cần thiết
   const accessibleFunctions = useMemo(() => {
     // Xác định role hiện tại
-    const currentRole = userRole || getUserRole();
+    const currentRole = userRole || getUserRoleFromToken();
     
+    // Nếu là nhân viên mua hàng, chỉ hiển thị 2 biểu tượng: Thuốc và Danh mục thuốc
+    const roleSpecificEnabledPaths = currentRole === 'purchases_staff'
+      ? new Set(['/product', '/category'])
+      : enabledPaths;
+
     const filtered = mainFunctions
       .filter((func) => {
         // Nếu user đã đăng nhập, kiểm tra role
@@ -317,7 +323,7 @@ function Landing() {
         return func.allowedRoles.includes('guest');
       })
       // Ẩn các chức năng chưa có API BE
-      .filter((func) => enabledPaths.has(func.path))
+      .filter((func) => roleSpecificEnabledPaths.has(func.path))
       .filter((func) =>
         func.title.toLowerCase().includes(searchTerm.toLowerCase())
       );

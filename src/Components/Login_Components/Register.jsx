@@ -9,7 +9,7 @@ import {
   InputGroup,
   Card,
 } from "react-bootstrap";
-import { FaUser, FaEnvelope, FaPhone, FaLock, FaMapMarkerAlt } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaLock, FaMapMarkerAlt, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../Hooks/useAuth";
 
@@ -27,6 +27,8 @@ const Register = () => {
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,7 +52,9 @@ const Register = () => {
 
       if (response) {
         setSuccess(true);
-        setTimeout(() => navigate("/login"), 1000);
+        // Hiển thị hướng dẫn xác nhận email
+        // Điều hướng về /login sau 2s
+        setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
       setError(err.message || "Đăng ký thất bại!");
@@ -214,7 +218,7 @@ const Register = () => {
                         <InputGroup>
                           <InputGroup.Text><FaLock /></InputGroup.Text>
                           <Form.Control 
-                            type="password" 
+                            type={showPw ? "text" : "password"} 
                             placeholder="Mật khẩu" 
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
@@ -222,6 +226,9 @@ const Register = () => {
                             onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
                             onInput={(e) => e.target.setCustomValidity("")}
                           />
+                          <InputGroup.Text style={{ cursor: 'pointer' }} onClick={() => setShowPw(s => !s)}>
+                            {showPw ? <FaEyeSlash /> : <FaEye />}
+                          </InputGroup.Text>
                         </InputGroup>
                       </Form.Group>
                     </motion.div>
@@ -231,7 +238,7 @@ const Register = () => {
                         <InputGroup>
                           <InputGroup.Text><FaLock /></InputGroup.Text>
                           <Form.Control 
-                            type="password" 
+                            type={showConfirm ? "text" : "password"} 
                             placeholder="Nhập lại mật khẩu" 
                             value={confirmPassword} 
                             onChange={(e) => setConfirmPassword(e.target.value)} 
@@ -239,6 +246,9 @@ const Register = () => {
                             onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
                             onInput={(e) => e.target.setCustomValidity("")}
                           />
+                          <InputGroup.Text style={{ cursor: 'pointer' }} onClick={() => setShowConfirm(s => !s)}>
+                            {showConfirm ? <FaEyeSlash /> : <FaEye />}
+                          </InputGroup.Text>
                         </InputGroup>
                       </Form.Group>
                     </motion.div>

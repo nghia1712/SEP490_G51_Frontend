@@ -141,21 +141,19 @@ function Header() {
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
     { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
     { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
+    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "purchases_staff", "admin"] },
     { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff", "admin"] },
-    { label: "Mua hàng", path: "/purchases", allowedRoles: ["manager", "purchases_staff", "admin"] },
   ];
 
   const partnerMenuItems = [
-    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "purchases_staff"] },
     { label: "Quản lý Nhà cung cấp - Sản phẩm", path: "/manager/manage-supplier-products", allowedRoles: ["manager"] },
     { label: "Khách hàng", path: "/listcustomer", allowedRoles: ["manager", "sales_staff"] },
   ];
 
   const transactionMenuItems = [
-    { label: "Phiếu Nhập Kho", path: "/receipts", allowedRoles: ["manager", "purchases_staff"] },
     { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "warehouse_staff"] },
     { label: "Danh Sách Giao Dịch", path: "/list-transaction", allowedRoles: ["manager"] },
   ];
@@ -169,10 +167,9 @@ function Header() {
   ];
   // Role-specific single entry for non-admins
   const getRoleAccountItem = (role) => {
-    if (role === "customer") return { label: "Tài khoản khách hàng", path: "/admin/users/customer" };
-    if (["sales_staff", "purchases_staff", "warehouse_staff"].includes(role)) return { label: "Tài khoản nhân viên", path: "/admin/users/staff" };
-    if (["manager", "admin"].includes(role)) return { label: "Tài khoản quản lý", path: "/admin/users/manager" };
-    return null;
+    // Chỉ admin mới thấy menu tài khoản
+    if (role === "admin") return null; // Admin sẽ sử dụng adminNavItems
+    return null; // Tất cả role khác không thấy menu tài khoản
   };
 
   const baseVisible = navItems.filter((item) => userRole && item.allowedRoles.includes(userRole));

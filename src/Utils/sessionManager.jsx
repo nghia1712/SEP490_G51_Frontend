@@ -7,7 +7,7 @@
 
 class SessionManager {
   constructor() {
-    this.sessionTimeout = 5 * 60 * 1000; // 5 phút
+    this.sessionTimeout = 60 * 60 * 1000; // 60 phút
     this.lastActivity = null;
     this.activityTimer = null;
     
@@ -39,7 +39,7 @@ class SessionManager {
         const { lastActivity } = JSON.parse(sessionData);
         const now = Date.now();
         
-        // Kiểm tra nếu session đã hết hạn (5 phút)
+        // Kiểm tra nếu session đã hết hạn (60 phút)
         if (now - lastActivity > this.sessionTimeout) {
           console.log('Session đã hết hạn, tự động logout');
           this.forceLogout('Phiên đăng nhập đã hết hạn');
@@ -139,7 +139,7 @@ class SessionManager {
     if (unloadTime) {
       const timeAway = Date.now() - parseInt(unloadTime);
       
-      // Nếu user thoát trang quá 5 phút, tự động logout
+      // Nếu user thoát trang quá 60 phút, tự động logout
       if (timeAway > this.sessionTimeout) {
         console.log('User thoát trang quá 5 phút, tự động logout');
         this.forceLogout('Phiên đăng nhập đã hết hạn do thoát trang quá lâu');

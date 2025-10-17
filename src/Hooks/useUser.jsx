@@ -14,16 +14,66 @@ const useUser = () => {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error('Chưa đăng nhập');
       
-      // Call API để lấy thông tin profile từ backend
-      const response = await userAPI.getProfile();
+      // Lấy userId từ access token (hỗ trợ cả định dạng claim URI của ASP.NET)
+      const [, payload] = token.split('.')
+      const tokenData = JSON.parse(atob(payload))
+      let userId = tokenData?.nameid || tokenData?.nameidentifier || tokenData?.sub || tokenData?.UserId || tokenData?.userId || tokenData?.uid
+      if (!userId) {
+        for (const [k, v] of Object.entries(tokenData)) {
+          const key = k.toLowerCase()
+          if (key.includes('/nameidentifier') || key.endsWith('/sid') || key.endsWith('/nameid') || key.endsWith('/subject')) {
+            userId = v
+            break
+          }
+        }
+      }
+
+      if (!userId) throw new Error('Không tìm thấy userId trong token')
+
+      // Gọi API Admin/get-account-details để lấy profile
+      const response = await userAPI.getProfile(userId);
       if (response && response.data) {
-        setProfile(response.data);
+        // Chuẩn hóa theo API /api/Admin/get-account-details trả về { success, message, data }
+        const payload = response.data?.data ?? response.data;
+        // Lưu bản chuẩn hóa tối thiểu phục vụ ViewProfile
+        const normalized = {
+          fullName: payload?.fullName ?? payload?.FullName ?? payload?.name ?? "",
+          email: payload?.email ?? payload?.Email ?? "",
+          phoneNumber: payload?.phoneNumber ?? payload?.PhoneNumber ?? "",
+          address: payload?.address ?? payload?.Address ?? "",
+          gender: payload?.gender ?? payload?.Gender ?? "",
+          createAt: payload?.createAt ?? payload?.CreateAt ?? payload?.createdAt ?? null,
+          status: payload?.status ?? payload?.userStatus ?? true,
+          avatar: payload?.avatar ?? payload?.Avatar ?? "",
+          mst: payload?.mst ?? payload?.Mst ?? "",
+        };
+        setProfile({ ...payload, ...normalized });
         setLoading(false);
-        return response;
+        return { data: { data: { ...payload, ...normalized } } };
       } else {
         throw new Error('Không thể lấy thông tin profile');
       }
     } catch (err) {
+      // Nếu BE trả 404 (chưa có hồ sơ), dùng dữ liệu tối thiểu từ token để hiển thị
+      if (err?.response?.status === 404) {
+        try {
+          const token = localStorage.getItem("authToken");
+          if (token?.includes('.')) {
+            const [, payload] = token.split('.');
+            const tokenData = JSON.parse(atob(payload));
+            const minimal = {
+              fullName: tokenData?.fullName || tokenData?.name || '',
+              email: tokenData?.email || '',
+            };
+            setProfile(minimal);
+            setLoading(false);
+            return { data: { data: minimal } };
+          }
+        } catch {}
+        setProfile({});
+        setLoading(false);
+        return { data: { data: {} } };
+      }
       setError(err.response?.data?.message || err.message || 'Get profile failed');
       setLoading(false);
       return null;

@@ -43,8 +43,14 @@ const ListAllUsers = ({ roleGroup }) => {
                 
                 if (response?.data?.success || response?.success) {
                     alert("Đã ban tài khoản thành công!");
-                    // Refresh trang để cập nhật dữ liệu mới nhất
-                    window.location.reload();
+                    // Cập nhật ngay trạng thái trên UI
+                    setUsers(prev => prev.map(u => {
+                        const uid = u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
+                        if (String(uid) === String(id)) {
+                            return { ...u, userStatus: 0, status: 'banned' };
+                        }
+                        return u;
+                    }));
                 } else {
                     alert("Có lỗi xảy ra khi ban tài khoản: " + (response?.data?.message || response?.message || "Unknown error"));
                 }
@@ -55,8 +61,14 @@ const ListAllUsers = ({ roleGroup }) => {
                 
                 if (response?.data?.success || response?.success) {
                     alert("Đã bỏ ban tài khoản thành công!");
-                    // Refresh trang để cập nhật dữ liệu mới nhất
-                    window.location.reload();
+                    // Cập nhật ngay trạng thái trên UI
+                    setUsers(prev => prev.map(u => {
+                        const uid = u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
+                        if (String(uid) === String(id)) {
+                            return { ...u, userStatus: 2, status: 'active' };
+                        }
+                        return u;
+                    }));
                 } else {
                     alert("Có lỗi xảy ra khi bỏ ban tài khoản: " + (response?.data?.message || response?.message || "Unknown error"));
                 }
@@ -124,9 +136,12 @@ const ListAllUsers = ({ roleGroup }) => {
       if (!id) return;
       const response = await adminAPI.getAccountDetails(id);
       console.log("getAccountDetails response:", response);
-      const data = response?.data || response;
+      // Unwrap common API shapes: axios { data }, and backend { success, data }
+      const data = (response?.data && (response.data.data ?? response.data)) || response;
       console.log("Account details data:", data);
-      setDetailUser(data || user);
+      // Merge: keep fields from list row (like role), override with detail fields when present
+      const merged = (data && typeof data === 'object') ? { ...(user || {}), ...data } : (user || data);
+      setDetailUser(merged);
       setIsDetailOpen(true);
     } catch (err) {
       console.log("getAccountDetails error:", err);
@@ -164,8 +179,12 @@ const ListAllUsers = ({ roleGroup }) => {
             }
         }
         
-        // Check for staff role ID
-        const staffRoleId = user?.staffRole ?? user?.StaffRole ?? user?.profile?.staffRole ?? user?.staff?.roleId ?? user?.staffProfile?.roleId;
+        // Check for staff role ID across multiple possible shapes
+        const staffRoleId = 
+            user?.staffRole ?? user?.StaffRole ??
+            user?.profile?.staffRole ?? user?.profile?.StaffRole ??
+            user?.staff?.roleId ?? user?.staff?.RoleId ?? user?.staff?.staffRole ?? user?.staff?.StaffRole ??
+            user?.staffProfile?.roleId ?? user?.staffProfile?.RoleId ?? user?.staffProfile?.staffRole ?? user?.staffProfile?.StaffRole;
         console.log("staffRoleId:", staffRoleId);
         
         if (staffRoleId !== null && staffRoleId !== undefined) {
@@ -194,6 +213,16 @@ const ListAllUsers = ({ roleGroup }) => {
             }
         }
         
+        // Check StaffRole as string enum from BE (e.g., "SalesStaff", "PurchasesStaff", ...)
+        const staffRoleName = user?.StaffRoleName || user?.staffRoleName || user?.staff?.roleName || user?.staffProfile?.roleName;
+        if (typeof staffRoleName === 'string') {
+            const r = staffRoleName.toLowerCase();
+            if (r.includes('sales')) return "Nhân viên Bán Hàng";
+            if (r.includes('purchase')) return "Nhân viên Mua Hàng";
+            if (r.includes('warehouse')) return "Nhân viên Kho";
+            if (r.includes('account')) return "Nhân viên Kế Toán";
+        }
+        
         // Check single role field
         const role = user?.role || user?.roleName;
         console.log("single role:", role);
@@ -206,10 +235,58 @@ const ListAllUsers = ({ roleGroup }) => {
             if (roleLower === 'customer') return "Khách hàng";
             if (roleLower === 'manager') return "Quản lý";
             if (roleLower === 'admin') return "Admin";
+            // Fallback for enum name strings ("SalesStaff", "PurchasesStaff" ...)
+            if (roleLower.includes('sales')) return "Nhân viên Bán Hàng";
+            if (roleLower.includes('purchase')) return "Nhân viên Mua Hàng";
+            if (roleLower.includes('warehouse')) return "Nhân viên Kho";
+            if (roleLower.includes('account')) return "Nhân viên Kế Toán";
         }
         
         console.log("No role found, returning '-'");
         return '-';
+    };
+
+    // Determine if an account is active based on multiple possible backend shapes
+    const getIsActive = (u) => {
+        if (typeof u?.isActive === 'boolean') return u.isActive;
+        const rawStatus = u?.userStatus ?? u?.status ?? u?.Status;
+        if (typeof rawStatus === 'number') {
+            // Backend enum commonly: 0=Block, 1=Inactive, 2=Active
+            return Number(rawStatus) === 2;
+        }
+        if (typeof rawStatus === 'string') {
+            const s = rawStatus.toLowerCase();
+            if (s === 'active' || s === '2' || s === 'true') return true;
+            if (s === 'inactive' || s === '1' || s === 'banned' || s === 'block' || s === '0' || s === 'false') return false;
+        }
+        // Default to not active if unclear to avoid false positives
+        return false;
+    };
+
+    // Normalize gender from various shapes to Vietnamese label
+    const getGenderLabelFromAny = (u) => {
+        // Prefer top-level first
+        let g = u?.gender ?? u?.Gender ?? u?.profile?.gender ?? u?.profile?.Gender;
+        if (g === null || g === undefined) return '-';
+        // Handle booleans directly
+        if (typeof g === 'boolean') return g ? 'Nam' : 'Nữ';
+        // Handle numbers (1/0 or 2/1 conventions)
+        if (typeof g === 'number') {
+            // common: 1 male, 0 female. Fallback: 2 male, 1 female
+            if (g === 1 || g === 2) return 'Nam';
+            if (g === 0 || g === 1) return g === 1 ? 'Nam' : 'Nữ';
+        }
+        // Handle strings: 'true'/'false', 'male'/'female', 'nam'/'nu'
+        if (typeof g === 'string') {
+            const s = g.trim().toLowerCase();
+            if (s === 'true' || s === '1' || s === 'male' || s === 'nam') return 'Nam';
+            if (s === 'false' || s === '0' || s === 'female' || s === 'nữ' || s === 'nu') return 'Nữ';
+        }
+        return '-';
+    };
+
+    const getAddressFromAny = (u) => {
+        return u?.Address || u?.address || u?.profile?.address || u?.profile?.Address || '-';
     };
 
     // Normalize roles coming from different backend shapes to lowercase keywords
@@ -247,35 +324,61 @@ const ListAllUsers = ({ roleGroup }) => {
         return collected.filter(Boolean);
     };
 
+    // Remove Vietnamese diacritics and normalize spacing for robust text match
+    const toSearchKey = (text) => {
+        if (!text) return '';
+        return String(text)
+            .normalize('NFD')
+            .replace(/\p{Diacritic}+/gu, '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, ' ');
+    };
+
+    // Build a set of searchable role strings for a user, including VN display
+    const getSearchableRoleKeys = (user) => {
+        const keys = new Set(normalizeUserRoles(user));
+        const vn = getRoleDisplayName(user); // e.g., "Nhân viên Bán Hàng"
+        if (vn && vn !== '-') {
+            keys.add(toSearchKey(vn));
+        }
+        // Also add English-ish keywords for convenience
+        const map = {
+            'nhan vien ban hang': 'sales_staff',
+            'nhan vien mua hang': 'purchases_staff',
+            'nhan vien kho': 'warehouse_staff',
+            'nhan vien ke toan': 'accountant_staff',
+            'sales': 'sales_staff',
+            'purchases': 'purchases_staff',
+            'warehouse': 'warehouse_staff',
+            'accountant': 'accountant_staff',
+        };
+        for (const [k, v] of Object.entries(map)) keys.add(k) && keys.add(v);
+        return Array.from(keys);
+    };
+
     const filteredUsers = (users || []).filter((user) => {
         const name = (user?.fullName || user?.profile?.fullName || "").toLowerCase();
         const email = (user?.account?.email || user?.email || "").toLowerCase();
         const q = (search || "").toLowerCase();
         const matchesSearch = name.includes(q) || email.includes(q);
         
-        // Fix status filter logic to match renderStatusBadge
-        const status = user?.userStatus || user?.status;
-        let isActive = false;
-        
-        if (typeof status === 'number') {
-            isActive = status === 2; // Active
-        } else if (typeof status === 'string') {
-            const normalizedStatus = status.toLowerCase();
-            isActive = normalizedStatus === 'active' || normalizedStatus === '2';
-        } else {
-            // Default to active for new accounts
-            isActive = true;
-        }
+        // Use unified status resolver
+        const isActive = getIsActive(user);
         
         const statusLabel = isActive ? "Hoạt động" : "Không hoạt động";
         const hasAnyStatusFilter = Object.values(filterStatus || {}).some(v => v);
         const matchesStatus = hasAnyStatusFilter ? !!filterStatus[statusLabel] : true;
-        // role matching query
-        const normalizedRoles = normalizeUserRoles(user);
-        const matchesRoleQuery = roleQuery ? normalizedRoles.some(r => r.includes(roleQuery.toLowerCase())) : true;
+        // role matching query: behave like email filter (simple substring, case/diacritic-insensitive)
+        const matchesRoleQuery = (() => {
+            if (!roleQuery) return true;
+            const roleText = [getRoleDisplayName(user), ...normalizeUserRoles(user)].filter(Boolean).join(' ');
+            return toSearchKey(roleText).includes(toSearchKey(roleQuery));
+        })();
 
         // Additional filter by role group for admin subpages
         let matchesRoleGroup = true;
+        const normalizedRoles = normalizeUserRoles(user);
         const isCustomerFlag = user?.isCustomer === true || user?.IsCustomer === true;
         const isStaffFlag = user?.isStaff === true || user?.IsStaff === true || !!user?.Department;
         if (roleGroup === 'customer') {
@@ -313,25 +416,18 @@ const ListAllUsers = ({ roleGroup }) => {
         return matchesSearch && matchesStatus && matchesRoleQuery && matchesRoleGroup;
     });
     const isStaffView = roleGroup === 'staff';
-    const indexColStyle = isStaffView ? { width: '50px' } : {};
+    const isManagerView = roleGroup === 'manager';
+    const indexColStyle = { width: '50px' };
     const equalColStyle = isStaffView ? { width: '20%' } : {};
     const actionColStyle = isStaffView ? { width: '140px' } : {};
+    const statusContainerStyle = { flex: 1, justifyContent: isStaffView ? 'center' : 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' };
 
     // Render status badge similar to product page
-    const renderStatusBadge = (status) => {
-        // Backend enum: Block=0, Inactive=1, Active=2
-        // Map both string and numeric values
-        let isActive = false;
-        
-        if (typeof status === 'number') {
-            isActive = status === 2; // Active
-        } else if (typeof status === 'string') {
-            const normalizedStatus = status.toLowerCase();
-            isActive = normalizedStatus === 'active' || normalizedStatus === '2';
-        } else {
-            // Default to active for new accounts
-            isActive = true;
-        }
+    const renderStatusBadge = (statusOrUser) => {
+        const isActive = typeof statusOrUser === 'object' ? getIsActive(statusOrUser) : (
+            typeof statusOrUser === 'number' ? statusOrUser === 2 :
+            (typeof statusOrUser === 'string' ? ['active','2','true'].includes(statusOrUser.toLowerCase()) : false)
+        );
         
         return (
             <span
@@ -376,7 +472,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                         style={{ width: "240px", height: "38px", fontSize: "1rem" }}
                                     />
                                 </div>
-                                <div className="d-flex align-items-center gap-3" style={{ flex: 1, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                                <div className="d-flex align-items-center gap-3" style={statusContainerStyle}>
                                     {["Hoạt động", "Không hoạt động"].map((status) => (
                                         <Form.Check
                                             inline
@@ -391,9 +487,11 @@ const ListAllUsers = ({ roleGroup }) => {
                                     ))}
                                 </div>
                             </Form>
-                            <Button variant="primary" onClick={() => setIsCreateOpen(true)} style={{ height: '35px', width: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                + Tạo nhân viên
-                            </Button>
+                            {isStaffView && (
+                                <Button variant="primary" onClick={() => setIsCreateOpen(true)} style={{ height: '35px', width: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    + Tạo nhân viên
+                                </Button>
+                            )}
                         </div>
 
                         <div style={{ overflowY: 'auto', maxHeight: '620px' }}>
@@ -402,16 +500,22 @@ const ListAllUsers = ({ roleGroup }) => {
                                 <tr>
                                     <th style={indexColStyle}>#</th>
                                     <th style={equalColStyle}>Email</th>
-                                    {isStaffView ? <th style={equalColStyle}>Mã nhân viên</th> : <th>Tên đăng nhập</th>}
-                                    {isStaffView ? <th style={equalColStyle}>Vai trò</th> : <th>Số điện thoại</th>}
+                                    {isStaffView && <th style={equalColStyle}>Mã nhân viên</th>}
+                                    {isStaffView && <th style={equalColStyle}>Vai trò</th>}
                                     {isStaffView && <th style={equalColStyle}>Trạng thái</th>}
-                                    {!isStaffView && <th>Vai trò</th>}
-                                    {!isStaffView && <th>Họ tên</th>}
-                                    {!isStaffView && <th>Giới tính</th>}
-                                    {!isStaffView && <th>Địa chỉ</th>}
-                                    {!isStaffView && <th>Mã nhân viên</th>}
-                                    {!isStaffView && <th>Ghi chú</th>}
-                                    <th style={actionColStyle}>Hành động</th>
+                                    {isManagerView && <th>Số điện thoại</th>}
+                                    {isManagerView && <th>Địa chỉ</th>}
+                                    {isManagerView && <th>Vai trò</th>}
+                                    {isManagerView && <th>Ghi chú</th>}
+                                    {!isStaffView && !isManagerView && <th>Tên đăng nhập</th>}
+                                    {!isStaffView && !isManagerView && <th>Số điện thoại</th>}
+                                    {!isStaffView && !isManagerView && <th>Vai trò</th>}
+                                    {!isStaffView && !isManagerView && <th>Họ tên</th>}
+                                    {!isStaffView && !isManagerView && <th>Giới tính</th>}
+                                    {!isStaffView && !isManagerView && <th>Địa chỉ</th>}
+                                    {!isStaffView && !isManagerView && <th>Mã nhân viên</th>}
+                                    {!isStaffView && !isManagerView && <th>Ghi chú</th>}
+                                    {isStaffView ? <th style={actionColStyle}>Hành động</th> : null}
                                 </tr>
                             </thead>
                             <tbody>
@@ -430,63 +534,67 @@ const ListAllUsers = ({ roleGroup }) => {
                                                         {console.log("EmployeeCode debug:", user?.EmployeeCode, user?.employeeCode, user?.profile?.employeeCode, "Full user:", user)}
                                                         {user?.EmployeeCode || user?.employeeCode || user?.profile?.employeeCode || '-'}
                                                     </td>
-                                                ) : (
-                                                    <td>{user?.account?.userName || user?.username || user?.userName || '-'}</td>
-                                                )}
+                                                ) : null}
                                                 {isStaffView ? (
                                                     <td style={equalColStyle}>{getRoleDisplayName(user)}</td>
-                                                ) : (
-                                                <td>{user?.profile?.phoneNumber || user?.phoneNumber || '-'}</td>
-                                                )}
+                                                ) : null}
                                                 {isStaffView && (
                                                     <td style={equalColStyle}>
-                                                        {renderStatusBadge(user?.userStatus || user?.status)}
+                                                        {renderStatusBadge(user)}
                                                     </td>
                                                 )}
-                                                {!isStaffView && (
+                                                {isManagerView && (
+                                                    <>
+                                                        <td>{user?.profile?.phoneNumber || user?.phoneNumber || '-'}</td>
+                                                        <td className="text-center">{user?.profile?.address || user?.address || '-'}</td>
+                                                        <td>{getRoleDisplayName(user)}</td>
+                                                        <td className="text-start">{user?.notes || user?.profile?.notes || '-'}</td>
+                                                    </>
+                                                )}
+                                                {!isStaffView && !isManagerView && (
                                                     <>
                                                         <td>{getRoleDisplayName(user)}</td>
                                                 <td className="text-start">{user?.fullName || user?.profile?.fullName || '-'}</td>
                                                 <td>{user?.gender !== null && user?.gender !== undefined ? (user.gender === true ? "Nam" : "Nữ") : '-'}</td>
-                                                <td className="text-start">{user?.profile?.address || user?.address || '-'}</td>
+                                                <td className="text-center">{user?.profile?.address || user?.address || '-'}</td>
                                                 <td>{user?.employeeCode || user?.profile?.employeeCode || '-'}</td>
                                                 <td className="text-start">{user?.notes || user?.profile?.notes || '-'}</td>
                                                     </>
                                                 )}
-                                                <td style={actionColStyle}>
-                                                    <div className="d-flex align-items-center justify-content-center gap-3" data-row-action>
-                                                        <Button variant="warning" size="sm" onClick={() => setEditingUser(user)} style={{ opacity: (user?.status === "inactive" || user?.status === "banned") ? 0.5 : 1, padding: "2px 6px", fontSize: "0.8rem" }} disabled={user?.status === "inactive" || user?.status === "banned"}>
-                                                            <FaEdit /> Sửa
-                                                        </Button>
-                                                        {(() => {
-                                                            // Check if user is active (can login)
-                                                            const isActive = (typeof user?.userStatus === 'number' && user.userStatus === 2) || 
-                                                                           (typeof user?.userStatus === 'string' && user.userStatus.toLowerCase() === 'active') ||
-                                                                           (typeof user?.status === 'string' && user.status.toLowerCase() === 'active');
-                                                            
-                                                            if (isActive) {
-                                                                return (
-                                                                    <Button variant="danger" size="sm" onClick={() => handleUpdateStatus(user._id || user?.userId, "banned")} style={{ padding: "2px 6px", fontSize: "0.8rem" }}>
-                                                                <FaBan /> Ban
+                                                {isStaffView ? (
+                                                    <td style={actionColStyle}>
+                                                        <div className="d-flex align-items-center justify-content-center gap-3" data-row-action>
+                                                            <Button variant="warning" size="sm" onClick={() => setEditingUser(user)} style={{ opacity: (!getIsActive(user)) ? 0.5 : 1, padding: "2px 6px", fontSize: "0.8rem" }} disabled={!getIsActive(user)}>
+                                                                <FaEdit /> Sửa
                                                             </Button>
-                                                                );
-                                                            } else {
-                                                                return (
-                                                                    <Button variant="success" size="sm" onClick={() => handleUpdateStatus(user._id || user?.userId, "active")} style={{ padding: "2px 6px", fontSize: "0.8rem" }}>
-                                                                Bỏ ban
-                                                            </Button>
-                                                                );
-                                                            }
-                                                        })()}
-                                                    </div>
-                                                </td>
+                                                            {(() => {
+                                                                // Check if user is active (can login)
+                                                                const isActive = getIsActive(user);
+                                                                
+                                                                if (isActive) {
+                                                                    return (
+                                                                        <Button variant="danger" size="sm" onClick={() => handleUpdateStatus(user._id || user?.userId, "banned")} style={{ padding: "2px 6px", fontSize: "0.8rem" }}>
+                                                                        <FaBan /> Ban
+                                                                    </Button>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <Button variant="success" size="sm" onClick={() => handleUpdateStatus(user._id || user?.userId, "active")} style={{ padding: "2px 6px", fontSize: "0.8rem" }}>
+                                                                        Bỏ ban
+                                                                    </Button>
+                                                                    );
+                                                                }
+                                                            })()}
+                                                        </div>
+                                                    </td>
+                                                ) : null}
 
                                             </tr>
                                         </React.Fragment>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={isStaffView ? "5" : "8"} className="text-center">Không tìm thấy người dùng nào</td>
+                                        <td colSpan={isStaffView ? "5" : (isManagerView ? "6" : "8")} className="text-center">Không tìm thấy người dùng nào</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -513,7 +621,7 @@ const ListAllUsers = ({ roleGroup }) => {
                             </div>
                             <div className="row mb-2">
                                 <div className="col-sm-4 fw-bold">Vai trò</div>
-                                <div className="col-sm-8">{detailUser?.role || detailUser?.roleName || '-'}</div>
+                                <div className="col-sm-8">{getRoleDisplayName(detailUser) || '-'}</div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-sm-4 fw-bold">Họ tên</div>
@@ -521,27 +629,19 @@ const ListAllUsers = ({ roleGroup }) => {
                             </div>
                             <div className="row mb-2">
                                 <div className="col-sm-4 fw-bold">Giới tính</div>
-                                <div className="col-sm-8">
-                                    {(() => {
-                                        console.log("Gender debug:", {
-                                            gender: detailUser?.gender,
-                                            type: typeof detailUser?.gender,
-                                            isNull: detailUser?.gender === null,
-                                            isUndefined: detailUser?.gender === undefined,
-                                            isTrue: detailUser?.gender === true,
-                                            isFalse: detailUser?.gender === false
-                                        });
-                                        return detailUser?.gender !== null && detailUser?.gender !== undefined ? (detailUser.gender === true ? 'Nam' : 'Nữ') : '-';
-                                    })()}
-                                </div>
+                                <div className="col-sm-8">{getGenderLabelFromAny(detailUser)}</div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-sm-4 fw-bold">Địa chỉ</div>
-                                <div className="col-sm-8">{detailUser?.Address || detailUser?.address || detailUser?.profile?.address || '-'}</div>
+                                <div className="col-sm-8">{getAddressFromAny(detailUser)}</div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-sm-4 fw-bold">Mã nhân viên</div>
                                 <div className="col-sm-8">{detailUser?.EmployeeCode || detailUser?.employeeCode || detailUser?.profile?.employeeCode || '-'}</div>
+                            </div>
+                            <div className="row mb-2">
+                                <div className="col-sm-4 fw-bold">Ghi chú</div>
+                                <div className="col-sm-8">{detailUser?.notes || detailUser?.profile?.notes || '-'}</div>
                             </div>
                             {detailUser?.department || detailUser?.profile?.department ? (
                                 <div className="row mb-2">
@@ -564,15 +664,14 @@ const ListAllUsers = ({ roleGroup }) => {
                     <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
                 </Modal.Footer>
             </Modal>
-            {/* Create Staff Modal */}
-            <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl">
-                <Modal.Header closeButton>
-                    <Modal.Title>Tạo nhân viên</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <CreateStaff />
-                </Modal.Body>
-            </Modal>
+            {/* Chỉ cho phép tạo nhân viên trong trang nhân viên */}
+            {isStaffView && (
+                <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl" contentClassName="p-0">
+                    <Modal.Body className="p-4">
+                        <CreateStaff onClose={() => setIsCreateOpen(false)} />
+                    </Modal.Body>
+                </Modal>
+            )}
             <EditUserModal
                 user={editingUser}
                 closeModal={() => setEditingUser(null)}

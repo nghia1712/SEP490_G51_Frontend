@@ -1,71 +1,79 @@
 import React, { useState, useEffect } from "react";
-import { Button, Modal, Form, Alert } from "react-bootstrap";
+import { Button, Modal, Form, Alert, Row, Col } from "react-bootstrap";
 import adminAPI from "../../API/adminAPI";
 
 const EditUserModal = ({ user, closeModal, users, setUsers }) => {
-    const [salary, setSalary] = useState(0);
-    const [type, setType] = useState("parttime");
-    const [workDays, setWorkDays] = useState([]);
-    const [shifts, setShifts] = useState([]);
+    const [form, setForm] = useState({
+        fullName: "",
+        phoneNumber: "",
+        address: "",
+        gender: true,
+        employeeCode: "",
+        notes: "",
+        avatar: "",
+        userStatus: 2, // 0=Block,1=Inactive,2=Active
+    });
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
+    const getUserId = (u) => u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
+
     useEffect(() => {
-        if (user) {
-            setSalary(user.salary || 0);
-            setType(user.type || "parttime");
-            setWorkDays(user.schedule?.workDays || []);
-            if (user.type === "fulltime") {
-                setShifts(["8:00AM - 17:00PM"]);
-            } else {
-                setShifts(user.schedule?.shifts || []);
-            }
-        }
+        if (!user) return;
+        setForm({
+            fullName: user?.fullName || user?.profile?.fullName || "",
+            phoneNumber: user?.phoneNumber || user?.profile?.phoneNumber || "",
+            address: user?.address || user?.profile?.address || "",
+            gender: (user?.gender ?? user?.profile?.gender) ?? true,
+            employeeCode: user?.employeeCode || user?.profile?.employeeCode || "",
+            notes: user?.notes || user?.profile?.notes || "",
+            avatar: user?.avatar || user?.profile?.avatar || "",
+            userStatus: typeof user?.userStatus === 'number' ? user.userStatus : (String(user?.status).toLowerCase() === 'active' ? 2 : 1),
+        });
     }, [user]);
 
-    const toggleWorkDay = (day) => {
-        setWorkDays((prevDays) =>
-            prevDays.includes(day)
-                ? prevDays.filter((d) => d !== day)
-                : [...prevDays, day]
-        );
-    };
+    const setField = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (workDays.length === 0) {
-            setErrorMessage("Vui lòng chọn ít nhất một ngày làm việc.");
-            return;
-        }
-        if (shifts.length === 0) {
-            setErrorMessage("Vui lòng chọn ít nhất một ca làm việc.");
-            return;
-        }
-
         try {
-            await axios.put(`http://localhost:9999/users/update-user/${user._id}`, {
-                salary,
-                type,
-                workDays,
-                shifts,
-            });
+            const payload = {
+                UserId: getUserId(user),
+                PhoneNumber: form.phoneNumber || null,
+                UserStatus: Number(form.userStatus),
+                FullName: form.fullName || null,
+                Avatar: form.avatar || null,
+                Gender: !!form.gender,
+                Address: form.address || null,
+                EmployeeCode: form.employeeCode || null,
+                Notes: form.notes || null,
+            };
 
-            setUsers((prevUsers) =>
-                prevUsers.map((u) =>
-                    u._id === user._id
-                        ? { ...u, salary, type, schedule: { ...u.schedule, workDays, shifts } }
-                        : u
-                )
-            );
-            setSuccessMessage("Cập nhật thông tin thành công!");
+            const res = await adminAPI.updateStaffAccount(payload);
+
+            // Update local list
+            if (setUsers && users) {
+                setUsers(prev => prev.map(u => (getUserId(u) === getUserId(user)) ? {
+                    ...u,
+                    fullName: payload.FullName ?? u.fullName,
+                    phoneNumber: payload.PhoneNumber ?? u.phoneNumber,
+                    address: payload.Address ?? u.address,
+                    gender: payload.Gender,
+                    employeeCode: payload.EmployeeCode ?? u.employeeCode,
+                    notes: payload.Notes ?? u.notes,
+                    userStatus: payload.UserStatus,
+                } : u));
+            }
+
+            setSuccessMessage(res?.data?.message || "Cập nhật thông tin thành công!");
             setErrorMessage("");
             setTimeout(() => {
                 setSuccessMessage("");
                 closeModal();
-            }, 2000);
+            }, 1500);
         } catch (error) {
             console.error("Lỗi cập nhật thông tin người dùng:", error);
+            setErrorMessage(error?.response?.data?.message || "Có lỗi xảy ra khi cập nhật thông tin");
         }
     };
 
@@ -78,58 +86,63 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                 {successMessage && <Alert variant="success">{successMessage}</Alert>}
                 {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
                 <Form onSubmit={handleSubmit}>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Mức lương</Form.Label>
-                        <Form.Control
-                            type="number"
-                            value={salary}
-                            onChange={(e) => setSalary(e.target.value)}
-                        />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                        <Form.Label>Loại nhân viên</Form.Label>
-                        <Form.Select value={type} onChange={(e) => setType(e.target.value)}>
-                            <option value="fulltime">Toàn thời gian</option>
-                            <option value="parttime">Bán thời gian</option>
-                        </Form.Select>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                        <Form.Label>Ngày làm việc <span style={{ color: 'red' }}>*</span></Form.Label>
-                        <div className="d-flex flex-wrap gap-2">
-                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day, index) => (
-                                <div
-                                    key={day}
-                                    className={`px-3 py-2 border rounded cursor-pointer ${workDays.includes(day) ? 'bg-success text-white' : ''}`}
-                                    onClick={() => toggleWorkDay(day)}
-                                >
-                                    {["T2", "T3", "T4", "T5", "T6", "T7", "CN"][index]}
-                                </div>
-                            ))}
-                        </div>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                        <Form.Label>Ca làm việc <span style={{ color: 'red' }}>*</span></Form.Label>
-                        {type === "fulltime" ? (
-                            <div className="fw-bold">8:00AM - 17:00PM</div>
-                        ) : (
-                            <div className="d-flex gap-3">
-                                {["Morning", "Afternoon", "Evening"].map((shift) => (
-                                    <Form.Check
-                                        key={shift}
-                                        type="radio"
-                                        label={shift === "Morning" ? "Sáng" : shift === "Afternoon" ? "Chiều" : "Tối"}
-                                        name="shifts"
-                                        value={shift}
-                                        checked={shifts.includes(shift)}
-                                        onChange={() => setShifts([shift])}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </Form.Group>
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Họ tên</Form.Label>
+                                <Form.Control value={form.fullName} onChange={e=>setField('fullName', e.target.value)} />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Số điện thoại</Form.Label>
+                                <Form.Control value={form.phoneNumber} onChange={e=>setField('phoneNumber', e.target.value)} />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Địa chỉ</Form.Label>
+                                <Form.Control value={form.address} onChange={e=>setField('address', e.target.value)} />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Giới tính</Form.Label>
+                                <Form.Select value={String(form.gender)} onChange={e=>setField('gender', e.target.value === 'true')}>
+                                    <option value={'true'}>Nam</option>
+                                    <option value={'false'}>Nữ</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Mã nhân viên</Form.Label>
+                                <Form.Control value={form.employeeCode} onChange={e=>setField('employeeCode', e.target.value)} />
+                            </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Trạng thái</Form.Label>
+                                <Form.Select value={String(form.userStatus)} onChange={e=>setField('userStatus', Number(e.target.value))}>
+                                    <option value={2}>Hoạt động</option>
+                                    <option value={1}>Không hoạt động</option>
+                                    <option value={0}>Bị khóa</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                    <Row className="mb-3">
+                        <Col md={12}>
+                            <Form.Group>
+                                <Form.Label>Ghi chú</Form.Label>
+                                <Form.Control as="textarea" rows={2} value={form.notes} onChange={e=>setField('notes', e.target.value)} />
+                            </Form.Group>
+                        </Col>
+                    </Row>
                 </Form>
             </Modal.Body>
             <Modal.Footer>

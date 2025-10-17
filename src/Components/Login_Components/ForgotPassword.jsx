@@ -9,7 +9,7 @@ import {
   InputGroup,
   Card, // Sử dụng Card để thống nhất UI
 } from "react-bootstrap";
-import { FaEnvelope, FaPhone } from "react-icons/fa";
+import { FaEnvelope } from "react-icons/fa";
 import { useAuthContext } from "../../App";
 
 // Import các thành phần cần thiết từ Framer Motion
@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const ForgotPassword = () => {
   const { forgotPassword } = useAuthContext();
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -28,7 +27,7 @@ const ForgotPassword = () => {
     setError("");
 
     try {
-      const response = await forgotPassword({ email, phoneNumber });
+      const response = await forgotPassword({ Email: email });
       setMessage(response.message || "Yêu cầu đã được gửi thành công!");
     } catch (err) {
       setError(err.message || "Có lỗi xảy ra! Vui lòng thử lại.");
@@ -103,7 +102,7 @@ const ForgotPassword = () => {
                   Quên Mật Khẩu
                 </motion.h2>
                 <motion.p variants={itemVariants} className="text-center text-muted mb-4">
-                  Vui lòng nhập email và số điện thoại đã đăng ký để lấy lại mật khẩu.
+                  Vui lòng nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.
                 </motion.p>
                 
                 <AnimatePresence>
@@ -137,22 +136,7 @@ const ForgotPassword = () => {
                       </Form.Group>
                     </motion.div>
 
-                    <motion.div variants={itemVariants}>
-                      <Form.Group className="mb-4">
-                        <InputGroup>
-                          <InputGroup.Text><FaPhone /></InputGroup.Text>
-                          <Form.Control 
-                            type="text" 
-                            placeholder="Nhập số điện thoại" 
-                            value={phoneNumber} 
-                            onChange={(e) => setPhoneNumber(e.target.value)} 
-                            required 
-                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
-                            onInput={(e) => e.target.setCustomValidity("")}
-                          />
-                        </InputGroup>
-                      </Form.Group>
-                    </motion.div>
+                    {/* Removed phone number field per BE contract: only Email is required */}
 
                   <motion.div variants={itemVariants}>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

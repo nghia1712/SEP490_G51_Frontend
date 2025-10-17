@@ -12,11 +12,25 @@ const useCategory = () => {
         setError(null);
         try {
             const res = await categoryAPI.getAll();
-            setCategories(res.data || res);
+            console.log('API Response:', res); // Debug log
+            
+            // Backend trả về format: {success: true, message: 'Thành công', data: Array(5)}
+            const categoriesData = res.data?.data || res.data || res;
+            console.log('Categories Data:', categoriesData); // Debug log
+            
+            // Đảm bảo categoriesData là array
+            if (Array.isArray(categoriesData)) {
+                setCategories(categoriesData);
+            } else {
+                console.warn('Categories data is not an array:', categoriesData);
+                setCategories([]);
+            }
             setLoading(false);
             return res;
         } catch (err) {
+            console.error('Error fetching categories:', err); // Debug log
             setError(err.response?.data?.message || err.message || 'Get categories failed');
+            setCategories([]); // Đảm bảo categories là array rỗng khi có lỗi
             setLoading(false);
             return null;
         }

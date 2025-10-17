@@ -97,7 +97,7 @@ const ProductDetailsAntdMotion = ({ show, handleClose, product }) => {
                             <Row gutter={[32, 16]} align="middle" justify="center">
                                 <Col xs={24} md={9} style={{ textAlign: "center" }}>
                                     <Image
-                                        src={product.productImage ? `http://localhost:9999${product.productImage}` : "http://localhost:9999/uploads/default-product.png"}
+                                        src={product.productImage ? `http://localhost:9999${product.productImage}` : "/images/login_image.jpg"}
                                         alt="Product"
                                         width={180}
                                         height={180}
