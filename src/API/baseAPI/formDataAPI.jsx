@@ -13,7 +13,7 @@ const formDataApi = axios.create({
 
 // Request Interceptor
 formDataApi.interceptors.request.use(config => {
-    // ✅ THÊM: Lấy token từ localStorage và gắn vào header
+    // THÊM: Lấy token từ localStorage và gắn vào header
     const token = localStorage.getItem('authToken');
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
@@ -56,4 +56,3 @@ formDataApi.interceptors.response.use(
 );
 
 export default formDataApi;
-

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Container, Box, Typography, TextField, Button, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TableFooter, Paper, Checkbox, IconButton, Stack, Alert, ButtonGroup,
+  TableHead, TableRow, TableFooter, Paper, Checkbox, IconButton, Stack, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel,
   CircularProgress, Card, CardContent, Grid, useMediaQuery, useTheme,
   Pagination, Chip,
@@ -72,7 +72,7 @@ function ListCategory() {
   // States để quản lý các dialog
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isSubcategoryDialogOpen, setIsSubcategoryDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   const fetchCategories = useCallback(async () => {
@@ -112,8 +112,8 @@ function ListCategory() {
     console.log('Categories type:', typeof categories); // Debug log
     console.log('Is categories array:', Array.isArray(categories)); // Debug log
     
-    // Đảm bảo categories là array trước khi spread
-    const categoriesArray = Array.isArray(categories) ? categories : [];
+    // Đảm bảo categories là array trước khi spread và filter ra các item undefined/null
+    const categoriesArray = Array.isArray(categories) ? categories.filter(cat => cat && typeof cat === 'object') : [];
     
     // Debug log để xem structure của từng category
     if (categoriesArray.length > 0) {
@@ -134,13 +134,7 @@ function ListCategory() {
         return categoryName.includes(searchText) || description.includes(searchText);
       });
     }
-    // Lọc theo trạng thái (nếu có)
-    if (statusFilter !== null) {
-      sortableItems = sortableItems.filter(item => 
-        item.status === (statusFilter ? 'active' : 'inactive') || 
-        item.status === (statusFilter ? true : false)
-      );
-    }
+    // Bỏ filter theo status - luôn hiển thị tất cả danh mục
     
     // Sắp xếp theo cột
     sortableItems.sort((a, b) => {
@@ -185,7 +179,7 @@ function ListCategory() {
     }
 
     return sortableItems;
-  }, [categories, filterText, sortConfig, statusFirst, statusFilter]);
+  }, [categories, filterText, sortConfig, statusFirst]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
@@ -198,9 +192,13 @@ function ListCategory() {
     setIsEditDialogOpen(true);
   };
 
-  const handleOpenSubcategoryDialog = (category) => {
+  const handleOpenDetailsDialog = (category) => {
+    console.log('Category object for details:', category);
+    console.log('Products field:', category?.products);
+    console.log('Products length:', category?.products?.length);
+    console.log('All category properties:', Object.keys(category));
     setSelectedCategory(category);
-    setIsSubcategoryDialogOpen(true);
+    setIsDetailsDialogOpen(true);
   };
 
   return (
@@ -304,47 +302,25 @@ function ListCategory() {
                     '& input::placeholder': { color: 'rgba(0, 0, 0, 0.6)', opacity: 1 },
                   }}
                 />
-                <ButtonGroup variant="outlined" fullWidth>
-                  <Button
-                    onClick={() => setStatusFilter(true)}
-                    variant={statusFilter === true ? 'contained' : 'outlined'}
-                    sx={{
-                      backgroundColor: statusFilter === true ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                      color: 'white',
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      backdropFilter: 'blur(10px)',
-                      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
-                    }}
-                  >
-                    Kích Hoạt
-                  </Button>
-                  <Button
-                    onClick={() => setStatusFilter(false)}
-                    variant={statusFilter === false ? 'contained' : 'outlined'}
-                    sx={{
-                      backgroundColor: statusFilter === false ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                      color: 'white',
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      backdropFilter: 'blur(10px)',
-                      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
-                    }}
-                  >
-                    Vô Hiệu
-                  </Button>
-                  <Button
-                    onClick={() => setStatusFilter(null)}
-                    variant={statusFilter === null ? 'contained' : 'outlined'}
-                    sx={{
-                      backgroundColor: statusFilter === null ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                      color: 'white',
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      backdropFilter: 'blur(10px)',
-                      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
-                    }}
-                  >
-                    Tất Cả
-                  </Button>
-                </ButtonGroup>
+                <Button
+                  onClick={() => setStatusFilter(null)}
+                  variant="contained"
+                  sx={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    minWidth: '120px',
+                    height: '56px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    padding: '12px 24px',
+                    whiteSpace: 'nowrap',
+                    '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
+                  }}
+                >
+                  Tất Cả
+                </Button>
               </Stack>
             </Stack>
           </motion.div>
@@ -461,7 +437,7 @@ function ListCategory() {
           </TableHead>
                 <TableBody>
                   <AnimatePresence>
-                    {paginatedCategories.map((cat, index) => (
+                    {paginatedCategories.filter(cat => cat && typeof cat === 'object').map((cat, index) => (
                       <motion.tr
                         key={cat._id || cat.id || `category-${index}`}
                         variants={itemVariants}
@@ -477,20 +453,25 @@ function ListCategory() {
                         component={TableRow}
                         layout // Prop quan trọng giúp animation mượt mà khi lọc/sắp xếp
                         hover
+                        onClick={() => handleOpenDetailsDialog(cat)}
                         sx={{ 
+                          cursor: 'pointer !important',
                           '&:hover': { 
                             backgroundColor: 'rgba(102, 126, 234, 0.1)',
                             transform: 'scale(1.01)',
                             transition: 'all 0.2s ease'
+                          },
+                          '& *': {
+                            cursor: 'pointer !important'
                           }
                         }}
                       >
-                         <TableCell align="center" component="th" scope="row">
+                         <TableCell align="center" component="th" scope="row" sx={{ cursor: 'pointer' }}>
                            <Typography variant="body2" color="text.secondary">
-                             {cat.categoryID || cat.CategoryID || cat._id || cat.id || 'N/A'}
+                             {cat?.categoryID || cat?.CategoryID || cat?._id || cat?.id || 'N/A'}
                            </Typography>
                          </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ cursor: 'pointer' }}>
                           <Button
                             variant="text"
                             sx={{
@@ -499,28 +480,35 @@ function ListCategory() {
                               fontWeight: 'bold',
                               justifyContent: 'flex-start',
                               padding: 0,
+                              cursor: 'pointer',
                               '&:hover': {
                                 backgroundColor: 'transparent',
                                 textDecoration: 'underline',
                               },
                             }}
-                            onClick={() => handleOpenEditDialog(cat)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDetailsDialog(cat);
+                            }}
                           >
-                            {cat.categoryName || cat.name || cat.CategoryName || 'Tên không xác định'}
+                            {cat?.categoryName || cat?.name || cat?.CategoryName || 'Tên không xác định'}
                           </Button>
                         </TableCell>
-                        <TableCell sx={{maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={cat.description || 'Không có mô tả'}>
+                        <TableCell sx={{maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer'}} title={cat?.description || 'Không có mô tả'}>
                           <Typography variant="body2" color="text.secondary">
-                            {cat.description || 'Không có mô tả'}
+                            {cat?.description || 'Không có mô tả'}
                           </Typography>
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ cursor: 'pointer' }}>
                           <Stack direction="row" spacing={1} justifyContent="center">
                             <Button
                               variant="outlined"
                               color="warning"
                               size="small"
-                              onClick={() => handleOpenEditDialog(cat)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditDialog(cat);
+                              }}
                             >
                               Sửa
                             </Button>
@@ -562,42 +550,80 @@ function ListCategory() {
         />
       )}
 
+      {/* Category Details Dialog */}
       {selectedCategory && (
-         <Dialog open={isSubcategoryDialogOpen} onClose={() => setIsSubcategoryDialogOpen(false)} maxWidth="sm" fullWidth>
-            <DialogTitle>Danh mục con của "{selectedCategory.name}"</DialogTitle>
-            <DialogContent dividers>
-                <TableContainer>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Tên</TableCell>
-                                <TableCell>Mô tả</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {selectedCategory.classifications && selectedCategory.classifications.length > 0 ? (
-                                selectedCategory.classifications.map((sub, subIndex) => (
-                                    <TableRow key={sub._id || sub.id || `subcategory-${subIndex}`}>
-                                        <TableCell>{sub.name}</TableCell>
-                                        <TableCell>{sub.description}</TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={2} align="center">
-                                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                                            Không có danh mục con
-                                        </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={() => setIsSubcategoryDialogOpen(false)}>Đóng</Button>
-            </DialogActions>
+        <Dialog 
+          open={isDetailsDialogOpen} 
+          onClose={() => setIsDetailsDialogOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+        >
+          <DialogTitle>
+            Chi tiết danh mục: {selectedCategory?.name || selectedCategory?.categoryName || 'Không có tên'}
+          </DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  ID danh mục
+                </Typography>
+                <Typography variant="body1">
+                  {selectedCategory?.categoryID || selectedCategory?.CategoryID || selectedCategory?._id || selectedCategory?.id || 'N/A'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Tên danh mục
+                </Typography>
+                <Typography variant="body1">
+                  {selectedCategory?.name || selectedCategory?.categoryName || selectedCategory?.CategoryName || 'Không có tên'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Mô tả
+                </Typography>
+                <Typography variant="body1">
+                  {selectedCategory?.description || 'Không có mô tả'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Số sản phẩm
+                </Typography>
+                <Typography variant="body1">
+                  {(() => {
+                    console.log('Selected category in dialog:', selectedCategory);
+                    console.log('Products field:', selectedCategory?.products);
+                    console.log('Products field (capital P):', selectedCategory?.Products);
+                    console.log('All fields:', Object.keys(selectedCategory || {}));
+                    
+                    // Thử nhiều field name khác nhau
+                    const products = selectedCategory?.products || 
+                                   selectedCategory?.Products || 
+                                   selectedCategory?.productList || 
+                                   selectedCategory?.ProductList ||
+                                   selectedCategory?.items ||
+                                   selectedCategory?.Items ||
+                                   [];
+                    
+                    console.log('Final products array:', products);
+                    console.log('Final products length:', products?.length);
+                    
+                    return products?.length || 0;
+                  })()} sản phẩm
+                </Typography>
+              </Box>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsDetailsDialogOpen(false)}>
+              Đóng
+            </Button>
+          </DialogActions>
         </Dialog>
       )}
         </motion.div>

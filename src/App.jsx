@@ -32,7 +32,6 @@ import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
 import InventoryCheck from "./Components/Inventory_Components/InventoryCheck";
 import Stocktaking from "./Components/Inventory_Components/Stocktaking";
-import { NotificationProvider, setGlobalNotification, useNotification } from "./Components/Utils/NotificationProvider";
 import sessionManager from "./Utils/sessionManager";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
@@ -46,14 +45,10 @@ const AuthProvider = ({ children }) => {
 
 // NotificationWrapper component để thiết lập global notification
 const NotificationWrapper = ({ children }) => {
-  const { showNotification } = useNotification();
-  
   useEffect(() => {
-    setGlobalNotification(showNotification);
-    
     // Khởi tạo session manager
     sessionManager.init();
-  }, [showNotification]);
+  }, []);
   
   return children;
 };
@@ -69,28 +64,31 @@ export const useAuthContext = () => {
 
 // Component để hiển thị trang chủ phù hợp với từng loại user
 const ConditionalHome = () => {
-  const { user, loading } = useAuthContext();
   const currentToken = localStorage.getItem("authToken");
-  // Đọc vai trò từ token để điều hướng admin về trang quản trị
-  const roleFromToken = getUserRoleFromToken();
   
-  // Nếu đang loading, hiển thị loading
-  if (loading) {
-    return <div>Loading...</div>;
+  // Đơn giản hóa logic: chỉ kiểm tra token, không phụ thuộc vào useAuthContext
+  if (!currentToken) {
+    // Guest: hiển thị SearchMedicine
+    return <SearchMedicine />;
   }
   
-  // Admin: đưa về danh sách quản lý người dùng - quản lý
-  if ((user || currentToken) && roleFromToken === 'admin') {
-    return <Navigate to="/admin/users/manager" replace />;
-  }
-
-  // Nếu có user hoặc token, hiển thị Landing page
-  if (user || currentToken) {
+  try {
+    // Đọc vai trò từ token để điều hướng admin về trang quản trị
+    const roleFromToken = getUserRoleFromToken();
+    
+    // Admin: đưa về danh sách quản lý người dùng - quản lý
+    if (roleFromToken === 'admin') {
+      return <Navigate to="/admin/users/manager" replace />;
+    }
+    
+    // User đã đăng nhập: hiển thị Landing page
     return <Landing />;
+  } catch (error) {
+    console.error("Error parsing token:", error);
+    // Nếu có lỗi với token, xóa token và hiển thị guest page
+    localStorage.removeItem("authToken");
+    return <SearchMedicine />;
   }
-  
-  // Nếu là guest, hiển thị SearchMedicine
-  return <SearchMedicine />;
 };
 
 // Wrapper components với backgroundLogin cho các trang authentication
@@ -164,10 +162,9 @@ const ChangePasswordWithBackground = () => (
 
 function App() {
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <NotificationWrapper>
-          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <AuthProvider>
+      <NotificationWrapper>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             {/* Box chính bao bọc toàn bộ ứng dụng để đảm bảo Footer luôn ở cuối trang */}
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
               <Header />
@@ -419,10 +416,9 @@ function App() {
               </Box>
               <Footer />
             </Box>
-          </Router>
-        </NotificationWrapper>
-      </AuthProvider>
-    </NotificationProvider>
+        </Router>
+      </NotificationWrapper>
+    </AuthProvider>
   );
 }
 

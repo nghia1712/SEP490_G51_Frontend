@@ -3,76 +3,44 @@ import React, { useState, useEffect } from 'react';
 import categoryAPI from '../../API/categoryAPI';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Stack, Box, Typography, IconButton, Alert, CircularProgress,
+  Stack, Alert, CircularProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 
 const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
   const [formData, setFormData] = useState({ categoryName: '', description: '' });
-  const [subcategories, setSubcategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // Lưu ID của sub cần xóa
 
   useEffect(() => {
     if (open && category) {
+      console.log('EditCategoryDialog - category object:', category);
+      console.log('Category fields:', Object.keys(category));
+      
+      // Thử nhiều field name khác nhau cho tên danh mục
+      const categoryName = category.name || 
+                          category.categoryName || 
+                          category.CategoryName || 
+                          category.Name || '';
+      
+      // Thử nhiều field name khác nhau cho mô tả
+      const description = category.description || 
+                         category.Description || '';
+      
+      console.log('Using categoryName:', categoryName);
+      console.log('Using description:', description);
+      
       setFormData({
-        categoryName: category.categoryName,
-        description: category.description,
+        categoryName: categoryName,
+        description: description,
       });
-      // Tạo bản sao sâu để tránh thay đổi state gốc khi người dùng chỉnh sửa
-      setSubcategories(JSON.parse(JSON.stringify(category.classifications || [])));
     } else {
       // Reset khi dialog đóng
+      setFormData({ categoryName: '', description: '' });
       setError('');
       setLoading(false);
-      setConfirmDelete(null);
     }
   }, [open, category]);
 
-  const handleAddSubcategory = () => {
-    if (subcategories.some(sub => !sub.name.trim())) {
-      setError("Vui lòng điền tên cho các danh mục con hiện có trước khi thêm mới.");
-      return;
-    }
-    setSubcategories([...subcategories, { _id: `temp_${Date.now()}`, name: "", description: "" }]);
-    setError('');
-  };
-
-  const handleUpdateSubcategory = (index, key, value) => {
-    const updated = [...subcategories];
-    updated[index][key] = value;
-    setSubcategories(updated);
-  };
-
-  const handleTriggerDelete = (subId) => {
-    setConfirmDelete(subId);
-  };
-
-  const handleConfirmDelete = async () => {
-    const subIdToDelete = confirmDelete;
-    if (!subIdToDelete) return;
-
-    // Nếu là sub mới (chưa có _id từ DB), chỉ xóa khỏi state
-    if (subIdToDelete.toString().startsWith("temp_")) {
-      setSubcategories(subcategories.filter(sub => sub._id !== subIdToDelete));
-      setConfirmDelete(null);
-      return;
-    }
-
-    // Nếu là sub đã có, gọi API để xóa
-    try {
-      // Backend hiện tại không có endpoint xóa danh mục con trong controller Category.
-      // Tạm thời chỉ xóa trong state cho phù hợp yêu cầu hiện tại.
-      setSubcategories(subcategories.filter(sub => sub._id !== subIdToDelete));
-    } catch (error) {
-      setError("Lỗi khi xóa danh mục con. Vui lòng thử lại.");
-    } finally {
-      setConfirmDelete(null);
-    }
-  };
 
   const handleSave = async () => {
     if (!formData.categoryName.trim()) {
@@ -82,15 +50,28 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
     setLoading(true);
     setError('');
     try {
+      // Thử nhiều field name khác nhau cho CategoryID
+      const categoryId = category.categoryID || 
+                        category.CategoryID || 
+                        category.id || 
+                        category.Id || 
+                        category._id || 0;
+      
+      console.log('Using CategoryID:', categoryId);
+      
       const payload = {
-        CategoryID: category.categoryID || category.CategoryID || category.id || 0,
+        CategoryID: categoryId,
         Name: formData.categoryName,
         Description: formData.description,
       };
+      
+      console.log('Sending payload:', payload);
+      
       await categoryAPI.update(payload);
       onCategoryUpdated && onCategoryUpdated();
       onClose && onClose();
     } catch (err) {
+      console.error('Error updating category:', err);
       setError(err.response?.data?.message || 'Lỗi khi cập nhật danh mục.');
     } finally {
       setLoading(false);
@@ -110,7 +91,7 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
                 label="Tên danh mục"
                 fullWidth
                 required
-                value={formData.categoryName}
+                value={formData.categoryName || ''}
                 onChange={(e) => setFormData({...formData, categoryName: e.target.value})}
               />
               <TextField
@@ -118,35 +99,9 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
                 fullWidth
                 multiline
                 rows={3}
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
-              <Box>
-                <Typography variant="h6" gutterBottom>Danh mục con</Typography>
-                <TableContainer component={Paper}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Tên danh mục con</TableCell>
-                        <TableCell>Mô tả</TableCell>
-                        <TableCell align="right">Hành động</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {subcategories.map((sub, index) => (
-                        <TableRow key={sub._id}>
-                          <TableCell><TextField variant="standard" fullWidth value={sub.name} onChange={(e) => handleUpdateSubcategory(index, 'name', e.target.value)} /></TableCell>
-                          <TableCell><TextField variant="standard" fullWidth value={sub.description} onChange={(e) => handleUpdateSubcategory(index, 'description', e.target.value)} /></TableCell>
-                          <TableCell align="right"><IconButton size="small" color="error" onClick={() => handleTriggerDelete(sub._id)}><DeleteIcon /></IconButton></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Button startIcon={<AddIcon />} onClick={handleAddSubcategory} sx={{ mt: 1 }}>
-                  Thêm dòng
-                </Button>
-              </Box>
             </Stack>
         </DialogContent>
         <DialogActions sx={{ p: '16px 24px' }}>
@@ -154,18 +109,6 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
           <Button onClick={handleSave} variant="contained" disabled={loading}>
             {loading ? <CircularProgress size={24} /> : "Lưu Thay Đổi"}
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog xác nhận xóa */}
-      <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth="xs">
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>
-          <Typography>Bạn có chắc chắn muốn xóa danh mục con này không?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDelete(null)}>Hủy</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">Xóa</Button>
         </DialogActions>
       </Dialog>
     </>

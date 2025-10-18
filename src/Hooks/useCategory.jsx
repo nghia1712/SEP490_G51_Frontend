@@ -16,11 +16,19 @@ const useCategory = () => {
             
             // Backend trả về format: {success: true, message: 'Thành công', data: Array(5)}
             const categoriesData = res.data?.data || res.data || res;
+            console.log('Raw API Response:', res);
             console.log('Categories Data:', categoriesData); // Debug log
+            console.log('Categories Data type:', typeof categoriesData);
+            console.log('Is Array:', Array.isArray(categoriesData));
             
             // Đảm bảo categoriesData là array
             if (Array.isArray(categoriesData)) {
+                console.log('First category structure:', categoriesData[0]);
                 setCategories(categoriesData);
+                console.log('Categories set successfully:', categoriesData.length, 'items');
+            } else if (categoriesData === null || categoriesData === undefined) {
+                console.warn('Categories data is null/undefined - no categories available');
+                setCategories([]);
             } else {
                 console.warn('Categories data is not an array:', categoriesData);
                 setCategories([]);
@@ -88,7 +96,7 @@ const useCategory = () => {
         try {
             const res = await categoryAPI.inactivate(id, data);
             // Update the local state to reflect the change
-            setCategories(prev => prev.map(cat => cat._id === id ? { ...cat, status: data.status } : cat));
+            setCategories(prev => prev.map(cat => cat.CategoryID === id ? { ...cat, status: data.status } : cat));
             setLoading(false);
             return res;
         } catch (err) {

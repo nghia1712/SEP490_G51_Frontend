@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -23,112 +23,171 @@ import {
   TableHead,
   TableRow,
   Paper,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate } from "react-router-dom";
-
-// Mock data cho demo
-const mockMedicines = [
-  {
-    id: 1,
-    name: "Paracetamol 500mg",
-    category: "Giảm đau, hạ sốt",
-    price: 15000,
-    unit: "Viên",
-    stock: 100,
-    description: "Thuốc giảm đau, hạ sốt hiệu quả",
-    manufacturer: "Công ty ABC",
-    dosage: "Người lớn: 1-2 viên/lần, tối đa 4 lần/ngày",
-    sideEffects: "Có thể gây buồn nôn, đau dạ dày nhẹ",
-    contraindications: "Không dùng cho người bị suy gan nặng",
-  },
-  {
-    id: 2,
-    name: "Amoxicillin 250mg",
-    category: "Kháng sinh",
-    price: 25000,
-    unit: "Viên",
-    stock: 50,
-    description: "Kháng sinh điều trị nhiễm khuẩn",
-    manufacturer: "Công ty XYZ",
-    dosage: "Người lớn: 1 viên/lần, 3 lần/ngày",
-    sideEffects: "Có thể gây tiêu chảy, phát ban",
-    contraindications: "Không dùng cho người dị ứng penicillin",
-  },
-  {
-    id: 3,
-    name: "Vitamin C 1000mg",
-    category: "Vitamin",
-    price: 30000,
-    unit: "Viên",
-    stock: 75,
-    description: "Bổ sung vitamin C tăng cường sức đề kháng",
-    manufacturer: "Công ty DEF",
-    dosage: "1 viên/ngày sau bữa ăn",
-    sideEffects: "Có thể gây tiêu chảy nếu dùng quá liều",
-    contraindications: "Không dùng cho người bị sỏi thận",
-  },
-  {
-    id: 4,
-    name: "Omeprazole 20mg",
-    category: "Tiêu hóa",
-    price: 20000,
-    unit: "Viên",
-    stock: 60,
-    description: "Điều trị viêm loét dạ dày",
-    manufacturer: "Công ty GHI",
-    dosage: "1 viên/ngày trước bữa sáng",
-    sideEffects: "Có thể gây đau đầu, buồn nôn",
-    contraindications: "Không dùng cho phụ nữ có thai",
-  },
-  {
-    id: 5,
-    name: "Aspirin 100mg",
-    category: "Giảm đau",
-    price: 12000,
-    unit: "Viên",
-    stock: 80,
-    description: "Giảm đau, chống viêm",
-    manufacturer: "Công ty JKL",
-    dosage: "1-2 viên/lần, tối đa 3 lần/ngày",
-    sideEffects: "Có thể gây kích ứng dạ dày",
-    contraindications: "Không dùng cho trẻ em dưới 12 tuổi",
-  },
-  {
-    id: 6,
-    name: "Ibuprofen 400mg",
-    category: "Giảm đau, chống viêm",
-    price: 18000,
-    unit: "Viên",
-    stock: 45,
-    description: "Giảm đau, chống viêm không steroid",
-    manufacturer: "Công ty MNO",
-    dosage: "1 viên/lần, tối đa 3 lần/ngày",
-    sideEffects: "Có thể gây đau dạ dày, chóng mặt",
-    contraindications: "Không dùng cho người bị loét dạ dày",
-  },
-];
+import guestAPI from "../../API/guestAPI";
 
 const SearchMedicine = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState(mockMedicines);
+  const [searchResults, setSearchResults] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [selectedMedicine, setSelectedMedicine] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [categories, setCategories] = useState([]);
+
+  // Fetch active products and categories on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        
+        // Fallback categories (always use fallback since API requires auth)
+        const fallbackCategories = [
+          {
+            categoryID: 2,
+            name: "Kháng sinh",
+            description: "Các loại thuốc kháng sinh điều trị nhiễm khuẩn"
+          },
+          {
+            categoryID: 3,
+            name: "Vitamin",
+            description: "Các loại vitamin và chất bổ sung"
+          },
+          {
+            categoryID: 4,
+            name: "Tiêu hóa",
+            description: "Các loại thuốc điều trị các vấn đề về tiêu hóa"
+          }
+        ];
+        
+        // Set categories with fallback data
+        setCategories(fallbackCategories);
+        
+        // Try to fetch from real API first
+        try {
+          // Fetch active products only (categories will use fallback data)
+          const productsResponse = await guestAPI.getActiveProducts();
+          const productsData = productsResponse.data?.data || [];
+          
+          // Chỉ lấy những thuốc có status = true (đang bán)
+          const activeProducts = productsData.filter(product => product.status === true);
+          
+          setAllProducts(activeProducts);
+          setSearchResults(activeProducts);
+          
+          console.log("Fetched active products from API:", activeProducts);
+        } catch (apiError) {
+          console.warn("API not available, using fallback data:", apiError);
+          
+          // Fallback data nếu API không khả dụng
+          const fallbackProducts = [
+            {
+              productID: 2,
+              productName: "Amoxicillin 500mg",
+              productDescription: "Kháng sinh điều trị nhiễm khuẩn",
+              categoryID: 2,
+              unit: "Vỉ",
+              totalCurrentQuantity: 40,
+              minQuantity: 5,
+              maxQuantity: 80,
+              status: true
+            },
+            {
+              productID: 3,
+              productName: "Omeprazole 20mg",
+              productDescription: "Điều trị viêm loét dạ dày",
+              categoryID: 4,
+              unit: "Lọ",
+              totalCurrentQuantity: 30,
+              minQuantity: 10,
+              maxQuantity: 70,
+              status: true
+            },
+            {
+              productID: 4,
+              productName: "Vitamin C 500mg",
+              productDescription: "Bổ sung vitamin C tăng cường sức đề kháng",
+              categoryID: 3,
+              unit: "Lọ",
+              totalCurrentQuantity: 100,
+              minQuantity: 20,
+              maxQuantity: 150,
+              status: true
+            }
+          ];
+          
+          const fallbackCategories = [
+            {
+              categoryID: 2,
+              name: "Kháng sinh",
+              description: "Các loại thuốc kháng sinh điều trị nhiễm khuẩn"
+            },
+            {
+              categoryID: 3,
+              name: "Vitamin",
+              description: "Các loại vitamin và chất bổ sung"
+            },
+            {
+              categoryID: 4,
+              name: "Tiêu hóa",
+              description: "Các loại thuốc điều trị các vấn đề về tiêu hóa"
+            }
+          ];
+          
+          setAllProducts(fallbackProducts);
+          setSearchResults(fallbackProducts);
+          
+          console.log("Using fallback data:", fallbackProducts);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Không thể tải danh sách thuốc. Vui lòng thử lại sau.");
+        setSearchResults([]);
+        setAllProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      const filtered = mockMedicines.filter(
-        (medicine) =>
-          medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          medicine.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          medicine.description.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = allProducts.filter(
+        (product) => {
+          // Chỉ tìm kiếm trong những thuốc đang bán (status = true)
+          if (product.status !== true) return false;
+          
+          const productName = product.productName || product.ProductName || '';
+          const description = product.productDescription || product.ProductDescription || '';
+          const categoryId = product.categoryID || product.CategoryID;
+          const category = categories.find(cat => 
+            cat.categoryID === categoryId || cat.CategoryID === categoryId
+          );
+          const categoryName = category ? (category.name || category.Name || '') : '';
+          
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            productName.toLowerCase().includes(searchLower) ||
+            description.toLowerCase().includes(searchLower) ||
+            categoryName.toLowerCase().includes(searchLower)
+          );
+        }
       );
       setSearchResults(filtered);
     } else {
-      setSearchResults(mockMedicines);
+      // Khi không có từ khóa tìm kiếm, hiển thị tất cả thuốc đang bán
+      const activeProducts = allProducts.filter(product => product.status === true);
+      setSearchResults(activeProducts);
     }
   };
 
@@ -146,13 +205,6 @@ const SearchMedicine = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedMedicine(null);
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price);
   };
 
   return (
@@ -196,8 +248,23 @@ const SearchMedicine = () => {
             </Typography>
           </Box>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3, fontSize: "1.1rem", textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}>
-            Tìm kiếm thông tin thuốc trong hệ thống của chúng tôi
+            Tìm kiếm thông tin thuốc đang bán trong hệ thống của chúng tôi
           </Typography>
+          
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3, 
+                textAlign: "left",
+                backgroundColor: "rgba(244, 67, 54, 0.1)",
+                border: "1px solid rgba(244, 67, 54, 0.3)",
+                borderRadius: "12px",
+              }}
+            >
+              {error}
+            </Alert>
+          )}
           
           <Alert 
             severity="info" 
@@ -309,9 +376,39 @@ const SearchMedicine = () => {
         </Box>
       </Box>
 
+      {loading ? (
+        <Box 
+          sx={{ 
+            textAlign: "center", 
+            py: 4,
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(5px)",
+            borderRadius: "16px",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          }}
+        >
+          <CircularProgress size={60} sx={{ color: "#48C1A6", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" sx={{ textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}>
+            Đang tải danh sách thuốc...
+          </Typography>
+        </Box>
+      ) : (
       <Grid container spacing={3}>
-        {searchResults.map((medicine) => (
-          <Grid item xs={12} sm={6} md={4} key={medicine.id}>
+          {searchResults.map((product) => {
+            const productName = product.productName || product.ProductName || 'Tên không xác định';
+            const description = product.productDescription || product.ProductDescription || 'Không có mô tả';
+            const categoryId = product.categoryID || product.CategoryID;
+            const category = categories.find(cat => 
+              cat.categoryID === categoryId || cat.CategoryID === categoryId
+            );
+            const categoryName = category ? (category.name || category.Name || 'Không xác định') : 'Không xác định';
+            const stock = product.totalCurrentQuantity || product.TotalCurrentQuantity || 0;
+            const unit = product.unit || product.Unit || 'Đơn vị';
+            const productId = product.productID || product.ProductID || product.id || product._id;
+            
+            return (
+              <Grid item xs={12} sm={6} md={4} key={productId}>
             <Card 
               sx={{ 
                 height: "100%", 
@@ -328,34 +425,26 @@ const SearchMedicine = () => {
                   backgroundColor: "rgba(255, 255, 255, 1)",
                 }
               }}
-              onClick={() => handleMedicineClick(medicine)}
+                  onClick={() => handleMedicineClick(product)}
             >
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography variant="h6" component="h2" gutterBottom>
-                  {medicine.name}
+                      {productName}
                 </Typography>
                 
                 <Chip
-                  label={medicine.category}
+                      label={categoryName}
                   color="primary"
                   size="small"
                   sx={{ mb: 2 }}
                 />
                 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  <strong>Giá:</strong> {formatPrice(medicine.price)}
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  <strong>Tồn kho:</strong> {medicine.stock} {medicine.unit}
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  <strong>Nhà sản xuất:</strong> {medicine.manufacturer}
+                      <strong>Tồn kho:</strong> {stock} {unit}
                 </Typography>
                 
                 <Typography variant="body2" sx={{ mb: 2 }}>
-                  {medicine.description}
+                      {description}
                 </Typography>
                 
                 <Box sx={{ display: "flex", gap: 1, mt: "auto" }}>
@@ -365,16 +454,18 @@ const SearchMedicine = () => {
                     fullWidth
                     sx={{ backgroundColor: "#48C1A6" }}
                   >
-                    Xem chi tiết & Giá
+                        Xem chi tiết
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-        ))}
+            );
+          })}
       </Grid>
+      )}
 
-      {searchResults.length === 0 && (
+      {!loading && searchResults.length === 0 && (
         <Box 
           sx={{ 
             textAlign: "center", 
@@ -387,10 +478,10 @@ const SearchMedicine = () => {
           }}
         >
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1, textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}>
-            Không tìm thấy thuốc phù hợp
+            {error ? "Không thể tải danh sách thuốc" : "Không tìm thấy thuốc phù hợp"}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}>
-            Hãy thử với từ khóa khác
+            {error ? "Vui lòng thử lại sau" : "Hãy thử với từ khóa khác"}
           </Typography>
         </Box>
       )}
@@ -406,12 +497,25 @@ const SearchMedicine = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LocalHospitalIcon color="primary" />
             <Typography variant="h6">
-              {selectedMedicine?.name}
+              {selectedMedicine ? (selectedMedicine.productName || selectedMedicine.ProductName || 'Tên không xác định') : ''}
             </Typography>
           </Box>
         </DialogTitle>
         <DialogContent>
-          {selectedMedicine && (
+          {selectedMedicine && (() => {
+            const productName = selectedMedicine.productName || selectedMedicine.ProductName || 'Tên không xác định';
+            const description = selectedMedicine.productDescription || selectedMedicine.ProductDescription || 'Không có mô tả';
+            const categoryId = selectedMedicine.categoryID || selectedMedicine.CategoryID;
+            const category = categories.find(cat => 
+              cat.categoryID === categoryId || cat.CategoryID === categoryId
+            );
+            const categoryName = category ? (category.name || category.Name || 'Không xác định') : 'Không xác định';
+            const stock = selectedMedicine.totalCurrentQuantity || selectedMedicine.TotalCurrentQuantity || 0;
+            const unit = selectedMedicine.unit || selectedMedicine.Unit || 'Đơn vị';
+            const minQuantity = selectedMedicine.minQuantity || selectedMedicine.MinQuantity || 0;
+            const maxQuantity = selectedMedicine.maxQuantity || selectedMedicine.MaxQuantity || 0;
+            
+            return (
             <Box>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
@@ -425,35 +529,31 @@ const SearchMedicine = () => {
                         <TableRow>
                           <TableCell><strong>Danh mục:</strong></TableCell>
                           <TableCell>
-                            <Chip label={selectedMedicine.category} color="primary" size="small" />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell><strong>Giá bán:</strong></TableCell>
-                          <TableCell>
-                            <Typography variant="h6" color="primary" fontWeight="bold">
-                              {formatPrice(selectedMedicine.price)}
-                            </Typography>
+                              <Chip label={categoryName} color="primary" size="small" />
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell><strong>Đơn vị:</strong></TableCell>
-                          <TableCell>{selectedMedicine.unit}</TableCell>
+                            <TableCell>{unit}</TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell><strong>Tồn kho:</strong></TableCell>
                           <TableCell>
                             <Typography 
-                              color={selectedMedicine.stock > 50 ? "success.main" : selectedMedicine.stock > 20 ? "warning.main" : "error.main"}
+                                color={stock > 50 ? "success.main" : stock > 20 ? "warning.main" : "error.main"}
                               fontWeight="bold"
                             >
-                              {selectedMedicine.stock} {selectedMedicine.unit}
+                                {stock} {unit}
                             </Typography>
                           </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell><strong>Nhà sản xuất:</strong></TableCell>
-                          <TableCell>{selectedMedicine.manufacturer}</TableCell>
+                            <TableCell><strong>Số lượng tối thiểu:</strong></TableCell>
+                            <TableCell>{minQuantity} {unit}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell><strong>Số lượng tối đa:</strong></TableCell>
+                            <TableCell>{maxQuantity} {unit}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -462,7 +562,7 @@ const SearchMedicine = () => {
                 
                 <Grid item xs={12} md={6}>
                   <Typography variant="h5" color="primary" gutterBottom>
-                    Thông tin sử dụng
+                      Mô tả sản phẩm
                   </Typography>
                   
                   <Box sx={{ mb: 2 }}>
@@ -470,34 +570,7 @@ const SearchMedicine = () => {
                       Mô tả:
                     </Typography>
                     <Typography variant="body2">
-                      {selectedMedicine.description}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Liều dùng:
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedMedicine.dosage}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Tác dụng phụ:
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedMedicine.sideEffects}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Chống chỉ định:
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedMedicine.contraindications}
+                        {description}
                     </Typography>
                   </Box>
                 </Grid>
@@ -507,12 +580,12 @@ const SearchMedicine = () => {
               
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2">
-                  <strong>Lưu ý:</strong> Thông tin giá có thể thay đổi. 
-                  Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
+                    <strong>Lưu ý:</strong> Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
                 </Typography>
               </Alert>
             </Box>
-          )}
+            );
+          })()}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>

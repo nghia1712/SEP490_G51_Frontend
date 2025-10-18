@@ -1,75 +1,130 @@
 import React, { useState } from "react";
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Button,
-    FormHelperText,
-} from "@mui/material";
-import axios from "axios";
+  Modal,
+  Form,
+  Input,
+  Button,
+  message,
+  Space,
+} from "antd";
+import { motion } from "framer-motion";
+import categoryAPI from "../../API/categoryAPI";
 
-const AddCategoryModal = ({ show, onClose, onCategoryCreated }) => {
-    const [categoryName, setCategoryName] = useState("");
-    const [description, setDescription] = useState("");
-    const [error, setError] = useState("");
+const { TextArea } = Input;
 
-    const handleCreateCategory = async () => {
-        if (!categoryName.trim()) {
-            setError("Tên danh mục không được bỏ trống.");
-            return;
+const fadeIn = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+const AddCategoryModal = ({ open, handleClose, onSuccess }) => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (values) => {
+    setLoading(true);
+    try {
+      const categoryData = {
+        Name: values.name,
+        Description: values.description || "",
+      };
+
+      const response = await categoryAPI.add(categoryData);
+      
+      if (response.data && response.data.success) {
+        message.success("Tạo danh mục thành công!");
+        form.resetFields();
+        handleClose();
+        if (onSuccess) {
+          onSuccess(response.data.data);
         }
+      } else {
+        message.error(response.data?.message || "Có lỗi xảy ra khi tạo danh mục");
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo danh mục:", error);
+      message.error("Không thể tạo danh mục. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        try {
-            const response = await axios.post("http://localhost:9999/categories/addCategory", {
-                categoryName,
-                description,
-                classifications: [], // gửi mảng phân loại trống nếu không cần
-            });
+  const handleCancel = () => {
+    form.resetFields();
+    handleClose();
+  };
 
-            onCategoryCreated(response.data); // callback cho AddProduct cập nhật
-            setCategoryName("");
-            setDescription("");
-            onClose();
-        } catch (err) {
-            console.error("Lỗi tạo danh mục:", err);
-            setError("Không thể tạo danh mục. Vui lòng thử lại.");
-        }
-    };
+  return (
+    <Modal
+      title="Thêm Danh Mục Mới"
+      open={open}
+      onCancel={handleCancel}
+      footer={null}
+      width={400}
+      centered
+    >
+      <motion.div
+        variants={fadeIn}
+        initial="hidden"
+        animate="visible"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          autoComplete="off"
+        >
+          <Form.Item
+            label="Tên"
+            name="name"
+            rules={[
+              { required: true, message: "Tên của loại sản phẩm là bắt buộc" },
+              { min: 6, message: "Đảm bảo 6 ký tự" },
+              { max: 100, message: "Đảm bảo 6 ký tự" },
+            ]}
+          >
+            <Input 
+              placeholder="Nhập tên danh mục (6-100 ký tự)"
+              size="large"
+              maxLength={100}
+              showCount
+            />
+          </Form.Item>
 
-    return (
-        <Dialog open={show} onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle>Thêm Danh Mục Mới</DialogTitle>
-            <DialogContent dividers>
-                <TextField
-                    fullWidth
-                    label="Tên Danh Mục"
-                    value={categoryName}
-                    onChange={(e) => {
-                        setCategoryName(e.target.value);
-                        setError("");
-                    }}
-                    margin="normal"
-                    error={!!error && !categoryName}
-                />
-                <TextField
-                    fullWidth
-                    label="Mô Tả"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    margin="normal"
-                />
-                {error && <FormHelperText error>{error}</FormHelperText>}
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Hủy</Button>
-                <Button variant="contained" onClick={handleCreateCategory}>
-                    Tạo
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
+          <Form.Item
+            label="Mô tả"
+            name="description"
+            rules={[
+              { max: 300, message: "Mô tả loại sản phẩm không được vượt quá 300 ký tự" },
+            ]}
+          >
+            <TextArea
+              placeholder="Nhập mô tả danh mục (tối đa 300 ký tự)"
+              rows={3}
+              showCount
+              maxLength={300}
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+              <Button onClick={handleCancel} size="large">
+                Hủy
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                size="large"
+              >
+                Lưu
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </motion.div>
+    </Modal>
+  );
 };
 
 export default AddCategoryModal;

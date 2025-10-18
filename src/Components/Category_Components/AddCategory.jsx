@@ -11,7 +11,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
   const [categoryName, setCategoryName] = useState('');
   const [description, setDescription] = useState('');
-  const [subcategories, setSubcategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +18,6 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
   const resetForm = () => {
     setCategoryName('');
     setDescription('');
-    setSubcategories([]);
     setError('');
     setLoading(false);
   };
@@ -32,26 +30,6 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
     }
   }, [open]);
 
-  const handleAddSubcategory = () => {
-    // Kiểm tra xem có danh mục con nào chưa điền tên không
-    if (subcategories.some(sub => !sub.name.trim())) {
-      setError("Vui lòng điền tên cho các danh mục con hiện có trước khi thêm mới.");
-      return;
-    }
-    setSubcategories([...subcategories, { name: '', description: '' }]);
-    setError(''); // Xóa lỗi nếu có
-  };
-
-  const handleUpdateSubcategory = (index, key, value) => {
-    const updated = [...subcategories];
-    updated[index][key] = value;
-    setSubcategories(updated);
-  };
-
-  const handleRemoveSubcategory = (index) => {
-    setSubcategories(subcategories.filter((_, i) => i !== index));
-  };
-
   const handleSave = async () => {
     if (!categoryName.trim()) {
       setError("Tên danh mục không được để trống.");
@@ -61,10 +39,8 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
     setError('');
     try {
       await onAdd({
-        categoryName,
-        description,
-        // Chỉ gửi các danh mục con có tên, loại bỏ các dòng trống
-        classifications: subcategories.filter(sub => sub.name.trim()),
+        Name: categoryName,
+        Description: description,
       });
       onClose(); // Đóng dialog
     } catch (err) {
@@ -75,18 +51,19 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Thêm Danh Mục Mới</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={3} sx={{ pt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
             autoFocus
-            label="Tên danh mục"
+            label="Tên"
             fullWidth
             required
             value={categoryName}
             onChange={(e) => setCategoryName(e.target.value)}
+            placeholder="Nhập tên danh mục (6-100 ký tự)"
           />
           <TextField
             label="Mô tả"
@@ -95,33 +72,8 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            placeholder="Nhập mô tả danh mục (tối đa 300 ký tự)"
           />
-          <Box>
-            <Typography variant="h6" gutterBottom>Danh mục con</Typography>
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tên danh mục con</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell align="right">Hành động</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {subcategories.map((sub, index) => (
-                    <TableRow key={index}>
-                      <TableCell><TextField variant="standard" fullWidth placeholder="Tên" value={sub.name} onChange={(e) => handleUpdateSubcategory(index, 'name', e.target.value)} /></TableCell>
-                      <TableCell><TextField variant="standard" fullWidth placeholder="Mô tả ngắn" value={sub.description} onChange={(e) => handleUpdateSubcategory(index, 'description', e.target.value)} /></TableCell>
-                      <TableCell align="right"><IconButton size="small" color="error" onClick={() => handleRemoveSubcategory(index)}><DeleteIcon /></IconButton></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Button startIcon={<AddIcon />} onClick={handleAddSubcategory} sx={{ mt: 1 }}>
-              Thêm dòng
-            </Button>
-          </Box>
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
