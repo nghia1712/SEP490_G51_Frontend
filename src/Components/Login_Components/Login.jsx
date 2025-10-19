@@ -22,6 +22,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(3);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthContext();
   // Hiển thị thông báo sau khi bị force logout
@@ -38,7 +39,7 @@ const Login = () => {
         const { token } = response;
         localStorage.setItem("authToken", token);
         setSuccess(true);
-        setTimeout(() => navigate("/"), 300);
+        setTimeout(() => navigate("/"), 3000);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại!");
@@ -164,7 +165,13 @@ const Login = () => {
                           value={email} 
                           onChange={(e) => setEmail(e.target.value)} 
                           required 
-                          onInvalid={(e) => e.target.setCustomValidity("Vui lòng nhập đúng email")}
+                          onInvalid={(e) => {
+                            if (!e.target.value) {
+                              e.target.setCustomValidity("Vui lòng không để trống");
+                            } else {
+                              e.target.setCustomValidity("Vui lòng nhập đúng email");
+                            }
+                          }}
                           onInput={(e) => e.target.setCustomValidity("")}
                         />
                       </InputGroup>

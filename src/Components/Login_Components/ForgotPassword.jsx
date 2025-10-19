@@ -30,7 +30,26 @@ const ForgotPassword = () => {
       const response = await forgotPassword({ Email: email });
       setMessage(response.message || "Yêu cầu đã được gửi thành công!");
     } catch (err) {
-      setError(err.message || "Có lỗi xảy ra! Vui lòng thử lại.");
+      // Xử lý các lỗi từ backend
+      console.error('Forgot Password Error:', err);
+      console.error('Error Response:', err.response?.data);
+      console.error('Error Status:', err.response?.status);
+      
+      let errorMessage = "Có lỗi xảy ra! Vui lòng thử lại.";
+      
+      if (err.response?.status === 404) {
+        errorMessage = "Email không tồn tại trong hệ thống.\nVui lòng kiểm tra lại email.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Lỗi máy chủ (500).\nCó thể do email service không hoạt động. Vui lòng thử lại sau.";
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.Message) {
+        errorMessage = err.response.data.Message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -108,7 +127,7 @@ const ForgotPassword = () => {
                 <AnimatePresence>
                   {error && (
                     <motion.div key="error" variants={alertVariants} initial="initial" animate={["animate", "shake"]} exit="exit">
-                      <Alert variant="danger">{error}</Alert>
+                      <Alert variant="danger" style={{ whiteSpace: 'pre-line' }}>{error}</Alert>
                     </motion.div>
                   )}
                   {message && (

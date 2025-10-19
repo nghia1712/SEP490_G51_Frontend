@@ -74,8 +74,9 @@ const useAuth = () => {
       setLoading(false);
       return data;
     } catch (err) {
-      setError(err.message || "Register failed");
+      setError(err.response?.data?.message || err.message || "Register failed");
       setLoading(false);
+      // Throw lại lỗi với đầy đủ thông tin để Register component có thể xử lý
       throw err;
     }
   };
@@ -122,7 +123,7 @@ const useAuth = () => {
       setLoading(false);
       return result;
     } catch (err) {
-      setError(err.message || "Forgot password failed");
+      setError(err.response?.data?.message || err.message || "Forgot password failed");
       setLoading(false);
       throw err;
     }

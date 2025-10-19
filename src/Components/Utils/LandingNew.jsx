@@ -170,7 +170,7 @@ const LandingNew = () => {
               textShadow: "0 2px 4px rgba(0,0,0,0.3)",
             }}
           >
-            Hệ thống quản lý nhà thuốc
+            Hệ Thống Quản Lý Nhà Thuốc
           </Typography>
           <Typography
             variant="h6"
@@ -179,7 +179,7 @@ const LandingNew = () => {
               fontWeight: "normal",
             }}
           >
-            Chào mừng bạn đến với hệ thống quản lý nhà thuốc
+            Chào mừng bạn đến với Hệ Thống Quản Lý Nhà Thuốc
           </Typography>
         </Box>
 

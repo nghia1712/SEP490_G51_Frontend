@@ -35,12 +35,19 @@ const Register = () => {
     setError("");
     setSuccess(false);
 
+    // Validate số điện thoại phải bắt đầu bằng 0
+    if (phoneNumber && !phoneNumber.startsWith('0')) {
+      setError("Số điện thoại phải bắt đầu bằng 0!");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Mật khẩu nhập lại không khớp!");
       return;
     }
 
     try {
+      console.log('Registering with data:', { username, email, phoneNumber, password, confirmPassword, address });
       const response = await register({ 
         username,
         phoneNumber,
@@ -49,15 +56,42 @@ const Register = () => {
         confirmPassword,
         address
       });
+      console.log('Register response:', response);
 
       if (response) {
         setSuccess(true);
-        // Hiển thị hướng dẫn xác nhận email
-        // Điều hướng về /login sau 2s
-        setTimeout(() => navigate("/login"), 2000);
+        // Chỉ hiển thị thông báo thành công, không chuyển hướng
+        // Người dùng sẽ chuyển hướng sau khi xác thực email
       }
     } catch (err) {
-      setError(err.message || "Đăng ký thất bại!");
+      console.error('Register Error:', err);
+      console.error('Error Response:', err.response?.data);
+      console.error('Error Status:', err.response?.status);
+      
+      let errorMessage = "Đăng ký thất bại! Vui lòng thử lại.";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.Message) {
+        errorMessage = err.response.data.Message;
+      } else if (err.response?.data?.errors) {
+        // Xử lý validation errors từ backend
+        const validationErrors = err.response.data.errors;
+        console.log('Validation errors:', validationErrors);
+        
+        if (typeof validationErrors === 'object') {
+          const errorMessages = Object.values(validationErrors).flat();
+          console.log('Error messages:', errorMessages);
+          errorMessage = errorMessages.join(', ');
+        }
+      } else if (err.response?.data?.title) {
+        // Xử lý title từ backend validation
+        errorMessage = err.response.data.title;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -138,7 +172,7 @@ const Register = () => {
                   )}
                   {success && (
                     <motion.div key="success" variants={alertVariants} initial="initial" animate="animate" exit="exit">
-                      <Alert variant="success">Đăng ký thành công! Đang chuyển hướng...</Alert>
+                      <Alert variant="success">Đăng ký thành công!</Alert>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -206,7 +240,15 @@ const Register = () => {
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
                             required 
-                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng nhập đúng email")}
+                            onInvalid={(e) => {
+                              if (e.target.validity.valueMissing) {
+                                e.target.setCustomValidity("Vui lòng không để trống");
+                              } else if (e.target.validity.typeMismatch) {
+                                e.target.setCustomValidity("Vui lòng nhập đúng email");
+                              } else {
+                                e.target.setCustomValidity("Vui lòng nhập đúng email");
+                              }
+                            }}
                             onInput={(e) => e.target.setCustomValidity("")}
                           />
                         </InputGroup>

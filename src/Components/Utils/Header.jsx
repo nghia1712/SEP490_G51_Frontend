@@ -138,6 +138,7 @@ function Header() {
 
   // --- NAVIGATION ITEMS ---
   const navItems = [
+    { label: "Tổng quan", path: "/purchases-dashboard", allowedRoles: ["purchases_staff"] },
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
     { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
     { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },

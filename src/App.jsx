@@ -10,8 +10,7 @@ import DevelopmentPage from "./Components/Utils/CommonComponents/DevelopmentPage
 import Login from "./Components/Login_Components/Login";
 import Register from "./Components/Login_Components/Register";
 import ConfirmEmail from "./Components/Login_Components/ConfirmEmail";
-import ResetPassword from "./Components/Login_Components/ResetPassword";
-import ForgotPassword from "./Components/Login_Components/ForgotPassword";
+import { ResetPasswordWithSimpleHeader, ForgotPasswordWithSimpleHeader, GuestPageWithSimpleHeader, LoginWithSimpleHeader, RegisterWithSimpleHeader } from "./Components/Utils/SimpleHeaderWrapper";
 import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
 import EditProfile from "./Components/User_Components/EditProfile";
@@ -68,8 +67,12 @@ const ConditionalHome = () => {
   
   // Đơn giản hóa logic: chỉ kiểm tra token, không phụ thuộc vào useAuthContext
   if (!currentToken) {
-    // Guest: hiển thị SearchMedicine
-    return <SearchMedicine />;
+    // Guest: hiển thị SearchMedicine với Simple Header
+    return (
+      <GuestPageWithSimpleHeader>
+        <SearchMedicine />
+      </GuestPageWithSimpleHeader>
+    );
   }
   
   try {
@@ -81,13 +84,32 @@ const ConditionalHome = () => {
       return <Navigate to="/admin/users/manager" replace />;
     }
     
-    // User đã đăng nhập: hiển thị Landing page
-    return <Landing />;
+    // User đã đăng nhập: redirect về trang phù hợp với role
+    if (roleFromToken === 'purchases_staff') {
+      return <Navigate to="/purchase-staff" replace />;
+    } else if (roleFromToken === 'customer') {
+      return <Navigate to="/customer" replace />;
+    } else if (roleFromToken === 'sales_staff') {
+      return <Navigate to="/sales-staff" replace />;
+    } else if (roleFromToken === 'warehouse_staff') {
+      return <Navigate to="/warehouse-staff" replace />;
+    } else if (roleFromToken === 'accountant_staff') {
+      return <Navigate to="/accountant-staff" replace />;
+    } else if (roleFromToken === 'manager') {
+      return <Navigate to="/manager" replace />;
+    }
+    
+    // Fallback: redirect về landing page
+    return <Navigate to="/landing" replace />;
   } catch (error) {
     console.error("Error parsing token:", error);
     // Nếu có lỗi với token, xóa token và hiển thị guest page
     localStorage.removeItem("authToken");
-    return <SearchMedicine />;
+    return (
+      <GuestPageWithSimpleHeader>
+        <SearchMedicine />
+      </GuestPageWithSimpleHeader>
+    );
   }
 };
 
@@ -165,257 +187,278 @@ function App() {
     <AuthProvider>
       <NotificationWrapper>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            {/* Box chính bao bọc toàn bộ ứng dụng để đảm bảo Footer luôn ở cuối trang */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-              <Header />
-              <Box component="main" sx={{ 
-                flexGrow: 1, 
-                backgroundImage: "url('/images/backgroundMedical2.jpg')", 
-                backgroundSize: 'cover', 
-                backgroundRepeat: 'no-repeat', 
-                backgroundPosition: 'center', 
-                backgroundAttachment: 'fixed' 
-              }}>
             <Routes>
-              {/* Route mặc định - hiển thị SearchMedicine cho guest, Landing cho user đã đăng nhập */}
+              {/* Route đặc biệt - reset-password và forgot-password có header riêng */}
+              <Route path="/reset-password" element={<ResetPasswordWithSimpleHeader />} />
+              <Route path="/forgot-password" element={<ForgotPasswordWithSimpleHeader />} />
+              
+              {/* Routes cho Guest và Auth - sử dụng SimpleHeader riêng (giống forgot-password) */}
               <Route path="/" element={<ConditionalHome />} />
-              
-              {/* Routes cho xác thực - sử dụng backgroundLogin */}
-              <Route path="/login" element={<LoginWithBackground />} />
-              <Route path="/register" element={<RegisterWithBackground />} />
+              <Route path="/search-medicine" element={
+                <GuestPageWithSimpleHeader>
+                  <SearchMedicine />
+                </GuestPageWithSimpleHeader>
+              } />
+              <Route path="/login" element={<LoginWithSimpleHeader />} />
+              <Route path="/register" element={<RegisterWithSimpleHeader />} />
               <Route path="/confirm-email" element={<ConfirmEmail />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/forgot-password" element={<ForgotPasswordWithBackground />} />
-              <Route path="/change-password" element={<ChangePasswordWithBackground />} />
               
-              {/* Routes cho Guest (không cần đăng nhập) */}
-              <Route path="/search-medicine" element={<SearchMedicine />} />
-              <Route path="/medicine-categories" element={<div>Danh mục thuốc - Đang phát triển</div>} />
-              <Route path="/medicine-info" element={<div>Thông tin thuốc - Đang phát triển</div>} />
-              <Route path="/contact" element={<div>Liên hệ - Đang phát triển</div>} />
-              
-              {/* Routes cho Sales Staff */}
-              <Route 
-                path="/sales" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
-                    <SalesDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Routes cho Sales Staff */}
-              <Route 
-                path="/sales-dashboard" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
-                    <SalesDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Routes cho Purchases Staff */}
-              <Route 
-                path="/purchases-dashboard" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                    <PurchasesDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/purchases" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                    <PurchasesDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Routes cho Manager Dashboard */}
-              <Route 
-                path="/manager-dashboard" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'accountant_staff', 'admin']}>
-                    <ManagerDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Routes cho Warehouse Staff */}
-              <Route 
-                path="/warehouse-dashboard" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <WarehouseDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/warehouse" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <WarehouseDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/warehouse-products" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <ProductWarehouse />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Routes cho tất cả Staff */}
-              <Route 
-                path="/product" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <ProductList />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Route cho trang đang phát triển */}
-              <Route 
-                path="/development" 
-                element={<DevelopmentPage />} 
-              />
-              <Route 
-                path="/inventory-check" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <InventoryCheck />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/stocktaking" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                    <Stocktaking />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/receipts" element={<div>Nhập hàng - Đang phát triển</div>} />
-              <Route path="/export" element={<div>Xuất hàng - Đang phát triển</div>} />
-              
-              {/* Routes cho Customer */}
-              <Route path="/my-orders" element={<div>Đơn hàng của tôi - Đang phát triển</div>} />
-              <Route path="/purchase-history" element={<div>Lịch sử mua hàng - Đang phát triển</div>} />
-              
-              {/* Routes cho Manager/Staff */}
-              <Route 
-                path="/category" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff']}>
-                    <ListCategory />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
-              {/* Removed legacy /admin/users route */}
-              <Route 
-                path="/admin/users/customer" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
-                    <ListAllUsers roleGroup="customer" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/admin/users/staff" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
-                    <ListAllUsers roleGroup="staff" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/admin/users/manager" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
-                    <ListAllUsers roleGroup="manager" />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/admin/create-staff" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'admin']}>
-                    <CreateStaff />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Routes cho Supplier Management */}
-              <Route 
-                path="/suppliers" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                    <SupplierListAdvanced />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/manager/add-suppliers" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
-                    <AddNewSupplier />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/manager/manage-supplier-products" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'admin']}> 
-                    <ManageSupplierProducts />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/manager/supplier-products/:id" 
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                    <SupplierProductDetail />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Routes được bảo vệ - chỉ user đã đăng nhập mới truy cập được */}
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
-                    <ViewProfile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/edit-profile" 
-                element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
-                    <EditProfile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/change-password" 
-                element={
-                  <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
-                    <ChangePassword />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Route fallback - chuyển hướng về trang chủ nếu không tìm thấy */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Routes với Header và Footer cho authenticated users */}
+              <Route path="/*" element={
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                  <Header />
+                  <Box component="main" sx={{ 
+                    flexGrow: 1, 
+                    backgroundImage: "url('/images/backgroundMedical2.jpg')", 
+                    backgroundSize: 'cover', 
+                    backgroundRepeat: 'no-repeat', 
+                    backgroundPosition: 'center', 
+                    backgroundAttachment: 'fixed' 
+                  }}>
+                    <Routes>
+                      {/* Route mặc định đã được xử lý ở routes chính */}
+                      
+                      {/* Landing page cho authenticated users */}
+                      <Route path="/landing" element={<Landing />} />
+                      
+                      {/* Role-specific landing pages */}
+                      <Route path="/purchase-staff" element={<Landing />} />
+                      <Route path="/customer" element={<Landing />} />
+                      <Route path="/sales-staff" element={<Landing />} />
+                      <Route path="/warehouse-staff" element={<Landing />} />
+                      <Route path="/accountant-staff" element={<Landing />} />
+                      <Route path="/manager" element={<Landing />} />
+                      
+                      {/* Routes cho Guest và Auth đã được xử lý ở routes chính */}
+                      <Route path="/confirm-email" element={<ConfirmEmail />} />
+                      <Route path="/change-password" element={<ChangePasswordWithBackground />} />
+                      
+                      {/* Routes cho Guest đã được xử lý ở routes chính */}
+                      
+                      {/* Routes cho Sales Staff */}
+                      <Route 
+                        path="/sales" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
+                            <SalesDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes cho Sales Staff */}
+                      <Route 
+                        path="/sales-dashboard" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'admin']}>
+                            <SalesDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes cho Purchases Staff */}
+                      <Route 
+                        path="/purchases-dashboard" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
+                            <PurchasesDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/purchases" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
+                            <PurchasesDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes cho Manager Dashboard */}
+                      <Route 
+                        path="/manager-dashboard" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'accountant_staff', 'admin']}>
+                            <ManagerDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes cho Warehouse Staff */}
+                      <Route 
+                        path="/warehouse-dashboard" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <WarehouseDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/warehouse" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <WarehouseDashboard />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/warehouse-products" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <ProductWarehouse />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes cho tất cả Staff */}
+                      <Route 
+                        path="/product" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <ProductList />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Route cho trang đang phát triển */}
+                      <Route 
+                        path="/development" 
+                        element={<DevelopmentPage />} 
+                      />
+                      <Route 
+                        path="/inventory-check" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <InventoryCheck />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/stocktaking" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
+                            <Stocktaking />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route path="/receipts" element={<div>Nhập hàng - Đang phát triển</div>} />
+                      <Route path="/export" element={<div>Xuất hàng - Đang phát triển</div>} />
+                      
+                      {/* Routes cho Customer */}
+                      <Route path="/my-orders" element={<div>Đơn hàng của tôi - Đang phát triển</div>} />
+                      <Route path="/purchase-history" element={<div>Lịch sử mua hàng - Đang phát triển</div>} />
+                      
+                      {/* Routes cho Manager/Staff */}
+                      <Route 
+                        path="/category" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff']}>
+                            <ListCategory />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
+                      {/* Removed legacy /admin/users route */}
+                      <Route 
+                        path="/admin/users/customer" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                            <ListAllUsers roleGroup="customer" />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/admin/users/staff" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                            <ListAllUsers roleGroup="staff" />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/admin/users/manager" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                            <ListAllUsers roleGroup="manager" />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/admin/create-staff" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}>
+                            <CreateStaff />
+                          </ProtectedRoute>
+                        }
+                      />
+                      
+                      {/* Routes cho Supplier Management */}
+                      <Route 
+                        path="/suppliers" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
+                            <SupplierListAdvanced />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/manager/add-suppliers" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
+                            <AddNewSupplier />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/manager/manage-supplier-products" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}> 
+                            <ManageSupplierProducts />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route 
+                        path="/manager/supplier-products/:id" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
+                            <SupplierProductDetail />
+                          </ProtectedRoute>
+                        }
+                      />
+                      
+                      {/* Routes được bảo vệ - chỉ user đã đăng nhập mới truy cập được */}
+                      <Route 
+                        path="/profile" 
+                        element={
+                          <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
+                            <ViewProfile />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/edit-profile" 
+                        element={
+                          <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
+                            <EditProfile />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/change-password" 
+                        element={
+                          <ProtectedRoute allowedRoles={['sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'customer', 'manager', 'admin']}>
+                            <ChangePassword />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Route fallback - chuyển hướng về trang chủ nếu không tìm thấy */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Box>
+                  <Footer />
+                </Box>
+              } />
             </Routes>
-              </Box>
-              <Footer />
-            </Box>
         </Router>
       </NotificationWrapper>
     </AuthProvider>

@@ -22,7 +22,7 @@ const ConfirmEmail = () => {
         const ok = res?.success ?? true;
         const msg = res?.message || 'Xác nhận email thành công';
         setStatus({ loading: false, success: ok, message: msg });
-        if (ok) setTimeout(() => navigate('/login'), 2000);
+        if (ok) setTimeout(() => navigate('/login'), 3000);
       } catch (err) {
         setStatus({ loading: false, success: false, message: err?.response?.data?.message || err.message || 'Xác nhận email thất bại' });
       }

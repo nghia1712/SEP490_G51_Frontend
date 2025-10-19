@@ -41,6 +41,7 @@ import {
   Button,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import DashboardIcon from '@mui/icons-material/Dashboard';
 // Removed profile chip dropdown on homepage
 
 // Icons cho các chức năng
@@ -62,6 +63,32 @@ import BusinessIcon from "@mui/icons-material/Business";
 
 // --- DỮ LIỆU CHỨC NĂNG ---
 const mainFunctions = [
+  // Dashboard cho từng vai trò - đặt ở đầu để hiển thị trước
+  {
+    title: "Tổng quan",
+    icon: <DashboardIcon />,
+    path: "/purchases-dashboard",
+    allowedRoles: ["purchases_staff", "manager"],
+  },
+  {
+    title: "Tổng quan",
+    icon: <DashboardIcon />,
+    path: "/sales-dashboard",
+    allowedRoles: ["sales_staff", "manager"],
+  },
+  {
+    title: "Tổng quan",
+    icon: <DashboardIcon />,
+    path: "/warehouse-dashboard",
+    allowedRoles: ["warehouse_staff", "accountant_staff", "manager"],
+  },
+  {
+    title: "Tổng quan",
+    icon: <DashboardIcon />,
+    path: "/manager-dashboard",
+    allowedRoles: ["accountant_staff", "manager"],
+  },
+  // Các chức năng chung
   {
     title: "Quản lý thuốc",
     icon: <Inventory2Icon />,
@@ -103,32 +130,6 @@ const mainFunctions = [
     icon: <FactCheckIcon />,
     path: "/stocktaking",
     allowedRoles: ["warehouse_staff", "manager"],
-  },
-  
-  // Dashboard cho từng vai trò
-  {
-    title: "Dashboard Bán Hàng",
-    icon: <AnalyticsIcon />,
-    path: "/sales-dashboard",
-    allowedRoles: ["sales_staff", "manager"],
-  },
-  {
-    title: "Dashboard Mua Hàng",
-    icon: <MoveToInboxIcon />,
-    path: "/purchases-dashboard",
-    allowedRoles: ["purchases_staff", "manager"],
-  },
-  {
-    title: "Dashboard Kho",
-    icon: <Inventory2Icon />,
-    path: "/warehouse-dashboard",
-    allowedRoles: ["warehouse_staff", "accountant_staff", "manager"],
-  },
-  {
-    title: "Dashboard Kế Toán",
-    icon: <AnalyticsIcon />,
-    path: "/manager-dashboard", // Tạm thời sử dụng manager dashboard
-    allowedRoles: ["accountant_staff", "manager"],
   },
   
   // Chức năng cho Customer (cần đăng nhập)
@@ -264,10 +265,19 @@ function Landing() {
   }, [user]);
 
 
-  // Lấy role từ user nếu có - memoized để tránh re-render
+  // Lấy role từ user hoặc token - memoized để tránh re-render
   const userRole = useMemo(() => {
-    if (!user) return null;
-    return user?.role?.name || null;
+    if (user?.role?.name) {
+      return user.role.name;
+    }
+    
+    // Fallback: lấy role từ token
+    try {
+      return getUserRoleFromToken();
+    } catch (error) {
+      console.error("Error getting role from token:", error);
+      return null;
+    }
   }, [user]);
 
   // Handler cho search input - đơn giản hóa
@@ -308,10 +318,18 @@ function Landing() {
     // Xác định role hiện tại
     const currentRole = userRole || getUserRoleFromToken();
     
-    // Nếu là nhân viên mua hàng, chỉ hiển thị 2 biểu tượng: Thuốc và Danh mục thuốc
-    const roleSpecificEnabledPaths = currentRole === 'purchases_staff'
-      ? new Set(['/product', '/category'])
-      : enabledPaths;
+    // Logic đặc biệt cho từng role staff để có giao diện nhất quán
+    let roleSpecificEnabledPaths = enabledPaths;
+    
+    if (currentRole === 'purchases_staff') {
+      roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category']);
+    } else if (currentRole === 'sales_staff') {
+      roleSpecificEnabledPaths = new Set(['/sales-dashboard', '/product', '/category']);
+    } else if (currentRole === 'warehouse_staff') {
+      roleSpecificEnabledPaths = new Set(['/warehouse-dashboard', '/product', '/category']);
+    } else if (currentRole === 'accountant_staff') {
+      roleSpecificEnabledPaths = new Set(['/manager-dashboard', '/product', '/category']);
+    }
 
     const filtered = mainFunctions
       .filter((func) => {
@@ -340,7 +358,7 @@ function Landing() {
     <Box
       id="landing-root"
       sx={{
-        minHeight: "100vh",
+        minHeight: "85vh",
         backgroundImage: "url('/images/backgroundMedical2.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -392,7 +410,7 @@ function Landing() {
                 fontSize: { xs: "1.8rem", sm: "2.2rem", md: "2.6rem" },
               }}
             >
-              Hệ thống quản lý nhà thuốc
+              Hệ Thống Quản Lý Nhà Thuốc
             </Typography>
       
             <Typography
@@ -434,8 +452,35 @@ function Landing() {
                 mb: 3,
               }}
             >
-              Hệ thống quản lý nhà thuốc
+              Hệ Thống Quản Lý Nhà Thuốc
             </Typography>
+
+            {/* Thông tin vai trò */}
+            {isAuthenticated && userRole && (
+              <Typography
+                variant="h2"
+                component="h2"
+                color="white"
+                sx={{
+                  mb: 3,
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+                  fontSize: { xs: "1rem", sm: "1.5rem", md: "2rem" },
+                }}
+              >
+                {userRole === 'purchases_staff' && 'Nhân Viên Mua Hàng'}
+                {userRole === 'sales_staff' && 'Nhân Viên Bán Hàng'}
+                {userRole === 'warehouse_staff' && 'Nhân Viên Kho'}
+                {userRole === 'accountant_staff' && 'Nhân Viên Kế Toán'}
+                {userRole === 'manager' && 'Quản Lý'}
+                {userRole === 'customer' && 'Khách Hàng'}
+                {userRole === 'admin' && 'Quản Trị Viên'}
+                {/* Fallback: hiển thị role gốc nếu không match */}
+                {!['purchases_staff', 'sales_staff', 'warehouse_staff', 'accountant_staff', 'manager', 'customer', 'admin'].includes(userRole) && userRole}
+                {/* Debug: hiển thị role hiện tại */}
+                {console.log('Current userRole:', userRole)}
+                {console.log('isAuthenticated:', isAuthenticated)}
+              </Typography>
+            )}
 
           <TextField
             fullWidth

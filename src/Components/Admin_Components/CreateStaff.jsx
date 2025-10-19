@@ -99,6 +99,8 @@ function CreateStaff({ onClose }) {
                         value={data.fullName}
                         onChange={handleChange}
                         required
+                        onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                        onInput={(e) => e.target.setCustomValidity("")}
                         style={{ borderColor: "#48C1A6" }}
                       />
                     </Form.Group>
@@ -114,6 +116,8 @@ function CreateStaff({ onClose }) {
                         value={data.email}
                         onChange={handleChange}
                         required
+                        onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                        onInput={(e) => e.target.setCustomValidity("")}
                         style={{ borderColor: "#48C1A6" }}
                       />
                     </Form.Group>
@@ -132,6 +136,8 @@ function CreateStaff({ onClose }) {
                         onChange={handleChange}
                         pattern="[0-9]{10}"
                         required
+                        onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                        onInput={(e) => e.target.setCustomValidity("")}
                         style={{ borderColor: "#48C1A6" }}
                       />
                     </Form.Group>
