@@ -35,7 +35,7 @@ const authAPI = {
     const currentToken = localStorage.getItem('authToken') || '';
     return unauthorApi
       .post("/Token/refresh", { accessToken: currentToken })
-      .then((response) => response.data);
+      .then((response) => response.data?.accessToken);
   },
 
   logout: async () =>
