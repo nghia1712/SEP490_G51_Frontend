@@ -28,7 +28,7 @@ class TokenManager {
       const [, payload] = token.split('.');
       const data = JSON.parse(atob(payload));
       const currentTime = Math.floor(Date.now() / 1000);
-      
+
       // Kiểm tra nếu token hết hạn trong vòng 30 giây tới
       return data.exp <= currentTime + 30;
     } catch (error) {
@@ -61,7 +61,7 @@ class TokenManager {
    */
   async autoRefreshToken() {
     const token = localStorage.getItem('authToken');
-    
+
     if (!token) {
       console.log('Không có token để refresh');
       return null;
@@ -97,11 +97,11 @@ class TokenManager {
   async performRefresh() {
     try {
       console.log('Bắt đầu refresh token...');
-      
+
       // Import authAPI dynamically để tránh circular dependency
       const { default: authAPI } = await import('../API/authAPI');
       const newToken = await authAPI.refreshToken();
-      
+
       if (newToken && typeof newToken === 'string') {
         localStorage.setItem('authToken', newToken);
         console.log('Refresh token thành công');
@@ -124,12 +124,12 @@ class TokenManager {
   clearTokens() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    
+
     // Clear session nếu có session manager
     if (this.sessionManager) {
       this.sessionManager.clearSession();
     }
-    
+
     // Show notification to user if available
     if (window.showNotification) {
       window.showNotification('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'warning');
@@ -151,7 +151,7 @@ class TokenManager {
 
     if (refreshTime > 0) {
       console.log(`Sẽ tự động refresh token sau ${Math.floor(refreshTime / 1000)} giây`);
-      
+
       setTimeout(async () => {
         await this.autoRefreshToken();
         // Thiết lập lại timer cho token mới
@@ -166,7 +166,7 @@ class TokenManager {
    */
   async getValidToken() {
     const token = localStorage.getItem('authToken');
-    
+
     if (!token) {
       return null;
     }

@@ -35,10 +35,10 @@ const useAuth = () => {
     if (!user && localStorage.getItem("authToken")) {
       getCurrentUser();
     }
-    
+
     // Thiết lập auto-refresh token
     tokenManager.setupAutoRefresh();
-    
+
     // Thiết lập session manager với token manager
     tokenManager.setSessionManager(sessionManager);
   }, [getCurrentUser]);
@@ -49,13 +49,13 @@ const useAuth = () => {
     try {
       const accessToken = await authAPI.login(credentials);
       localStorage.setItem("authToken", accessToken);
-      
+
       // Thiết lập auto-refresh sau khi login thành công
       tokenManager.setupAutoRefresh();
-      
+
       // Khởi tạo session sau khi login thành công
       sessionManager.updateActivity();
-      
+
       await getCurrentUser();
       setLoading(false);
       return { token: accessToken };
@@ -102,10 +102,10 @@ const useAuth = () => {
     try {
       const data = await authAPI.logout();
       setUser(null);
-      
+
       // Sử dụng TokenManager để clear tokens
       tokenManager.clearTokens();
-      
+
       setLoading(false);
       return data;
     } catch (err) {
