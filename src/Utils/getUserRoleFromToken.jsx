@@ -16,20 +16,30 @@ export default function getUserRoleFromToken() {
       ].filter(Boolean);
 
       let roles = [];
-      roleFields.forEach((rf) => {
-        if (Array.isArray(rf)) roles.push(...rf);
-        else roles.push(rf);
-      });
-      // Scan all claims keys (ASP.NET style claim URIs)
+      const pushValue = (val) => {
+        if (!val) return;
+        // JSON array encoded as string
+        if (typeof val === 'string' && val.trim().startsWith('[')) {
+          try { JSON.parse(val).forEach((v) => pushValue(v)); return; } catch {}
+        }
+        if (Array.isArray(val)) { val.forEach((v) => pushValue(v)); return; }
+        // Comma separated
+        if (typeof val === 'string' && val.includes(',')) { val.split(',').forEach((v) => pushValue(v.trim())); return; }
+        roles.push(val);
+      };
+      roleFields.forEach(pushValue);
+
+      // Scan all claims keys (ASP.NET style claims; role can be under long URIs)
       Object.entries(data).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          const k = key.toLowerCase();
-          if (k.includes('/role') || k.endsWith('/name') || k.includes('role') || k.includes('name')) {
-            roles.push(value);
-          }
+        const k = String(key).toLowerCase();
+        if (k.includes('/role') || k.endsWith('/role') || k.includes('role')) {
+          pushValue(value);
         }
       });
-      roles = roles.map((r) => (typeof r === 'string' ? r.toLowerCase() : `${r}`));
+
+      roles = roles
+        .filter(Boolean)
+        .map((r) => (typeof r === 'string' ? r.toLowerCase() : `${r}`));
 
       if (roles.includes('administrator') || roles.includes('admin')) return 'admin';
       if (roles.includes('manager')) return 'manager';
@@ -49,7 +59,14 @@ export default function getUserRoleFromToken() {
         if (roleId === 3) return 'accountant_staff';
         if (roleId === 4) return 'customer';
       }
-    } catch {}
+      // As a last resort, try common policy names
+      if (data?.aud === 'PmsClient' && data?.iss === 'PmsServer') {
+        // default unknown staff to manager if not parseable (temporary safe fallback)
+        console.warn('[Auth] Unable to parse role from token, falling back to landing');
+      }
+    } catch (e) {
+      console.warn('[Auth] Failed to decode token payload', e);
+    }
   }
 
   if (token.startsWith('demo-token-')) {

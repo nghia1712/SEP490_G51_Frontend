@@ -12,6 +12,7 @@ import ResetPassword from "../Login_Components/ResetPassword";
 import ForgotPassword from "../Login_Components/ForgotPassword";
 import Login from "../Login_Components/Login";
 import Register from "../Login_Components/Register";
+import ConfirmEmail from "../Login_Components/ConfirmEmail";
 import Footer from "./Footer";
 
 // Bảng màu của bạn
@@ -193,6 +194,28 @@ export const RegisterWithSimpleHeader = () => (
       padding: '60px 0'
     }}>
       <Register />
+    </Box>
+    <Footer />
+  </Box>
+);
+
+// ConfirmEmail wrapper với SimpleHeader
+export const ConfirmEmailWithSimpleHeader = () => (
+  <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <SimpleHeader />
+    <Box component="main" sx={{ 
+      flexGrow: 1, 
+      backgroundImage: "url('/images/backgroundLogin.jpg')", 
+      backgroundSize: 'cover', 
+      backgroundRepeat: 'no-repeat', 
+      backgroundPosition: 'center', 
+      backgroundAttachment: 'fixed',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '60px 0'
+    }}>
+      <ConfirmEmail />
     </Box>
     <Footer />
   </Box>

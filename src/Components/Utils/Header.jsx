@@ -138,7 +138,6 @@ function Header() {
 
   // --- NAVIGATION ITEMS ---
   const navItems = [
-    { label: "Tổng quan", path: "/purchases-dashboard", allowedRoles: ["purchases_staff"] },
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
     { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
     { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
@@ -270,8 +269,8 @@ function Header() {
       >
         <Container maxWidth="xl">
           <Toolbar disableGutters>
-            {/* Mobile hamburger - hiển thị khi không phải trang chủ */}
-            {isMobile && !isHomePage && (
+            {/* Mobile hamburger - admin luôn thấy menu kể cả ở trang chủ */}
+            {isMobile && (userRole === "admin" || !isHomePage) && (
               <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle}>
                 <MenuIcon />
               </IconButton>
@@ -299,8 +298,8 @@ function Header() {
               Pharmacy
             </Typography>
 
-            {/* Desktop nav buttons - chỉ hiển thị khi đã đăng nhập và không phải trang chủ */}
-            {!isMobile && currentToken && !isHomePage && (
+            {/* Desktop nav buttons - admin luôn thấy menu kể cả ở trang chủ */}
+            {!isMobile && currentToken && (userRole === "admin" || !isHomePage) && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
                 {visibleNavItems.map((item) => (
                   <Button

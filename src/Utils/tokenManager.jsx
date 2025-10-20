@@ -25,8 +25,11 @@ class TokenManager {
     if (!token) return true;
 
     try {
-      const [, payload] = token.split('.');
-      const data = JSON.parse(atob(payload));
+      const parts = token.split('.');
+      if (parts.length < 2) return true;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '==='.slice((b64.length + 3) % 4);
+      const data = JSON.parse(atob(padded));
       const currentTime = Math.floor(Date.now() / 1000);
       
       // Kiểm tra nếu token hết hạn trong vòng 30 giây tới
@@ -46,8 +49,11 @@ class TokenManager {
     if (!token) return 0;
 
     try {
-      const [, payload] = token.split('.');
-      const data = JSON.parse(atob(payload));
+      const parts = token.split('.');
+      if (parts.length < 2) return 0;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '==='.slice((b64.length + 3) % 4);
+      const data = JSON.parse(atob(padded));
       return data.exp * 1000; // Convert to milliseconds
     } catch (error) {
       console.error('Lỗi khi lấy thời gian hết hạn token:', error);

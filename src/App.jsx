@@ -10,7 +10,7 @@ import DevelopmentPage from "./Components/Utils/CommonComponents/DevelopmentPage
 import Login from "./Components/Login_Components/Login";
 import Register from "./Components/Login_Components/Register";
 import ConfirmEmail from "./Components/Login_Components/ConfirmEmail";
-import { ResetPasswordWithSimpleHeader, ForgotPasswordWithSimpleHeader, GuestPageWithSimpleHeader, LoginWithSimpleHeader, RegisterWithSimpleHeader } from "./Components/Utils/SimpleHeaderWrapper";
+import { ResetPasswordWithSimpleHeader, ForgotPasswordWithSimpleHeader, GuestPageWithSimpleHeader, LoginWithSimpleHeader, RegisterWithSimpleHeader, ConfirmEmailWithSimpleHeader } from "./Components/Utils/SimpleHeaderWrapper";
 import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
 import EditProfile from "./Components/User_Components/EditProfile";
@@ -201,7 +201,7 @@ function App() {
               } />
               <Route path="/login" element={<LoginWithSimpleHeader />} />
               <Route path="/register" element={<RegisterWithSimpleHeader />} />
-              <Route path="/confirm-email" element={<ConfirmEmail />} />
+              <Route path="/confirm-email" element={<ConfirmEmailWithSimpleHeader />} />
               
               {/* Routes với Header và Footer cho authenticated users */}
               <Route path="/*" element={
@@ -230,7 +230,6 @@ function App() {
                       <Route path="/manager" element={<Landing />} />
                       
                       {/* Routes cho Guest và Auth đã được xử lý ở routes chính */}
-                      <Route path="/confirm-email" element={<ConfirmEmail />} />
                       <Route path="/change-password" element={<ChangePasswordWithBackground />} />
                       
                       {/* Routes cho Guest đã được xử lý ở routes chính */}

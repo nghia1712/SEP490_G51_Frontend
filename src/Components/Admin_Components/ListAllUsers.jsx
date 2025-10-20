@@ -84,7 +84,7 @@ const ListAllUsers = ({ roleGroup }) => {
     };
 
     const handleResetPassword = async (userId) => {
-        const defaultPassword = "PMS@123456";
+        const defaultPassword = "Pms@123456";
         if (window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của nhân viên này về mặc định không?\n\nMật khẩu mới sẽ là: ${defaultPassword}`)) {
             try {
                 // Gọi API reset password thực sự
@@ -155,7 +155,35 @@ const ListAllUsers = ({ roleGroup }) => {
     const getRoleDisplayName = (user) => {
         console.log("getRoleDisplayName - user data:", user);
         
-        // Check for Role field first (from backend AccountList DTO)
+        // Check RoleName field first (for admin/manager/customer from backend)
+        if (user?.RoleName) {
+            console.log("RoleName field:", user.RoleName);
+            const roleLower = user.RoleName.toLowerCase();
+            if (roleLower === 'admin') return "Admin";
+            if (roleLower === 'manager') return "Quản lý";
+            if (roleLower === 'customer') return "Khách hàng";
+        }
+        
+        // Check single role field (for admin/manager/customer)
+        const role = user?.role || user?.roleName;
+        console.log("single role:", role);
+        if (typeof role === 'string') {
+            const roleLower = role.toLowerCase();
+            if (roleLower === 'sales_staff') return "Nhân viên Bán Hàng";
+            if (roleLower === 'purchases_staff') return "Nhân viên Mua Hàng";
+            if (roleLower === 'warehouse_staff') return "Nhân viên Kho";
+            if (roleLower === 'accountant_staff') return "Nhân viên Kế Toán";
+            if (roleLower === 'customer') return "Khách hàng";
+            if (roleLower === 'manager') return "Quản lý";
+            if (roleLower === 'admin') return "Admin";
+            // Fallback for enum name strings ("SalesStaff", "PurchasesStaff" ...)
+            if (roleLower.includes('sales')) return "Nhân viên Bán Hàng";
+            if (roleLower.includes('purchase')) return "Nhân viên Mua Hàng";
+            if (roleLower.includes('warehouse')) return "Nhân viên Kho";
+            if (roleLower.includes('account')) return "Nhân viên Kế Toán";
+        }
+        
+        // Check for Role field (from backend AccountList DTO) - only for staff roles
         if (user?.Role !== null && user?.Role !== undefined) {
             console.log("Role field:", user.Role);
             switch (Number(user.Role)) {
@@ -167,8 +195,8 @@ const ListAllUsers = ({ roleGroup }) => {
             }
         }
         
-        // Check for role field (lowercase)
-        if (user?.role !== null && user?.role !== undefined) {
+        // Check for role field (lowercase) - only for staff roles
+        if (user?.role !== null && user?.role !== undefined && typeof user.role === 'number') {
             console.log("role field:", user.role);
             switch (Number(user.role)) {
                 case 0: return "Nhân viên Bán Hàng";
@@ -223,24 +251,6 @@ const ListAllUsers = ({ roleGroup }) => {
             if (r.includes('account')) return "Nhân viên Kế Toán";
         }
         
-        // Check single role field
-        const role = user?.role || user?.roleName;
-        console.log("single role:", role);
-        if (typeof role === 'string') {
-            const roleLower = role.toLowerCase();
-            if (roleLower === 'sales_staff') return "Nhân viên Bán Hàng";
-            if (roleLower === 'purchases_staff') return "Nhân viên Mua Hàng";
-            if (roleLower === 'warehouse_staff') return "Nhân viên Kho";
-            if (roleLower === 'accountant_staff') return "Nhân viên Kế Toán";
-            if (roleLower === 'customer') return "Khách hàng";
-            if (roleLower === 'manager') return "Quản lý";
-            if (roleLower === 'admin') return "Admin";
-            // Fallback for enum name strings ("SalesStaff", "PurchasesStaff" ...)
-            if (roleLower.includes('sales')) return "Nhân viên Bán Hàng";
-            if (roleLower.includes('purchase')) return "Nhân viên Mua Hàng";
-            if (roleLower.includes('warehouse')) return "Nhân viên Kho";
-            if (roleLower.includes('account')) return "Nhân viên Kế Toán";
-        }
         
         console.log("No role found, returning '-'");
         return '-';
@@ -287,6 +297,59 @@ const ListAllUsers = ({ roleGroup }) => {
 
     const getAddressFromAny = (u) => {
         return u?.Address || u?.address || u?.profile?.address || u?.profile?.Address || '-';
+    };
+
+    // Helper function to get avatar URL from user data
+    const getAvatarFromAny = (u) => {
+        // Check various possible avatar field locations
+        const avatar = u?.avatar || u?.Avatar || 
+                      u?.profile?.avatar || u?.profile?.Avatar ||
+                      u?.account?.avatar || u?.account?.Avatar ||
+                      u?.imageUrl || u?.ImageUrl ||
+                      u?.profileImage || u?.ProfileImage;
+        
+        if (avatar && avatar.trim() !== '') {
+            // If it's already a full URL, return as is
+            if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+                return avatar;
+            }
+            // If it's a relative path, construct full URL
+            if (avatar.startsWith('/')) {
+                return `${window.location.origin}${avatar}`;
+            }
+            // If it's just a filename, assume it's in the images folder
+            return `${window.location.origin}/images/${avatar}`;
+        }
+        
+        return null; // No avatar found
+    };
+
+    // Helper function to truncate email for display
+    const truncateEmail = (email, maxLength = 20) => {
+        if (!email) return '-';
+        if (email.length <= maxLength) return email;
+        return email.substring(0, maxLength) + '...';
+    };
+    const getEmailVerificationStatus = (u) => {
+        // Debug: Log the user data to see what fields are available
+        console.log("Debug user data for email verification:", u);
+        console.log("Available fields:", Object.keys(u || {}));
+        
+        // Check EmailConfirmed field from backend (ASP.NET Core Identity)
+        const emailConfirmed = u?.EmailConfirmed || u?.emailConfirmed;
+        
+        console.log("EmailConfirmed value found:", emailConfirmed);
+        console.log("EmailConfirmed type:", typeof emailConfirmed);
+        
+        if (emailConfirmed !== null && emailConfirmed !== undefined) {
+            const result = emailConfirmed === true || emailConfirmed === 'true' || emailConfirmed === 1;
+            console.log("Email verification result:", result);
+            return result;
+        }
+        
+        console.log("No EmailConfirmed field found, defaulting to false");
+        // Default to false if unclear
+        return false;
     };
 
     // Normalize roles coming from different backend shapes to lowercase keywords
@@ -363,18 +426,24 @@ const ListAllUsers = ({ roleGroup }) => {
         const q = (search || "").toLowerCase();
         const matchesSearch = name.includes(q) || email.includes(q);
         
-        // Use unified status resolver
-        const isActive = getIsActive(user);
+        // Only apply status and role filters for staff view
+        let matchesStatus = true;
+        let matchesRoleQuery = true;
         
-        const statusLabel = isActive ? "Hoạt động" : "Không hoạt động";
-        const hasAnyStatusFilter = Object.values(filterStatus || {}).some(v => v);
-        const matchesStatus = hasAnyStatusFilter ? !!filterStatus[statusLabel] : true;
-        // role matching query: behave like email filter (simple substring, case/diacritic-insensitive)
-        const matchesRoleQuery = (() => {
-            if (!roleQuery) return true;
-            const roleText = [getRoleDisplayName(user), ...normalizeUserRoles(user)].filter(Boolean).join(' ');
-            return toSearchKey(roleText).includes(toSearchKey(roleQuery));
-        })();
+        if (roleGroup === 'staff') {
+            // Use unified status resolver
+            const isActive = getIsActive(user);
+            const statusLabel = isActive ? "Hoạt động" : "Không hoạt động";
+            const hasAnyStatusFilter = Object.values(filterStatus || {}).some(v => v);
+            matchesStatus = hasAnyStatusFilter ? !!filterStatus[statusLabel] : true;
+            
+            // role matching query: behave like email filter (simple substring, case/diacritic-insensitive)
+            matchesRoleQuery = (() => {
+                if (!roleQuery) return true;
+                const roleText = [getRoleDisplayName(user), ...normalizeUserRoles(user)].filter(Boolean).join(' ');
+                return toSearchKey(roleText).includes(toSearchKey(roleQuery));
+            })();
+        }
 
         // Additional filter by role group for admin subpages
         let matchesRoleGroup = true;
@@ -417,10 +486,17 @@ const ListAllUsers = ({ roleGroup }) => {
     });
     const isStaffView = roleGroup === 'staff';
     const isManagerView = roleGroup === 'manager';
+    const isCustomerView = roleGroup === 'customer';
     const indexColStyle = { width: '50px' };
     const equalColStyle = isStaffView ? { width: '20%' } : {};
     const actionColStyle = isStaffView ? { width: '140px' } : {};
-    const statusContainerStyle = { flex: 1, justifyContent: isStaffView ? 'center' : 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' };
+    
+    // Customer view column styles
+    const customerEmailColStyle = { width: '25%' };
+    const customerPhoneColStyle = { width: '18%' };
+    const customerAddressColStyle = { width: '18%' };
+    const customerRoleColStyle = { width: '18%' };
+    const customerStatusColStyle = { width: '18%' };
 
     // Render status badge similar to product page
     const renderStatusBadge = (statusOrUser) => {
@@ -446,6 +522,28 @@ const ListAllUsers = ({ roleGroup }) => {
             </span>
         );
     };
+
+    // Render email verification status badge
+    const renderEmailVerificationBadge = (user) => {
+        const isEmailVerified = getEmailVerificationStatus(user);
+        
+        return (
+            <span
+                style={{
+                    color: 'white',
+                    backgroundColor: isEmailVerified ? '#4caf50' : '#f44336',
+                    padding: '4px 10px',
+                    borderRadius: '16px',
+                    display: 'inline-block',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                }}
+            >
+                {isEmailVerified ? 'Kích hoạt' : 'Chưa kích hoạt'}
+            </span>
+        );
+    };
     return (
         <Container className="mt-4" style={{ paddingLeft: '24px', paddingRight: '24px' }}>
             {error || users.length === 0 ? (
@@ -456,36 +554,48 @@ const ListAllUsers = ({ roleGroup }) => {
 
                         <div className="d-flex justify-content-between align-items-center mb-3">
                             <Form className="d-flex gap-2 align-items-center" style={{ minHeight: '38px', width: '100%' }}>
-                                <div className="d-flex gap-2">
+                                {isStaffView ? (
+                                    <>
+                                        <div className="d-flex gap-2">
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Tìm kiếm theo email"
+                                                value={search}
+                                                onChange={(e) => setSearch(e.target.value)}
+                                                style={{ width: "240px", height: "38px", fontSize: "1rem" }}
+                                            />
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Tìm kiếm theo vai trò"
+                                                value={roleQuery}
+                                                onChange={(e) => setRoleQuery(e.target.value)}
+                                                style={{ width: "240px", height: "38px", fontSize: "1rem" }}
+                                            />
+                                        </div>
+                                        <div className="d-flex align-items-center gap-3" style={{ flex: 1, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                                            {["Hoạt động", "Không hoạt động"].map((status) => (
+                                                <Form.Check
+                                                    inline
+                                                    className="mb-0"
+                                                    key={status}
+                                                    type="checkbox"
+                                                    label={<span style={{ whiteSpace: 'nowrap' }}>{status}</span>}
+                                                    name={status}
+                                                    checked={filterStatus[status]}
+                                                    onChange={handleFilterChange}
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
                                     <Form.Control
                                         type="text"
                                         placeholder="Tìm kiếm theo email"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        style={{ width: "240px", height: "38px", fontSize: "1rem" }}
+                                        style={{ width: "300px", height: "38px", fontSize: "1rem" }}
                                     />
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Tìm kiếm theo vai trò"
-                                        value={roleQuery}
-                                        onChange={(e) => setRoleQuery(e.target.value)}
-                                        style={{ width: "240px", height: "38px", fontSize: "1rem" }}
-                                    />
-                                </div>
-                                <div className="d-flex align-items-center gap-3" style={statusContainerStyle}>
-                                    {["Hoạt động", "Không hoạt động"].map((status) => (
-                                        <Form.Check
-                                            inline
-                                            className="mb-0"
-                                            key={status}
-                                            type="checkbox"
-                                            label={<span style={{ whiteSpace: 'nowrap' }}>{status}</span>}
-                                            name={status}
-                                            checked={filterStatus[status]}
-                                            onChange={handleFilterChange}
-                                        />
-                                    ))}
-                                </div>
+                                )}
                             </Form>
                             {isStaffView && (
                                 <Button variant="primary" onClick={() => setIsCreateOpen(true)} style={{ height: '35px', width: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -499,22 +609,26 @@ const ListAllUsers = ({ roleGroup }) => {
                             <thead style={{ backgroundColor: "#A8E6CF", position: "sticky", top: 0, zIndex: 1 }}>
                                 <tr>
                                     <th style={indexColStyle}>#</th>
-                                    <th style={equalColStyle}>Email</th>
+                                    <th style={isCustomerView ? customerEmailColStyle : equalColStyle}>Email</th>
                                     {isStaffView && <th style={equalColStyle}>Mã nhân viên</th>}
                                     {isStaffView && <th style={equalColStyle}>Vai trò</th>}
                                     {isStaffView && <th style={equalColStyle}>Trạng thái</th>}
+                                    {isManagerView && <th>Họ tên</th>}
                                     {isManagerView && <th>Số điện thoại</th>}
                                     {isManagerView && <th>Địa chỉ</th>}
                                     {isManagerView && <th>Vai trò</th>}
-                                    {isManagerView && <th>Ghi chú</th>}
-                                    {!isStaffView && !isManagerView && <th>Tên đăng nhập</th>}
-                                    {!isStaffView && !isManagerView && <th>Số điện thoại</th>}
-                                    {!isStaffView && !isManagerView && <th>Vai trò</th>}
-                                    {!isStaffView && !isManagerView && <th>Họ tên</th>}
-                                    {!isStaffView && !isManagerView && <th>Giới tính</th>}
-                                    {!isStaffView && !isManagerView && <th>Địa chỉ</th>}
-                                    {!isStaffView && !isManagerView && <th>Mã nhân viên</th>}
-                                    {!isStaffView && !isManagerView && <th>Ghi chú</th>}
+                                    {roleGroup === 'customer' && <th style={customerPhoneColStyle}>Số điện thoại</th>}
+                                    {roleGroup === 'customer' && <th style={customerAddressColStyle}>Địa chỉ</th>}
+                                    {roleGroup === 'customer' && <th style={customerRoleColStyle}>Vai trò</th>}
+                                    {roleGroup === 'customer' && <th style={customerStatusColStyle}>Kích hoạt</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Tên đăng nhập</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Số điện thoại</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Vai trò</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Họ tên</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Giới tính</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Địa chỉ</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Mã nhân viên</th>}
+                                    {!isStaffView && !isManagerView && roleGroup !== 'customer' && <th>Ghi chú</th>}
                                     {isStaffView ? <th style={actionColStyle}>Hành động</th> : null}
                                 </tr>
                             </thead>
@@ -522,13 +636,16 @@ const ListAllUsers = ({ roleGroup }) => {
                                 {filteredUsers.length > 0 ? (
                                     filteredUsers.map((user, index) => (
                                         <React.Fragment key={index}>
-                                            <tr style={{ borderTop: '10px solid #A8E6CF', cursor: 'pointer' }} onClick={(e) => {
+                                            <tr style={{ borderTop: '10px solid #A8E6CF', cursor: isManagerView ? 'default' : 'pointer' }} onClick={(e) => {
                                                 // Avoid triggering on row click when pressing buttons inside actions
                                                 if ((e.target.closest && e.target.closest('[data-row-action]'))) return;
-                                                openDetail(user);
+                                                // Only allow detail view for non-manager pages
+                                                if (!isManagerView) {
+                                                    openDetail(user);
+                                                }
                                             }}>
                                                 <td style={indexColStyle}>{index + 1}</td>
-                                                <td style={equalColStyle}>{user?.account?.email || user?.email || '-'}</td>
+                                                <td style={isCustomerView ? customerEmailColStyle : equalColStyle}>{truncateEmail(user?.account?.email || user?.email)}</td>
                                                 {isStaffView ? (
                                                     <td style={equalColStyle}>
                                                         {console.log("EmployeeCode debug:", user?.EmployeeCode, user?.employeeCode, user?.profile?.employeeCode, "Full user:", user)}
@@ -545,13 +662,21 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 )}
                                                 {isManagerView && (
                                                     <>
+                                                        <td>{user?.fullName || user?.profile?.fullName || '-'}</td>
                                                         <td>{user?.profile?.phoneNumber || user?.phoneNumber || '-'}</td>
                                                         <td className="text-center">{user?.profile?.address || user?.address || '-'}</td>
                                                         <td>{getRoleDisplayName(user)}</td>
-                                                        <td className="text-start">{user?.notes || user?.profile?.notes || '-'}</td>
                                                     </>
                                                 )}
-                                                {!isStaffView && !isManagerView && (
+                                                {roleGroup === 'customer' && (
+                                                    <>
+                                                        <td style={customerPhoneColStyle}>{user?.profile?.phoneNumber || user?.phoneNumber || '-'}</td>
+                                                        <td style={customerAddressColStyle} className="text-center">{user?.profile?.address || user?.address || '-'}</td>
+                                                        <td style={customerRoleColStyle}>{getRoleDisplayName(user)}</td>
+                                                        <td style={customerStatusColStyle}>{renderEmailVerificationBadge(user)}</td>
+                                                    </>
+                                                )}
+                                                {!isStaffView && !isManagerView && roleGroup !== 'customer' && (
                                                     <>
                                                         <td>{getRoleDisplayName(user)}</td>
                                                 <td className="text-start">{user?.fullName || user?.profile?.fullName || '-'}</td>
@@ -594,7 +719,11 @@ const ListAllUsers = ({ roleGroup }) => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={isStaffView ? "5" : (isManagerView ? "6" : "8")} className="text-center">Không tìm thấy người dùng nào</td>
+                                        <td colSpan={
+                                            isStaffView ? "5" : 
+                                            (isManagerView ? "5" : 
+                                            (roleGroup === 'customer' ? "6" : "8"))
+                                        } className="text-center">Không tìm thấy người dùng nào</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -611,50 +740,102 @@ const ListAllUsers = ({ roleGroup }) => {
                 <Modal.Body>
                     {detailUser ? (
                         <div className="container-fluid">
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Email</div>
-                                <div className="col-sm-8">{detailUser?.email || detailUser?.account?.email || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Số điện thoại</div>
-                                <div className="col-sm-8">{detailUser?.phoneNumber || detailUser?.profile?.phoneNumber || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Vai trò</div>
-                                <div className="col-sm-8">{getRoleDisplayName(detailUser) || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Họ tên</div>
-                                <div className="col-sm-8">{detailUser?.fullName || detailUser?.profile?.fullName || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Giới tính</div>
-                                <div className="col-sm-8">{getGenderLabelFromAny(detailUser)}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Địa chỉ</div>
-                                <div className="col-sm-8">{getAddressFromAny(detailUser)}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Mã nhân viên</div>
-                                <div className="col-sm-8">{detailUser?.EmployeeCode || detailUser?.employeeCode || detailUser?.profile?.employeeCode || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-sm-4 fw-bold">Ghi chú</div>
-                                <div className="col-sm-8">{detailUser?.notes || detailUser?.profile?.notes || '-'}</div>
-                            </div>
-                            {detailUser?.department || detailUser?.profile?.department ? (
-                                <div className="row mb-2">
-                                    <div className="col-sm-4 fw-bold">Phòng ban</div>
-                                    <div className="col-sm-8">{detailUser?.department || detailUser?.profile?.department}</div>
+                            <div className="row">
+                                {/* Avatar Column */}
+                                <div className="col-md-3 text-center mb-3">
+                                    {(() => {
+                                        const avatarUrl = getAvatarFromAny(detailUser);
+                                        if (avatarUrl) {
+                                            return (
+                                                <img 
+                                                    src={avatarUrl} 
+                                                    alt="Avatar" 
+                                                    style={{
+                                                        width: '100px',
+                                                        height: '100px',
+                                                        borderRadius: '50%',
+                                                        objectFit: 'cover',
+                                                        border: '3px solid #A8E6CF',
+                                                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                                                    }}
+                                                    onError={(e) => {
+                                                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiByeD0iNTAiIGZpbGw9IiNBODhGNkNGIi8+Cjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+8J+UpDwvdGV4dD4KPC9zdmc+';
+                                                    }}
+                                                />
+                                            );
+                                        } else {
+                                            return (
+                                                <div 
+                                                    style={{
+                                                        width: '100px',
+                                                        height: '100px',
+                                                        borderRadius: '50%',
+                                                        backgroundColor: '#A8E6CF',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        margin: '0 auto',
+                                                        fontSize: '40px',
+                                                        color: '#666',
+                                                        border: '3px solid #A8E6CF',
+                                                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                                                    }}
+                                                >
+                                                    👤
+                                                </div>
+                                            );
+                                        }
+                                    })()}
                                 </div>
-                            ) : null}
-                            {detailUser?.notes || detailUser?.profile?.notes ? (
-                                <div className="row mb-2">
-                                    <div className="col-sm-4 fw-bold">Ghi chú</div>
-                                    <div className="col-sm-8">{detailUser?.notes || detailUser?.profile?.notes}</div>
+                                
+                                {/* Information Column */}
+                                <div className="col-md-9">
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Email</div>
+                                        <div className="col-sm-8">{detailUser?.email || detailUser?.account?.email || '-'}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Số điện thoại</div>
+                                        <div className="col-sm-8">{detailUser?.phoneNumber || detailUser?.profile?.phoneNumber || '-'}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Vai trò</div>
+                                        <div className="col-sm-8">{getRoleDisplayName(detailUser) || '-'}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Họ tên</div>
+                                        <div className="col-sm-8">{detailUser?.fullName || detailUser?.profile?.fullName || '-'}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Giới tính</div>
+                                        <div className="col-sm-8">{getGenderLabelFromAny(detailUser)}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-sm-4 fw-bold">Địa chỉ</div>
+                                        <div className="col-sm-8">{getAddressFromAny(detailUser)}</div>
+                                    </div>
+                                    {/* Only show employee code and notes for staff accounts */}
+                                    {!isCustomerView && (
+                                        <>
+                                            <div className="row mb-2">
+                                                <div className="col-sm-4 fw-bold">Mã nhân viên</div>
+                                                <div className="col-sm-8">{detailUser?.EmployeeCode || detailUser?.employeeCode || detailUser?.profile?.employeeCode || '-'}</div>
+                                            </div>
+                                            <div className="row mb-2">
+                                                <div className="col-sm-4 fw-bold">Ghi chú</div>
+                                                <div className="col-sm-8">{detailUser?.notes || detailUser?.profile?.notes || '-'}</div>
+                                            </div>
+                                        </>
+                                    )}
+                                    {/* Only show department for staff accounts */}
+                                    {!isCustomerView && (detailUser?.department || detailUser?.profile?.department) && (
+                                        <div className="row mb-2">
+                                            <div className="col-sm-4 fw-bold">Phòng ban</div>
+                                            <div className="col-sm-8">{detailUser?.department || detailUser?.profile?.department}</div>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : null}
+                            </div>
                         </div>
                     ) : (
                         <div>Đang tải...</div>

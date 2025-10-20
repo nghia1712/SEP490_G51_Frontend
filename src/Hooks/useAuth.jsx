@@ -15,10 +15,23 @@ const useAuth = () => {
       if (!token) return null;
 
       setLoading(true);
-      // Tạm thời decode payload từ JWT để lấy thông tin cơ bản
-      const [, payload] = token.split(".");
-      const data = JSON.parse(atob(payload));
-      setUser(data);
+      // Decode payload từ JWT (chịu lỗi base64url, kiểm tra định dạng)
+      const parts = token.split(".");
+      if (parts.length < 2) {
+        setLoading(false);
+        return null;
+      }
+      const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const padded = b64 + "===".slice((b64.length + 3) % 4);
+      let data = null;
+      try {
+        data = JSON.parse(atob(padded));
+      } catch (_) {
+        // Token không phải JWT hợp lệ -> bỏ qua, không ném lỗi
+        setLoading(false);
+        return null;
+      }
+      if (data) setUser(data);
       setLoading(false);
       return data;
     } catch (err) {
