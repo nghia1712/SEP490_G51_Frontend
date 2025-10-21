@@ -17,6 +17,7 @@ function ResetPassword() {
     const [statusMessage, setStatusMessage] = useState('');
     const [isError, setIsError] = useState(false);
     const [passwordErrors, setPasswordErrors] = useState([]);
+    const [countdown, setCountdown] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -55,31 +56,13 @@ function ResetPassword() {
     // Hàm validate mật khẩu
     const validatePassword = (password) => {
         const errors = [];
-        
-        if (password.length < 8) {
+        if (!password || password.length < 8) {
             errors.push('Mật khẩu phải có ít nhất 8 ký tự');
         }
-        
-        if (!/[a-z]/.test(password)) {
-            errors.push('Mật khẩu phải có ít nhất 1 chữ thường');
+        const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+        if (!complexityRegex.test(password)) {
+            errors.push('Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt');
         }
-        
-        if (!/[A-Z]/.test(password)) {
-            errors.push('Mật khẩu phải có ít nhất 1 chữ hoa');
-        }
-        
-        if (!/\d/.test(password)) {
-            errors.push('Mật khẩu phải có ít nhất 1 chữ số');
-        }
-        
-        if (!/[\W_]/.test(password)) {
-            errors.push('Mật khẩu phải có ít nhất 1 ký tự đặc biệt');
-        }
-        
-        if (/\s/.test(password)) {
-            errors.push('Mật khẩu không được có khoảng trắng');
-        }
-        
         return errors;
     };
 
@@ -120,6 +103,7 @@ function ResetPassword() {
             });
             setIsError(false);
             setStatusMessage(response.message || 'Đặt lại mật khẩu thành công');
+            setCountdown(3);
             setTimeout(() => navigate('/login'), 3000);
         } catch (error) {
             setIsError(true);

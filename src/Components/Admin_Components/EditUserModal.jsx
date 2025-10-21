@@ -80,28 +80,28 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
         setErrorMessage("");
         setSuccessMessage("");
         
-        // Basic validation
-        if (!form.fullName || form.fullName.trim() === '') {
-            setErrorMessage("Họ tên không được để trống");
-            return;
-        }
+        // Basic validation - chỉ validate các trường bắt buộc khác nếu có
         
-        if (!form.phoneNumber || form.phoneNumber.trim() === '') {
-            setErrorMessage("Số điện thoại không được để trống");
-            return;
+        // Validate số điện thoại VN nếu có nhập
+        if (form.phoneNumber && form.phoneNumber.trim() !== '') {
+            const phoneRegex = /^0\d{9}$/;
+            if (!phoneRegex.test(form.phoneNumber)) {
+                setErrorMessage("Số điện thoại VN+84 phải có 10 ký tự và bắt đầu bằng 0");
+                return;
+            }
         }
         
         try {
             const payload = {
                 UserId: getUserId(user),
-                PhoneNumber: form.phoneNumber || null,
+                PhoneNumber: form.phoneNumber && form.phoneNumber.trim() !== '' ? form.phoneNumber : null,
                 UserStatus: form.userStatus, // Keep as number, backend expects UserStatus enum
-                FullName: form.fullName || null,
+                FullName: form.fullName && form.fullName.trim() !== '' ? form.fullName : null,
                 Avatar: form.avatar || null,
                 Gender: !!form.gender,
-                Address: form.address || null,
-                EmployeeCode: form.employeeCode || null,
-                Notes: form.notes || null,
+                Address: form.address && form.address.trim() !== '' ? form.address : null,
+                EmployeeCode: form.employeeCode && form.employeeCode.trim() !== '' ? form.employeeCode : null,
+                Notes: form.notes && form.notes.trim() !== '' ? form.notes : null,
             };
 
             console.log("Update payload:", payload);
@@ -259,7 +259,7 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                                 <Row className="mb-2">
                                     <Col md={6}>
                                         <Form.Group>
-                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Họ tên <span style={{ color: 'red' }}>*</span></Form.Label>
+                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Họ tên</Form.Label>
                                             <Form.Control 
                                                 value={form.fullName} 
                                                 onChange={e=>setField('fullName', e.target.value)}
@@ -274,7 +274,7 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                                     </Col>
                                     <Col md={6}>
                                         <Form.Group>
-                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Số điện thoại <span style={{ color: 'red' }}>*</span></Form.Label>
+                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Số điện thoại</Form.Label>
                                             <Form.Control 
                                                 value={form.phoneNumber} 
                                                 onChange={e=>setField('phoneNumber', e.target.value)}
@@ -367,7 +367,6 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                                             >
                                                 <option value={2}>Hoạt động</option>
                                                 <option value={1}>Không hoạt động</option>
-                                                <option value={0}>Bị khóa</option>
                                             </Form.Select>
                                         </Form.Group>
                                     </Col>
@@ -437,7 +436,8 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                 backgroundColor: '#f8f9fa', 
                 borderTop: '2px solid #48C1A6',
                 padding: '15px 20px',
-                justifyContent: 'space-between'
+                justifyContent: 'flex-end',
+                gap: '10px'
             }}>
                 <Button 
                     variant="outline-secondary" 

@@ -1,7 +1,7 @@
 // File: ListCategory.js
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  Container, Box, Typography, TextField, Button, Table, TableBody, TableCell, TableContainer,
+  Container, Box, Typography, TextField, Button, ButtonGroup, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TableFooter, Paper, Checkbox, IconButton, Stack, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel,
   CircularProgress, Card, CardContent, Grid, useMediaQuery, useTheme,
@@ -23,6 +23,7 @@ import AddCategoryDialog from './AddCategory';
 import EditCategoryDialog from './EditCategory';
 
 import useCategory from '../../Hooks/useCategory';
+import categoryAPI from '../../API/categoryAPI';
 
 // Animation variants
 const listContainerVariants = {
@@ -93,19 +94,41 @@ function ListCategory() {
   const handleUpdateStatus = async (id, currentStatus) => {
     if (!window.confirm(`Bạn có chắc muốn ${currentStatus === 'active' ? 'vô hiệu hóa' : 'kích hoạt'} danh mục này?`)) return;
     
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    console.log(`Cập nhật trạng thái danh mục ${id} thành ${newStatus}`);
+    console.log(`Cập nhật trạng thái danh mục ${id}`);
     try {
-      await inactivateCategory(id, { status: newStatus });
+      const response = await categoryAPI.toggleStatus(id);
+      console.log('Toggle status response:', response);
+      
+      if (response.data && response.data.success) {
+        // Refresh danh sách sau khi cập nhật thành công
+        await fetchCategories();
+      } else {
+        setError(response.data?.message || "Không thể cập nhật trạng thái danh mục.");
+      }
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      if (error.message.includes('not implemented in backend')) {
-        setError("Chức năng cập nhật trạng thái danh mục chưa được hỗ trợ. Vui lòng liên hệ quản trị viên.");
-      } else {
-        setError("Không thể cập nhật trạng thái danh mục.");
-      }
+      setError(error.response?.data?.message || "Không thể cập nhật trạng thái danh mục.");
     }
   };
+
+  // Render status chip giống như trong ProductList
+  const renderStatusChip = (status) => (
+    <Box
+      component="span"
+      sx={{
+        color: "white",
+        bgcolor: status === "active" ? "success.main" : "error.main",
+        p: "4px 10px",
+        borderRadius: "16px",
+        display: "inline-block",
+        fontSize: "0.75rem",
+        fontWeight: "bold",
+        textAlign: "center",
+      }}
+    >
+      {status === "active" ? "Hoạt động" : "Ngừng hoạt động"}
+    </Box>
+  );
 
   const filteredCategories = useMemo(() => {
     console.log('Categories in filteredCategories:', categories); // Debug log
@@ -134,7 +157,18 @@ function ListCategory() {
         return categoryName.includes(searchText) || description.includes(searchText);
       });
     }
-    // Bỏ filter theo status - luôn hiển thị tất cả danh mục
+    
+    // Lọc theo status
+    if (statusFilter !== null) {
+      sortableItems = sortableItems.filter(item => {
+        const products = item?.products || item?.Products || item?.productList || item?.ProductList || item?.items || item?.Items || [];
+        const productCount = products?.length || 0;
+        // Khi có sản phẩm > 0 thì luôn là "Hoạt động", khi = 0 thì theo trạng thái backend
+        const status = productCount > 0 ? 'active' : (item?.status || item?.isActive ? 'active' : 'inactive');
+        
+        return status === (statusFilter ? 'active' : 'inactive');
+      });
+    }
     
     // Sắp xếp theo cột
     sortableItems.sort((a, b) => {
@@ -179,7 +213,7 @@ function ListCategory() {
     }
 
     return sortableItems;
-  }, [categories, filterText, sortConfig, statusFirst]);
+  }, [categories, filterText, sortConfig, statusFirst, statusFilter]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
@@ -192,13 +226,32 @@ function ListCategory() {
     setIsEditDialogOpen(true);
   };
 
-  const handleOpenDetailsDialog = (category) => {
+  const handleOpenDetailsDialog = async (category) => {
     console.log('Category object for details:', category);
     console.log('Products field:', category?.products);
     console.log('Products length:', category?.products?.length);
     console.log('All category properties:', Object.keys(category));
+    
     setSelectedCategory(category);
     setIsDetailsDialogOpen(true);
+    
+    // Gọi API để lấy thông tin chi tiết với products
+    try {
+      const categoryId = category?.categoryID || category?.CategoryID || category?._id || category?.id;
+      if (categoryId) {
+        console.log('Fetching detailed category info for ID:', categoryId);
+        const response = await categoryAPI.get(categoryId);
+        console.log('Detailed category response:', response);
+        
+        if (response.data && response.data.success && response.data.data) {
+          // Cập nhật selectedCategory với thông tin chi tiết
+          setSelectedCategory(response.data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching category details:', error);
+      // Vẫn hiển thị dialog với thông tin cơ bản
+    }
   };
 
   return (
@@ -302,25 +355,59 @@ function ListCategory() {
                     '& input::placeholder': { color: 'rgba(0, 0, 0, 0.6)', opacity: 1 },
                   }}
                 />
-                <Button
-                  onClick={() => setStatusFilter(null)}
-                  variant="contained"
-                  sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                    backdropFilter: 'blur(10px)',
-                    minWidth: '120px',
-                    height: '56px',
-                    fontSize: '16px',
-                    fontWeight: '500',
-                    padding: '12px 24px',
-                    whiteSpace: 'nowrap',
-                    '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.5)' },
-                  }}
-                >
-                  Tất Cả
-                </Button>
+                <ButtonGroup variant="outlined" fullWidth>
+                  <Button
+                    onClick={() => setStatusFilter(true)}
+                    variant={statusFilter === true ? "contained" : "outlined"}
+                    sx={{
+                      backgroundColor: statusFilter === true ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                      color: "white",
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        borderColor: "rgba(255, 255, 255, 0.5)",
+                      },
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                    }}
+                  >
+                    Hoạt động
+                  </Button>
+                  <Button
+                    onClick={() => setStatusFilter(false)}
+                    variant={statusFilter === false ? "contained" : "outlined"}
+                    sx={{
+                      backgroundColor: statusFilter === false ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                      color: "white",
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        borderColor: "rgba(255, 255, 255, 0.5)",
+                      },
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                    }}
+                  >
+                    Ngừng hoạt động
+                  </Button>
+                  <Button
+                    onClick={() => setStatusFilter(null)}
+                    variant={statusFilter === null ? "contained" : "outlined"}
+                    sx={{
+                      backgroundColor: statusFilter === null ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                      color: "white",
+                      borderColor: "rgba(255, 255, 255, 0.3)",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        borderColor: "rgba(255, 255, 255, 0.5)",
+                      },
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                    }}
+                  >
+                    Tất cả
+                  </Button>
+                </ButtonGroup>
               </Stack>
             </Stack>
           </motion.div>
@@ -432,6 +519,8 @@ function ListCategory() {
                 </TableSortLabel>
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Mô tả</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Sản phẩm</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
               <TableCell align="center" sx={{ fontWeight: 'bold' }}>Hành động</TableCell>
             </TableRow>
           </TableHead>
@@ -500,6 +589,23 @@ function ListCategory() {
                           </Typography>
                         </TableCell>
                         <TableCell align="center" sx={{ cursor: 'pointer' }}>
+                          <Typography variant="body2" fontWeight="bold" color="primary">
+                            {(() => {
+                              const products = cat?.products || cat?.Products || cat?.productList || cat?.ProductList || cat?.items || cat?.Items || [];
+                              return products?.length || 0;
+                            })()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ cursor: 'pointer' }}>
+                          {(() => {
+                            const products = cat?.products || cat?.Products || cat?.productList || cat?.ProductList || cat?.items || cat?.Items || [];
+                            const productCount = products?.length || 0;
+                            // Khi có sản phẩm > 0 thì luôn là "Hoạt động", khi = 0 thì theo trạng thái backend
+                            const status = productCount > 0 ? 'active' : (cat?.status || cat?.isActive ? 'active' : 'inactive');
+                            return renderStatusChip(status);
+                          })()}
+                        </TableCell>
+                        <TableCell align="center" sx={{ cursor: 'pointer' }}>
                           <Stack direction="row" spacing={1} justifyContent="center">
                             <Button
                               variant="outlined"
@@ -512,6 +618,31 @@ function ListCategory() {
                             >
                               Sửa
                             </Button>
+                            {(() => {
+                              const products = cat?.products || cat?.Products || cat?.productList || cat?.ProductList || cat?.items || cat?.Items || [];
+                              const productCount = products?.length || 0;
+                              
+                              // Chỉ hiển thị nút khi sản phẩm = 0
+                              if (productCount > 0) {
+                                return null; // Không hiển thị nút khi có sản phẩm
+                              }
+                              
+                              const status = cat?.status || cat?.isActive ? 'active' : 'inactive';
+                              
+                              return (
+                                <Button
+                                  variant="contained"
+                                  color={status === 'active' ? "error" : "success"}
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateStatus(cat?.categoryID || cat?.CategoryID || cat?._id || cat?.id, status);
+                                  }}
+                                >
+                                  {status === 'active' ? "Ngừng hoạt động" : "Kích hoạt"}
+                                </Button>
+                              );
+                            })()}
                           </Stack>
                         </TableCell>
                       </motion.tr>
@@ -536,7 +667,10 @@ function ListCategory() {
       {/* --- Dialogs --- */}
       <AddCategoryDialog
         open={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
+        onClose={() => {
+          setIsAddDialogOpen(false);
+          fetchCategories(); // Refresh danh sách sau khi đóng dialog
+        }}
         onCategoryAdded={fetchCategories}
         onAdd={createCategory}
       />
@@ -594,14 +728,8 @@ function ListCategory() {
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Số sản phẩm
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body1" fontWeight="bold" color="primary">
                   {(() => {
-                    console.log('Selected category in dialog:', selectedCategory);
-                    console.log('Products field:', selectedCategory?.products);
-                    console.log('Products field (capital P):', selectedCategory?.Products);
-                    console.log('All fields:', Object.keys(selectedCategory || {}));
-                    
-                    // Thử nhiều field name khác nhau
                     const products = selectedCategory?.products || 
                                    selectedCategory?.Products || 
                                    selectedCategory?.productList || 
@@ -610,13 +738,54 @@ function ListCategory() {
                                    selectedCategory?.Items ||
                                    [];
                     
-                    console.log('Final products array:', products);
-                    console.log('Final products length:', products?.length);
+                    const productCount = products?.length || 0;
                     
-                    return products?.length || 0;
-                  })()} sản phẩm
+                    // Hiển thị trạng thái dựa trên số sản phẩm
+                    if (productCount > 0) {
+                      return (
+                        <span style={{ color: '#4caf50' }}>
+                          {productCount} sản phẩm (Luôn hoạt động)
+                        </span>
+                      );
+                    }
+                    
+                    return (
+                      <span style={{ color: '#ff9800' }}>
+                        {productCount} sản phẩm (Có thể kích hoạt/ngừng hoạt động)
+                      </span>
+                    );
+                  })()}
                 </Typography>
               </Box>
+              
+              {/* Hiển thị danh sách sản phẩm nếu có */}
+              {(() => {
+                const products = selectedCategory?.products || 
+                               selectedCategory?.Products || 
+                               selectedCategory?.productList || 
+                               selectedCategory?.ProductList ||
+                               selectedCategory?.items ||
+                               selectedCategory?.Items ||
+                               [];
+                
+                if (products && products.length > 0) {
+                  return (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Danh sách sản phẩm
+                      </Typography>
+                      <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {products.map((product, index) => (
+                          <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                            • {product?.productName || product?.ProductName || product?.name || 'Tên không xác định'}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Box>
+                  );
+                }
+                return null;
+              })()}
             </Stack>
           </DialogContent>
           <DialogActions>

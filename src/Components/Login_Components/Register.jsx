@@ -35,10 +35,13 @@ const Register = () => {
     setError("");
     setSuccess(false);
 
-    // Validate số điện thoại phải bắt đầu bằng 0
-    if (phoneNumber && !phoneNumber.startsWith('0')) {
-      setError("Số điện thoại phải bắt đầu bằng 0!");
-      return;
+    // Validate số điện thoại VN
+    if (phoneNumber && phoneNumber.trim() !== '') {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        setError("Số điện thoại VN+84 phải có 10 chữ số và bắt đầu bằng 0");
+        return;
+      }
     }
 
     if (password !== confirmPassword) {
@@ -172,7 +175,7 @@ const Register = () => {
                   )}
                   {success && (
                     <motion.div key="success" variants={alertVariants} initial="initial" animate="animate" exit="exit">
-                      <Alert variant="success">Đăng ký thành công!</Alert>
+                      <Alert variant="success">Đăng ký thành công! <br /> Bạn hãy check email để xác thực tài khoản.</Alert>
                     </motion.div>
                   )}
                 </AnimatePresence>

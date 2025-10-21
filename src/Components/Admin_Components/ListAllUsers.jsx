@@ -19,18 +19,19 @@ const ListAllUsers = ({ roleGroup }) => {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+    const fetchUsers = async () => {
+        try {
+            const response = await adminAPI.getAccountList();
+            console.log("API response:", response);
+            console.log("Response data:", response.data || response);
+            setUsers(response.data || response);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            setError("Không thể tải dữ liệu danh sách các người dùng.");
+        }
+    };
+
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await adminAPI.getAccountList();
-                console.log("API response:", response);
-                console.log("Response data:", response.data || response);
-                setUsers(response.data || response);
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                setError("Không thể tải dữ liệu danh sách các người dùng.");
-            }
-        };
         fetchUsers();
     }, []);
     const handleUpdateStatus = async (id, newStatus) => {
@@ -683,7 +684,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 <td>{user?.gender !== null && user?.gender !== undefined ? (user.gender === true ? "Nam" : "Nữ") : '-'}</td>
                                                 <td className="text-center">{user?.profile?.address || user?.address || '-'}</td>
                                                 <td>{user?.employeeCode || user?.profile?.employeeCode || '-'}</td>
-                                                <td className="text-start">{user?.notes || user?.profile?.notes || '-'}</td>
+                                                <td className="text-start">{user?.Notes || user?.notes || user?.profile?.notes || '-'}</td>
                                                     </>
                                                 )}
                                                 {isStaffView ? (
@@ -823,7 +824,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                             </div>
                                             <div className="row mb-2">
                                                 <div className="col-sm-4 fw-bold">Ghi chú</div>
-                                                <div className="col-sm-8">{detailUser?.notes || detailUser?.profile?.notes || '-'}</div>
+                                                <div className="col-sm-8">{detailUser?.Notes || detailUser?.notes || detailUser?.profile?.notes || '-'}</div>
                                             </div>
                                         </>
                                     )}
@@ -849,7 +850,12 @@ const ListAllUsers = ({ roleGroup }) => {
             {isStaffView && (
                 <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl" contentClassName="p-0">
                     <Modal.Body className="p-4">
-                        <CreateStaff onClose={() => setIsCreateOpen(false)} />
+                        <CreateStaff 
+                            onClose={() => setIsCreateOpen(false)} 
+                            onCreated={async () => {
+                                await fetchUsers();
+                            }}
+                        />
                     </Modal.Body>
                 </Modal>
             )}

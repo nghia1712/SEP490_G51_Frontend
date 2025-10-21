@@ -184,9 +184,9 @@ class SessionManager {
       window.showNotification(reason, 'warning', 5000);
     }
     
-    // Redirect to login
+    // Redirect to guest homepage
     setTimeout(() => {
-      window.location.href = '/login';
+      window.location.href = '/';
     }, 2000);
   }
 

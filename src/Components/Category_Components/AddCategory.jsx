@@ -13,6 +13,7 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Hàm để reset form khi dialog đóng hoặc sau khi lưu thành công
   const resetForm = () => {
@@ -20,6 +21,7 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
     setDescription('');
     setError('');
     setLoading(false);
+    setSuccess(false);
   };
 
   useEffect(() => {
@@ -31,22 +33,36 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
   }, [open]);
 
   const handleSave = async () => {
+    // Reset các state trước khi validate
+    setError('');
+    setSuccess(false);
+    
     if (!categoryName.trim()) {
       setError("Tên danh mục không được để trống.");
-      return;
+      return; // Giữ nguyên màn hình với thông báo lỗi
     }
+    
+    if (categoryName.trim().length < 6) {
+      setError("Thêm thất bại, tên danh mục phải có 6 ký tự trở lên");
+      return; // Giữ nguyên màn hình với thông báo lỗi
+    }
+    
     setLoading(true);
-    setError('');
     try {
       await onAdd({
         Name: categoryName,
         Description: description,
       });
-      onClose(); // Đóng dialog
+      // Chỉ khi thành công mới hiển thị thông báo và đợi 3 giây
+      setSuccess(true);
+      setLoading(false);
+      setTimeout(() => {
+        onClose(); // Đóng dialog sau 3 giây
+      }, 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Lỗi khi thêm danh mục. Vui lòng thử lại.');
-    } finally {
       setLoading(false);
+      // Giữ nguyên màn hình với thông báo lỗi
     }
   };
 
@@ -56,6 +72,7 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
       <DialogContent dividers>
         <Stack spacing={3} sx={{ pt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
+          {success && <Alert severity="success">Thêm danh mục thành công!</Alert>}
           <TextField
             autoFocus
             label="Tên"
@@ -63,7 +80,7 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
             required
             value={categoryName}
             onChange={(e) => setCategoryName(e.target.value)}
-            placeholder="Nhập tên danh mục (6-100 ký tự)"
+            placeholder="Nhập tên danh mục (tối thiểu 6 ký tự)"
           />
           <TextField
             label="Mô tả"
@@ -77,9 +94,9 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: '16px 24px' }}>
-        <Button onClick={onClose} disabled={loading} color="inherit">Hủy</Button>
-        <Button onClick={handleSave} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : "Lưu"}
+        <Button onClick={onClose} disabled={loading || success} color="inherit">Hủy</Button>
+        <Button onClick={handleSave} variant="contained" disabled={loading || success}>
+          {loading ? <CircularProgress size={24} /> : success ? "Đã lưu" : "Lưu"}
         </Button>
       </DialogActions>
     </Dialog>

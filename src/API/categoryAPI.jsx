@@ -9,6 +9,8 @@ const categoryAPI = {
     add: (data) => authorApi.post(`${API_URL}/create`, data),
     // Backend supports PUT /api/Category/updatecategory with body: { CategoryID, Name, Description }
     update: (data) => authorApi.put(`${API_URL}/updatecategory`, data),
+    // Backend supports PUT /api/Category/toggleStatus/{catId}
+    toggleStatus: (catId) => authorApi.put(`${API_URL}/toggleStatus/${catId}`),
 };
 
 export default categoryAPI;
