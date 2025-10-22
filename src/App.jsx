@@ -18,10 +18,9 @@ import SearchMedicine from "./Components/Guest_Components/SearchMedicine";
 import useAuth from "./Hooks/useAuth";
 import ListAllUsers from "./Components/Admin_Components/ListAllUsers";
 import CreateStaff from "./Components/Admin_Components/CreateStaff";
-import ProductList from "./Components/Product_Components/ProductList";
+import ListProduct from "./Components/Product_Components/ListProduct";
 import ListCategory from "./Components/Category_Components/ListCategory";
 import SupplierListAdvanced from "./Components/Supplier_Components/SupplierListAdvanced";
-import AddNewSupplier from "./Components/Supplier_Components/AddNewSupplier";
 import ManageSupplierProducts from "./Components/Supplier_Components/ManageSupplierProducts";
 import SupplierProductDetail from "./Components/Supplier_Components/SupplierProductDetail";
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
@@ -313,7 +312,7 @@ function App() {
                         path="/product" 
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'sales_staff', 'purchases_staff', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                            <ProductList />
+                            <ListProduct />
                           </ProtectedRoute>
                         } 
                       />
@@ -403,7 +402,7 @@ function App() {
                         path="/manager/add-suppliers" 
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
-                            <AddNewSupplier />
+                            <Navigate to="/suppliers" replace />
                           </ProtectedRoute>
                         }
                       />

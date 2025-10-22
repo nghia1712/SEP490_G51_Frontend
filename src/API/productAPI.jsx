@@ -10,7 +10,13 @@ const productAPI = {
   getById: (id) => authorApi.get(`${API_URL}/getbyid/${id}`),
   // Create/Update use multipart/form-data per backend
   create: (data) => formDataApi.post(`${API_URL}/create`, data),
-  update: (id, data) => formDataApi.put(`${API_URL}/update/${id}`, data),
+  createJson: (data) => authorApi.post(`${API_URL}/create`, data),
+  update: (id, data) => authorApi.put(`${API_URL}/update/${id}`, data),
+  uploadImage: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return formDataApi.post(`${API_URL}/upload-image`, fd);
+  },
   // Backend expects raw boolean in body, not an object
   setStatus: (id, statusBool) => authorApi.put(`${API_URL}/${id}/status`, statusBool),
 };

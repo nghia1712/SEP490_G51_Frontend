@@ -38,10 +38,10 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import { visuallyHidden } from "@mui/utils";
 import Tooltip from "@mui/material/Tooltip";
 import { motion, AnimatePresence } from "framer-motion";
-import AddProductModal from "./AddProductModal"; // Đổi từ AddProduct sang AddProductModal
-import UpdateProductModal from "./UpdateProductModal";
+import AddProduct from "./AddProduct";
+import EditProduct from "./EditProduct";
 import ProductDetails from "./ProductDetails";
-import useProduct from "../../Hooks/useProduct"; // <-- Use custom hook
+import useProduct from "../../Hooks/useProduct";
 
 const PAGE_SIZE = 5;
 
@@ -72,7 +72,7 @@ const itemVariants = {
   },
 };
 
-const ProductList = () => {
+const ListProduct = () => {
   // Use custom hook for product logic
   const {
     products,
@@ -92,9 +92,9 @@ const ProductList = () => {
 
   // States for modals
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showProductDetailsModal, setShowProductDetailsModal] = useState(false);
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
 
   // --- Responsive Design & Unified State for Infinite Scroll ---
   const theme = useTheme();
@@ -154,14 +154,17 @@ const ProductList = () => {
     setSortDirection(isCurrentlyAsc ? "desc" : "asc");
     setSortBy(column);
   };
-  const handleOpenUpdateModal = (product) => {
+  
+  const handleOpenEditModal = (product) => {
     setSelectedProduct(product);
-    setShowUpdateModal(true);
+    setShowEditModal(true);
   };
+  
   const handleOpenProductDetailsModal = (product) => {
     setSelectedProduct(product);
     setShowProductDetailsModal(true);
   };
+  
   const handleChangeStatus = async (product, currentStatus) => {
     const isActive = currentStatus === 'active' || currentStatus === true;
     const actionLabel = isActive ? 'Dừng bán' : 'Kích hoạt';
@@ -239,6 +242,7 @@ const ProductList = () => {
       {status === "active" ? "Đang Bán" : "Ngừng Bán"}
     </Box>
   );
+  
   const headCells = [
     { id: "productId", label: "#", sortable: true, align: "center" },
     { id: "productImage", label: "Hình Ảnh", sortable: false },
@@ -258,9 +262,6 @@ const ProductList = () => {
       </Box>
     );
   }
-  // if (error) {
-  //   return (<Container><Alert severity="error" sx={{ mt: 2 }}>{error}</Alert></Container>);
-  // }
 
   return (
     <Box
@@ -326,7 +327,7 @@ const ProductList = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setShowAddProductModal(true)}
+            onClick={() => setShowAddProduct(true)}
             sx={{
               backgroundColor: "rgba(255, 255, 255, 0.2)",
               color: "white",
@@ -460,13 +461,21 @@ const ProductList = () => {
                                 <Avatar
                                   variant="rounded"
                                   src={
-                                    product.productImage
-                                      ? `http://localhost:9999${product.productImage}`
-                                      : "/images/login_image.jpg"
+                                    product.image
+                                      ? `http://localhost:5137${product.image}`
+                                      : null
                                   }
                                   alt={product.productName}
-                                  sx={{ width: "100%", height: "auto" }}
-                                />
+                                  sx={{ 
+                                    width: "100%", 
+                                    height: "auto",
+                                    backgroundColor: product.image ? 'transparent' : '#1976d2',
+                                    fontSize: '1.2rem',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  {!product.image && product.productName ? product.productName.charAt(0).toUpperCase() : null}
+                                </Avatar>
                               </Grid>
                               <Grid item xs={9}>
                                 <Button
@@ -515,7 +524,7 @@ const ProductList = () => {
                               variant="outlined"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleOpenUpdateModal(product);
+                                handleOpenEditModal(product);
                               }}
                             >
                               Sửa
@@ -627,11 +636,18 @@ const ProductList = () => {
                               variant="rounded"
                               src={
                                 product.image
-                                  ? `https://localhost:7213${product.image}`
-                                  : "/images/login_image.jpg"
+                                  ? `http://localhost:5137${product.image}`
+                                  : null
                               }
                               alt={product.productName}
-                            />
+                              sx={{
+                                backgroundColor: product.image ? 'transparent' : '#1976d2',
+                                fontSize: '1rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {!product.image && product.productName ? product.productName.charAt(0).toUpperCase() : null}
+                            </Avatar>
                           </TableCell>
                           <TableCell>
                             <Button
@@ -678,7 +694,7 @@ const ProductList = () => {
                                 variant="outlined"
                                 color="warning"
                                 size="small"
-                                onClick={() => handleOpenUpdateModal(product)}
+                                onClick={() => handleOpenEditModal(product)}
                               >
                                 Sửa
                               </Button>
@@ -723,19 +739,19 @@ const ProductList = () => {
               handleClose={() => setShowProductDetailsModal(false)}
               product={selectedProduct}
             />
-            <UpdateProductModal
-              open={showUpdateModal}
-              handleClose={() => setShowUpdateModal(false)}
+            <EditProduct
+              open={showEditModal}
+              handleClose={() => setShowEditModal(false)}
               product={selectedProduct}
               onUpdateSuccess={fetchProducts}
             />
           </>
         )}
 
-        {/* Thay thế AddProduct bằng AddProductModal và truyền createProduct vào */}
-        <AddProductModal
-          open={showAddProductModal}
-          handleClose={() => setShowAddProductModal(false)}
+        {/* Thay thế AddProductModal bằng AddProduct và truyền createProduct vào */}
+        <AddProduct
+          open={showAddProduct}
+          handleClose={() => setShowAddProduct(false)}
           onSaveSuccess={fetchProducts}
           createProduct={createProduct} // Truyền hàm vào modal
           checkProductName={checkProductName}
@@ -745,4 +761,4 @@ const ProductList = () => {
   );
 };
 
-export default ProductList;
+export default ListProduct;

@@ -24,7 +24,7 @@ import palette from "../../constants/palette";
 
 // Import API modules for consistency
 import supplierProductAPI from "../../API/supplierProductAPI";
-import AddSupplierModal from "./AddSupplierModal";
+import AddSupplier from "./AddSupplier";
 import EditSupplierModal from "./EditSupplierModal";
 import SupplierDetailsModal from "./SupplierDetailsModal";
 import ExpandSupplierProduct from "./ExpandSupplierProduct";
@@ -60,6 +60,8 @@ const SupplierList = () => {
     email: "",
     description: "",
     status: "active",
+    bankAccountNumber: "",
+    myDebt: "",
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -119,17 +121,35 @@ const SupplierList = () => {
   const validateForm = (data) => {
     const errors = {};
 
+    // Required fields: Name, PhoneNumber, Email, Address, Status, BankAccountNumber, MyDebt
     if (!data.name.trim()) errors.name = "Tên nhà cung cấp là bắt buộc";
-    if (!data.address.trim()) errors.address = "Địa chỉ là bắt buộc";
+
     if (!data.contact.trim()) {
       errors.contact = "Số điện thoại là bắt buộc";
-    } else if (!/^\d{10,15}$/.test(data.contact)) {
-      errors.contact = "Số điện thoại phải có 10-15 chữ số";
+    } else if (!/^0\d{9}$/.test(data.contact)) {
+      errors.contact = "Số điện thoại chỉ gồm số, 10 ký tự và bắt đầu bằng 0";
     }
+
     if (!data.email.trim()) {
       errors.email = "Email là bắt buộc";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.email = "Email không hợp lệ";
+    }
+
+    if (!data.address.trim()) {
+      errors.address = "Địa chỉ là bắt buộc";
+    }
+
+    if (!data.bankAccountNumber.trim()) {
+      errors.bankAccountNumber = "Số tài khoản ngân hàng là bắt buộc";
+    } else if (!/^\d{8,20}$/.test(data.bankAccountNumber)) {
+      errors.bankAccountNumber = "Số tài khoản chỉ gồm số và dài 8–20 ký tự";
+    }
+
+    if (!data.myDebt.trim()) {
+      errors.myDebt = "Số nợ là bắt buộc";
+    } else if (!/^\d+$/.test(data.myDebt)) {
+      errors.myDebt = "Số nợ chỉ được chứa số";
     }
 
     return errors;
@@ -156,6 +176,8 @@ const SupplierList = () => {
         email: "",
         description: "",
         status: "active",
+        bankAccountNumber: "",
+        myDebt: "",
       });
       setFormErrors({});
     } catch (error) {
@@ -172,6 +194,8 @@ const SupplierList = () => {
       email: supplier.email || "",
       description: supplier.description || "",
       status: supplier.status || "active",
+      bankAccountNumber: supplier.bankAccountNumber || "",
+      myDebt: supplier.myDebt || "",
     });
     setFormErrors({});
     setOpenEditModal(true);
@@ -318,7 +342,10 @@ const SupplierList = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setOpenAddModal(true)}
+              onClick={() => {
+                console.log("Add button clicked, opening modal...");
+                setOpenAddModal(true);
+              }}
               sx={{
                 backgroundColor: palette.medium,
                 color: palette.dark,
@@ -726,7 +753,7 @@ const SupplierList = () => {
       </Menu>
 
       {/* Add Supplier Modal */}
-      <AddSupplierModal
+      <AddSupplier
         open={openAddModal}
         onClose={() => setOpenAddModal(false)}
         formData={formData}

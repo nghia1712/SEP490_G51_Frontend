@@ -11,32 +11,30 @@ const useCategory = () => {
         setLoading(true);
         setError(null);
         try {
+            console.log('🌐 Calling categoryAPI.getAll()...');
             const res = await categoryAPI.getAll();
-            console.log('API Response:', res); // Debug log
+            console.log('✅ Category API Response:', res);
             
             // Backend trả về format: {success: true, message: 'Thành công', data: Array(5)}
             const categoriesData = res.data?.data || res.data || res;
-            console.log('Raw API Response:', res);
-            console.log('Categories Data:', categoriesData); // Debug log
-            console.log('Categories Data type:', typeof categoriesData);
-            console.log('Is Array:', Array.isArray(categoriesData));
+            console.log('📋 Categories Data:', categoriesData);
+            console.log('📋 Categories Count:', categoriesData?.length || 0);
             
             // Đảm bảo categoriesData là array
             if (Array.isArray(categoriesData)) {
-                console.log('First category structure:', categoriesData[0]);
+                console.log('✅ Categories set successfully:', categoriesData.length, 'items');
                 setCategories(categoriesData);
-                console.log('Categories set successfully:', categoriesData.length, 'items');
             } else if (categoriesData === null || categoriesData === undefined) {
-                console.warn('Categories data is null/undefined - no categories available');
+                console.warn('⚠️ Categories data is null/undefined - no categories available');
                 setCategories([]);
             } else {
-                console.warn('Categories data is not an array:', categoriesData);
+                console.warn('⚠️ Categories data is not an array:', categoriesData);
                 setCategories([]);
             }
             setLoading(false);
             return res;
         } catch (err) {
-            console.error('Error fetching categories:', err); // Debug log
+            console.error('❌ Error fetching categories:', err);
             setError(err.response?.data?.message || err.message || 'Get categories failed');
             setCategories([]); // Đảm bảo categories là array rỗng khi có lỗi
             setLoading(false);

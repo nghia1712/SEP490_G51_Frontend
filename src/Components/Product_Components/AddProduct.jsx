@@ -1,303 +1,410 @@
-// AddProduct.js - Phiên bản Material-UI
-
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import useCategory from "../../Hooks/useCategory";
+// import useInventory from "../../Hooks/useInventory"; // Commented out - will be developed later
+import useSupplier from "../../Hooks/useSupplier";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  Box,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  FormHelperText,
+    Dialog, DialogTitle, DialogContent, DialogActions, Stack, TextField, FormControl,
+    InputLabel, Select, MenuItem, FormHelperText, Button, Box, CircularProgress, Alert, Typography, Checkbox,
+    FormGroup, FormControlLabel, IconButton, Divider
 } from "@mui/material";
 
-// Đổi tên prop cho phù hợp với MUI: show -> open, handleSave -> onSaveSuccess
-const AddProduct = ({ open, handleClose, onSaveSuccess }) => {
-  const [productData, setProductData] = useState({
-    productName: "",
-    categoryId: "",
-    totalStock: 0,
-    productImage: null, // Dùng null thay vì chuỗi rỗng cho file
-    unit: "",
-    location: "",
-    status: "active",
-  });
-  const [imagePreview, setImagePreview] = useState(null); // State riêng cho ảnh preview
-  const [categories, setCategories] = useState([]);
-  // const [shelves, setShelves] = useState([]); // Thêm shelves state - Commented out - will be developed later
-  const [errors, setErrors] = useState({}); // Đổi tên để tránh nhầm lẫn
-  const [loading, setLoading] = useState(false);
+const AddProduct = ({ open, handleClose, onSaveSuccess, createProduct, checkProductName }) => {
+    const [productData, setProductData] = useState({
+        productName: "",
+        categoryId: "",
+        productDescription: "",
+        unit: "",
+        minQuantity: 0,
+        maxQuantity: 0,
+        totalCurrentQuantity: 0,
+        status: false,
+        productImage: null,
+        // imageUrl: "", // (commented) reserved for future URL paste feature
+    });
+    // const [selectedInventory, setSelectedInventory] = useState(""); // Commented out - will be developed later
+    // const [inventoryStock, setInventoryStock] = useState(""); // Commented out - will be developed later
+    const [imagePreview, setImagePreview] = useState(null);
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [hasSupplier, setHasSupplier] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      // Chỉ fetch khi dialog mở
-      axios
-        .get("http://localhost:9999/categories/getAllCategories")
-        .then((response) => setCategories(response.data))
-        .catch((error) => console.error("Error fetching categories:", error));
+    // Use category hook
+    const { categories, getAllCategories } = useCategory();
+    // Use inventory hook
+    // const { inventories, fetchInventories } = useInventory(); // Commented out - will be developed later
+    // Use supplier hook
+    const { suppliers, fetchSuppliers } = useSupplier();
 
-      // Fetch shelves/inventories
-      // axios.get("http://localhost:9999/inventory") // Commented out - will be developed later
-      //   .then((response) => setShelves(response.data)) // Commented out - will be developed later
-      //   .catch((error) => console.error("Error fetching shelves:", error)); // Commented out - will be developed later
-    } else {
-      // Reset form khi dialog đóng
-      setProductData({
-        productName: "", categoryId: "", totalStock: 0,
-        productImage: null, unit: "", location: "", status: "active",
-      });
-      setErrors({});
-      setImagePreview(null);
-      setLoading(false);
-    }
-  }, [open]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProductData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProductData((prev) => ({ ...prev, productImage: file }));
-      // Tạo URL để preview ảnh
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      // Clean up URL object sau khi component unmount để tránh memory leak
-      // (useEffect sẽ xử lý việc này khi dialog đóng)
-    } else {
-      setProductData((prev) => ({ ...prev, productImage: null }));
-      setImagePreview(null);
-    }
-    if (errors.productImage) {
-      setErrors((prev) => ({ ...prev, productImage: "" }));
-    }
-  };
-
-  // const handleShelfSelect = (e) => { // Commented out - will be developed later
-  //   const selectedShelf = shelves.find(shelf => shelf._id === e.target.value);
-  //   if (selectedShelf) {
-  //     setProductData((prev) => ({
-  //       ...prev,
-  //       location: selectedShelf.name
-  //     }));
-  //     if (errors.location) {
-  //       setErrors((prev) => ({ ...prev, location: "" }));
-  //     }
-  //   }
-  // };
-
-  const validate = async () => {
-    let tempErrors = {};
-    tempErrors.productName = productData.productName ? "" : "Tên thuốc không được bỏ trống.";
-    tempErrors.categoryId = productData.categoryId ? "" : "Vui lòng chọn danh mục.";
-    tempErrors.unit = productData.unit ? "" : "Đơn vị không được bỏ trống.";
-    tempErrors.location = productData.location ? "" : "Vị trí không được bỏ trống.";
-
-    if (!productData.productImage) {
-      tempErrors.productImage = "Vui lòng chọn hình ảnh thuốc.";
-    } else if (!["image/jpeg", "image/png"].includes(productData.productImage.type)) {
-      tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
-    } else {
-      tempErrors.productImage = "";
-    }
-
-    setErrors(tempErrors);
-
-    // Kiểm tra xem tất cả các giá trị trong tempErrors có rỗng không
-    const isValid = Object.values(tempErrors).every((x) => x === "");
-
-    if (isValid) {
-      // Chỉ kiểm tra tên khi các trường khác đã hợp lệ
-      try {
-        const response = await axios.get(`http://localhost:9999/products/checkProductName?name=${productData.productName}`);
-        if (response.data.exists) {
-          setErrors(prev => ({ ...prev, productName: "Thuốc đã tồn tại trong kho." }));
-          return false;
+    // console.log("Invetories:", inventories); // Commented out - will be developed later
+    useEffect(() => {
+        if (open) {
+            getAllCategories();
+            // fetchInventories(); // Commented out - will be developed later
+            fetchSuppliers();
+        } else {
+            setProductData({
+                productName: "", 
+                categoryId: "", 
+                productDescription: "",
+                unit: "",
+                minQuantity: 0,
+                maxQuantity: 0,
+                totalCurrentQuantity: 0,
+                status: false,
+                productImage: null,
+                // imageUrl: "", // (commented)
+            });
+            // setSelectedInventory(""); // Commented out - will be developed later
+            // setInventoryStock(""); // Commented out - will be developed later
+            setErrors({});
+            setImagePreview(null);
+            setLoading(false);
+            setSuccessMessage("");
+            setHasSupplier(false);
         }
-      } catch (error) {
-        console.error("Error checking product name:", error);
-        setErrors(prev => ({ ...prev, general: "Có lỗi xảy ra khi kiểm tra tên thuốc." }));
-        return false;
-      }
-    }
+    }, [open]);
 
-    return isValid;
-  };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setProductData((prev) => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            setErrors((prev) => ({ ...prev, [name]: "" }));
+        }
+        // if (name === 'imageUrl') {
+        //     // when user pastes URL, clear file and update preview
+        //     setProductData((prev) => ({ ...prev, productImage: null }));
+        //     const isUrl = /^(https?:)\/\//i.test(value);
+        //     setImagePreview(isUrl ? value : null);
+        // }
+    };
 
-  const handleSave = async () => {
-    setErrors(prev => ({ ...prev, general: "" })); // Xóa lỗi chung cũ
-    const isValid = await validate();
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProductData((prev) => ({ ...prev, productImage: file }));
+            const previewUrl = URL.createObjectURL(file);
+            setImagePreview(previewUrl);
+            // clear url input when selecting file
+            setProductData((prev) => ({ ...prev, imageUrl: "" }));
+        } else {
+            setProductData((prev) => ({ ...prev, productImage: null }));
+            setImagePreview(null);
+        }
+        if (errors.productImage) {
+            setErrors((prev) => ({ ...prev, productImage: "" }));
+        }
+    };
 
-    if (isValid) {
-      setLoading(true);
-      const formData = new FormData();
-      Object.entries(productData).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+    // Handle inventory selection and stock input
+    // const handleInventorySelect = (e) => { // Commented out - will be developed later
+    //     setSelectedInventory(e.target.value);
+    //     setInventoryStock("");
+    //     setErrors((prev) => ({ ...prev, location: "" }));
+    // };
 
-      try {
-        await axios.post(
-          "http://localhost:9999/products/createProduct",
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        onSaveSuccess(); // Gọi lại hàm fetchAllProducts
-        handleClose(); // Tự động đóng dialog
-      } catch (error) {
-        console.error("Error creating product:", error);
-        setErrors((prev) => ({
-          ...prev,
-          general: error.response?.data?.message || "Có lỗi xảy ra khi thêm thuốc.",
-        }));
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+    // const handleInventoryStockInput = (e) => { // Commented out - will be developed later
+    //     setInventoryStock(e.target.value);
+    //     setErrors((prev) => ({ ...prev, location: "" }));
+    // };
 
-  return (
-    // Dialog sẽ tự động quản lý zIndex và vị trí
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Thêm Thuốc Mới</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          {errors.general && <Alert severity="error">{errors.general}</Alert>}
+    // const handleAddInventory = () => { // Commented out - will be developed later
+    //     if (!selectedInventory || inventoryStock === "" || Number(inventoryStock) < 0) {
+    //         setErrors((prev) => ({
+    //             ...prev,
+    //             location: "Vui lòng chọn kệ và nhập số lượng tồn kho hợp lệ."
+    //         }));
+    //         return;
+    //     }
+    //     // Prevent duplicate inventory
+    //     if (productData.location.some(inv => inv.inventoryId === selectedInventory)) {
+    //         setErrors((prev) => ({
+    //             ...prev,
+    //             location: "Kệ đã được thêm."
+    //         }));
+    //         return;
+    //     }
 
-          <TextField
-            autoFocus
-            name="productName"
-            label="Tên Thuốc"
-            value={productData.productName}
-            onChange={handleChange}
-            error={!!errors.productName}
-            helperText={errors.productName}
-            fullWidth
-          />
+    //     // Kiểm tra sức chứa định lượng của kệ
+    //     const inventoryObj = inventories.find(i => i._id === selectedInventory);
+    //     if (inventoryObj) {
+    //         const productQuantitative = Number(productData.quantitative) || 0;
+    //         const addQuantitative = Number(inventoryStock) * productQuantitative;
+    //         const availableQuantitative = (Number(inventoryObj.maxQuantitative) || 0) - (Number(inventoryObj.currentQuantitative) || 0);
 
-          <FormControl fullWidth error={!!errors.categoryId}>
-            <InputLabel id="category-select-label">Danh Mục</InputLabel>
-            <Select
-              labelId="category-select-label"
-              name="categoryId"
-              value={productData.categoryId}
-              label="Danh Mục"
-              onChange={handleChange}
-            >
-              <MenuItem value="">
-                <em>Chọn danh mục</em>
-              </MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat._id}>
-                  {cat.categoryName}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors.categoryId && <FormHelperText>{errors.categoryId}</FormHelperText>}
-          </FormControl>
+    //         if (addQuantitative > availableQuantitative) {
+    //             setErrors((prev) => ({
+    //                 ...prev,
+    //                 location: `Kệ này chỉ còn sức chứa định lượng tối đa là ${availableQuantitative}. Sản phẩm bạn thêm vượt quá sức chứa.`
+    //             }));
+    //             return;
+    //         }
+    //     }
 
-          <TextField
-            name="unit"
-            label="Đơn Vị (ví dụ: cái, hộp, kg)"
-            value={productData.unit}
-            onChange={handleChange}
-            error={!!errors.unit}
-            helperText={errors.unit}
-            fullWidth
-          />
+    //     setProductData((prev) => ({
+    //         ...prev,
+    //         location: [
+    //             ...prev.location,
+    //             { inventoryId: selectedInventory, stock: Number(inventoryStock) }
+    //         ]
+    //     }));
+    //     setSelectedInventory("");
+    //     setInventoryStock("");
+    // };
 
-          {/* Thêm dropdown để chọn kệ hàng có sẵn */}
-          {/* <FormControl fullWidth> // Commented out - will be developed later
-            <InputLabel id="shelf-select-label">Chọn Kệ Hàng</InputLabel>
-            <Select
-              labelId="shelf-select-label"
-              id="shelf-select"
-              value=""
-              label="Chọn Kệ Hàng"
-              onChange={handleShelfSelect}
-            >
-              <MenuItem value=""><em>Chọn kệ hàng có sẵn</em></MenuItem>
-              {shelves.map((shelf) => (
-                <MenuItem key={shelf._id} value={shelf._id}>{shelf.name}</MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>Chọn kệ hàng hoặc nhập vị trí thủ công</FormHelperText>
-          </FormControl> */}
+    // const handleRemoveInventory = (inventoryId) => { // Commented out - will be developed later
+    //     setProductData((prev) => ({
+    //         ...prev,
+    //         location: prev.location.filter(inv => inv.inventoryId !== inventoryId)
+    //     }));
+    // };
 
-          <TextField
-            name="location"
-            label="Vị Trí (ví dụ: Kệ A1, Kho B)"
-            value={productData.location}
-            onChange={handleChange}
-            error={!!errors.location}
-            helperText={errors.location}
-            fullWidth
-          />
+    const handleSupplierCheck = (e) => {
+        setHasSupplier(e.target.checked);
+        if (!e.target.checked) {
+            setProductData((prev) => ({ ...prev, supplierId: "" }));
+        }
+    };
 
-          <FormControl fullWidth>
-            <InputLabel id="status-select-label">Trạng Thái</InputLabel>
-            <Select
-              labelId="status-select-label"
-              name="status"
-              value={productData.status}
-              label="Trạng Thái"
-              onChange={handleChange}
-            >
-              <MenuItem value="active">Đang bán</MenuItem>
-              <MenuItem value="inactive">Ngừng bán</MenuItem>
-            </Select>
-          </FormControl>
+    const handleSupplierSelect = (e) => {
+        setProductData((prev) => ({ ...prev, supplierId: e.target.value }));
+        if (errors.supplierId) {
+            setErrors((prev) => ({ ...prev, supplierId: "" }));
+        }
+    };
 
-          <Button
-            variant="outlined"
-            component="label"
-            color={errors.productImage ? "error" : "primary"}
-          >
-            Chọn Hình Ảnh
-            <input
-              type="file"
-              hidden
-              accept="image/png, image/jpeg"
-              onChange={handleFileChange}
-            />
-          </Button>
-          {errors.productImage && <FormHelperText error>{errors.productImage}</FormHelperText>}
+    const validate = async () => {
+        let tempErrors = {};
+        
+        // Validate ProductName (required, 10-100 characters)
+        if (!productData.productName || productData.productName.trim().length < 10) {
+            tempErrors.productName = "Tên thuốc phải có ít nhất 10 ký tự.";
+        } else if (productData.productName.length > 100) {
+            tempErrors.productName = "Tên thuốc không được vượt quá 100 ký tự.";
+        } else {
+            tempErrors.productName = "";
+        }
+        
+        // Validate CategoryID (required)
+        tempErrors.categoryId = productData.categoryId ? "" : "Vui lòng chọn danh mục.";
+        
+        // Validate Unit (required, max 10 characters)
+        if (!productData.unit || productData.unit.trim().length === 0) {
+            tempErrors.unit = "Đơn vị không được bỏ trống.";
+        } else if (productData.unit.length > 10) {
+            tempErrors.unit = "Đơn vị không được vượt quá 10 ký tự.";
+        } else {
+            tempErrors.unit = "";
+        }
+        
+        // Validate ProductDescription (optional, max 300 characters)
+        if (productData.productDescription && productData.productDescription.length > 300) {
+            tempErrors.productDescription = "Mô tả không được vượt quá 300 ký tự.";
+        } else {
+            tempErrors.productDescription = "";
+        }
+        
+        // Bỏ validate số lượng (ẩn khỏi form), giữ giá trị mặc định 0
+        
+        // Validate Image (file is required for now)
+        if (!productData.productImage) {
+            tempErrors.productImage = "Vui lòng chọn hình ảnh thuốc.";
+        } else if (!["image/jpeg", "image/png"].includes(productData.productImage.type)) {
+            tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
+        } else {
+            tempErrors.productImage = "";
+        }
+        
+        setErrors(tempErrors);
+        const isFormValid = Object.values(tempErrors).every((x) => x === "");
+        return isFormValid;
+    };
 
-          {imagePreview && (
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <img
-                src={imagePreview}
-                alt="Xem trước thuốc"
-                style={{ maxWidth: "200px", height: "auto", borderRadius: '8px' }}
-              />
-            </Box>
-          )}
+    const handleSave = async () => {
+        setErrors(prev => ({ ...prev, general: "" }));
+        if (await validate()) {
+            setLoading(true);
+            try {
+                let imagePath = ""; // URL paste feature disabled for now
+                if (productData.productImage) {
+                    // upload then take returned path
+                    const { default: productAPI } = await import("../../API/productAPI");
+                    const uploadRes = await productAPI.uploadImage(productData.productImage);
+                    imagePath = uploadRes?.data?.data || "";
+                }
 
-        </Stack>
-      </DialogContent>
-      <DialogActions sx={{ p: '16px 24px' }}>
-        <Button onClick={handleClose} disabled={loading} color="secondary">
-          Hủy
-        </Button>
-        <Button onClick={handleSave} variant="contained" disabled={loading}>
-          {loading ? <CircularProgress size={24} /> : "Lưu Thuốc"}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+                const body = {
+                    productName: productData.productName,
+                    categoryID: productData.categoryId,
+                    productDescription: productData.productDescription || "",
+                    unit: productData.unit,
+                    minQuantity: productData.minQuantity,
+                    maxQuantity: productData.maxQuantity,
+                    totalCurrentQuantity: productData.totalCurrentQuantity,
+                    status: productData.status,
+                            image: imagePath
+                };
+
+                const { default: productAPI2 } = await import("../../API/productAPI");
+                await productAPI2.createJson(body);
+                // success flow: show message and close after 3s
+                setSuccessMessage("Thêm thuốc thành công!");
+                setLoading(false);
+                setTimeout(() => {
+                    onSaveSuccess();
+                    handleClose();
+                }, 3000);
+                return;
+            } catch (error) {
+                setErrors((prev) => ({ ...prev, general: error?.message || "Có lỗi xảy ra." }));
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+            <DialogTitle>Thêm Thuốc Mới</DialogTitle>
+            <Divider sx={{ opacity: 0.5 }} />
+            <DialogContent>
+                <Box sx={{ mt: 1 }}>
+                    {errors.general && <Alert severity="error" sx={{ mb: 2 }}>{errors.general}</Alert>}
+                    {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
+                    
+                    <Box sx={{ display: 'flex', gap: 3 }}>
+                        {/* Left side - Form fields */}
+                        <Box sx={{ flex: 1 }}>
+                            <Stack spacing={2}>
+                                <TextField 
+                                    autoFocus 
+                                    name="productName" 
+                                    label="Tên Thuốc" 
+                                    value={productData.productName} 
+                                    onChange={handleChange} 
+                                    error={!!errors.productName} 
+                                    helperText={errors.productName} 
+                                    fullWidth 
+                                    placeholder="Nhập tên thuốc (10-100 ký tự)"
+                                />
+                                <FormControl fullWidth error={!!errors.categoryId}>
+                                    <InputLabel id="category-select-label">Danh Mục</InputLabel>
+                                    <Select labelId="category-select-label" name="categoryId" value={productData.categoryId} label="Danh Mục" onChange={handleChange}>
+                                        <MenuItem value=""><em>Chọn danh mục</em></MenuItem>
+                                        {(() => {
+                                            console.log('🔍 All categories:', categories);
+                                            const activeCategories = categories.filter(cat => {
+                                                console.log('📋 Category:', cat.name || cat.categoryName, 'Status:', cat.status, 'IsActive:', cat.isActive);
+                                                return cat.status === true || cat.isActive === true;
+                                            });
+                                            console.log('✅ Active categories:', activeCategories);
+                                            
+                                            // Fallback: nếu không có danh mục hoạt động, hiển thị tất cả
+                                            const categoriesToShow = activeCategories.length > 0 ? activeCategories : categories;
+                                            console.log('📝 Categories to show:', categoriesToShow);
+                                            
+                                            return categoriesToShow.map((cat) => (
+                                                <MenuItem key={cat.categoryID || cat._id} value={cat.categoryID || cat._id}>{cat.name || cat.categoryName}</MenuItem>
+                                            ));
+                                        })()}
+                                    </Select>
+                                    {errors.categoryId && <FormHelperText>{errors.categoryId}</FormHelperText>}
+                                </FormControl>
+                                <TextField 
+                                    name="productDescription" 
+                                    label="Mô tả thuốc" 
+                                    value={productData.productDescription} 
+                                    onChange={handleChange} 
+                                    error={!!errors.productDescription} 
+                                    helperText={errors.productDescription} 
+                                    fullWidth 
+                                    multiline
+                                    rows={3}
+                                    placeholder="Nhập mô tả thuốc (tối đa 300 ký tự)"
+                                />
+                                <FormControl fullWidth error={!!errors.unit}>
+                                    <InputLabel id="unit-select-label">Đơn Vị</InputLabel>
+                                    <Select
+                                        labelId="unit-select-label"
+                                        name="unit"
+                                        value={productData.unit}
+                                        label="Đơn Vị"
+                                        onChange={handleChange}
+                                    >
+                                        <MenuItem value=""><em>Tùy chọn</em></MenuItem>
+                                        <MenuItem value="Hộp">Hộp</MenuItem>
+                                        <MenuItem value="Vỉ">Vỉ</MenuItem>
+                                        <MenuItem value="Lọ">Lọ</MenuItem>
+                                    </Select>
+                                    {errors.unit && <FormHelperText>{errors.unit}</FormHelperText>}
+                                </FormControl>
+                                <FormControl fullWidth>
+                                    <InputLabel id="status-select-label">Trạng Thái</InputLabel>
+                                    <Select labelId="status-select-label" name="status" value={productData.status} label="Trạng Thái" onChange={(e) => setProductData(prev => ({ ...prev, status: e.target.value === 'true' }))}>
+                                        <MenuItem value={false}>Ngừng bán</MenuItem>
+                                        <MenuItem value={true}>Đang bán</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Box>
+                        
+                        {/* Right side - Image */}
+                        <Box sx={{ width: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Button variant="outlined" component="label" color={errors.productImage ? "error" : "primary"} sx={{ mb: 2 }}>
+                                Chọn Hình Ảnh
+                                <input type="file" hidden accept="image/png, image/jpeg" onChange={handleFileChange} />
+                            </Button>
+                            {/** URL image input (commented for later use)
+                            <TextField
+                                name="imageUrl"
+                                label="URL Hình Ảnh (tùy chọn)"
+                                value={productData.imageUrl}
+                                onChange={handleChange}
+                                fullWidth
+                                size="small"
+                                placeholder="https://.../image.png"
+                                sx={{ mb: 2 }}
+                            />
+                            */}
+                            {errors.productImage && <FormHelperText error sx={{ mb: 2 }}>{errors.productImage}</FormHelperText>}
+                            {imagePreview ? (
+                                <Box sx={{ textAlign: 'center' }}>
+                                    <img 
+                                        src={imagePreview} 
+                                        alt="Xem trước thuốc" 
+                                        style={{ 
+                                            maxWidth: "250px", 
+                                            height: "auto", 
+                                            borderRadius: '8px',
+                                            border: '1px solid #e0e0e0'
+                                        }} 
+                                    />
+                                </Box>
+                            ) : (
+                                <Box sx={{ 
+                                    width: '250px', 
+                                    height: '200px', 
+                                    border: '2px dashed #e0e0e0', 
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#999'
+                                }}>
+                                    <Typography variant="body2">Chưa có hình ảnh</Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    </Box>
+                </Box>
+            </DialogContent>
+            <Divider sx={{ opacity: 0.5 }} />
+            <DialogActions sx={{ p: '16px 24px' }}>
+                <Button onClick={handleClose} disabled={loading || !!successMessage} color="secondary">Hủy</Button>
+                <Button onClick={handleSave} variant="contained" disabled={loading || !!successMessage}>{loading ? <CircularProgress size={24} /> : "Lưu Thuốc"}</Button>
+            </DialogActions>
+        </Dialog>
+    );
 };
 
 export default AddProduct;

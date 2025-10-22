@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { Modal, Descriptions, Spin, Image, Typography, Row, Col, Tag, Divider, Card } from "antd";
+import { Modal, Descriptions, Spin, Image, Typography, Row, Col, Tag, Divider, Card, Alert } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import { EnvironmentOutlined } from "@ant-design/icons";
+import productAPI from "../../API/productAPI";
+import categoryAPI from "../../API/categoryAPI";
 
 const { Title } = Typography;
 
@@ -13,70 +14,110 @@ const fadeIn = {
 };
 
 const ProductDetails = ({ show, handleClose, product }) => {
+  const [productDetail, setProductDetail] = useState(null);
   const [categoryName, setCategoryName] = useState("");
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [supplierProducts, setSupplierProducts] = useState([]);
-  const [shelfInfo, setShelfInfo] = useState(null);
+  const [categories, setCategories] = useState([]);
 
+  // Load categories when component mounts
   useEffect(() => {
-    const fetchCate = async () => {
+    const loadCategories = async () => {
       try {
-        const response = await axios.get("http://localhost:9999/categories/getAllCategories");
-        setCategories(response.data);
-      } catch (error) {
-        setError("Không thể tải danh mục.");
+        const categoryResponse = await categoryAPI.getAllPublic();
+        if (categoryResponse.data && categoryResponse.data.success) {
+          setCategories(categoryResponse.data.data);
+          console.log('ProductDetails - Loaded categories:', categoryResponse.data.data);
+        }
+      } catch (err) {
+        console.warn("Could not load categories:", err);
+        // Fallback: Use mock categories based on common category IDs
+        const mockCategories = [
+          { CategoryID: 1, Name: "Thuốc giảm đau" },
+          { CategoryID: 2, Name: "Kháng sinh" },
+          { CategoryID: 3, Name: "Thuốc tiêu hóa" },
+          { CategoryID: 4, Name: "Vitamin" },
+          { CategoryID: 5, Name: "Thuốc cảm cúm" },
+        ];
+        setCategories(mockCategories);
+        console.log('ProductDetails - Using mock categories:', mockCategories);
+      }
+    };
+    
+    if (show) {
+      loadCategories();
+    }
+  }, [show]);
+
+  // Fetch product details by ID when modal opens
+  useEffect(() => {
+    const fetchProductDetail = async () => {
+      if (!show || !product) return;
+      
+      setLoading(true);
+      setError("");
+      
+      try {
+        // Debug: Log the product object to see its structure
+        console.log('ProductDetails - Received product:', product);
+        
+        // Get product ID from various possible fields
+        const productId = product.ProductID || product.productID || product.ProductId || product.productId || product._pid;
+        
+        console.log('ProductDetails - Extracted productId:', productId);
+        
+        if (!productId) {
+          throw new Error("Không tìm thấy ID sản phẩm");
+        }
+
+        // Fetch detailed product information
+        console.log('ProductDetails - Calling API with ID:', productId);
+        const response = await productAPI.getById(productId);
+        
+        console.log('ProductDetails - API Response:', response);
+        
+        if (response.data && response.data.success) {
+          setProductDetail(response.data.data);
+          console.log('ProductDetails - Set productDetail:', response.data.data);
+          
+          // Fetch category name if categoryId exists
+          if (response.data.data.categoryID || response.data.data.CategoryID) {
+            const categoryId = response.data.data.categoryID || response.data.data.CategoryID;
+            console.log('ProductDetails - Looking for categoryId:', categoryId);
+            console.log('ProductDetails - Available categories:', categories);
+            
+            // Try different ways to find the category
+            const category = categories.find(cat => 
+              cat.CategoryID === categoryId || 
+              cat.categoryID === categoryId ||
+              cat.id === categoryId ||
+              cat.Id === categoryId
+            );
+            
+            if (category) {
+              const categoryName = category.Name || category.name || category.CategoryName || category.categoryName;
+              setCategoryName(categoryName);
+              console.log('ProductDetails - Set categoryName:', categoryName);
+            } else {
+              console.warn('ProductDetails - Category not found for ID:', categoryId);
+              setCategoryName("Danh mục không xác định");
+            }
+          } else {
+            console.warn('ProductDetails - No categoryID found in product data');
+            setCategoryName("Không có danh mục");
+          }
+        } else {
+          throw new Error(response.data?.message || "Không thể tải thông tin sản phẩm");
+        }
+      } catch (err) {
+        console.error("Error fetching product detail:", err);
+        setError(err.message || "Có lỗi xảy ra khi tải thông tin sản phẩm");
       } finally {
         setLoading(false);
       }
     };
-    fetchCate();
-  }, []);
 
-  // Fetch all supplierProduct and filter by productName
-  useEffect(() => {
-    const fetchSupplierProducts = async () => {
-      if (!product) return;
-      try {
-        const res = await axios.get("http://localhost:9999/supplierProduct/getAllSupplierProducts");
-        if (res.data && Array.isArray(res.data.data)) {
-          // So sánh theo productName hoặc productId nếu có
-          const filtered = res.data.data.filter(sp =>
-            sp.productName === product.productName || sp.productId === product._id
-          );
-          setSupplierProducts(filtered);
-        }
-      } catch (err) {
-        setSupplierProducts([]);
-      }
-    };
-    if (show) fetchSupplierProducts();
-  }, [show, product]);
-
-  useEffect(() => {
-    const findCategoryName = () => {
-      if (product && product.categoryId) {
-        const category = categories.find(cat => String(cat._id) === String(product.categoryId));
-        if (category) setCategoryName(category.categoryName);
-      }
-    };
-    // Bỏ fetchSupplier, thay bằng supplierProducts
-    const fetchShelfInfo = async () => {
-      if (product && product.location) {
-        try {
-          const response = await axios.get(`http://localhost:9999/inventory`);
-          const shelf = response.data.find(s => s.name === product.location);
-          setShelfInfo(shelf || null);
-        } catch (error) {
-          setShelfInfo(null);
-        }
-      } else setShelfInfo(null);
-    };
-    if (show) {
-      findCategoryName();
-      fetchShelfInfo();
-    }
+    fetchProductDetail();
   }, [show, product, categories]);
 
   return (
@@ -102,12 +143,12 @@ const ProductDetails = ({ show, handleClose, product }) => {
             {loading ? (
               <Spin size="large" style={{ display: "block", margin: "60px auto" }} />
             ) : error ? (
-              <div style={{ color: "red", textAlign: "center" }}>{error}</div>
-            ) : product ? (
+              <Alert message="Lỗi" description={error} type="error" showIcon />
+            ) : productDetail ? (
               <Row gutter={[32, 16]} align="middle" justify="center">
                 <Col xs={24} md={9} style={{ textAlign: "center" }}>
                   <Image
-                    src={product.productImage ? `http://localhost:9999${product.productImage}` : "/images/login_image.jpg"}
+                    src={productDetail.image || productDetail.Image ? `http://localhost:5137${productDetail.image || productDetail.Image}` : "/images/login_image.jpg"}
                     alt="Product"
                     width={180}
                     height={180}
@@ -115,94 +156,47 @@ const ProductDetails = ({ show, handleClose, product }) => {
                     preview={false}
                   />
                   <div style={{ marginTop: 12 }}>
-                    <Tag color={product.status === "active" ? "green" : "red"}>
-                      {product.status === "active" ? "Đang bán" : "Ngừng bán"}
+                    <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
+                      {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
                     </Tag>
                   </div>
                 </Col>
                 <Col xs={24} md={15}>
-                  <Title level={4} style={{ marginBottom: 16 }}>{product.productName}</Title>
+                  <Title level={4} style={{ marginBottom: 16 }}>{productDetail.productName || productDetail.ProductName}</Title>
                   <Descriptions column={1} size="middle" bordered>
+                    <Descriptions.Item label="Mã sản phẩm">
+                      {productDetail.productID || productDetail.ProductID}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tên sản phẩm">
+                      <strong>{productDetail.productName || productDetail.ProductName}</strong>
+                    </Descriptions.Item>
                     <Descriptions.Item label="Danh mục">
-                      {product?.categoryId?.categoryName || categoryName || "Không có thông tin"}
+                      {categoryName || "Đang tải..."}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tồn kho">
-                      <b>{product.totalStock}</b> {product.unit}
+                    <Descriptions.Item label="Mô tả">
+                      {productDetail.productDescription || productDetail.ProductDescription || "Không có mô tả"}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Giá nhập">
-                      {product.importPrice ? product.importPrice.toLocaleString("vi-VN") + " VND" : "Không có"}
+                    <Descriptions.Item label="Đơn vị">
+                      {productDetail.unit || productDetail.Unit}
                     </Descriptions.Item>
-                    {product.exportPrice && (
-                      <Descriptions.Item label="Giá bán">
-                        {product.exportPrice.toLocaleString("vi-VN")} VND
-                      </Descriptions.Item>
-                    )}
-                    {product.expiryDate && (
-                      <Descriptions.Item label="Hạn sử dụng">
-                        {new Date(product.expiryDate).toLocaleDateString("vi-VN")}
-                      </Descriptions.Item>
-                    )}
-                    <Descriptions.Item label="Ngưỡng tồn kho">
-                      {product.thresholdStock} {product.unit}
+                    <Descriptions.Item label="Số lượng tối thiểu">
+                      <strong>{productDetail.minQuantity || productDetail.MinQuantity}</strong> {productDetail.unit || productDetail.Unit}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Nhà cung cấp">
-                      {supplierProducts.length === 0 ? (
-                        <span>Không có thông tin</span>
-                      ) : (
-                        supplierProducts.map((sp, idx) => (
-                          <Card
-                            key={sp._id || idx}
-                            size="small"
-                            style={{ marginBottom: 8, background: "#f6ffed", border: "1px solid #b7eb8f" }}
-                            styles={{ body: { padding: 10 } }} // Updated from bodyStyle to styles.body
-                          >
-                            <b>{sp.supplier?.name || "Không rõ tên"}</b>
-                            {sp.supplier?.status && (
-                              <Tag color={sp.supplier.status === "active" ? "green" : "red"} style={{ marginLeft: 8 }}>
-                                {sp.supplier.status === "active" ? "Đang hoạt động" : "Ngừng hoạt động"}
-                              </Tag>
-                            )}
-                            <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>
-                              {sp.supplier?.email && <div><b>Email:</b> {sp.supplier.email}</div>}
-                              {sp.supplier?.contact && <div><b>Liên hệ:</b> {sp.supplier.contact}</div>}
-                              {sp.supplier?.address && <div><b>Địa chỉ:</b> {sp.supplier.address}</div>}
-                              {sp.supplier?.description && <div><b>Mô tả:</b> {sp.supplier.description}</div>}
-                            </div>
-                          </Card>
-                        ))
+                    <Descriptions.Item label="Số lượng tối đa">
+                      <strong>{productDetail.maxQuantity || productDetail.MaxQuantity}</strong> {productDetail.unit || productDetail.Unit}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tổng số lượng hiện tại">
+                      <strong style={{ color: (productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) ? '#ff4d4f' : '#52c41a' }}>
+                        {productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity}
+                      </strong> {productDetail.unit || productDetail.Unit}
+                      {(productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) && (
+                        <Tag color="red" style={{ marginLeft: 8 }}>Cảnh báo: Dưới mức tối thiểu</Tag>
                       )}
                     </Descriptions.Item>
-                    <Descriptions.Item label={<span><EnvironmentOutlined /> Vị trí lưu trữ</span>}>
-                      <div>
-                        <b>Kệ hàng:</b> {
-                          product.location ? (
-                            Array.isArray(product.location) ? (
-                              product.location.length > 0 ? (
-                                <div>
-                                  {product.location.map((loc, index) => (
-                                    <div key={index} style={{ marginLeft: 8, marginTop: 4 }}>
-                                      • {loc.inventoryId?.name || `Kệ ${index + 1}`}: {loc.stock || 0} thuốc
-                                      {loc.price && <span> - Giá: {loc.price.toLocaleString()} VND</span>}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : "Chưa có vị trí"
-                            ) : (
-                              product.location
-                            )
-                          ) : "-"
-                        }
-                        {shelfInfo && (
-                          <>
-                            <br />
-                            <b>Loại kệ:</b> {shelfInfo.category?.categoryName || "Không phân loại"}
-                            <br />
-                            <b>Sức chứa:</b> {shelfInfo.currentQuantitative}/{shelfInfo.maxQuantitative}
-                            <br />
-                            <b>Tỷ lệ đầy:</b> {shelfInfo.maxQuantitative > 0 ? Math.round((shelfInfo.currentQuantitative / shelfInfo.maxQuantitative) * 100) : 0}%
-                          </>
-                        )}
-                      </div>
+                    <Descriptions.Item label="Trạng thái">
+                      <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
+                        {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
+                      </Tag>
                     </Descriptions.Item>
                   </Descriptions>
                 </Col>

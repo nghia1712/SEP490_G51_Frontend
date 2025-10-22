@@ -109,11 +109,6 @@ function Header() {
   };
 
   const handleNavigate = (path) => {
-    // For admin navigating to user management pages, do a hard refresh to the full URL
-    if (userRole === "admin" && path.startsWith("/admin/users")) {
-      window.location.replace(`http://localhost:3000${path}`);
-      return;
-    }
     navigate(path);
     handleTransactionMenuClose();
     handleProfileMenuClose();
@@ -280,12 +275,7 @@ function Header() {
             <Typography
               variant="h6"
               onClick={() => {
-                if (userRole === "admin") {
-                  // Refresh current page for admin
-                  window.location.reload();
-                } else {
-                  navigate("/");
-                }
+                navigate("/");
               }}
               sx={{
                 fontWeight: "bold",

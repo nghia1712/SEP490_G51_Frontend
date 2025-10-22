@@ -2,16 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Button, Modal, Form, Alert, Row, Col } from "react-bootstrap";
 import adminAPI from "../../API/adminAPI";
 
-const EditUserModal = ({ user, closeModal, users, setUsers }) => {
+const EditUser = ({ user, closeModal, users, setUsers }) => {
     const [form, setForm] = useState({
         fullName: "",
         phoneNumber: "",
         address: "",
         gender: true,
-        employeeCode: "",
+        employeeCode: "", // Không sử dụng - chỉ để tương thích
         notes: "",
         avatar: "",
-        userStatus: 2, // 0=Block,1=Inactive,2=Active
     });
     const [originalForm, setOriginalForm] = useState(null); // Store original data
     const [successMessage, setSuccessMessage] = useState("");
@@ -51,10 +50,9 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
             phoneNumber: user?.phoneNumber || user?.profile?.phoneNumber || "",
             address: user?.address || user?.profile?.address || "",
             gender: (user?.gender ?? user?.profile?.gender) ?? true,
-            employeeCode: user?.employeeCode || user?.profile?.employeeCode || "",
+            employeeCode: "", // Không sử dụng - chỉ để tương thích
             notes: user?.notes || user?.profile?.notes || "",
             avatar: user?.avatar || user?.profile?.avatar || "",
-            userStatus: typeof user?.userStatus === 'number' ? user.userStatus : (String(user?.status).toLowerCase() === 'active' ? 2 : 1),
         };
         setForm(initialForm);
         setOriginalForm(initialForm); // Store original data
@@ -95,12 +93,11 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
             const payload = {
                 UserId: getUserId(user),
                 PhoneNumber: form.phoneNumber && form.phoneNumber.trim() !== '' ? form.phoneNumber : null,
-                UserStatus: form.userStatus, // Keep as number, backend expects UserStatus enum
                 FullName: form.fullName && form.fullName.trim() !== '' ? form.fullName : null,
                 Avatar: form.avatar || null,
                 Gender: !!form.gender,
                 Address: form.address && form.address.trim() !== '' ? form.address : null,
-                EmployeeCode: form.employeeCode && form.employeeCode.trim() !== '' ? form.employeeCode : null,
+                EmployeeCode: null, // Không sử dụng - backend tự quản lý
                 Notes: form.notes && form.notes.trim() !== '' ? form.notes : null,
             };
 
@@ -116,9 +113,8 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                     phoneNumber: payload.PhoneNumber ?? u.phoneNumber,
                     address: payload.Address ?? u.address,
                     gender: payload.Gender,
-                    employeeCode: payload.EmployeeCode ?? u.employeeCode,
+                    employeeCode: u.employeeCode, // Giữ nguyên - không cập nhật
                     notes: payload.Notes ?? u.notes,
-                    userStatus: payload.UserStatus,
                 } : u));
             }
 
@@ -333,54 +329,6 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
                                     paddingBottom: '5px',
                                     fontSize: '16px'
                                 }}>
-                                    Thông tin công việc
-                                </h5>
-                                
-                                <Row className="mb-2">
-                                    <Col md={6}>
-                                        <Form.Group>
-                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Mã nhân viên</Form.Label>
-                                            <Form.Control 
-                                                value={form.employeeCode} 
-                                                onChange={e=>setField('employeeCode', e.target.value)}
-                                                style={{ 
-                                                    borderColor: '#48C1A6',
-                                                    borderRadius: '6px',
-                                                    padding: '8px 12px',
-                                                    fontSize: '13px'
-                                                }}
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group>
-                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Trạng thái</Form.Label>
-                                            <Form.Select 
-                                                value={String(form.userStatus)} 
-                                                onChange={e=>setField('userStatus', Number(e.target.value))}
-                                                style={{ 
-                                                    borderColor: '#48C1A6',
-                                                    borderRadius: '6px',
-                                                    padding: '8px 12px',
-                                                    fontSize: '13px'
-                                                }}
-                                            >
-                                                <option value={2}>Hoạt động</option>
-                                                <option value={1}>Không hoạt động</option>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                                
-                                <h5 style={{ 
-                                    color: '#2c3e50', 
-                                    marginBottom: '12px',
-                                    marginTop: '15px',
-                                    fontWeight: '600',
-                                    borderBottom: '2px solid #48C1A6',
-                                    paddingBottom: '5px',
-                                    fontSize: '16px'
-                                }}>
                                     Thông tin bổ sung
                                 </h5>
                                 
@@ -474,6 +422,4 @@ const EditUserModal = ({ user, closeModal, users, setUsers }) => {
     );
 };
 
-export default EditUserModal;
-
-
+export default EditUser;

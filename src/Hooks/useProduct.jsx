@@ -31,6 +31,17 @@ const useProduct = () => {
       const withPid = normalized.map((p) => ({
         ...p,
         _pid: p?.ProductID ?? p?.productID ?? p?.ProductId ?? p?.productId ?? p?.id ?? p?._id ?? null,
+        // Normalize field names for consistent access
+        productID: p?.ProductID ?? p?.productID ?? p?.ProductId ?? p?.productId ?? p?.id ?? p?._id,
+        productName: p?.ProductName ?? p?.productName,
+        productDescription: p?.ProductDescription ?? p?.productDescription,
+        unit: p?.Unit ?? p?.unit,
+        categoryID: p?.CategoryID ?? p?.categoryID,
+        image: p?.Image ?? p?.image,
+        minQuantity: p?.MinQuantity ?? p?.minQuantity,
+        maxQuantity: p?.MaxQuantity ?? p?.maxQuantity,
+        totalCurrentQuantity: p?.TotalCurrentQuantity ?? p?.totalCurrentQuantity ?? p?.totalStock,
+        status: p?.Status ?? p?.status,
       }));
       console.log('Loaded products sample for shape check:', withPid?.[0]);
       setProducts(withPid);

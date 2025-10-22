@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { Add as AddIcon, Close as CloseIcon, Save as SaveIcon } from "@mui/icons-material";
 
-const AddSupplierProductModal = ({ open, onClose, onSubmit, supplierId, palette, categories }) => {
+const AddSupplierProduct = ({ open, onClose, onSubmit, supplierId, palette, categories }) => {
   const [formData, setFormData] = useState({
     supplier: supplierId || "",
     stock: 0,
@@ -312,4 +312,4 @@ const AddSupplierProductModal = ({ open, onClose, onSubmit, supplierId, palette,
   );
 };
 
-export default AddSupplierProductModal;
+export default AddSupplierProduct;

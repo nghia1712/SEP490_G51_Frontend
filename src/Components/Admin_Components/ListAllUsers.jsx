@@ -5,7 +5,7 @@ import adminAPI from "../../API/adminAPI";
 import CreateStaff from "./CreateStaff";
 import { FaEdit, FaBan, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import EditUserModal from "./EditUserModal";
+import EditUser from "./EditUser";
 
 const ListAllUsers = ({ roleGroup }) => {
     const navigate = useNavigate();
@@ -13,7 +13,7 @@ const ListAllUsers = ({ roleGroup }) => {
     const [error, setError] = useState(null);
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState({ "Hoạt động": false, "Không hoạt động": false });
-    const [roleQuery, setRoleQuery] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all");
     const [editingUser, setEditingUser] = useState(null);
     const [detailUser, setDetailUser] = useState(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -257,6 +257,21 @@ const ListAllUsers = ({ roleGroup }) => {
         return '-';
     };
 
+    // Helper function to format employee code (role + ...)
+    const formatEmployeeCode = (user) => {
+        const employeeCode = user?.EmployeeCode || user?.employeeCode || user?.profile?.employeeCode;
+        if (!employeeCode) return '-';
+        
+        // Extract role from employee code (format: ROLE_TIMESTAMP)
+        const role = employeeCode.split(/\d/)[0]; // Get everything before first digit
+        return role ? `${role}...` : employeeCode;
+    };
+
+    // Helper function to get full employee code
+    const getFullEmployeeCode = (user) => {
+        return user?.EmployeeCode || user?.employeeCode || user?.profile?.employeeCode || '-';
+    };
+
     // Determine if an account is active based on multiple possible backend shapes
     const getIsActive = (u) => {
         if (typeof u?.isActive === 'boolean') return u.isActive;
@@ -438,11 +453,17 @@ const ListAllUsers = ({ roleGroup }) => {
             const hasAnyStatusFilter = Object.values(filterStatus || {}).some(v => v);
             matchesStatus = hasAnyStatusFilter ? !!filterStatus[statusLabel] : true;
             
-            // role matching query: behave like email filter (simple substring, case/diacritic-insensitive)
+            // role matching query: filter by selected role dropdown
             matchesRoleQuery = (() => {
-                if (!roleQuery) return true;
-                const roleText = [getRoleDisplayName(user), ...normalizeUserRoles(user)].filter(Boolean).join(' ');
-                return toSearchKey(roleText).includes(toSearchKey(roleQuery));
+                if (roleFilter === "all") return true;
+                const roleText = getRoleDisplayName(user);
+                const roleMap = {
+                    "sales": "Nhân viên Bán Hàng",
+                    "purchases": "Nhân viên Mua Hàng", 
+                    "warehouse": "Nhân viên Kho",
+                    "accountant": "Nhân viên Kế Toán"
+                };
+                return roleText === roleMap[roleFilter];
             })();
         }
 
@@ -565,13 +586,17 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 onChange={(e) => setSearch(e.target.value)}
                                                 style={{ width: "240px", height: "38px", fontSize: "1rem" }}
                                             />
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Tìm kiếm theo vai trò"
-                                                value={roleQuery}
-                                                onChange={(e) => setRoleQuery(e.target.value)}
+                                            <Form.Select
+                                                value={roleFilter}
+                                                onChange={(e) => setRoleFilter(e.target.value)}
                                                 style={{ width: "240px", height: "38px", fontSize: "1rem" }}
-                                            />
+                                            >
+                                                <option value="all">Tất cả</option>
+                                                <option value="sales">Nhân viên Bán Hàng</option>
+                                                <option value="purchases">Nhân viên Mua Hàng</option>
+                                                <option value="warehouse">Nhân viên Kho</option>
+                                                <option value="accountant">Nhân viên Kế Toán</option>
+                                            </Form.Select>
                                         </div>
                                         <div className="d-flex align-items-center gap-3" style={{ flex: 1, justifyContent: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                                             {["Hoạt động", "Không hoạt động"].map((status) => (
@@ -649,8 +674,13 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 <td style={isCustomerView ? customerEmailColStyle : equalColStyle}>{truncateEmail(user?.account?.email || user?.email)}</td>
                                                 {isStaffView ? (
                                                     <td style={equalColStyle}>
-                                                        {console.log("EmployeeCode debug:", user?.EmployeeCode, user?.employeeCode, user?.profile?.employeeCode, "Full user:", user)}
-                                                        {user?.EmployeeCode || user?.employeeCode || user?.profile?.employeeCode || '-'}
+                                                        <span 
+                                                            style={{ cursor: 'pointer' }}
+                                                            onClick={() => handleViewDetail(user)}
+                                                            title={`Click để xem chi tiết: ${getFullEmployeeCode(user)}`}
+                                                        >
+                                                            {formatEmployeeCode(user)}
+                                                        </span>
                                                     </td>
                                                 ) : null}
                                                 {isStaffView ? (
@@ -683,7 +713,15 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 <td className="text-start">{user?.fullName || user?.profile?.fullName || '-'}</td>
                                                 <td>{user?.gender !== null && user?.gender !== undefined ? (user.gender === true ? "Nam" : "Nữ") : '-'}</td>
                                                 <td className="text-center">{user?.profile?.address || user?.address || '-'}</td>
-                                                <td>{user?.employeeCode || user?.profile?.employeeCode || '-'}</td>
+                                                <td>
+                                                    <span 
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => handleViewDetail(user)}
+                                                        title={`Click để xem chi tiết: ${getFullEmployeeCode(user)}`}
+                                                    >
+                                                        {formatEmployeeCode(user)}
+                                                    </span>
+                                                </td>
                                                 <td className="text-start">{user?.Notes || user?.notes || user?.profile?.notes || '-'}</td>
                                                     </>
                                                 )}
@@ -820,7 +858,11 @@ const ListAllUsers = ({ roleGroup }) => {
                                         <>
                                             <div className="row mb-2">
                                                 <div className="col-sm-4 fw-bold">Mã nhân viên</div>
-                                                <div className="col-sm-8">{detailUser?.EmployeeCode || detailUser?.employeeCode || detailUser?.profile?.employeeCode || '-'}</div>
+                                                <div className="col-sm-8">
+                                                    <code style={{ backgroundColor: '#f8f9fa', padding: '4px 8px', borderRadius: '4px', fontSize: '0.9em' }}>
+                                                        {getFullEmployeeCode(detailUser)}
+                                                    </code>
+                                                </div>
                                             </div>
                                             <div className="row mb-2">
                                                 <div className="col-sm-4 fw-bold">Ghi chú</div>
@@ -859,7 +901,7 @@ const ListAllUsers = ({ roleGroup }) => {
                     </Modal.Body>
                 </Modal>
             )}
-            <EditUserModal
+            <EditUser
                 user={editingUser}
                 closeModal={() => setEditingUser(null)}
                 users={users}

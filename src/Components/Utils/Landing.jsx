@@ -296,15 +296,8 @@ function Landing() {
 
   // Navigation đơn giản để tránh lỗi đơ
   const handleNavigate = useCallback((path) => {
-    console.log('Navigating to:', path);
-    try {
-      setProfileMenuAnchor(null); // Đóng menu trực tiếp
-      navigate(path);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback navigation
-      window.location.href = path;
-    }
+    setProfileMenuAnchor(null); // Đóng menu trực tiếp
+    navigate(path);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -322,7 +315,7 @@ function Landing() {
     let roleSpecificEnabledPaths = enabledPaths;
     
     if (currentRole === 'purchases_staff') {
-      roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category']);
+      roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category', '/suppliers']);
     } else if (currentRole === 'sales_staff') {
       roleSpecificEnabledPaths = new Set(['/sales-dashboard', '/product', '/category']);
     } else if (currentRole === 'warehouse_staff') {

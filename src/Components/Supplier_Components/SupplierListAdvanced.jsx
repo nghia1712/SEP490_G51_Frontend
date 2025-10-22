@@ -30,12 +30,18 @@ import {
   Menu,
   MenuItem,
   Divider,
-  Badge,
   Fab,
   Zoom,
   Skeleton,
   Collapse,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -45,58 +51,26 @@ import {
   CheckCircle as CheckCircleIcon,
   RestartAlt as RestartAltIcon,
   MoreVert as MoreVertIcon,
-  FilterList as FilterListIcon,
   Clear as ClearIcon,
-  Refresh as RefreshIcon,
   Business as BusinessIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Inventory as InventoryIcon,
 } from "@mui/icons-material";
 import { green, red, orange, blue } from "@mui/material/colors";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import EditSuppliers from "./EditSuppliers";
 
 // Import API modules for consistency
 import supplierAPI from "../../API/supplierAPI";
 import supplierProductAPI from "../../API/supplierProductAPI";
+import AddSupplier from "./AddSupplier";
+import palette from "../../constants/palette";
 
 const SupplierListAdvanced = () => {
   const navigate = useNavigate();
   
-  // Dữ liệu mẫu mặc định
-  const defaultSuppliers = [
-    {
-      _id: "1",
-      name: "Công ty Dược phẩm ABC",
-      address: "123 Đường ABC, Quận 1, TP.HCM",
-      contact: "0901234567",
-      email: "contact@abcpharma.com",
-      description: "Nhà cung cấp thuốc tây y hàng đầu",
-      status: "active"
-    },
-    {
-      _id: "2", 
-      name: "Công ty Dược phẩm XYZ",
-      address: "456 Đường XYZ, Quận 3, TP.HCM",
-      contact: "0907654321",
-      email: "info@xyzpharma.com",
-      description: "Chuyên cung cấp thuốc đông y và thực phẩm chức năng",
-      status: "active"
-    },
-    {
-      _id: "3",
-      name: "Công ty Dược phẩm DEF",
-      address: "789 Đường DEF, Quận 5, TP.HCM", 
-      contact: "0909876543",
-      email: "sales@defpharma.com",
-      description: "Nhà cung cấp thiết bị y tế và dụng cụ y khoa",
-      status: "inactive"
-    }
-  ];
-  
-  const [suppliers, setSuppliers] = useState(defaultSuppliers);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -105,6 +79,20 @@ const SupplierListAdvanced = () => {
     "Ngừng cung cấp": false,
   });
   const [editingSupplier, setEditingSupplier] = useState(null);
+  
+  // Modal states
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    address: "",
+    contact: "",
+    email: "",
+    description: "",
+    status: "active",
+    bankAccountNumber: "",
+    myDebt: "",
+  });
+  const [formErrors, setFormErrors] = useState({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState("name");
@@ -126,18 +114,26 @@ const SupplierListAdvanced = () => {
     try {
       console.log("=== SupplierListAdvanced fetchSuppliers ===");
 
-      const response = await supplierAPI.getAll();
+      const response = await supplierAPI.getList();
       console.log("Suppliers API response:", response);
       console.log("Response status:", response.status);
       console.log("Response data:", response.data);
 
-      // Handle new standardized response structure with cache-busting
+      // Handle standardized response structure
       let suppliersData = [];
       if (response.data?.success && response.data?.data) {
         // New format: { success: true, data: [...], total: x, timestamp: y }
-        suppliersData = response.data.data;
+        suppliersData = response.data.data || [];
         console.log(
           "Using new format - found",
+          suppliersData.length,
+          "suppliers"
+        );
+      } else if (response.data?.success === false) {
+        // Backend trả về success: false nhưng có data
+        suppliersData = response.data.data || [];
+        console.log(
+          "Backend returned success: false but has data - found",
           suppliersData.length,
           "suppliers"
         );
@@ -155,17 +151,17 @@ const SupplierListAdvanced = () => {
       }
 
       setSuppliers(suppliersData);
+      console.log("Final suppliers data:", suppliersData);
+      console.log("First supplier structure:", suppliersData[0]);
       setError(null);
 
       console.log("Suppliers set to:", suppliersData);
       console.log("=== End fetchSuppliers ===");
     } catch (error) {
       console.error("Error fetching suppliers:", error);
-      
-      // Fallback: Sử dụng dữ liệu mẫu mặc định khi API không hoạt động
-      setSuppliers(defaultSuppliers);
+      setSuppliers([]);
       setError(
-        "Không thể kết nối đến server. Đang hiển thị dữ liệu mẫu. Lỗi: " +
+        "Không thể kết nối đến server. Lỗi: " +
           (error.response?.data?.message || error.message)
       );
     } finally {
@@ -176,9 +172,12 @@ const SupplierListAdvanced = () => {
   // Cập nhật trạng thái nhà cung cấp
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      await axios.put(`http://localhost:9999/suppliers/update-status/${id}`, {
-        status: newStatus,
-      });
+      if (newStatus === 'active') {
+        await supplierAPI.enable(id);
+      } else {
+        await supplierAPI.disable(id);
+      }
+      
       const updatedSuppliers = suppliers.map((s) =>
         s._id === id ? { ...s, status: newStatus } : s
       );
@@ -228,6 +227,111 @@ const SupplierListAdvanced = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedSupplier(null);
+  };
+
+  // Form validation
+  const validateForm = (data) => {
+    const errors = {};
+
+    // Required fields: Name, PhoneNumber, Email, Address, Status, BankAccountNumber, MyDebt
+    if (!data.name.trim()) errors.name = "Tên nhà cung cấp là bắt buộc";
+
+    if (!data.contact.trim()) {
+      errors.contact = "Số điện thoại là bắt buộc";
+    } else if (!/^0\d{9}$/.test(data.contact)) {
+      errors.contact = "Số điện thoại chỉ gồm số, 10 ký tự và bắt đầu bằng 0";
+    }
+
+    if (!data.email.trim()) {
+      errors.email = "Email là bắt buộc";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      errors.email = "Email không hợp lệ";
+    }
+
+    if (!data.address.trim()) {
+      errors.address = "Địa chỉ là bắt buộc";
+    }
+
+    if (!data.bankAccountNumber.trim()) {
+      errors.bankAccountNumber = "Số tài khoản ngân hàng là bắt buộc";
+    } else if (!/^\d{8,20}$/.test(data.bankAccountNumber)) {
+      errors.bankAccountNumber = "Số tài khoản chỉ gồm số và dài 8–20 ký tự";
+    }
+
+    if (!data.myDebt.trim()) {
+      errors.myDebt = "Số nợ là bắt buộc";
+    } else if (!/^\d+$/.test(data.myDebt)) {
+      errors.myDebt = "Số nợ chỉ được chứa số";
+    }
+
+    return errors;
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    const errors = validateForm(formData);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    
+    try {
+      console.log("Creating supplier with data:", formData);
+      const response = await supplierAPI.add(formData);
+      console.log("Create response:", response);
+      
+      if (response?.data?.success) {
+        // Show success message with green color
+        const successAlert = document.createElement('div');
+        successAlert.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background-color: #4caf50;
+          color: white;
+          padding: 16px 24px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 9999;
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+        `;
+        successAlert.textContent = "Tạo nhà cung cấp thành công";
+        document.body.appendChild(successAlert);
+        
+        // Remove alert after 3 seconds
+        setTimeout(() => {
+          if (successAlert.parentNode) {
+            successAlert.parentNode.removeChild(successAlert);
+          }
+        }, 3000);
+        
+        setOpenAddModal(false);
+        // Reset form
+        setFormData({
+          name: "",
+          address: "",
+          contact: "",
+          email: "",
+          description: "",
+          status: "active",
+          bankAccountNumber: "",
+          myDebt: "",
+        });
+        setFormErrors({});
+        // Refresh suppliers list
+        fetchSuppliers();
+        
+        // Redirect after 3 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      } else {
+        setFormErrors({ submit: response?.data?.message || "Có lỗi xảy ra khi tạo nhà cung cấp" });
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo nhà cung cấp:", error);
+      setFormErrors({ submit: error?.response?.data?.message || "Có lỗi xảy ra khi tạo nhà cung cấp" });
+    }
   };
 
   // Sorting function
@@ -313,7 +417,7 @@ const SupplierListAdvanced = () => {
     );
   }
 
-  // Không return early khi có error, để hiển thị dữ liệu mẫu
+  // Hiển thị error nếu có
 
   const fetchSupplierProducts = async (supplierId) => {
     try {
@@ -417,13 +521,6 @@ const SupplierListAdvanced = () => {
               </Typography>
             </Box>
 
-            {/* Thông báo Demo Mode */}
-            <Alert
-              severity="info"
-              sx={{ mb: 3 }}
-            >
-              🚀 <strong>Demo Mode:</strong> Đang hiển thị dữ liệu mẫu. Ứng dụng hoạt động đầy đủ với tất cả chức năng UI.
-            </Alert>
 
             {/* Toolbar với tìm kiếm và bộ lọc */}
             <Paper
@@ -460,9 +557,6 @@ const SupplierListAdvanced = () => {
 
                 {/* Bộ lọc trạng thái */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Badge badgeContent={activeFiltersCount} color="primary">
-                    <FilterListIcon color="action" />
-                  </Badge>
                   <FormGroup row>
                     {["Còn cung cấp", "Ngừng cung cấp"].map((status) => (
                       <FormControlLabel
@@ -486,11 +580,6 @@ const SupplierListAdvanced = () => {
 
                 {/* Nút làm mới và xóa bộ lọc */}
                 <Box sx={{ display: "flex", gap: 1 }}>
-                  <Tooltip title="Làm mới dữ liệu">
-                    <IconButton onClick={fetchSuppliers} color="primary">
-                      <RefreshIcon />
-                    </IconButton>
-                  </Tooltip>
                   {activeFiltersCount > 0 && (
                     <Tooltip title="Xóa tất cả bộ lọc">
                       <IconButton
@@ -508,7 +597,10 @@ const SupplierListAdvanced = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate("/manager/add-suppliers")}
+                    onClick={() => {
+                      console.log("Add button clicked, opening modal...");
+                      setOpenAddModal(true);
+                    }}
                     sx={{
                       backgroundColor: "#1976d2",
                       "&:hover": { backgroundColor: "#1565c0" },
@@ -601,7 +693,7 @@ const SupplierListAdvanced = () => {
               <TableBody>
                 {paginatedSuppliers.length > 0 ? (
                   paginatedSuppliers.map((supplier, index) => (
-                    <React.Fragment key={supplier._id}>
+                    <React.Fragment key={`supplier-${supplier.id || supplier._id || index}`}>
                       <TableRow
                         hover
                         sx={{
@@ -1020,7 +1112,10 @@ const SupplierListAdvanced = () => {
             right: 24,
             zIndex: 1000,
           }}
-          onClick={() => navigate("/manager/add-suppliers")}
+          onClick={() => {
+            console.log("FAB clicked, opening modal...");
+            setOpenAddModal(true);
+          }}
         >
           <AddIcon />
         </Fab>
@@ -1032,6 +1127,17 @@ const SupplierListAdvanced = () => {
           closeModal={() => setEditingSupplier(null)}
           users={suppliers}
           setUsers={setSuppliers}
+        />
+
+        {/* Add Supplier Modal */}
+        <AddSupplier
+          open={openAddModal}
+          onClose={() => setOpenAddModal(false)}
+          formData={formData}
+          setFormData={setFormData}
+          formErrors={formErrors}
+          onSubmit={handleSubmit}
+          palette={palette}
         />
       </Container>
     </Box>

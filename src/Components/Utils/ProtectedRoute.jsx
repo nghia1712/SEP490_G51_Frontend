@@ -96,7 +96,6 @@ const ProtectedRoute = ({ children, allowedRoles, redirectTo = '/login' }) => {
         return <div>Đang kiểm tra quyền truy cập...</div>;
     }
 
-    console.log('ProtectedRoute - isAuthenticated:', isAuthenticated);
     if (isAuthenticated) return children;
     // Nếu có thông điệp sau logout, chuyển kèm state để màn hình login hiện notice
     return <Navigate to={redirectTo} replace state={{ notice: sessionStorage.getItem('postLogoutMessage') }} />;

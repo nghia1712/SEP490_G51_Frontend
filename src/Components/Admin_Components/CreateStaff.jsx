@@ -17,7 +17,7 @@ function CreateStaff({ onClose, onCreated }) {
     avatar: "", // Add avatar field back
     address: "",
     gender: true, // true=Nam, false=Nữ
-    employeeCode: "",
+    employeeCode: null, // Backend sẽ tự động generate
     notes: "",
     staffRole: 0, // 0=Sales,1=Purchases,2=Warehouse,3=Account
   });
@@ -163,12 +163,7 @@ function CreateStaff({ onClose, onCreated }) {
       }
     }
     
-    // Validate employee code is required for staff
-    if (!data.employeeCode || data.employeeCode.trim().length === 0) {
-      setStatusMessage('Vui lòng nhập mã nhân viên');
-      setIsError(true);
-      return;
-    }
+    // Employee code validation removed - Backend tự động generate
     
     // Check email duplication before submit
     const isEmailDuplicate = await checkEmailDuplicate(data.email);
@@ -204,7 +199,7 @@ function CreateStaff({ onClose, onCreated }) {
         FullName: data.fullName && data.fullName.trim() !== '' ? data.fullName : null,
         Gender: data.gender,
         Address: data.address && data.address.trim() !== '' ? data.address : null,
-        EmployeeCode: data.employeeCode && data.employeeCode.trim() !== '' ? data.employeeCode : null,
+        EmployeeCode: null, // Backend sẽ tự động generate
         Notes: data.notes && data.notes.trim() !== '' ? data.notes : null,
         StaffRole: Number(data.staffRole),
         Avatar: data.avatar && data.avatar.trim() !== '' ? data.avatar : null
@@ -377,14 +372,13 @@ function CreateStaff({ onClose, onCreated }) {
                 </Row>
                 <Row className="mb-1">
                   <Col md={6}>
-                    <Form.Group controlId="formUserName">
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Tên đăng nhập</Form.Label>
+                    <Form.Group controlId="formAddress">
+                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Địa chỉ</Form.Label>
                       <Form.Control
                         type="text"
-                        name="userName"
-                        value={data.userName}
+                        name="address"
+                        value={data.address}
                         onChange={handleChange}
-                        placeholder="Để trống sẽ dùng email"
                         style={{ 
                           borderColor: '#48C1A6',
                           borderRadius: '6px',
@@ -421,7 +415,7 @@ function CreateStaff({ onClose, onCreated }) {
                   </Col>
                 </Row>
                 
-                {/* Thông tin công việc */}
+                {/* Thông tin tài khoản */}
                 <h5 style={{ 
                   color: '#2c3e50', 
                   marginBottom: '15px',
@@ -431,59 +425,7 @@ function CreateStaff({ onClose, onCreated }) {
                   paddingBottom: '6px',
                   fontSize: '16px'
                 }}>
-                  Thông tin công việc
-                </h5>
-                <Row className="mb-2">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Mã nhân viên <span style={{ color: "red" }}>*</span></Form.Label>
-                      <Form.Control 
-                        type="text" 
-                        name="employeeCode" 
-                        value={data.employeeCode} 
-                        onChange={handleChange}
-                        required
-                        onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
-                        onInput={(e) => e.target.setCustomValidity("")}
-                        style={{ 
-                          borderColor: '#48C1A6',
-                          borderRadius: '6px',
-                          padding: '8px 12px',
-                          fontSize: '13px'
-                        }} 
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group controlId="formAddress">
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Địa chỉ</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="address"
-                        value={data.address}
-                        onChange={handleChange}
-                        style={{ 
-                          borderColor: '#48C1A6',
-                          borderRadius: '6px',
-                          padding: '8px 12px',
-                          fontSize: '13px'
-                        }}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-                
-                {/* Thông tin bổ sung */}
-                <h5 style={{ 
-                  color: '#2c3e50', 
-                  marginBottom: '15px',
-                  marginTop: '25px',
-                  fontWeight: '600',
-                  borderBottom: '2px solid #48C1A6',
-                  paddingBottom: '6px',
-                  fontSize: '16px'
-                }}>
-                  Thông tin bổ sung
+                  Thông tin tài khoản
                 </h5>
                 <Row className="mb-2">
                   <Col md={6}>

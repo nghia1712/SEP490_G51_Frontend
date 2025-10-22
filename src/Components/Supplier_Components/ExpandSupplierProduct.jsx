@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import { useState, useEffect } from "react";
-import AddSupplierProductModal from "./AddSupplierProductModal";
+import AddSupplierProduct from "./AddSupplierProduct";
 import useSupplierProduct from "../../Hooks/useSupplierProduct";
 import useCategory from "../../Hooks/useCategory";
 
@@ -146,7 +146,7 @@ const ExpandSupplierProduct = ({
             Chưa có sản phẩm nào
           </Typography>
         )}
-        <AddSupplierProductModal
+        <AddSupplierProduct
           open={openAddProductModal}
           onClose={() => setOpenAddProductModal(false)}
           onSubmit={handleAddProduct}

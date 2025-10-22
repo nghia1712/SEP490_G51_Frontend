@@ -25,12 +25,8 @@ const useSupplier = () => {
     const fetchSupplierById = async (id) => {
         setLoading(true);
         try {
-            // You may need to implement a getById in supplierAPI if needed
-            // For now, fallback to getAll and filter
-            const response = await supplierAPI.getAll();
-            const data = response.data?.data || response.data || [];
-            const found = data.find(s => s._id === id);
-            setSupplier(found || null);
+            const response = await supplierAPI.getById(id);
+            setSupplier(response.data || null);
         } catch (err) {
             setError(err.message || "Failed to fetch supplier");
         } finally {
@@ -42,9 +38,15 @@ const useSupplier = () => {
         setLoading(true);
         try {
             const response = await supplierAPI.add(formData);
-            setSuppliers(prev => [...prev, response.data]);
+            // Backend returns { success, message, data }
+            const created = response?.data?.data ?? response?.data;
+            if (created) {
+                setSuppliers(prev => [...prev, created]);
+            }
+            return response?.data; // allow caller to show message
         } catch (err) {
-            setError(err.message || "Failed to create supplier");
+            setError(err?.response?.data?.message || err.message || "Failed to create supplier");
+            throw err;
         } finally {
             setLoading(false);
         }

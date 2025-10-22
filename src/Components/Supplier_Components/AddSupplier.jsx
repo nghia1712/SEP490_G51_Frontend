@@ -12,10 +12,11 @@ import {
   MenuItem,
   Button,
   IconButton,
+  Alert,
 } from "@mui/material";
-import { Add as AddIcon, Close as CloseIcon, Save as SaveIcon } from "@mui/icons-material";
+import { Add as AddIcon, Save as SaveIcon } from "@mui/icons-material";
 
-const AddSupplierModal = ({
+const AddSupplier = ({
   open,
   onClose,
   formData,
@@ -34,32 +35,29 @@ const AddSupplierModal = ({
         sx: {
           borderRadius: 2,
           boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          backgroundColor: "#ffffff",
         },
       }}
     >
       <DialogTitle
         sx={{
-          backgroundColor: palette.dark,
-          color: palette.white,
+          backgroundColor: "#ffffff",
+          color: "#000000",
           display: "flex",
           alignItems: "center",
           pb: 2,
+          borderBottom: "1px solid #e0e0e0",
         }}
       >
         <AddIcon sx={{ mr: 1 }} />
         Thêm nhà cung cấp mới
-        <IconButton
-          onClick={onClose}
-          sx={{
-            ml: "auto",
-            color: palette.white,
-            "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
       </DialogTitle>
       <DialogContent sx={{ p: 3 }}>
+        {formErrors.submit && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {formErrors.submit}
+          </Alert>
+        )}
         <Grid container spacing={3} sx={{ mt: 1 }}>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -193,6 +191,50 @@ const AddSupplierModal = ({
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Số tài khoản ngân hàng"
+              value={formData.bankAccountNumber}
+              onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })}
+              error={!!formErrors.bankAccountNumber}
+              helperText={formErrors.bankAccountNumber}
+              required
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "&.Mui-focused fieldset": {
+                    borderColor: palette.dark,
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: palette.dark,
+                },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Số nợ của tôi"
+              value={formData.myDebt}
+              onChange={(e) => setFormData({ ...formData, myDebt: e.target.value })}
+              error={!!formErrors.myDebt}
+              helperText={formErrors.myDebt}
+              required
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "&.Mui-focused fieldset": {
+                    borderColor: palette.dark,
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: palette.dark,
+                },
+              }}
+            />
+          </Grid>
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: 3, backgroundColor: "#f8fafc" }}>
@@ -226,4 +268,4 @@ const AddSupplierModal = ({
   );
 };
 
-export default AddSupplierModal;
+export default AddSupplier;
