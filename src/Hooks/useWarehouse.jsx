@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
 import inventoryAPI from "../API/inventoryAPI";
 import productAPI from "../API/productAPI";
+import warehouseAPI from "../API/warehouseAPI";
 
 const useWarehouse = () => {
   const [shelves, setShelves] = useState([]);
   const [selectedShelf, setSelectedShelf] = useState(null);
   const [products, setProducts] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -305,6 +307,87 @@ const useWarehouse = () => {
     }
   }, []);
 
+  // Lấy danh sách warehouse
+  const fetchWarehouses = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const response = await warehouseAPI.getAllWarehouses();
+      setWarehouses(response.data || []);
+      
+      return response.data || [];
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách warehouse:", err);
+      setError(err.response?.data?.message || "Đã xảy ra lỗi khi tải danh sách warehouse");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Tạo warehouse mới
+  const createWarehouse = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      await warehouseAPI.createWarehouse(data);
+      
+      // Cập nhật danh sách warehouse
+      await fetchWarehouses();
+      
+      setSuccess("Tạo warehouse thành công");
+      return true;
+    } catch (err) {
+      console.error("Lỗi khi tạo warehouse:", err);
+      setError(err.response?.data?.message || "Lỗi khi tạo warehouse");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchWarehouses]);
+
+  // Cập nhật warehouse
+  const updateWarehouse = useCallback(async (data) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      await warehouseAPI.updateWarehouse(data);
+      
+      // Cập nhật danh sách warehouse
+      await fetchWarehouses();
+      
+      setSuccess("Cập nhật warehouse thành công");
+      return true;
+    } catch (err) {
+      console.error("Lỗi khi cập nhật warehouse:", err);
+      setError(err.response?.data?.message || "Lỗi khi cập nhật warehouse");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchWarehouses]);
+
+  // Lấy chi tiết warehouse
+  const getWarehouseDetails = useCallback(async (warehouseId) => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const response = await warehouseAPI.getWarehouseDetails(warehouseId);
+      
+      return response.data;
+    } catch (err) {
+      console.error("Lỗi khi lấy chi tiết warehouse:", err);
+      setError(err.response?.data?.message || "Không thể lấy chi tiết warehouse");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Xóa thông báo
   const clearMessages = useCallback(() => {
     setError("");
@@ -332,6 +415,7 @@ const useWarehouse = () => {
     shelves,
     selectedShelf,
     products,
+    warehouses,
     loading,
     error,
     success,
@@ -351,6 +435,12 @@ const useWarehouse = () => {
     getWarehouseStats,
     searchProductsInWarehouse,
     clearMessages,
+    
+    // Warehouse management
+    fetchWarehouses,
+    createWarehouse,
+    updateWarehouse,
+    getWarehouseDetails,
     
     // Utilities
     calculateShelfUsage,

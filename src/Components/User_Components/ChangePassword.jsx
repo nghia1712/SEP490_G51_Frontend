@@ -47,15 +47,47 @@ function ChangePassword() {
     setStatusMessage("");
 
     // Validation
+    if (!form.oldPassword.trim()) {
+      setIsError(true);
+      setStatusMessage("Vui lòng nhập mật khẩu cũ!");
+      return;
+    }
+
+    if (!form.newPassword.trim()) {
+      setIsError(true);
+      setStatusMessage("Vui lòng nhập mật khẩu mới!");
+      return;
+    }
+
+    if (!form.confirmPassword.trim()) {
+      setIsError(true);
+      setStatusMessage("Vui lòng xác nhận mật khẩu mới!");
+      return;
+    }
+
     if (form.newPassword !== form.confirmPassword) {
       setIsError(true);
       setStatusMessage("Mật khẩu mới và xác nhận mật khẩu không khớp!");
       return;
     }
 
-    if (form.newPassword.length < 6) {
+    if (form.newPassword.length < 8) {
       setIsError(true);
-      setStatusMessage("Mật khẩu mới phải có ít nhất 6 ký tự!");
+      setStatusMessage("Mật khẩu mới phải có ít nhất 8 ký tự!");
+      return;
+    }
+
+    // Validate password complexity
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+    if (!complexityRegex.test(form.newPassword)) {
+      setIsError(true);
+      setStatusMessage("Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt!");
+      return;
+    }
+
+    if (form.oldPassword === form.newPassword) {
+      setIsError(true);
+      setStatusMessage("Mật khẩu mới phải khác mật khẩu cũ!");
       return;
     }
 
@@ -64,16 +96,50 @@ function ChangePassword() {
 
   const handleConfirm = async () => {
     setShowConfirm(false);
+    setIsError(false);
+    setStatusMessage("");
+    
     try {
-      const response = await changePassword(form);
+      // Prepare data in the correct format for backend
+      const changePasswordData = {
+        OldPassword: form.oldPassword,
+        NewPassword: form.newPassword
+      };
+      
+      console.log("Sending change password data:", changePasswordData);
+      const response = await changePassword(changePasswordData);
+      console.log("Change password response:", response);
+      
       if (response) {
-        setStatusMessage(response.message || "Đổi mật khẩu thành công!");
+        setIsError(false);
+        setStatusMessage("Đổi mật khẩu thành công!");
         setForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
         setTimeout(() => {navigate("/profile");}, 3000);
       }
     } catch (error) {
+      console.error("Change password error:", error);
       setIsError(true);
-      setStatusMessage(error.message || "Lỗi khi thay đổi mật khẩu.");
+      
+      // Handle specific error messages from backend
+      let errorMessage = "Lỗi khi thay đổi mật khẩu.";
+      
+      if (error.response?.data?.message) {
+        const backendMessage = error.response.data.message.toLowerCase();
+        
+        if (backendMessage.includes('mật khẩu cũ') || backendMessage.includes('old password') || backendMessage.includes('incorrect') || backendMessage.includes('đổi mật khẩu thất bại')) {
+          errorMessage = "Mật khẩu cũ nhập sai, vui lòng nhập đúng!";
+        } else if (backendMessage.includes('mật khẩu mới') || backendMessage.includes('new password')) {
+          errorMessage = "Mật khẩu mới không hợp lệ!";
+        } else if (backendMessage.includes('không thể xác thực') || backendMessage.includes('unauthorized')) {
+          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+        } else {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setStatusMessage(errorMessage);
     }
   };
 
@@ -207,6 +273,9 @@ function ChangePassword() {
                             {showPasswords.newPassword ? <FaEyeSlash /> : <FaEye />}
                           </InputGroup.Text>
                         </InputGroup>
+                        <Form.Text className="text-muted" style={{ fontSize: '12px' }}>
+                          Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt
+                        </Form.Text>
                       </Form.Group>
                     </motion.div>
 
@@ -276,15 +345,20 @@ function ChangePassword() {
       {/* Modal xác nhận */}
       <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Xác nhận thay đổi mật khẩu</Modal.Title>
+          <Modal.Title>🔐 Xác nhận thay đổi mật khẩu</Modal.Title>
         </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn thay đổi mật khẩu?</Modal.Body>
+        <Modal.Body>
+          <p>Bạn có chắc chắn muốn thay đổi mật khẩu?</p>
+          <p className="text-muted small">
+            Sau khi thay đổi, bạn sẽ cần đăng nhập lại với mật khẩu mới.
+          </p>
+        </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowConfirm(false)}>
             Hủy
           </Button>
-          <Button variant="danger" onClick={handleConfirm}>
-            Xác nhận
+          <Button variant="primary" onClick={handleConfirm} style={{ backgroundColor: "#48C1A6", border: "none" }}>
+            Xác nhận đổi mật khẩu
           </Button>
         </Modal.Footer>
       </Modal>

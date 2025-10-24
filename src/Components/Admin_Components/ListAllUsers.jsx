@@ -132,16 +132,25 @@ const ListAllUsers = ({ roleGroup }) => {
   const openDetail = async (user) => {
     try {
       const id = user?.userId || user?.UserId || user?._id || user?.accountId || user?.AccountId;
+      console.log("=== openDetail Debug ===");
       console.log("openDetail - user data:", user);
       console.log("openDetail - user ID:", id);
       if (!id) return;
       const response = await adminAPI.getAccountDetails(id);
       console.log("getAccountDetails response:", response);
+      console.log("getAccountDetails response.data:", response.data);
+      
       // Unwrap common API shapes: axios { data }, and backend { success, data }
       const data = (response?.data && (response.data.data ?? response.data)) || response;
       console.log("Account details data:", data);
+      console.log("Account details data.avatar:", data?.avatar);
+      
       // Merge: keep fields from list row (like role), override with detail fields when present
       const merged = (data && typeof data === 'object') ? { ...(user || {}), ...data } : (user || data);
+      console.log("Merged user data:", merged);
+      console.log("Merged user data.avatar:", merged?.avatar);
+      console.log("Avatar is null/empty:", !merged?.avatar || merged?.avatar === '');
+      
       setDetailUser(merged);
       setIsDetailOpen(true);
     } catch (err) {
@@ -329,12 +338,22 @@ const ListAllUsers = ({ roleGroup }) => {
             if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
                 return avatar;
             }
-            // If it's a relative path, construct full URL
-            if (avatar.startsWith('/')) {
-                return `${window.location.origin}${avatar}`;
+            // If it's a relative path starting with /images/, construct full URL with correct port
+            if (avatar.startsWith('/images/')) {
+                // Check if path has extension
+                const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatar);
+                if (hasExtension) {
+                    return `http://localhost:5137${avatar}`;
+                } else {
+                    // Try with .jpg extension
+                    return `http://localhost:5137${avatar}.jpg`;
+                }
             }
             // If it's just a filename, assume it's in the images folder
-            return `${window.location.origin}/images/${avatar}`;
+            if (avatar.startsWith('/')) {
+                return `http://localhost:5137${avatar}`;
+            }
+            return `http://localhost:5137/images/${avatar}`;
         }
         
         return null; // No avatar found
@@ -798,30 +817,27 @@ const ListAllUsers = ({ roleGroup }) => {
                                                         boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
                                                     }}
                                                     onError={(e) => {
-                                                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiByeD0iNTAiIGZpbGw9IiNBODhGNkNGIi8+Cjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+8J+UpDwvdGV4dD4KPC9zdmc+';
+                                                        e.target.src = '/images/avatar/image1.png';
                                                     }}
                                                 />
                                             );
                                         } else {
                                             return (
-                                                <div 
+                                                <img 
+                                                    src="/images/avatar/image1.png" 
+                                                    alt="Default Avatar" 
                                                     style={{
                                                         width: '100px',
                                                         height: '100px',
                                                         borderRadius: '50%',
-                                                        backgroundColor: '#A8E6CF',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        margin: '0 auto',
-                                                        fontSize: '40px',
-                                                        color: '#666',
+                                                        objectFit: 'cover',
                                                         border: '3px solid #A8E6CF',
                                                         boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
                                                     }}
-                                                >
-                                                    👤
-                                                </div>
+                                                    onError={(e) => {
+                                                        e.target.src = '/images/avatar/image1.png';
+                                                    }}
+                                                />
                                             );
                                         }
                                     })()}

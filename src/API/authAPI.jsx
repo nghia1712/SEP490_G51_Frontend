@@ -33,9 +33,20 @@ const authAPI = {
 
   refreshToken: async () => {
     const currentToken = localStorage.getItem('authToken') || '';
-    return unauthorApi
-      .post("/Token/refresh", { accessToken: currentToken })
-      .then((response) => response.data?.accessToken);
+    console.log('=== REFRESH TOKEN DEBUG ===');
+    console.log('Current token exists:', !!currentToken);
+    console.log('Token length:', currentToken.length);
+    console.log('Making refresh request...');
+    
+    try {
+      const response = await unauthorApi.post("/Token/refresh", { accessToken: currentToken });
+      console.log('Refresh response:', response.data);
+      return response.data?.accessToken;
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
   },
 
   logout: async () =>

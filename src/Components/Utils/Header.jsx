@@ -94,6 +94,16 @@ function Header() {
     }
   }, [currentToken, getProfile]);
 
+  // Function to check if nav item is active
+  const isActiveNavItem = (path) => {
+    // Special case for /warehouse to avoid matching /warehouse-staff
+    if (path === "/warehouse") {
+      return location.pathname === "/warehouse";
+    }
+    // For other paths, use startsWith logic
+    return location.pathname.startsWith(path);
+  };
+
   // --- HANDLERS ---
   const handleTransactionMenuClick = (event) =>
     setTransactionMenuAnchor(event.currentTarget);
@@ -134,10 +144,10 @@ function Header() {
   // --- NAVIGATION ITEMS ---
   const navItems = [
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
-    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
-    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
-    { label: "Nhà cung cấp", path: "/suppliers", allowedRoles: ["manager", "purchases_staff", "admin"] },
-    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "warehouse_staff", "admin"] },
+    { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"] },
+    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"] },
+    { label: "Nhà cung cấp", path: "/supplier", allowedRoles: ["manager", "purchases_staff", "admin"] },
+    { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "admin"] },
     { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff", "admin"] },
@@ -149,7 +159,7 @@ function Header() {
   ];
 
   const transactionMenuItems = [
-    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager", "warehouse_staff"] },
+    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager"] },
     { label: "Danh Sách Giao Dịch", path: "/list-transaction", allowedRoles: ["manager"] },
   ];
 
@@ -221,7 +231,7 @@ function Header() {
             {visibleNavItems.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
-                  selected={location.pathname.startsWith(item.path)}
+                  selected={isActiveNavItem(item.path)}
                   sx={{ textAlign: "left" }}
                   onClick={() => handleNavigate(item.path)}
                 >
@@ -296,7 +306,7 @@ function Header() {
                     key={item.path}
                     color="inherit"
                     onClick={() => handleNavigate(item.path)}
-                    sx={{ ...(location.pathname.startsWith(item.path) ? activeNavStyle : navButtonHoverStyle) }}
+                    sx={{ ...(isActiveNavItem(item.path) ? activeNavStyle : navButtonHoverStyle) }}
                   >
                     {item.label}
                   </Button>

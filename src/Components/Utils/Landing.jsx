@@ -56,6 +56,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import GridViewIcon from "@mui/icons-material/GridView";
 import BusinessIcon from "@mui/icons-material/Business";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
 // import useUser from "../../Hooks/useUser"; // Đã xóa do lỗi phân giải
 
 // --- HÀM HELPER ---
@@ -104,8 +105,14 @@ const mainFunctions = [
   {
     title: "Nhà Cung Cấp",
     icon: <BusinessIcon />,
-    path: "/suppliers",
+    path: "/supplier",
     allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
+  },
+  {
+    title: "Quản lý kho",
+    icon: <WarehouseIcon />,
+    path: "/warehouse",
+    allowedRoles: ["warehouse_staff", "manager"],
   },
   {
     title: "Liên hệ",
@@ -163,7 +170,8 @@ const mainFunctions = [
 const enabledPaths = new Set([
   	"/product",
   	"/category",
-  	"/suppliers",
+	"/supplier",
+	"/warehouse",
   	"/contact",
 ]);
 
@@ -315,11 +323,11 @@ function Landing() {
     let roleSpecificEnabledPaths = enabledPaths;
     
     if (currentRole === 'purchases_staff') {
-      roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category', '/suppliers']);
+      roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category', '/supplier']);
     } else if (currentRole === 'sales_staff') {
       roleSpecificEnabledPaths = new Set(['/sales-dashboard', '/product', '/category']);
     } else if (currentRole === 'warehouse_staff') {
-      roleSpecificEnabledPaths = new Set(['/warehouse-dashboard', '/product', '/category']);
+      roleSpecificEnabledPaths = new Set(['/warehouse-dashboard', '/warehouse']);
     } else if (currentRole === 'accountant_staff') {
       roleSpecificEnabledPaths = new Set(['/manager-dashboard', '/product', '/category']);
     }

@@ -25,7 +25,7 @@ export const warehouseStaffFunctions = [
   {
     title: "Nhà Cung Cấp",
     icon: <BusinessIcon />,
-    path: "/suppliers",
+    path: "/supplier",
     description: "Quản lý thông tin nhà cung cấp",
     category: "core"
   },

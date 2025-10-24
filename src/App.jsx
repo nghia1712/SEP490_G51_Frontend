@@ -25,6 +25,7 @@ import ManageSupplierProducts from "./Components/Supplier_Components/ManageSuppl
 import SupplierProductDetail from "./Components/Supplier_Components/SupplierProductDetail";
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
+import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
 import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
 import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard";
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
@@ -293,8 +294,8 @@ function App() {
                       <Route 
                         path="/warehouse" 
                         element={
-                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'accountant_staff', 'admin']}>
-                            <WarehouseDashboard />
+                          <ProtectedRoute allowedRoles={['manager', 'warehouse_staff', 'admin']}>
+                            <WarehouseList />
                           </ProtectedRoute>
                         } 
                       />
@@ -391,7 +392,7 @@ function App() {
                       
                       {/* Routes cho Supplier Management */}
                       <Route 
-                        path="/suppliers" 
+                        path="/supplier" 
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
                             <SupplierListAdvanced />
@@ -402,7 +403,7 @@ function App() {
                         path="/manager/add-suppliers" 
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'purchases_staff']}>
-                            <Navigate to="/suppliers" replace />
+                            <Navigate to="/supplier" replace />
                           </ProtectedRoute>
                         }
                       />

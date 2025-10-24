@@ -25,7 +25,7 @@ export const purchasesStaffFunctions = [
   {
     title: "Nhà Cung Cấp",
     icon: <BusinessIcon />,
-    path: "/suppliers",
+    path: "/supplier",
     description: "Quản lý thông tin nhà cung cấp",
     category: "core"
   },
@@ -62,7 +62,7 @@ export const purchasesStaffQuickActions = [
   {
     title: "Nhà cung cấp",
     icon: <BusinessIcon />,
-    path: "/suppliers",
+    path: "/supplier",
     color: "#2196F3"
   },
   {

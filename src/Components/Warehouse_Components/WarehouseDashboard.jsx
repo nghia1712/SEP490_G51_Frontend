@@ -24,6 +24,7 @@ import {
   FilterList,
   SwapVert,
 } from "@mui/icons-material";
+import { FaWarehouse, FaBox, FaExclamationTriangle, FaPlus, FaSearch, FaArrowsAltV, FaChartLine } from "react-icons/fa";
 
 function WarehouseDashboard() {
   const [warehouseData, setWarehouseData] = useState({

@@ -75,7 +75,7 @@ const SupplierProductDetail = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/suppliers")}
+          onClick={() => navigate("/supplier")}
         >
           Quay lại danh sách nhà cung cấp
         </Button>
@@ -90,7 +90,7 @@ const SupplierProductDetail = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/suppliers")}
+          onClick={() => navigate("/supplier")}
           sx={{ mb: 2 }}
         >
           Quay lại danh sách nhà cung cấp

@@ -172,8 +172,13 @@ class TokenManager {
    */
   async getValidToken() {
     const token = localStorage.getItem('authToken');
+    
+    console.log("=== TOKEN MANAGER getValidToken ===");
+    console.log("Raw token from localStorage:", token ? "EXISTS" : "NOT FOUND");
+    console.log("Token length:", token ? token.length : 0);
 
     if (!token) {
+      console.log("No token found in localStorage");
       return null;
     }
 
@@ -182,6 +187,7 @@ class TokenManager {
       return await this.autoRefreshToken();
     }
 
+    console.log("Token is valid, returning:", token.substring(0, 20) + "...");
     return token;
   }
 }

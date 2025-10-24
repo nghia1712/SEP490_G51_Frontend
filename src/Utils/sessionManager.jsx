@@ -2,12 +2,12 @@
  * Session Manager - Quản lý phiên đăng nhập đơn giản
  * Chỉ có 2 tính năng:
  * 1. Refresh token tự động
- * 2. Auto logout sau 5 phút không hoạt động
+ * 2. Auto logout sau 8 giờ không hoạt động
  */
 
 class SessionManager {
   constructor() {
-    this.sessionTimeout = 60 * 60 * 1000; // 60 phút
+    this.sessionTimeout = 8 * 60 * 60 * 1000; // 8 giờ thay vì 60 phút
     this.lastActivity = null;
     this.activityTimer = null;
     
@@ -39,7 +39,7 @@ class SessionManager {
         const { lastActivity } = JSON.parse(sessionData);
         const now = Date.now();
         
-        // Kiểm tra nếu session đã hết hạn (60 phút)
+        // Kiểm tra nếu session đã hết hạn (8 giờ)
         if (now - lastActivity > this.sessionTimeout) {
           console.log('Session đã hết hạn, tự động logout');
           this.forceLogout('Phiên đăng nhập đã hết hạn');
@@ -139,9 +139,9 @@ class SessionManager {
     if (unloadTime) {
       const timeAway = Date.now() - parseInt(unloadTime);
       
-      // Nếu user thoát trang quá 60 phút, tự động logout
+      // Nếu user thoát trang quá 8 giờ, tự động logout
       if (timeAway > this.sessionTimeout) {
-        console.log('User thoát trang quá 5 phút, tự động logout');
+        console.log('User thoát trang quá 8 giờ, tự động logout');
         this.forceLogout('Phiên đăng nhập đã hết hạn do thoát trang quá lâu');
         return;
       }

@@ -56,7 +56,7 @@ const EditProduct = ({
           status: product.status || false,
           productImage: null,
         });
-        const imageUrl = product.productImage ? `http://localhost:5137${product.productImage}` : null;
+        const imageUrl = product.image ? `http://localhost:5137${product.image}` : null;
         setCurrentImageUrl(imageUrl);
         setImagePreview(imageUrl);
       }
@@ -105,14 +105,6 @@ const EditProduct = ({
     }
   };
 
-  const handleRemoveImage = () => {
-    setProductData((prev) => ({ ...prev, productImage: null }));
-    setImagePreview(null);
-    setCurrentImageUrl(null);
-    if (errors.productImage) {
-      setErrors((prev) => ({ ...prev, productImage: "" }));
-    }
-  };
 
   // const handleInventorySelect = (e) => { // Commented out - will be developed later
   //   setSelectedInventory(e.target.value);
@@ -246,9 +238,10 @@ const EditProduct = ({
     
     setLoading(true);
     
-    // If there is a new file, upload it first to get path
-    let imagePath = product.productImage || product.image;
+    // Handle image path
+    let imagePath = product.image;
     if (productData.productImage && typeof productData.productImage === 'object') {
+      // Nếu có hình ảnh mới, upload nó
       try {
         const uploadRes = await productAPI.uploadImage(productData.productImage);
         imagePath = uploadRes?.data?.data || imagePath;
@@ -412,11 +405,6 @@ const EditProduct = ({
                   {currentImageUrl ? "Thay đổi ảnh" : "Chọn Hình Ảnh"}
                   <input type="file" hidden accept="image/png, image/jpeg" onChange={handleFileChange} />
                 </Button>
-                {currentImageUrl && (
-                  <Button variant="outlined" color="error" onClick={handleRemoveImage}>
-                    Xóa ảnh
-                  </Button>
-                )}
               </Box>
           {/** URL image input (commented for later use)
           <TextField
@@ -453,11 +441,9 @@ const EditProduct = ({
                       border: '1px solid #e0e0e0'
                     }} 
                   />
-                  {currentImageUrl && (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      {productData.productImage ? "Hình ảnh mới" : "Hình ảnh hiện tại"}
-                    </Typography>
-                  )}
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    {productData.productImage ? "Hình ảnh mới" : "Hình ảnh hiện tại"}
+                  </Typography>
                 </Box>
               ) : (
                 <Box sx={{ 

@@ -16,13 +16,22 @@ authorApi.interceptors.request.use(async config => {
     // Sử dụng TokenManager để lấy token hợp lệ
     const token = await tokenManager.getValidToken();
     
+    console.log("=== REQUEST INTERCEPTOR ===");
+    console.log("URL:", config.url);
+    console.log("Token exists:", !!token);
+    console.log("Token preview:", token ? token.substring(0, 50) + "..." : "No token");
+    
     if (token) {
         // Attach the token to the Authorization header
         config.headers['Authorization'] = `Bearer ${token}`;
+        console.log("Authorization header set:", `Bearer ${token.substring(0, 20)}...`);
+    } else {
+        console.log("No token available, request will fail");
     }
     
     return config;
 }, (error) => {
+    console.log("Request interceptor error:", error);
     return Promise.reject(error);
 });
 
