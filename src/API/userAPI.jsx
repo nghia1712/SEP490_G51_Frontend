@@ -58,6 +58,14 @@ const userAPI = {
     changePassword: (data) => authorApi.post('/User/changePassword', data),
     updateUser: (userId, data) => authorApi.put(`${API_URL}/update-user/${userId}`, data),
     banUser: (id) => authorApi.put(`${API_URL}/banUser/${id}`),
+    
+    // Customer additional info APIs
+    submitAdditionalInfo: (data) => authorApi.post('/User/submit-additional-info', data),
+    getCustomerStatus: () => authorApi.get('/User/customer-status'),
+    
+    // Manager APIs
+    getAllCustomerWithInactiveStatus: () => authorApi.get('/Manager/inactive'),
+    updateCustomerStatus: (customerId) => authorApi.put(`/Manager/activate/${customerId}`),
 };
 
 export default userAPI;

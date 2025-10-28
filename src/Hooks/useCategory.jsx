@@ -34,7 +34,7 @@ const useCategory = () => {
             setLoading(false);
             return res;
         } catch (err) {
-            console.error('❌ Error fetching categories:', err);
+            console.error('Error fetching categories:', err);
             setError(err.response?.data?.message || err.message || 'Get categories failed');
             setCategories([]); // Đảm bảo categories là array rỗng khi có lỗi
             setLoading(false);

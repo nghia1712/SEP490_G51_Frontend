@@ -24,6 +24,8 @@ const AddSupplier = ({
   formErrors,
   onSubmit,
   palette,
+  loading = false,
+  successMessage = '',
 }) => {
   return (
     <Dialog
@@ -53,9 +55,35 @@ const AddSupplier = ({
         Thêm nhà cung cấp mới
       </DialogTitle>
       <DialogContent sx={{ p: 3 }}>
+        {console.log("AddSupplier formErrors:", formErrors)}
+        {console.log("AddSupplier formData:", formData)}
+        {console.log("AddSupplier successMessage:", successMessage)}
+        {console.log("formErrors.submit:", formErrors.submit)}
+        {console.log("successMessage exists:", !!successMessage)}
+        {console.log("Should show error:", !!formErrors.submit)}
+        {console.log("Should show success:", !!successMessage)}
         {formErrors.submit && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {formErrors.submit}
+          </Alert>
+        )}
+        {successMessage && !formErrors.submit && (
+          <Alert 
+            severity="success" 
+            sx={{ 
+              mb: 2,
+              backgroundColor: '#e8f5e8 !important',
+              color: '#2e7d32 !important',
+              border: '1px solid #4caf50 !important',
+              '& .MuiAlert-icon': {
+                color: '#2e7d32 !important'
+              },
+              '& .MuiAlert-message': {
+                color: '#2e7d32 !important'
+              }
+            }}
+          >
+            {successMessage}
           </Alert>
         )}
         <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -196,7 +224,11 @@ const AddSupplier = ({
               fullWidth
               label="Số tài khoản ngân hàng"
               value={formData.bankAccountNumber}
-              onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })}
+              onChange={(e) => {
+                console.log("Bank account number changed to:", e.target.value);
+                console.log("Current formData:", formData);
+                setFormData({ ...formData, bankAccountNumber: e.target.value });
+              }}
               error={!!formErrors.bankAccountNumber}
               helperText={formErrors.bankAccountNumber}
               required
@@ -251,6 +283,7 @@ const AddSupplier = ({
           onClick={onSubmit}
           variant="contained"
           startIcon={<SaveIcon />}
+          disabled={loading}
           sx={{
             backgroundColor: palette.dark,
             "&:hover": {
@@ -261,7 +294,7 @@ const AddSupplier = ({
             px: 3,
           }}
         >
-          Thêm nhà cung cấp
+          {loading ? "Đang tạo..." : "Thêm nhà cung cấp"}
         </Button>
       </DialogActions>
     </Dialog>

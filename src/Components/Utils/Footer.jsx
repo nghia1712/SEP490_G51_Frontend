@@ -3,6 +3,8 @@ import { Box, Container, Typography, Link, IconButton } from '@mui/material';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
+import getUserRoleFromToken from '../../Utils/getUserRoleFromToken.jsx';
+import { useLocation } from 'react-router-dom';
 
 const palette = {
   dark: '#155E64',
@@ -12,6 +14,13 @@ const palette = {
 };
 
 const Footer = () => {
+  // Ẩn footer khi user có vai trò manager, trừ route /manager
+  const userRole = getUserRoleFromToken();
+  const location = useLocation();
+  if (userRole === 'manager' && location.pathname !== '/manager') {
+    return null;
+  }
+  
   return (
     <Box
       component="footer"

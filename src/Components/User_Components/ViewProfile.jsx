@@ -253,7 +253,6 @@ const Profile = () => {
 							{/* Left */}
 							<Col md={4}>
 								<Card className="text-center p-4 shadow-sm h-100">
-									<div className="mb-3 text-muted fw-semibold">User Avatar</div>
 									{console.log("ViewProfile rendering avatar with:", profile?.avatar || profile?.Avatar)}
 									<Card.Img
 										variant="top"
@@ -267,7 +266,7 @@ const Profile = () => {
 										onLoad={() => {
 											console.log("ViewProfile image loaded successfully:", getAvatarUrl(profile?.avatar || profile?.Avatar));
 										}}
-										alt="User Avatar"
+										alt=""
 										className="rounded-circle mx-auto"
 										style={{ width: "250px", height: "250px", objectFit: "cover" }}
 									/>

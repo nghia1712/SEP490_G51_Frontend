@@ -20,9 +20,8 @@ import ListAllUsers from "./Components/Admin_Components/ListAllUsers";
 import CreateStaff from "./Components/Admin_Components/CreateStaff";
 import ListProduct from "./Components/Product_Components/ListProduct";
 import ListCategory from "./Components/Category_Components/ListCategory";
-import SupplierListAdvanced from "./Components/Supplier_Components/SupplierListAdvanced";
+import SupplierList from "./Components/Supplier_Components/SupplierList";
 import ManageSupplierProducts from "./Components/Supplier_Components/ManageSupplierProducts";
-import SupplierProductDetail from "./Components/Supplier_Components/SupplierProductDetail";
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
@@ -32,6 +31,9 @@ import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse
 import InventoryCheck from "./Components/Inventory_Components/InventoryCheck";
 import Stocktaking from "./Components/Inventory_Components/Stocktaking";
 import sessionManager from "./Utils/sessionManager";
+import CustomerAdditionalInfoForm from "./Components/Customer_Components/CustomerAdditionalInfoForm";
+import CustomerStatusCheck from "./Components/Customer_Components/CustomerStatusCheck";
+import CustomerApprovalList from "./Components/Manager_Components/CustomerApprovalList";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -223,11 +225,24 @@ function App() {
                       
                       {/* Role-specific landing pages */}
                       <Route path="/purchase-staff" element={<Landing />} />
-                      <Route path="/customer" element={<Landing />} />
+                      <Route path="/customer" element={
+                        <ProtectedRoute allowedRoles={['customer']}>
+                          <CustomerStatusCheck>
+                            <Landing />
+                          </CustomerStatusCheck>
+                        </ProtectedRoute>
+                      } />
                       <Route path="/sales-staff" element={<Landing />} />
                       <Route path="/warehouse-staff" element={<Landing />} />
                       <Route path="/accountant-staff" element={<Landing />} />
                       <Route path="/manager" element={<Landing />} />
+                      
+                      {/* Customer Additional Info Route */}
+                      <Route path="/customer/additional-info" element={
+                        <ProtectedRoute allowedRoles={['customer']}>
+                          <CustomerAdditionalInfoForm />
+                        </ProtectedRoute>
+                      } />
                       
                       {/* Routes cho Guest và Auth đã được xử lý ở routes chính */}
                       <Route path="/change-password" element={<ChangePasswordWithBackground />} />
@@ -395,7 +410,7 @@ function App() {
                         path="/supplier" 
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                            <SupplierListAdvanced />
+                            <SupplierList />
                           </ProtectedRoute>
                         }
                       />
@@ -415,11 +430,13 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+                      
+                      {/* Manager Customer Approval */}
                       <Route 
-                        path="/manager/supplier-products/:id" 
+                        path="/manager/customer-approval" 
                         element={
-                          <ProtectedRoute allowedRoles={['manager', 'purchases_staff', 'admin']}>
-                            <SupplierProductDetail />
+                          <ProtectedRoute allowedRoles={['manager', 'admin']}> 
+                            <CustomerApprovalList />
                           </ProtectedRoute>
                         }
                       />

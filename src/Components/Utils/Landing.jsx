@@ -330,6 +330,10 @@ function Landing() {
       roleSpecificEnabledPaths = new Set(['/warehouse-dashboard', '/warehouse']);
     } else if (currentRole === 'accountant_staff') {
       roleSpecificEnabledPaths = new Set(['/manager-dashboard', '/product', '/category']);
+    } else if (currentRole === 'customer') {
+      // Customer chỉ có thể truy cập các chức năng cơ bản khi đã được duyệt
+      // Logic này sẽ được kiểm tra bởi CustomerStatusCheck component
+      roleSpecificEnabledPaths = new Set(['/contact']);
     }
 
     const filtered = mainFunctions
@@ -453,7 +457,7 @@ function Landing() {
                 mb: 3,
               }}
             >
-              Hệ Thống Quản Lý Nhà Thuốc
+              {userRole === 'manager' ? 'Quản lý tài khoản khách hàng' : 'Hệ Thống Quản Lý Nhà Thuốc'}
             </Typography>
 
             {/* Thông tin vai trò */}

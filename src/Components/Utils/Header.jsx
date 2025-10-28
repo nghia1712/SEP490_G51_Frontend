@@ -72,6 +72,11 @@ function Header() {
   const userRole = getUserRole();
   // Cả guest và user đều có trang chủ là "/"
   const isHomePage = location.pathname === "/";
+  
+  // Ẩn header khi user có vai trò manager, trừ route /manager
+  if (userRole === 'manager' && location.pathname !== '/manager') {
+    return null;
+  }
   // --- STATE MANAGEMENT ---
   const [profile, setProfile] = useState(null);
   const [transactionMenuAnchor, setTransactionMenuAnchor] = useState(null);
@@ -285,7 +290,12 @@ function Header() {
             <Typography
               variant="h6"
               onClick={() => {
-                navigate("/");
+                // Admin: refresh trang hiện tại thay vì chuyển hướng
+                if (userRole === "admin") {
+                  window.location.reload();
+                } else {
+                  navigate("/");
+                }
               }}
               sx={{
                 fontWeight: "bold",

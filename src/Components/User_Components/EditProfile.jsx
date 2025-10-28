@@ -218,7 +218,7 @@ const EditProfile = () => {
 			if (url.startsWith('data:image/')) {
 				setIsAvatarValid(false);
 				setIsError(true);
-				setStatusMessage("❌ Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
+				setStatusMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
 				setAvatarPreview(getAvatarUrl(profile.avatar));
 				console.log("Base64 data URL blocked:", url.substring(0, 50) + "...");
 				return;
@@ -251,7 +251,7 @@ const EditProfile = () => {
 			} catch (error) {
 				setIsAvatarValid(false);
 				setIsError(true);
-				setStatusMessage("❌ URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
+				setStatusMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
 				setAvatarPreview(getAvatarUrl(profile.avatar));
 				console.log("Invalid URL format:", url);
 			}
@@ -334,7 +334,7 @@ const EditProfile = () => {
 			if (newAvatarUrl.startsWith('data:image/')) {
 				console.error("Base64 data URL detected in newAvatarUrl - blocking submission");
 				setIsError(true);
-				setStatusMessage("❌ Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
+				setStatusMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
 				return;
 			}
 			
@@ -352,7 +352,7 @@ const EditProfile = () => {
 				}
 			} catch (error) {
 				setIsError(true);
-				setStatusMessage("❌ URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
+				setStatusMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
 				return;
 			}
 			

@@ -314,13 +314,20 @@ const useWarehouse = () => {
       setError("");
       
       const response = await warehouseAPI.getAllWarehouses();
-      setWarehouses(response.data || []);
+      console.log("Warehouse API Response:", response);
       
-      return response.data || [];
+      // Kiểm tra cấu trúc response
+      const warehouses = response.data || response || [];
+      console.log("Warehouses data:", warehouses);
+      
+      setWarehouses(Array.isArray(warehouses) ? warehouses : []);
+      
+      return Array.isArray(warehouses) ? warehouses : [];
     } catch (err) {
       console.error("Lỗi khi lấy danh sách warehouse:", err);
-      setError(err.response?.data?.message || "Đã xảy ra lỗi khi tải danh sách warehouse");
-      throw err;
+      setError(err.response?.data?.message || err.message || "Đã xảy ra lỗi khi tải danh sách warehouse");
+      setWarehouses([]);
+      return [];
     } finally {
       setLoading(false);
     }

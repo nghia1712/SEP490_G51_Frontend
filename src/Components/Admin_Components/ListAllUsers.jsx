@@ -161,6 +161,39 @@ const ListAllUsers = ({ roleGroup }) => {
     }
   };
 
+  // Helper function to handle view detail (alias for openDetail)
+  const handleViewDetail = (user) => {
+    openDetail(user);
+  };
+
+    // Helper function to check if user is actually a staff member
+    const isActualStaff = (user) => {
+        const normalizedRoles = normalizeUserRoles(user);
+        const staffRoles = new Set(['sales_staff','purchases_staff','warehouse_staff','accountant_staff']);
+        
+        // Check if user has customer role - safely handle different data types
+        const isCustomerRole = normalizedRoles.includes('customer') || 
+                              (user?.RoleName && typeof user.RoleName === 'string' && user.RoleName.toLowerCase() === 'customer') ||
+                              (user?.role && typeof user.role === 'string' && user.role.toLowerCase() === 'customer');
+        
+        // Check if user has manager/admin role - safely handle different data types
+        const isManagerRole = normalizedRoles.includes('manager') || 
+                             normalizedRoles.includes('admin') ||
+                             (user?.RoleName && typeof user.RoleName === 'string' && user.RoleName.toLowerCase() === 'manager') ||
+                             (user?.RoleName && typeof user.RoleName === 'string' && user.RoleName.toLowerCase() === 'admin') ||
+                             (user?.role && typeof user.role === 'string' && user.role.toLowerCase() === 'manager') ||
+                             (user?.role && typeof user.role === 'string' && user.role.toLowerCase() === 'admin');
+        
+        // Check if user has staff role ID
+        const hasStaffRoleId = user?.Role !== null && user?.Role !== undefined && 
+                              (user.Role === 0 || user.Role === 1 || user.Role === 2 || user.Role === 3);
+        
+        // User is staff if: has staff roles AND not customer AND not manager/admin
+        return (normalizedRoles.some(r => staffRoles.has(r)) || hasStaffRoleId) && 
+               !isCustomerRole && 
+               !isManagerRole;
+    };
+
     // Helper function to map role ID to Vietnamese role name
     const getRoleDisplayName = (user) => {
         console.log("getRoleDisplayName - user data:", user);
@@ -495,18 +528,8 @@ const ListAllUsers = ({ roleGroup }) => {
             // Khách hàng: ưu tiên cờ BE, fallback theo role string
             matchesRoleGroup = isCustomerFlag || normalizedRoles.includes('customer');
         } else if (roleGroup === 'staff') {
-            const staffRoles = new Set(['sales_staff','purchases_staff','warehouse_staff','accountant_staff']);
-            // New BE list does not include roles or IsStaff; treat as staff if not customer and not admin/manager keywords
-            const textFields = [
-                user?.account?.userName,
-                user?.username,
-                user?.userName,
-                user?.fullName,
-                user?.account?.email,
-                user?.email
-            ].filter(Boolean).join(' ').toLowerCase();
-            const looksMgmt = /\b(admin|manager)\b/.test(textFields);
-            matchesRoleGroup = isStaffFlag || normalizedRoles.some(r => staffRoles.has(r)) || (!isCustomerFlag && !looksMgmt);
+            // Sử dụng hàm isActualStaff để kiểm tra chính xác
+            matchesRoleGroup = isActualStaff(user);
         } else if (roleGroup === 'manager') {
             const mgmtRoles = new Set(['manager','admin']);
             const roleMatch = normalizedRoles.some(r => mgmtRoles.has(r));

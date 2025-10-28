@@ -42,10 +42,63 @@ const supplierAPI = {
 
     return authorApi.post(`${API_URL}/create`, payload);
   },
-  update: (id, data) => authorApi.put(`${API_URL}/update?id=${id}`, data),
+  update: (id, data) => {
+    // Map frontend data to backend DTO format for update
+    const statusValue = (() => {
+      const s = (data?.Status ?? data?.status ?? '').toString().toLowerCase();
+      if (s === 'active' || s === '1' || s === 'true') return 1; // SupplierStatus.Active
+      if (s === 'inactive' || s === '0' || s === 'false') return 0; // SupplierStatus.Inactive
+      return 1; // default Active
+    })();
+
+    const payload = {
+      Name: data?.Name ?? data?.name ?? '',
+      Email: data?.Email ?? data?.email ?? undefined,
+      PhoneNumber: data?.PhoneNumber ?? data?.phoneNumber ?? data?.contact ?? '',
+      Address: data?.Address ?? data?.address ?? undefined,
+      Status: statusValue,
+      BankAccountNumber: data?.BankAccountNumber ?? data?.bankAccountNumber ?? undefined,
+      MyDebt: data?.MyDebt ?? data?.myDebt ?? undefined,
+      Description: data?.Description ?? data?.description ?? undefined,
+    };
+
+    return authorApi.put(`${API_URL}/update?id=${id}`, payload);
+  },
   updateStatus: (id, data) => authorApi.put(`${API_URL}/updateStatus?id=${id}`, data),
-  enable: (supplierId) => authorApi.post(`${API_URL}/enable?supplierId=${encodeURIComponent(supplierId)}`),
-  disable: (supplierId) => authorApi.post(`${API_URL}/disable?supplierId=${encodeURIComponent(supplierId)}`),
+  enable: (supplierId, supplierData) => {
+    // Lấy số điện thoại từ nhiều trường có thể có
+    const phoneNumber = supplierData?.contact || supplierData?.phoneNumber || supplierData?.phone || supplierData?.PhoneNumber || supplierData?.Contact || '';
+    
+    const payload = {
+      id: supplierId,
+      name: supplierData?.name || '',
+      email: supplierData?.email || '',
+      phoneNumber: phoneNumber,
+      address: supplierData?.address || '',
+      status: 1, // Active
+      bankAccountNumber: supplierData?.bankAccountNumber || '',
+      myDebt: supplierData?.myDebt || 0
+    };
+    console.log("Enable payload (camelCase):", payload);
+    return authorApi.post(`${API_URL}/enable`, payload);
+  },
+  disable: (supplierId, supplierData) => {
+    // Lấy số điện thoại từ nhiều trường có thể có
+    const phoneNumber = supplierData?.contact || supplierData?.phoneNumber || supplierData?.phone || supplierData?.PhoneNumber || supplierData?.Contact || '';
+    
+    const payload = {
+      id: supplierId,
+      name: supplierData?.name || '',
+      email: supplierData?.email || '',
+      phoneNumber: phoneNumber,
+      address: supplierData?.address || '',
+      status: 0, // Inactive
+      bankAccountNumber: supplierData?.bankAccountNumber || '',
+      myDebt: supplierData?.myDebt || 0
+    };
+    console.log("Disable payload (camelCase):", payload);
+    return authorApi.post(`${API_URL}/disable`, payload);
+  },
 };
 
 export default supplierAPI;

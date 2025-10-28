@@ -10,6 +10,7 @@ import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import PeopleIcon from "@mui/icons-material/People";
 import ViewListIcon from "@mui/icons-material/ViewList";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 export const managerFunctions = [
   // Core Management
@@ -87,6 +88,13 @@ export const managerFunctions = [
     icon: <PeopleIcon />,
     path: "/users",
     description: "Quản lý tài khoản nhân viên",
+    category: "management"
+  },
+  {
+    title: "Duyệt khách hàng",
+    icon: <CheckCircleIcon />,
+    path: "/manager/customer-approval",
+    description: "Duyệt thông tin bổ sung của khách hàng",
     category: "management"
   },
   {

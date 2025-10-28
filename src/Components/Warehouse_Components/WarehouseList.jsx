@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
-  Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Button, Typography,
-  IconButton, Alert, FormGroup, FormControlLabel, Checkbox, Stack, Card, InputAdornment, Tooltip, TablePagination,
-  CircularProgress, Grid, MenuItem, Collapse, Menu,
+  Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography,
+  IconButton, Alert, FormGroup, FormControlLabel, Checkbox, Stack, Card, CardContent, InputAdornment, Tooltip, TablePagination,
+  CircularProgress, Collapse, Menu, Container, TextField, MenuItem,
 } from "@mui/material";
 import {
-  Edit as EditIcon,
-  Add as AddIcon,
   Search as SearchIcon,
   Block as BlockIcon,
   CheckCircle as CheckCircleIcon,
@@ -17,11 +15,14 @@ import {
   ExpandLess as ExpandLessIcon,
   Inventory as InventoryIcon,
   MoreVert as MoreVertIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import useWarehouse from "../../Hooks/useWarehouse";
 import renderStatusChip from "../../Utils/renderStatusChip";
 import palette from "../../constants/palette";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
+import WarehouseDetails from "./WarehouseDetails";
+import AddWarehouse from "./AddWarehouse";
 
 const WarehouseList = () => {
   const {
@@ -44,21 +45,8 @@ const WarehouseList = () => {
 
   // Modal states
   const [openAddModal, setOpenAddModal] = useState(false);
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState(null);
-
-  // Form states
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    description: "",
-    status: "active",
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  // Warehouse details states
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [openWarehouseDetails, setOpenWarehouseDetails] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
 
   // Expanded rows
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -77,63 +65,20 @@ const WarehouseList = () => {
     }
   }, [hasAccess, fetchWarehouses]);
 
-  // Form validation
-  const validateForm = (data) => {
-    const errors = {};
+  // Debug logging
+  useEffect(() => {
+    console.log("Warehouses in WarehouseList:", warehouses);
+    console.log("Loading state:", loading);
+    console.log("Error state:", error);
+  }, [warehouses, loading, error]);
 
-    if (!data.name.trim()) errors.name = "Tên kho là bắt buộc";
-    if (!data.address.trim()) errors.address = "Địa chỉ là bắt buộc";
-
-    return errors;
+  const handleViewDetails = (warehouse) => {
+    setSelectedWarehouse(warehouse);
+    setOpenWarehouseDetails(true);
   };
 
-  // Handle form submission
-  const handleSubmit = async (isEdit = false) => {
-    const errors = validateForm(formData);
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-    
-    try {
-      if (isEdit) {
-        await updateWarehouse({ ...formData, id: editingWarehouse.id });
-        setOpenEditModal(false);
-      } else {
-        await createWarehouse(formData);
-        setOpenAddModal(false);
-      }
-      // Reset form
-      setFormData({
-        name: "",
-        address: "",
-        description: "",
-        status: "active",
-      });
-      setFormErrors({});
-    } catch (error) {
-      console.error("Lỗi khi lưu warehouse:", error);
-    }
-  };
-
-  const handleEdit = (warehouse) => {
-    setEditingWarehouse(warehouse);
-    setFormData({
-      name: warehouse.name || "",
-      address: warehouse.address || "",
-      description: warehouse.description || "",
-      status: warehouse.status || "active",
-    });
-    setFormErrors({});
-    setOpenEditModal(true);
-  };
-
-  const handleViewDetails = async (warehouse) => {
-    try {
-      const details = await getWarehouseDetails(warehouse.id);
-      setSelectedWarehouse({ ...warehouse, ...details });
-      setOpenWarehouseDetails(true);
-    } catch (error) {
-      console.error("Lỗi khi lấy chi tiết warehouse:", error);
-    }
+  const handleAddSuccess = () => {
+    fetchWarehouses();
   };
 
   const handleFilterChange = (e) => {
@@ -166,7 +111,7 @@ const WarehouseList = () => {
       warehouse.name.toLowerCase().includes(search.toLowerCase()) &&
       (Object.values(filterStatus).some((value) => value)
         ? filterStatus[
-            warehouse.status === "active" ? "Hoạt động" : "Ngừng hoạt động"
+            warehouse.status === 1 ? "Hoạt động" : "Ngừng hoạt động"
           ]
         : true)
   );
@@ -236,197 +181,159 @@ const WarehouseList = () => {
   return (
     <Box
       sx={{
-        height: "100vh",
-        backgroundColor: "#f8fafc",
-        display: "flex",
-        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundImage: "url('/images/backgroundMedical2.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "linear-gradient(135deg, rgba(0, 150, 136, 0.4) 0%, rgba(0, 121, 107, 0.45) 25%, rgba(0, 96, 100, 0.5) 50%, rgba(0, 77, 64, 0.45) 75%, rgba(0, 60, 50, 0.4) 100%)",
+          zIndex: 0,
+        },
       }}
     >
-      {/* Header */}
-      <Paper
-        elevation={2}
-        sx={{
-          p: 3,
-          backgroundColor: palette.dark,
-          color: palette.white,
-          borderRadius: 0,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <WarehouseIcon sx={{ fontSize: 40, mr: 2 }} />
-            <Box>
+      <Container maxWidth="xl" sx={{ mt: 0, mb: 4, position: "relative", zIndex: 1, pt: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}>
+          <CardContent sx={{ p: 3 }}>
+          {/* Header */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <WarehouseIcon sx={{ fontSize: 40, color: "#1976d2", mr: 2 }} />
               <Typography
                 variant="h4"
                 component="h1"
-                sx={{ fontWeight: "bold" }}
+                sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
               >
                 Quản lý kho
               </Typography>
-              <Typography variant="subtitle1" sx={{ opacity: 0.8 }}>
+              <Typography variant="h6" color="textSecondary">
                 Tổng: {warehouses.length} kho
               </Typography>
             </Box>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenAddModal(true)}
-              sx={{
-                backgroundColor: palette.medium,
-                color: palette.dark,
-                "&:hover": {
-                  backgroundColor: palette.light,
-                  transform: "scale(1.05)",
-                },
-                borderRadius: 2,
-                px: 3,
-                py: 1,
-                fontSize: "1rem",
-                fontWeight: "bold",
-              }}
+
+            {/* Toolbar với tìm kiếm và bộ lọc */}
+            <Paper
+              elevation={1}
+              sx={{ p: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              Thêm kho
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Main Content */}
-      <Box
-        sx={{
-          flex: 1,
-          p: 3,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Toolbar */}
-        <Paper
-          elevation={1}
-          sx={{ p: 2, mb: 2, backgroundColor: palette.white }}
-        >
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            alignItems="center"
-          >
-            {/* Tìm kiếm */}
-            <TextField
-              placeholder="Tìm kiếm kho..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              size="small"
-              sx={{ minWidth: 300 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: palette.dark }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            {/* Bộ lọc trạng thái */}
-            <FormGroup row>
-              {["Hoạt động", "Ngừng hoạt động"].map((status) => (
-                <FormControlLabel
-                  key={status}
-                  control={
-                    <Checkbox
-                      name={status}
-                      checked={filterStatus[status]}
-                      onChange={handleFilterChange}
-                      size="small"
-                      sx={{ color: palette.dark }}
-                    />
-                  }
-                  label={<Typography variant="body2">{status}</Typography>}
+              <Stack
+                direction={{ xs: "column", lg: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                {/* Tìm kiếm */}
+                <TextField
+                  placeholder="Tìm kiếm theo tên kho..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  size="small"
+                  sx={{ minWidth: 300 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
                 />
-              ))}
-            </FormGroup>
 
-            {/* Thông tin kết quả */}
-            <Box sx={{ ml: "auto" }}>
-              <Typography variant="body2" sx={{ color: palette.dark }}>
-                Hiển thị {filteredWarehouses.length} kết quả
-                {search && ` cho "${search}"`}
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
+                {/* Bộ lọc trạng thái */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <FormGroup row>
+                    {["Hoạt động", "Ngừng hoạt động"].map((status) => (
+                      <FormControlLabel
+                        key={status}
+                        control={
+                          <Checkbox
+                            name={status}
+                            checked={filterStatus[status]}
+                            onChange={handleFilterChange}
+                            size="small"
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Typography variant="body2">{status}</Typography>
+                        }
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
 
-        {/* Bảng danh sách */}
-        <Paper
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <TableContainer sx={{ flex: 1 }}>
+                {/* Nút thêm kho */}
+                <Box sx={{ ml: "auto" }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenAddModal(true)}
+                    sx={{
+                      backgroundColor: "#1976d2",
+                      "&:hover": { backgroundColor: "#1565c0" },
+                      borderRadius: 2,
+                      px: 3,
+                    }}
+                  >
+                    Thêm kho
+                  </Button>
+                </Box>
+
+              </Stack>
+            </Paper>
+          </Box>
+
+          {/* Thông tin kết quả */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="textSecondary">
+              Hiển thị {filteredWarehouses.length} kết quả
+              {search && ` cho "${search}"`}
+            </Typography>
+          </Box>
+
+          {/* Bảng danh sách */}
+          <TableContainer
+            component={Paper}
+            sx={{ maxHeight: 600, borderRadius: 2, boxShadow: 1 }}
+          >
             <Table stickyHeader aria-label="warehouse table">
               <TableHead>
                 <TableRow>
                   <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
-                    }}
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
                     #
                   </TableCell>
                   <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
-                    }}
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
                     Tên kho
                   </TableCell>
                   <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
-                    }}
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
                     Địa chỉ
                   </TableCell>
                   <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
-                    }}
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
-                    Mô tả
+                    Số vị trí
                   </TableCell>
                   <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
-                    }}
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
                     Trạng thái
                   </TableCell>
                   <TableCell
                     sx={{
                       fontWeight: "bold",
-                      backgroundColor: palette.light,
-                      color: palette.dark,
+                      backgroundColor: "#e3f2fd",
                       textAlign: "center",
                     }}
                   >
@@ -435,14 +342,33 @@ const WarehouseList = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedWarehouses.length > 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
+                      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                        <CircularProgress size={24} sx={{ mr: 2 }} />
+                        <Typography variant="body2" color="textSecondary">
+                          Đang tải dữ liệu...
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={6} sx={{ textAlign: "center", py: 6 }}>
+                      <Alert severity="error" sx={{ maxWidth: 400, mx: "auto" }}>
+                        {error}
+                      </Alert>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedWarehouses.length > 0 ? (
                   paginatedWarehouses.map((warehouse, index) => (
                     <TableRow
                       key={warehouse.id}
                       hover
                       sx={{
                         "&:nth-of-type(odd)": { backgroundColor: "#fafafa" },
-                        "&:hover": { backgroundColor: palette.light + "20" },
+                        "&:hover": { backgroundColor: "#f0f7ff" },
                         transition: "background-color 0.2s",
                       }}
                     >
@@ -481,14 +407,14 @@ const WarehouseList = () => {
                           noWrap
                           sx={{ maxWidth: 200 }}
                         >
-                          {warehouse.description || "Không có mô tả"}
+                          {warehouse.warehouseLocationLists?.length || 0} vị trí
                         </Typography>
                       </TableCell>
-                      <TableCell>{renderStatusChip(warehouse.status)}</TableCell>
+                      <TableCell>{renderStatusChip(warehouse.status === 1 ? "active" : "inactive")}</TableCell>
                       <TableCell>
                         <Stack
                           direction="row"
-                          spacing={1}
+                          spacing={0.5}
                           justifyContent="center"
                         >
                           <Tooltip title="Xem chi tiết" arrow>
@@ -496,36 +422,16 @@ const WarehouseList = () => {
                               size="small"
                               onClick={() => handleViewDetails(warehouse)}
                               sx={{
-                                color: palette.dark,
+                                color: "#1976d2",
                                 "&:hover": {
-                                  backgroundColor: palette.light + "40",
+                                  backgroundColor: "#e3f2fd",
                                   transform: "scale(1.1)",
                                 },
+                                transition: "all 0.2s",
                               }}
                             >
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="Chỉnh sửa" arrow>
-                            <span>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEdit(warehouse)}
-                                disabled={warehouse.status === "inactive"}
-                                sx={{
-                                  color: palette.medium,
-                                  "&:hover": {
-                                    backgroundColor: palette.light + "40",
-                                    transform: "scale(1.1)",
-                                  },
-                                  opacity:
-                                    warehouse.status === "inactive" ? 0.5 : 1,
-                                }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </span>
                           </Tooltip>
 
                           <Tooltip title="Thêm tùy chọn" arrow>
@@ -533,11 +439,12 @@ const WarehouseList = () => {
                               size="small"
                               onClick={(e) => handleMenuOpen(e, warehouse)}
                               sx={{
-                                color: palette.dark,
+                                color: "#1976d2",
                                 "&:hover": {
-                                  backgroundColor: palette.light + "40",
+                                  backgroundColor: "#e3f2fd",
                                   transform: "scale(1.1)",
                                 },
+                                transition: "all 0.2s",
                               }}
                             >
                               <MoreVertIcon fontSize="small" />
@@ -574,42 +481,47 @@ const WarehouseList = () => {
 
           {/* Pagination */}
           {filteredWarehouses.length > 0 && (
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              component="div"
-              count={filteredWarehouses.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Số hàng mỗi trang:"
-              labelDisplayedRows={({ from, to, count }) =>
-                `${from}–${to} trong tổng số ${
-                  count !== -1 ? count : `hơn ${to}`
-                }`
-              }
-              sx={{
-                borderTop: `1px solid ${palette.light}`,
-                backgroundColor: palette.white,
-              }}
-            />
+            <Box sx={{ mt: 2 }}>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredWarehouses.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Số hàng mỗi trang:"
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}–${to} trong tổng số ${
+                    count !== -1 ? count : `hơn ${to}`
+                  }`
+                }
+                sx={{
+                  borderTop: "1px solid #e0e0e0",
+                  pt: 1,
+                }}
+              />
+            </Box>
           )}
-        </Paper>
-      </Box>
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Action Menu */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{
+          elevation: 3,
+          sx: { minWidth: 200 },
+        }}
       >
         <MenuItem
           onClick={() => handleViewDetails(menuWarehouse)}
           sx={{
-            "&:hover": { backgroundColor: palette.light + "40" },
-            color: palette.dark,
+            "&:hover": { backgroundColor: "#e3f2fd" },
+            color: "#1976d2",
           }}
         >
           <VisibilityIcon sx={{ mr: 1, fontSize: 20 }} />
@@ -617,7 +529,18 @@ const WarehouseList = () => {
         </MenuItem>
       </Menu>
 
-      {/* TODO: Thêm các modal cho Add/Edit warehouse và Warehouse Details */}
+      {/* Components */}
+      <AddWarehouse
+        open={openAddModal}
+        onClose={() => setOpenAddModal(false)}
+        onSuccess={handleAddSuccess}
+      />
+
+      <WarehouseDetails
+        open={openWarehouseDetails}
+        onClose={() => setOpenWarehouseDetails(false)}
+        warehouse={selectedWarehouse}
+      />
     </Box>
   );
 };

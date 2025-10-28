@@ -133,7 +133,7 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         
         // Check for base64 data URL first
         if (url.startsWith('data:image/')) {
-            setAvatarError("❌ Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
+            setAvatarError("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
             console.log("Base64 data URL blocked:", url.substring(0, 50) + "...");
             return;
         }
@@ -156,7 +156,7 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                 console.log("URL is not an image:", url);
             }
         } catch (error) {
-            setAvatarError("❌ URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
+            setAvatarError("URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
             console.log("Invalid URL format:", url);
         }
     };
@@ -215,7 +215,7 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                 // Check if it's base64 data
                 if (avatarData.startsWith('data:image/')) {
                     console.error("Base64 data URL detected in handleSubmit - blocking submission");
-                    setErrorMessage("❌ Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
+                    setErrorMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
                     return;
                 }
                 
@@ -231,7 +231,7 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                         return;
                     }
                 } catch (error) {
-                    setErrorMessage("❌ URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
+                    setErrorMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
                     return;
                 }
                 

@@ -22,7 +22,7 @@ import {
   ShoppingCart as ShoppingCartIcon
 } from "@mui/icons-material";
 
-const SupplierDetailsModal = ({
+const SupplierDetails = ({
   open,
   onClose,
   selectedSupplier,
@@ -246,4 +246,4 @@ const SupplierDetailsModal = ({
   );
 };
 
-export default SupplierDetailsModal;
+export default SupplierDetails;
