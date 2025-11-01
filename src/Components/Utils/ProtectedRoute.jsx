@@ -31,32 +31,36 @@ const jwtDecode = (token) => {
 };
 
 const checkTokenExpiration = () => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        try {
-            const { exp } = jwtDecode(token);
-            const currentTime = Date.now() / 1000;
+  const token = localStorage.getItem('authToken');
+  if (!token) return true;
 
-            // ✅ THÊM: Kiểm tra nếu token sắp hết hạn trong 30 phút tới
-            const timeUntilExpiry = exp - currentTime;
-            if (timeUntilExpiry < 1800) { // 30 phút = 1800 seconds
-                console.warn('⚠️ Token sắp hết hạn trong 30 phút');
-                // Có thể thêm logic refresh token tại đây
-            }
+  try {
+    const { exp } = jwtDecode(token);
+    const currentTime = Date.now() / 1000;
 
-            if (currentTime >= exp) {
-                console.warn('🚨 Token đã hết hạn');
-                localStorage.removeItem('authToken');
-                return true; // Token hết hạn
-            }
-        } catch (error) {
-            console.error('Invalid token format:', error);
-            localStorage.removeItem('authToken');
-            return true;
-        }
+    if (!exp) {
+      console.warn('⚠️ Token không có trường exp — bỏ qua kiểm tra hết hạn');
+      return false; // ❗ Cho phép đi tiếp
     }
-    return !token; // Token không tồn tại hoặc hợp lệ
+
+    const timeUntilExpiry = exp - currentTime;
+    if (timeUntilExpiry < 1800 && timeUntilExpiry > 0) {
+      console.warn('⚠️ Token sắp hết hạn trong 30 phút');
+    }
+
+    if (currentTime >= exp) {
+      console.warn('🚨 Token đã hết hạn');
+      localStorage.removeItem('authToken');
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('❌ Token decode lỗi:', error);
+    return true;
+  }
 };
+
 
 const ProtectedRoute = ({ children, allowedRoles, redirectTo = '/login' }) => {
     const token = localStorage.getItem("authToken");

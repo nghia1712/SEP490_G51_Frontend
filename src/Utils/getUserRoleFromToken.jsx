@@ -6,7 +6,7 @@ export default function getUserRoleFromToken() {
     try {
       const [, payload] = token.split('.');
       const data = JSON.parse(atob(payload));
-
+      console.log("🧩 Token payload:", payload);
       const roleFields = [
         data.roles,
         data.role,

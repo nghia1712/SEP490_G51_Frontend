@@ -5,6 +5,8 @@ import formDataApi from "./baseAPI/formDataAPI";
 const API_URL = "/Product";
 
 const productAPI = {
+  search: (keyword) =>
+    authorApi.get(`${API_URL}/search`, { params: { keyword } }),
   getAll: () => authorApi.get(`${API_URL}/all`),
   getActive: () => authorApi.get(`${API_URL}/active`),
   getById: (id) => authorApi.get(`${API_URL}/getbyid/${id}`),
@@ -14,11 +16,12 @@ const productAPI = {
   update: (id, data) => authorApi.put(`${API_URL}/update/${id}`, data),
   uploadImage: (file) => {
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append("file", file);
     return formDataApi.post(`${API_URL}/upload-image`, fd);
   },
   // Backend expects raw boolean in body, not an object
-  setStatus: (id, statusBool) => authorApi.put(`${API_URL}/${id}/status`, statusBool),
+  setStatus: (id, statusBool) =>
+    authorApi.put(`${API_URL}/${id}/status`, statusBool),
 };
 
 export default productAPI;
