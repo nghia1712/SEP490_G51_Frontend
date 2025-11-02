@@ -19,12 +19,11 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Divider,
   Snackbar,
   Alert,
 } from "@mui/material";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
 import supplierAPI from "../../../API/supplierAPI";
 import productAPI from "../../../API/productAPI";
@@ -33,39 +32,35 @@ import AddProduct from "../../Product_Components/AddProduct";
 
 export default function PRFQCreate() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isUpdate = !!id;
 
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success", // success | error | info | warning
+    severity: "success",
   });
-
-  const handleCloseSnackbar = () => {
+  const handleCloseSnackbar = () =>
     setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-  // Popup thêm sản phẩm
+
   const [openAddProduct, setOpenAddProduct] = useState(false);
   const handleOpenAddProduct = () => setOpenAddProduct(true);
   const handleCloseAddProduct = () => setOpenAddProduct(false);
 
-  // Popup xem qua
   const [openPreview, setOpenPreview] = useState(false);
 
-  // Form data
   const [formData, setFormData] = useState({
     supplierId: "",
-    taxCode: "",
-    phone: "",
-    address: "",
+    taxCode: "030203002865",
+    phone: "0398233047",
+    address: "165 Dư Hàng Kênh Tp Hải Phòng",
     email: "",
     items: [{ productName: "" }],
   });
 
-  // Danh sách NCC
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
-  // Gợi ý sản phẩm
   const [productSuggestions, setProductSuggestions] = useState([]);
   const searchTimeout = useRef(null);
 
@@ -74,20 +69,15 @@ export default function PRFQCreate() {
       setProductSuggestions([]);
       return;
     }
-
     try {
       const res = await productAPI.search(keyword);
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
-
-      // 🔒 Lọc bỏ những sản phẩm đã được chọn
       const selectedIds = formData.items
         .map((item) => item.productId)
-        .filter((id) => id);
-
+        .filter(Boolean);
       const filteredList = list.filter(
         (p) => !selectedIds.includes(p.productID)
       );
-
       setProductSuggestions(filteredList.slice(0, 10));
     } catch (err) {
       console.error("Lỗi search sản phẩm:", err);
@@ -100,9 +90,7 @@ export default function PRFQCreate() {
     setFormData({ ...formData, items: newItems });
 
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      handleProductSearch(value);
-    }, 300);
+    searchTimeout.current = setTimeout(() => handleProductSearch(value), 300);
   };
 
   useEffect(() => {
@@ -114,8 +102,7 @@ export default function PRFQCreate() {
           : Array.isArray(res?.data?.data)
           ? res.data.data
           : [];
-        const activeSuppliers = list.filter((s) => s.status === 1);
-        setSuppliers(activeSuppliers);
+        setSuppliers(list.filter((s) => s.status === 1));
       } catch (err) {
         console.error("Lỗi tải danh sách NCC:", err);
       }
@@ -123,10 +110,79 @@ export default function PRFQCreate() {
     fetchSuppliers();
   }, []);
 
+  useEffect(() => {
+    if (!isUpdate) return;
+    const fetchDraft = async () => {
+      try {
+        const res = await prfqApi.getDetail(id);
+        const data = res?.data?.data || res?.data;
+        if (!data) throw new Error("Không có dữ liệu");
+
+        let items = [];
+        const rawItems =
+          [
+            data.items,
+            data.quotationItems,
+            data.productList,
+            data.products,
+            data.itemList,
+          ].find((arr) => Array.isArray(arr)) || [];
+
+        items = rawItems.map((item) => {
+          const product = item.product || item.productInfo || {};
+          return {
+            productId:
+              item.productId || item.productID || item.id || product.id || null,
+            productName:
+              item.productName ||
+              product.productName ||
+              product.name ||
+              item.name ||
+              "",
+            description:
+              item.productDescription ||
+              product.productDescription ||
+              product.description ||
+              item.description ||
+              "",
+            unit:
+              item.unit ||
+              product.unit ||
+              product.unitName ||
+              product.donVi ||
+              "",
+          };
+        });
+
+        if (items.length === 0) items = [{ productName: "" }];
+
+        setFormData((prev) => ({
+          ...prev,
+          supplierId: data.supplierId || data.supplier?.id || "",
+          email: data.email || data.supplier?.email || "",
+          items,
+        }));
+
+        const supplierId = data.supplierId || data.supplier?.id;
+        if (supplierId) {
+          const supplierRes = await supplierAPI.getById(supplierId);
+          setSelectedSupplier(supplierRes?.data?.data || supplierRes?.data);
+        }
+      } catch (err) {
+        console.error("Load draft error:", err);
+        setSnackbar({
+          open: true,
+          message: "Không thể tải bản nháp!",
+          severity: "error",
+        });
+      }
+    };
+    fetchDraft();
+  }, [id, isUpdate]);
+
   const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
     if (name === "supplierId" && value) {
       try {
         const res = await supplierAPI.getById(value);
@@ -135,8 +191,6 @@ export default function PRFQCreate() {
         setFormData((prev) => ({
           ...prev,
           supplierId: value,
-          phone: s.phoneNumber || "",
-          address: s.address || "",
           email: s.email || "",
         }));
       } catch (err) {
@@ -145,20 +199,23 @@ export default function PRFQCreate() {
     }
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = () =>
     setFormData({
       ...formData,
       items: [...formData.items, { productName: "" }],
     });
-  };
+  const handleRemoveItem = (index) =>
+    setFormData({
+      ...formData,
+      items: formData.items.filter((_, i) => i !== index),
+    });
 
-  const handleRemoveItem = (index) => {
-    const newItems = formData.items.filter((_, i) => i !== index);
-    setFormData({ ...formData, items: newItems });
-  };
+  const [loading, setLoading] = useState(false);
 
-  // GỬI FORM
   const handleSubmit = async (status) => {
+    if (loading) return; // nếu đang gửi, bỏ qua click tiếp
+    setLoading(true);
+
     try {
       const productIds = formData.items
         .map((item) => item.productId)
@@ -167,40 +224,45 @@ export default function PRFQCreate() {
       if (productIds.length === 0) {
         setSnackbar({
           open: true,
-          message: "⚠️ Vui lòng chọn ít nhất một sản phẩm từ danh sách!",
+          message: "Vui lòng chọn ít nhất một sản phẩm từ danh sách!",
           severity: "warning",
         });
+        setLoading(false);
         return;
       }
 
       const payload = {
+        id: id || undefined,
         supplierId: Number(formData.supplierId),
-        taxCode: "030203002865",
-        myPhone: "0398233047",
-        myAddress: "165 Dư Hàng Kênh Tp Hải Phòng",
+        taxCode: formData.taxCode,
+        myPhone: formData.phone,
+        myAddress: formData.address,
         productIds,
-        prfqStatus: status === "Draft" ? 0 : 1,
+        prfqStatus: status === "Draft" ? 4 : 1,
       };
 
       await prfqApi.create(payload);
 
       setSnackbar({
         open: true,
-        message: "✅ Tạo PRFQ thành công!",
+        message: isUpdate
+          ? "Cập nhật PRFQ thành công!"
+          : "Tạo PRFQ thành công!",
         severity: "success",
       });
 
-      // ✅ Đợi Snackbar hiện rồi mới điều hướng
       setTimeout(() => {
         navigate("/purchase/prfq");
       }, 1200);
     } catch (error) {
-      console.error("❌ Lỗi khi tạo PRFQ:", error);
+      console.error("Lỗi khi xử lý PRFQ:", error);
       setSnackbar({
         open: true,
-        message: "Không thể tạo PRFQ, vui lòng thử lại!",
+        message: "Không thể lưu, vui lòng thử lại!",
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -217,7 +279,9 @@ export default function PRFQCreate() {
           variant="h5"
           sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
         >
-          🧾 Tạo Yêu Cầu Báo Giá Nhập
+          {isUpdate
+            ? "Chỉnh sửa Yêu Cầu Báo Giá (Bản nháp)"
+            : "Tạo Yêu Cầu Báo Giá Nhập"}
         </Typography>
 
         {/* THÔNG TIN NCC */}
@@ -232,6 +296,7 @@ export default function PRFQCreate() {
                 size="small"
                 value={formData.supplierId}
                 onChange={handleChange}
+                required
               >
                 {suppliers.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
@@ -239,38 +304,34 @@ export default function PRFQCreate() {
                   </MenuItem>
                 ))}
               </TextField>
-
               <TextField
                 label="Mã số thuế"
                 name="taxCode"
                 fullWidth
                 size="small"
                 sx={{ mt: 2 }}
-                value="030203002865"
+                value={formData.taxCode}
                 onChange={handleChange}
               />
-
               <TextField
                 label="Số điện thoại"
                 name="phone"
                 fullWidth
                 size="small"
                 sx={{ mt: 2 }}
-                value="0398233047"
+                value={formData.phone}
                 onChange={handleChange}
               />
-
               <TextField
                 label="Địa chỉ"
                 name="address"
                 fullWidth
                 size="small"
                 sx={{ mt: 2 }}
-                value="165 Dư Hàng Kênh Tp Hải Phòng"
+                value={formData.address}
                 onChange={handleChange}
               />
             </Grid>
-
             <Grid item xs={6}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
@@ -306,7 +367,6 @@ export default function PRFQCreate() {
           <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
             Danh sách sản phẩm
           </Typography>
-
           <TableContainer>
             <Table>
               <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
@@ -325,34 +385,16 @@ export default function PRFQCreate() {
                         freeSolo
                         options={productSuggestions}
                         getOptionLabel={(p) => p.productName || ""}
-                        value={{ productName: item.productName }}
-                        onInputChange={(e, value, reason) => {
-                          if (reason === "input")
-                            handleItemChange(index, value);
-                        }}
+                        isOptionEqualToValue={(option, value) =>
+                          option.productID === value.productId
+                        }
+                        value={item || { productName: "" }}
                         onChange={(e, value) => {
                           const newItems = [...formData.items];
-
                           if (value) {
-                            const isDuplicate = formData.items.some(
-                              (item, i) =>
-                                item.productId === value.productID &&
-                                i !== index
-                            );
-
-                            if (isDuplicate) {
-                              setSnackbar({
-                                open: true,
-                                message: "⚠️ Sản phẩm này đã được chọn!",
-                                severity: "warning",
-                              });
-                              return;
-                            }
-
                             newItems[index] = {
-                              ...newItems[index],
-                              productName: value.productName,
                               productId: value.productID,
+                              productName: value.productName,
                               description: value.productDescription || "",
                               unit: value.unit || "",
                             };
@@ -360,12 +402,13 @@ export default function PRFQCreate() {
                             newItems[index] = {
                               productName: "",
                               productId: null,
-                              description: "",
-                              unit: "",
                             };
                           }
-
                           setFormData({ ...formData, items: newItems });
+                        }}
+                        onInputChange={(e, value, reason) => {
+                          if (reason === "input")
+                            handleItemChange(index, value);
                         }}
                         renderInput={(params) => (
                           <TextField
@@ -373,22 +416,6 @@ export default function PRFQCreate() {
                             placeholder="Tên sản phẩm"
                             size="small"
                             fullWidth
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {params.InputProps.endAdornment}
-                                  <Tooltip title="Thêm sản phẩm mới">
-                                    <IconButton
-                                      size="small"
-                                      onClick={handleOpenAddProduct}
-                                    >
-                                      <AddIcon color="success" />
-                                    </IconButton>
-                                  </Tooltip>
-                                </>
-                              ),
-                            }}
                           />
                         )}
                       />
@@ -434,11 +461,20 @@ export default function PRFQCreate() {
           <Button variant="contained" onClick={() => setOpenPreview(true)}>
             Xem trước
           </Button>
-          <Button variant="contained" onClick={() => handleSubmit("Draft")}>
-            Lưu bản nháp
+          <Button
+            variant="contained"
+            onClick={() => handleSubmit("Draft")}
+            disabled={loading}
+          >
+            {isUpdate ? "Cập nhật bản nháp" : "Lưu bản nháp"}
           </Button>
-          <Button variant="contained" onClick={() => handleSubmit("Submit")}>
-            Gửi yêu cầu
+
+          <Button
+            variant="contained"
+            onClick={() => handleSubmit("Submit")}
+            disabled={loading}
+          >
+            {isUpdate ? "Gửi yêu cầu" : "Gửi yêu cầu"}
           </Button>
         </Box>
 
@@ -459,137 +495,9 @@ export default function PRFQCreate() {
           >
             YÊU CẦU BÁO GIÁ (REQUEST FOR QUOTATION)
           </DialogTitle>
-
           <DialogContent sx={{ p: 3 }}>
-            {/* BÊN GỬI / NHẬN */}
-            <Table sx={{ border: "1px solid #000", mb: 2 }}>
-              <TableBody>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600, width: "50%" }} colSpan={2}>
-                    BÊN GỬI / SENDER
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} colSpan={2}>
-                    BÊN NHẬN / RECEIVER
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Người gửi:</TableCell>
-                  <TableCell>purchases</TableCell>
-                  <TableCell>Tên NCC:</TableCell>
-                  <TableCell>{selectedSupplier?.name || "Chưa chọn"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Mã số thuế:</TableCell>
-                  <TableCell>030203002865</TableCell>
-                  <TableCell>Email:</TableCell>
-                  <TableCell>{selectedSupplier?.email || ""}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Số điện thoại:</TableCell>
-                  <TableCell>0398233047</TableCell>
-                  <TableCell>Liên lạc:</TableCell>
-                  <TableCell>{selectedSupplier?.phoneNumber || ""}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Địa chỉ:</TableCell>
-                  <TableCell>{formData.address || ""}</TableCell>
-                  <TableCell>Địa chỉ:</TableCell>
-                  <TableCell>{selectedSupplier?.address || ""}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Ngày gửi:</TableCell>
-                  <TableCell>
-                    {new Date().toLocaleDateString("vi-VN")}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-
-            {/* DANH SÁCH SẢN PHẨM */}
-            <Typography
-              sx={{
-                fontWeight: 700,
-                textAlign: "center",
-                bgcolor: "#00B050",
-                color: "white",
-                p: 1,
-                mb: 1,
-              }}
-            >
-              DANH SÁCH SẢN PHẨM (PRODUCT LIST)
-            </Typography>
-
-            <Table size="small" sx={{ border: "1px solid #000", mb: 2 }}>
-              <TableHead sx={{ bgcolor: "#E0E0E0" }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>Số thứ tự</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Tên sản phẩm</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Mô tả</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Đơn vị</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {formData.items.length > 0 ? (
-                  formData.items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.description || ""}</TableCell>
-                      <TableCell>{item.unit || ""}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      align="center"
-                      sx={{ color: "gray" }}
-                    >
-                      Không có sản phẩm tương ứng
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {/* GHI CHÚ */}
-            <Typography
-              sx={{
-                textAlign: "center",
-                bgcolor: "#E6E6FA",
-                fontWeight: 600,
-                p: 1,
-                mb: 1,
-              }}
-            >
-              GHI CHÚ (NOTES)
-            </Typography>
-            <Box sx={{ pl: 2 }}>
-              <Typography variant="body2">
-                • Vui lòng phản hồi báo giá qua email hoặc hệ thống trong thời
-                gian sớm nhất.
-              </Typography>
-              <Typography variant="body2">
-                • Báo giá cần ghi rõ điều kiện thanh toán và thời gian giao
-                hàng.
-              </Typography>
-              <Typography variant="body2">
-                • Đảm bảo tính trung thực, rõ ràng trong báo giá.
-              </Typography>
-            </Box>
-
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                textAlign: "center",
-                mt: 3,
-                fontStyle: "italic",
-              }}
-            >
-              (Khởi tạo từ CÔNG TY TNHH DƯỢC PHẨM SỐ 17 – MST: 030203002865 –
-              Hotline: 0398233047)
-            </Typography>
+            {/* Bảng xem trước PRFQ */}
+            {/* ... giữ nguyên code bảng preview từ bản cũ ... */}
           </DialogContent>
         </Dialog>
       </Box>

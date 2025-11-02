@@ -360,10 +360,24 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+
+                        {/* Routes cho PRFQ */}
                       <Route path="/purchase/prfq" element={<PRFQList />} />
-                      <Route path="/purchase/prfq/create" element={<PRFQCreate />} />
+                      <Route
+                        path="/purchase/prfq/form"
+                        element={<PRFQCreate />}
+                      />
+                      <Route
+                        path="/purchase/prfq/form/:id"
+                        element={<PRFQCreate />}
+                      />
+                      <Route
+                        path="/purchase/prfq/detail/:id"
+                        element={<PRFQDetail />}
+                      />
+
+                        {/* Routes cho PQ */}
                       <Route path="/purchase/pq" element={<PQList />} />
-                      <Route path="/purchase/prfq/detail/:id" element={<PRFQDetail />} />
 
                       {/* Routes cho Manager Dashboard */}
                       <Route

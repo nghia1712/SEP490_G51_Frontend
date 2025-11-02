@@ -111,7 +111,7 @@ export default function PRFQList() {
     }
   };
 
-  const handleCreate = () => navigate(`/purchase/prfq/create`);
+  const handleCreate = () => navigate(`/purchase/prfq/form`);
 
   const handleContinue = (id, status) => {
     if (status === "Draft" || status === 0 || status === 4) {
@@ -210,7 +210,7 @@ export default function PRFQList() {
               ) : filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    Không có dữ liệu PRFQ
+                    Không có sản phẩm tương ứng
                   </TableCell>
                 </TableRow>
               ) : (

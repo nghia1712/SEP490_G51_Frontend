@@ -23,6 +23,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -31,6 +33,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import pqApi from "../../../API/pqAPI";
+import prfqApi from "../../../API/prfqAPI";
 import palette from "../../../constants/palette";
 
 export default function PQList() {
@@ -42,16 +45,34 @@ export default function PQList() {
   const [detailLoading, setDetailLoading] = useState(false);
   const navigate = useNavigate();
 
+  // State upload
+  const [openUpload, setOpenUpload] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Snackbar feedback
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await pqApi.getAll();
+      const res = await pqApi.getAllWithStatus();
       setQuotations(res.data || []);
     } catch (err) {
       console.error("Lỗi khi tải danh sách PQ:", err);
+      setSnackbar({
+        open: true,
+        message: "Tải danh sách PQ thất bại",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -65,6 +86,11 @@ export default function PQList() {
       setSelectedQuotation(res.data);
     } catch (err) {
       console.error("Lỗi khi tải chi tiết PQ:", err);
+      setSnackbar({
+        open: true,
+        message: "Tải chi tiết PQ thất bại",
+        severity: "error",
+      });
     } finally {
       setDetailLoading(false);
     }
@@ -74,6 +100,51 @@ export default function PQList() {
     setOpenDetail(false);
     setSelectedQuotation(null);
   };
+
+  // Upload Excel
+  const handleOpenUpload = () => setOpenUpload(true);
+  const handleCloseUpload = () => {
+    setOpenUpload(false);
+    setExcelFile(null);
+  };
+
+const handleUploadExcel = async () => {
+  if (!excelFile) {
+    setSnackbar({
+      open: true,
+      message: "Vui lòng chọn file Excel",
+      severity: "warning",
+    });
+    return;
+  }
+  setUploading(true);
+  try {
+    const res = await prfqApi.uploadSupplierExcel(excelFile);
+
+    const excelKey = res.data?.excelKey;
+    if (excelKey) {
+      localStorage.setItem("excelKey", excelKey);
+    }
+
+    setSnackbar({
+      open: true,
+      message: "Upload Excel thành công!",
+      severity: "success",
+    });
+    loadData();
+    handleCloseUpload();
+  } catch (err) {
+    console.error(err);
+    setSnackbar({
+      open: true,
+      message: "Upload Excel thất bại",
+      severity: "error",
+    });
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   const filteredData = quotations.filter((q) =>
     q.supplierName?.toLowerCase().includes(search.toLowerCase())
@@ -89,7 +160,7 @@ export default function PQList() {
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
           <TextField
             variant="outlined"
             size="small"
@@ -105,9 +176,18 @@ export default function PQList() {
             }}
             sx={{ width: 350 }}
           />
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOpenUpload}
+          >
+            Upload Excel
+          </Button>
         </Stack>
       </Paper>
 
+      {/* Table PQ */}
       <Paper>
         <TableContainer>
           <Table>
@@ -189,7 +269,7 @@ export default function PQList() {
         </Box>
       </Paper>
 
-      {/* ✅ POPUP CHI TIẾT */}
+      {/* Popup chi tiết */}
       <Dialog
         open={openDetail}
         onClose={handleCloseDetail}
@@ -293,6 +373,55 @@ export default function PQList() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal upload Excel */}
+      <Dialog
+        open={openUpload}
+        onClose={handleCloseUpload}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Upload file Excel PQ</DialogTitle>
+        <DialogContent>
+          <Button variant="outlined" component="label" disabled={uploading}>
+            Chọn file Excel
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              hidden
+              onChange={(e) => setExcelFile(e.target.files[0])}
+            />
+          </Button>
+          {excelFile && (
+            <Typography sx={{ mt: 1 }}>{excelFile.name}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseUpload} disabled={uploading}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleUploadExcel}
+            disabled={!excelFile || uploading}
+            variant="contained"
+            color="primary"
+          >
+            {uploading ? "Đang upload..." : "Upload"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -151,6 +151,7 @@ export default function PRFQDetail() {
                     <TableCell>#</TableCell>
                     <TableCell>Tên sản phẩm</TableCell>
                     <TableCell>Mô tả</TableCell>
+                    <TableCell>Đơn vị</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -161,6 +162,7 @@ export default function PRFQDetail() {
                       <TableCell>
                         {product.productDescription || "—"}
                       </TableCell>
+                        <TableCell>{product.unit || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
