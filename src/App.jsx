@@ -50,6 +50,7 @@ import PRFQList from "./Components/Purchases_Components/PRFQ/PRFQList";
 import PRFQCreate from "./Components/Purchases_Components/PRFQ/PRFQCreate";
 import PRFQDetail from "./Components/Purchases_Components/PRFQ/PRFQDetail.jsx";
 import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
+import POList from "./Components/Purchases_Components/PO/POList";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -361,7 +362,7 @@ function App() {
                         }
                       />
 
-                        {/* Routes cho PRFQ */}
+                      {/* Routes cho PRFQ */}
                       <Route path="/purchase/prfq" element={<PRFQList />} />
                       <Route
                         path="/purchase/prfq/form"
@@ -376,8 +377,11 @@ function App() {
                         element={<PRFQDetail />}
                       />
 
-                        {/* Routes cho PQ */}
+                      {/* Routes cho PQ */}
                       <Route path="/purchase/pq" element={<PQList />} />
+
+                      {/* Routes cho PO */}
+                      <Route path="/purchase/po" element={<POList />} />
 
                       {/* Routes cho Manager Dashboard */}
                       <Route

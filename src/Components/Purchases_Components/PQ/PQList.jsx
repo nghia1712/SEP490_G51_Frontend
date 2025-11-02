@@ -65,7 +65,20 @@ export default function PQList() {
     setLoading(true);
     try {
       const res = await pqApi.getAllWithStatus();
-      setQuotations(res.data || []);
+      console.log("📦 Dữ liệu PQ:", res.data);
+
+      const list = Array.isArray(res.data.data)
+        ? res.data.data.map((item) => ({
+            quotationId: item.qid,
+            sentDate: item.sendDate,
+            supplierName: item.supplierID,
+            status: item.status === 0 ? "InDate" : "OutOfDate",
+            expiredDate: item.quotationExpiredDate,
+            items: item.quotationDetailDTOs,
+          }))
+        : [];
+
+      setQuotations(list);
     } catch (err) {
       console.error("Lỗi khi tải danh sách PQ:", err);
       setSnackbar({
@@ -77,22 +90,26 @@ export default function PQList() {
       setLoading(false);
     }
   };
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
 
   const handleOpenDetail = async (id) => {
-    setOpenDetail(true);
-    setDetailLoading(true);
     try {
       const res = await pqApi.getDetail(id);
-      setSelectedQuotation(res.data);
-    } catch (err) {
-      console.error("Lỗi khi tải chi tiết PQ:", err);
-      setSnackbar({
-        open: true,
-        message: "Tải chi tiết PQ thất bại",
-        severity: "error",
+      const q = res.data?.data;
+      console.log("📦 Chi tiết PQ:", q);
+
+      setSelectedQuotation({
+        quotationId: q.qid,
+        supplierName: q.supplierName || "(Chưa có tên NCC)",
+        sentDate: q.sendDate,
+        expiredDate: q.quotationExpiredDate,
+        status: q.status === 0 ? "InDate" : "OutOfDate",
+        items: q.quotationDetailDTOs || [],
       });
-    } finally {
-      setDetailLoading(false);
+
+      setOpenDetailDialog(true);
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy chi tiết PQ:", error);
     }
   };
 
@@ -108,47 +125,87 @@ export default function PQList() {
     setExcelFile(null);
   };
 
-const handleUploadExcel = async () => {
-  if (!excelFile) {
-    setSnackbar({
-      open: true,
-      message: "Vui lòng chọn file Excel",
-      severity: "warning",
-    });
-    return;
-  }
-  setUploading(true);
-  try {
-    const res = await prfqApi.uploadSupplierExcel(excelFile);
+  const [uploadedProducts, setUploadedProducts] = useState([]);
+  const [excelKey, setExcelKey] = useState(null);
+  const [openPreview, setOpenPreview] = useState(false);
 
-    const excelKey = res.data?.excelKey;
-    if (excelKey) {
-      localStorage.setItem("excelKey", excelKey);
+  const handleUploadExcel = async () => {
+    if (!excelFile) {
+      setSnackbar({
+        open: true,
+        message: "Vui lòng chọn file Excel",
+        severity: "warning",
+      });
+      return;
     }
 
-    setSnackbar({
-      open: true,
-      message: "Upload Excel thành công!",
-      severity: "success",
-    });
-    loadData();
-    handleCloseUpload();
-  } catch (err) {
-    console.error(err);
-    setSnackbar({
-      open: true,
-      message: "Upload Excel thất bại",
-      severity: "error",
-    });
-  } finally {
-    setUploading(false);
-  }
-};
+    setUploading(true);
+    try {
+      // Upload Excel
+      const res = await prfqApi.uploadSupplierExcel(excelFile);
+      const { excelKey, products } = res.data || {};
 
+      if (!excelKey || !products)
+        throw new Error("Phản hồi server không hợp lệ");
 
-  const filteredData = quotations.filter((q) =>
-    q.supplierName?.toLowerCase().includes(search.toLowerCase())
-  );
+      // Lưu excelKey và mở preview dialog
+      localStorage.setItem("excelKey", excelKey);
+      setExcelKey(excelKey);
+      setUploadedProducts(products);
+      setOpenPreview(true);
+    } catch (err) {
+      console.error("❌ Lỗi upload:", err);
+      setSnackbar({
+        open: true,
+        message: "Upload file thất bại",
+        severity: "error",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+  const handleConfirmConvert = async () => {
+    try {
+      const data = {
+        excelKey,
+        details: uploadedProducts.map((p) => ({
+          productId: p.productID,
+          quantity: p.suggestedQuantity || 1,
+        })),
+        status: 6,
+      };
+
+      const res = await prfqApi.convertToPo(data);
+      console.log("✅ ConvertToPo success:", res.data);
+      setExcelKey(null);
+      setSnackbar({
+        open: true,
+        message: "Tạo báo giá thành công!",
+        severity: "success",
+      });
+
+      setOpenPreview(false);
+      handleCloseUpload();
+      loadData(); // load lại danh sách PQ
+    } catch (err) {
+      console.error("❌ ConvertToPo error:", err);
+      setSnackbar({
+        open: true,
+        message: "Tạo báo giá thất bại",
+        severity: "error",
+      });
+    }
+  };
+  const parseDDMMYYYY = (str) => {
+    if (!str) return null;
+    const [day, month, year] = str.split("/");
+    return new Date(`${year}-${month}-${day}`);
+  };
+
+  // const filteredData = quotations.filter((q) =>
+  //   q.supplierName?.toLowerCase().includes(search.toLowerCase())
+  // );
+  const filteredData = quotations;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -256,121 +313,79 @@ const handleUploadExcel = async () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-          <TablePagination
-            component="div"
-            count={filteredData.length}
-            rowsPerPage={10}
-            page={0}
-            onPageChange={() => {}}
-            onRowsPerPageChange={() => {}}
-          />
-        </Box>
       </Paper>
 
-      {/* Popup chi tiết */}
       <Dialog
-        open={openDetail}
-        onClose={handleCloseDetail}
+        open={openDetailDialog}
+        onClose={() => setOpenDetailDialog(false)}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Chi tiết báo giá NCC
-          </Typography>
-          <IconButton onClick={handleCloseDetail}>
-            <CloseIcon />
-          </IconButton>
+        <DialogTitle>
+          Chi tiết báo giá #{selectedQuotation?.quotationId}
         </DialogTitle>
 
-        <Divider />
-
         <DialogContent dividers>
-          {detailLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-              <CircularProgress />
-            </Box>
-          ) : selectedQuotation ? (
-            <Box>
-              <Typography>
-                <strong>Mã báo giá:</strong> {selectedQuotation.quotationId}
-              </Typography>
-              <Typography>
-                <strong>Nhà cung cấp:</strong> {selectedQuotation.supplierName}
-              </Typography>
-              <Typography>
-                <strong>Ngày gửi:</strong>{" "}
-                {new Date(selectedQuotation.sentDate).toLocaleDateString()}
-              </Typography>
-              <Typography>
-                <strong>Ngày hết hạn:</strong>{" "}
-                {new Date(selectedQuotation.expiredDate).toLocaleDateString()}
-              </Typography>
-              <Typography>
-                <strong>Trạng thái:</strong>{" "}
-                <Chip
-                  label={selectedQuotation.status}
-                  color={
-                    selectedQuotation.status === "InDate"
-                      ? "success"
-                      : selectedQuotation.status === "OutOfDate"
-                      ? "error"
-                      : "default"
-                  }
-                  size="small"
-                />
-              </Typography>
+          <Typography>
+            <strong>Nhà cung cấp:</strong> {selectedQuotation?.supplierName}
+          </Typography>
+          <Typography>
+            <strong>Ngày gửi:</strong>{" "}
+            {new Date(selectedQuotation?.sentDate).toLocaleDateString()}
+          </Typography>
+          <Typography>
+            <strong>Ngày hết hạn:</strong>{" "}
+            {new Date(selectedQuotation?.expiredDate).toLocaleDateString()}
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            <strong>Trạng thái:</strong>{" "}
+            <Chip
+              label={selectedQuotation?.status}
+              color={
+                selectedQuotation?.status === "InDate"
+                  ? "success"
+                  : selectedQuotation?.status === "OutOfDate"
+                  ? "error"
+                  : "default"
+              }
+              size="small"
+            />
+          </Typography>
 
-              <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2 }} />
 
-              {selectedQuotation.items && selectedQuotation.items.length > 0 ? (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>#</TableCell>
-                      <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell>Số lượng</TableCell>
-                      <TableCell>Đơn giá</TableCell>
-                      <TableCell>Thành tiền</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {selectedQuotation.items.map((item, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{i + 1}</TableCell>
-                        <TableCell>{item.productName}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>
-                          {item.unitPrice?.toLocaleString()} đ
-                        </TableCell>
-                        <TableCell>
-                          {(item.quantity * item.unitPrice)?.toLocaleString()} đ
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <Typography color="text.secondary">
-                  Không có sản phẩm nào trong báo giá.
-                </Typography>
-              )}
-            </Box>
-          ) : (
-            <Typography>Không tìm thấy dữ liệu chi tiết.</Typography>
-          )}
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>Tên sản phẩm</TableCell>
+                <TableCell>Mô tả</TableCell>
+                <TableCell>Đơn vị</TableCell>
+                <TableCell>Đơn giá</TableCell>
+                <TableCell>Hạn dùng</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {selectedQuotation?.items?.map((item, i) => (
+                <TableRow key={i}>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{item.productName}</TableCell>
+                  <TableCell>{item.productDescription}</TableCell>
+                  <TableCell>{item.productUnit}</TableCell>
+                  <TableCell>{item.unitPrice?.toLocaleString()} đ</TableCell>
+                  <TableCell>
+                    {item.productDate
+                      ? new Date(item.productDate).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </DialogContent>
 
         <DialogActions>
-          <Button
-            onClick={handleCloseDetail}
-            color="primary"
-            variant="contained"
-          >
-            Đóng
-          </Button>
+          <Button onClick={() => setOpenDetailDialog(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 
@@ -422,6 +437,215 @@ const handleUploadExcel = async () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      {/* Dialog Preview sau khi upload */}
+      <Dialog
+        open={openPreview}
+        onClose={() => setOpenPreview(false)}
+        maxWidth="lg" // giữ breakpoint lg
+        fullWidth // để width có thể mở rộng
+        scroll="paper"
+        sx={{
+          "& .MuiDialog-paper": {
+            width: "90vw",
+            maxWidth: "none",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
+          Xác nhận sản phẩm từ Excel
+        </DialogTitle>
+
+        <DialogContent
+          dividers
+          sx={{
+            bgcolor: "#bbe5f2ff",
+            minHeight: "70vh",
+            overflow: "auto",
+          }}
+        >
+          <Table size="small">
+            <TableHead sx={{ background: "#f0f0f0" }}>
+              <TableRow>
+                <TableCell>#</TableCell>
+                <TableCell>Tên sản phẩm</TableCell>
+                <TableCell>Mô tả</TableCell>
+                <TableCell>ĐVT</TableCell>
+                <TableCell>Đơn giá</TableCell>
+                <TableCell>Số lượng</TableCell>
+                <TableCell>Gợi ý</TableCell>
+                <TableCell>Tối thiểu</TableCell>
+                <TableCell>Tối đa</TableCell>
+                <TableCell>Hạn sử dụng</TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {uploadedProducts.map((p, i) => (
+                <TableRow key={p.productID}>
+                  <TableCell>{i + 1}</TableCell>
+
+                  <TableCell sx={{ maxWidth: 280, whiteSpace: "normal" }}>
+                    {p.productName}
+                  </TableCell>
+
+                  <TableCell sx={{ maxWidth: 350, whiteSpace: "normal" }}>
+                    {p.description}
+                  </TableCell>
+
+                  <TableCell>{p.dvt}</TableCell>
+
+                  <TableCell sx={{ width: 100 }}>
+                    {p.unitPrice.toLocaleString()} ₫
+                  </TableCell>
+
+                  {/* Quantity input */}
+                  <TableCell
+                    sx={{
+                      width: 110,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={p.quantity}
+                      onChange={(e) => {
+                        let newQuantity = Number(e.target.value);
+                        const min = 1;
+                        const max = p.suggestedQuantity || 1;
+                        let errorMsg = "";
+
+                        if (newQuantity < min) {
+                          errorMsg = `Phải có ít nhất 1 sản phẩm`;
+                          newQuantity = min;
+                        } else if (newQuantity > max) {
+                          errorMsg = `Số lượng không được vượt quá ${max}`;
+                          newQuantity = max;
+                        }
+
+                        setUploadedProducts((prev) =>
+                          prev.map((item, idx) =>
+                            idx === i
+                              ? { ...item, quantity: newQuantity }
+                              : item
+                          )
+                        );
+
+                        if (errorMsg) {
+                          setSnackbar({
+                            open: true,
+                            message: errorMsg,
+                            severity: "error",
+                          });
+                        }
+                      }}
+                      error={p.quantity < 1 || p.quantity > p.suggestedQuantity}
+                      helperText={
+                        p.quantity < 1
+                          ? `Phải có ít nhất 1 sản phẩm`
+                          : p.quantity > p.suggestedQuantity
+                          ? `Không thể vượt quá số lượng cho phép (${p.suggestedQuantity})`
+                          : ""
+                      }
+                      sx={{
+                        width: 70,
+                        "& input": {
+                          textAlign: "center",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                        },
+                      }}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={{ width: 110 }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={p.suggestedQuantity}
+                      disabled
+                      sx={{
+                        width: "100%",
+                        "& input": { textAlign: "center", fontWeight: 500 },
+                      }}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={{ width: 110 }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={p.minQuantity}
+                      disabled
+                      sx={{ width: "100%", "& input": { textAlign: "center" } }}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={{ width: 110 }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={p.maxQuantity}
+                      disabled
+                      sx={{ width: "100%", "& input": { textAlign: "center" } }}
+                    />
+                  </TableCell>
+
+                  <TableCell sx={{ minWidth: 120 }}>
+                    {p.expiredDateDisplay
+                      ? parseDDMMYYYY(p.expiredDateDisplay).toLocaleDateString(
+                          "vi-VN"
+                        )
+                      : "-"}
+                  </TableCell>
+
+                  <TableCell>
+                    <IconButton
+                      color="error"
+                      onClick={() => {
+                        setUploadedProducts((prev) =>
+                          prev.filter((_, index) => index !== i)
+                        );
+                      }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            justifyContent: "space-between",
+            px: 3,
+            py: 2,
+            background: "#fff",
+            borderTop: "1px solid #ddd",
+          }}
+        >
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => setOpenPreview(false)}
+            sx={{ px: 3, py: 1 }}
+          >
+            Đóng
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirmConvert}
+            sx={{ px: 3, py: 1 }}
+          >
+            Gửi yêu cầu
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

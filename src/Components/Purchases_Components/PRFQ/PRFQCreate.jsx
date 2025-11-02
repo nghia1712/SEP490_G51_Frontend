@@ -285,63 +285,53 @@ export default function PRFQCreate() {
         </Typography>
 
         {/* THÔNG TIN NCC */}
-        <Paper sx={{ p: 3, mb: 3 }}>
+        <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <TextField
-                select
-                label="Nhà cung cấp"
-                name="supplierId"
-                fullWidth
-                size="small"
-                value={formData.supplierId}
-                onChange={handleChange}
-                required
-              >
-                {suppliers.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Mã số thuế"
-                name="taxCode"
-                fullWidth
-                size="small"
-                sx={{ mt: 2 }}
-                value={formData.taxCode}
-                onChange={handleChange}
-              />
-              <TextField
-                label="Số điện thoại"
-                name="phone"
-                fullWidth
-                size="small"
-                sx={{ mt: 2 }}
-                value={formData.phone}
-                onChange={handleChange}
-              />
-              <TextField
-                label="Địa chỉ"
-                name="address"
-                fullWidth
-                size="small"
-                sx={{ mt: 2 }}
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </Grid>
+            {/* BÊN TRÁI: NHÀ THUỐC */}
             <Grid item xs={6}>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                  Thông tin nhà cung cấp
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Thông tin Nhà Thuốc / Sender
                 </Typography>
-                {selectedSupplier ? (
-                  <>
-                    <Typography variant="body2">
-                      Tên: {selectedSupplier.name}
-                    </Typography>
+                <Typography variant="body2">
+                  Tên: CÔNG TY TNHH DƯỢC PHẨM SỐ 17
+                </Typography>
+                <Typography variant="body2">
+                  Mã số thuế: 030203002865
+                </Typography>
+                <Typography variant="body2">
+                  Địa chỉ: 165 Dư Hàng Kênh, Tp Hải Phòng
+                </Typography>
+                <Typography variant="body2">Hotline: 0398233047</Typography>
+              </Paper>
+            </Grid>
+
+            {/* BÊN PHẢI: NHÀ CUNG CẤP */}
+            <Grid item xs={6}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  Thông tin Nhà Cung Cấp / Receiver
+                </Typography>
+
+                <TextField
+                  select
+                  label="Chọn nhà cung cấp"
+                  name="supplierId"
+                  fullWidth
+                  size="small"
+                  value={formData.supplierId}
+                  onChange={handleChange}
+                  required
+                >
+                  {suppliers.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                {selectedSupplier && (
+                  <Box sx={{ mt: 1 }}>
                     <Typography variant="body2">
                       Email: {selectedSupplier.email}
                     </Typography>
@@ -351,11 +341,7 @@ export default function PRFQCreate() {
                     <Typography variant="body2">
                       SĐT: {selectedSupplier.phoneNumber}
                     </Typography>
-                  </>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Chưa chọn nhà cung cấp
-                  </Typography>
+                  </Box>
                 )}
               </Paper>
             </Grid>
@@ -390,6 +376,37 @@ export default function PRFQCreate() {
                         }
                         value={item || { productName: "" }}
                         onChange={(e, value) => {
+                          if (value) {
+                            const isDuplicate = formData.items.some(
+                              (item, i) =>
+                                i !== index &&
+                                item.productId === value.productID
+                            );
+                            if (isDuplicate) {
+                              // Hiển thị cảnh báo
+                              setSnackbar({
+                                open: true,
+                                message: "Sản phẩm này đã được chọn!",
+                                severity: "warning",
+                              });
+
+                              // Xóa value ở dòng hiện tại
+                              const newItems = [...formData.items];
+                              newItems[index] = {
+                                productId: null,
+                                productName: "",
+                                description: "",
+                                unit: "",
+                              };
+                              setFormData({ ...formData, items: newItems });
+
+                              // Xóa luôn hiển thị Autocomplete
+                              e.target.value = "";
+                              return;
+                            }
+                          }
+
+                          // Nếu không trùng thì cập nhật bình thường
                           const newItems = [...formData.items];
                           if (value) {
                             newItems[index] = {
@@ -421,6 +438,16 @@ export default function PRFQCreate() {
                       />
                     </TableCell>
                     <TableCell align="center">
+                      <Tooltip title="Thêm sản phẩm nhanh">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          sx={{ mr: 1 }}
+                          onClick={handleOpenAddProduct}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Xóa dòng này">
                         <IconButton
                           color="error"
@@ -478,26 +505,176 @@ export default function PRFQCreate() {
           </Button>
         </Box>
 
-        {/* POPUP XEM TRƯỚC */}
         <Dialog
           open={openPreview}
           onClose={() => setOpenPreview(false)}
           maxWidth="lg"
           fullWidth
         >
+          {/* HEADER */}
           <DialogTitle
             sx={{
-              fontWeight: 700,
               textAlign: "center",
+              fontWeight: 700,
               bgcolor: "#0070C0",
               color: "white",
+              fontSize: 20,
             }}
           >
             YÊU CẦU BÁO GIÁ (REQUEST FOR QUOTATION)
           </DialogTitle>
-          <DialogContent sx={{ p: 3 }}>
-            {/* Bảng xem trước PRFQ */}
-            {/* ... giữ nguyên code bảng preview từ bản cũ ... */}
+
+          <DialogContent sx={{ p: 0 }}>
+            <Box
+              sx={{
+                fontSize: 14,
+                border: "1px solid black",
+                fontFamily: "Arial, sans-serif",
+              }}
+            >
+              {/* SECTION: Sender & Receiver */}
+              <TableContainer>
+                <Table size="small">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        sx={{ fontWeight: 700, borderRight: "1px solid #000" }}
+                      >
+                        BÊN GỬI / SENDER
+                      </TableCell>
+                      <TableCell colSpan={4} sx={{ fontWeight: 700 }}>
+                        BÊN NHẬN / RECEIVER
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>Người gửi:</TableCell>
+                      <TableCell>purchases</TableCell>
+                      <TableCell>Số PRFQID:</TableCell>
+                      <TableCell>{id || "-"}</TableCell>
+                      <TableCell>Tên NCC:</TableCell>
+                      <TableCell>{selectedSupplier?.name || "-"}</TableCell>
+                      <TableCell>Email:</TableCell>
+                      <TableCell>{selectedSupplier?.email || "-"}</TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>Mã số thuế:</TableCell>
+                      <TableCell>030203002865</TableCell>
+                      <TableCell>SDT:</TableCell>
+                      <TableCell>0398233047</TableCell>
+                      <TableCell>Địa chỉ:</TableCell>
+                      <TableCell>{selectedSupplier?.address || "-"}</TableCell>
+                      <TableCell>Liên lạc:</TableCell>
+                      <TableCell>
+                        {selectedSupplier?.phoneNumber || "-"}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>Địa chỉ:</TableCell>
+                      <TableCell colSpan={3}>
+                        165 Dư Hàng Kênh Tp Hải Phòng
+                      </TableCell>
+                      <TableCell>Ngày gửi:</TableCell>
+                      <TableCell colSpan={3}>
+                        {formData?.requestDate
+                          ? new Date(formData.requestDate).toLocaleDateString(
+                              "vi-VN"
+                            )
+                          : new Date().toLocaleDateString("vi-VN")}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* SECTION: Product list */}
+              <Box
+                sx={{
+                  bgcolor: "#00932aff",
+                  color: "white",
+                  fontWeight: 700,
+                  textAlign: "center",
+                  py: 1,
+                  mt: 1,
+                }}
+              >
+                DANH SÁCH SẢN PHẨM (PRODUCT LIST)
+              </Box>
+
+              <TableContainer>
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: "#00B050" }}>
+                    <TableRow>
+                      <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                        Số thứ tự
+                      </TableCell>
+                      <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                        Tên sản phẩm
+                      </TableCell>
+                      <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                        Mô tả
+                      </TableCell>
+                      <TableCell sx={{ color: "white", fontWeight: 700 }}>
+                        Đơn vị
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {formData?.items?.length > 0 ? (
+                      formData.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell>{item.unit}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center">
+                          Không có sản phẩm
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* SECTION: Notes */}
+              <Box sx={{ bgcolor: "#E8EAF6", p: 2 }}>
+                <Typography sx={{ fontWeight: 700, mb: 1 }}>
+                  GHI CHÚ (NOTES)
+                </Typography>
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  <li>
+                    Vui lòng phản hồi báo giá qua email hoặc hệ thống trong thời
+                    gian sớm nhất.
+                  </li>
+                  <li>
+                    Báo giá cần ghi rõ điều kiện thanh toán và thời gian giao
+                    hàng.
+                  </li>
+                  <li>Đảm bảo tính trung thực, rõ ràng trong báo giá.</li>
+                </ul>
+              </Box>
+
+              {/* FOOTER */}
+              <Box
+                sx={{
+                  textAlign: "center",
+                  fontSize: 12,
+                  mt: 2,
+                  p: 1,
+                  borderTop: "1px solid #000",
+                }}
+              >
+                (Khởi tạo từ CÔNG TY TNHH DƯỢC PHẨM SỐ 17 – MST: 030203002865 –
+                Hotline: 0398233047)
+              </Box>
+            </Box>
           </DialogContent>
         </Dialog>
       </Box>

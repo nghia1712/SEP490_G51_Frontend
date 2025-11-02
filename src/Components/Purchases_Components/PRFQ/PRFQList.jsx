@@ -18,10 +18,12 @@ import {
   CircularProgress,
   TablePagination,
   InputAdornment,
-  Menu,
-  MenuItem,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -29,8 +31,6 @@ import {
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
   PlayCircle as PlayCircleIcon,
-  CheckCircle as CheckIcon,
-  Close as CloseIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
@@ -40,13 +40,15 @@ export default function PRFQList() {
   const [prfqs, setPrfqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedPRFQId, setSelectedPRFQId] = useState(null);
-
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
+  });
+
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    open: false,
+    prfqId: null,
   });
 
   const navigate = useNavigate();
@@ -70,7 +72,6 @@ export default function PRFQList() {
       case 3:
         return { label: "Rejected", color: "error" };
       case 4:
-      case 0:
         return { label: "Draft", color: "default" };
       default:
         return { label: "Không xác định", color: "default" };
@@ -84,63 +85,35 @@ export default function PRFQList() {
       if (Array.isArray(result)) setPrfqs(result);
       else setPrfqs([]);
     } catch (err) {
-      console.error("Lỗi khi tải danh sách PRFQ:", err);
+      console.error("Lỗi khi tải danh sách yêu cầu báo giá:", err);
       setPrfqs([]);
-      showSnackbar("Lỗi khi tải danh sách PRFQ!", "error");
+      showSnackbar("Lỗi khi tải danh sách yêu cầu báo giá!", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id, status) => {
-    if (status !== "Draft") return;
-    if (!window.confirm("Bạn có chắc muốn xóa PRFQ này không?")) return;
+  const handleDelete = async () => {
     try {
-      await prfqApi.delete(id);
-      setPrfqs(prfqs.filter((p) => p.prfqid !== id));
+      await prfqApi.delete(deleteConfirm.prfqId);
+      setPrfqs(prfqs.filter((p) => p.prfqid !== deleteConfirm.prfqId));
       showSnackbar("Đã xóa thành công!", "success");
     } catch (err) {
-      console.error("Lỗi khi xóa PRFQ:", err);
-      showSnackbar("Không thể xóa PRFQ này!", "error");
+      console.error("Lỗi khi xóa yêu cầu báo giá:", err);
+      showSnackbar("Không thể xóa yêu cầu bóa giá này!", "error");
+    } finally {
+      setDeleteConfirm({ open: false, prfqId: null });
     }
   };
 
-  const handleViewDetail = (id, status) => {
-    if (status !== 0 && status !== 4) {
-      navigate(`/purchase/prfq/detail/${id}`);
-    }
+  const handleViewDetail = (id) => {
+    navigate(`/purchase/prfq/detail/${id}`);
   };
 
   const handleCreate = () => navigate(`/purchase/prfq/form`);
 
-  const handleContinue = (id, status) => {
-    if (status === "Draft" || status === 0 || status === 4) {
-      navigate(`/purchase/prfq/form/${id}`);
-    }
-  };
-
-  const handleMenuOpen = (event, prfqId) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedPRFQId(prfqId);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedPRFQId(null);
-  };
-
-  const handleSelectStatus = async (newStatus) => {
-    if (!selectedPRFQId) return;
-    try {
-      await prfqApi.changeStatus(selectedPRFQId, newStatus);
-      showSnackbar("Đã cập nhật trạng thái!", "success");
-      loadData();
-    } catch (err) {
-      console.error(err);
-      showSnackbar("Lỗi khi cập nhật trạng thái!", "error");
-    } finally {
-      handleMenuClose();
-    }
+  const handleContinue = (id) => {
+    navigate(`/purchase/prfq/form/${id}`);
   };
 
   const filteredData = prfqs.filter((p) =>
@@ -191,10 +164,10 @@ export default function PRFQList() {
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Ngày tạo</TableCell>
-                <TableCell>Mã số thuế</TableCell>
-                <TableCell>Số điện thoại</TableCell>
-                <TableCell>Địa chỉ</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Địa chỉ</TableCell>
+                <TableCell>Số điện thoại</TableCell>
                 <TableCell>Trạng thái</TableCell>
                 <TableCell>Người phụ trách</TableCell>
                 <TableCell align="center">Hành động</TableCell>
@@ -203,13 +176,13 @@ export default function PRFQList() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={9} align="center">
                     Không có sản phẩm tương ứng
                   </TableCell>
                 </TableRow>
@@ -222,78 +195,35 @@ export default function PRFQList() {
                         ? new Date(row.requestDate).toLocaleDateString("vi-VN")
                         : "—"}
                     </TableCell>
-                    <TableCell>{row.taxCode || "—"}</TableCell>
-                    <TableCell>{row.myPhone || "—"}</TableCell>
-                    <TableCell>{row.myAddress || "—"}</TableCell>
                     <TableCell>{row.supplierName || "—"}</TableCell>
+                    <TableCell>{row.supplierEmail || "—"}</TableCell>
+                    <TableCell>{row.supplierAddress || "—"}</TableCell>
+                    <TableCell>{row.supplierPhone || "—"}</TableCell>
                     <TableCell align="center">
                       {(() => {
                         const { label, color } = getStatus(row.status);
-                        return <Chip label={label} color={color} size="small" />;
+                        return (
+                          <Chip label={label} color={color} size="small" />
+                        );
                       })()}
                     </TableCell>
                     <TableCell align="center">{row.createdBy || "—"}</TableCell>
                     <TableCell align="center">
-                      {/* Hành động cho trạng thái đã gửi */}
-                      {row.status !== 0 && row.status !== 4 && (
-                        <>
-                          <Tooltip title="Chi tiết">
-                            <IconButton
-                              color="primary"
-                              onClick={() =>
-                                handleViewDetail(row.prfqid, row.status)
-                              }
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          </Tooltip>
-
-                          {row.status === 1 && (
-                            <>
-                              <Tooltip title="Change Status">
-                                <IconButton
-                                  color="warning"
-                                  onClick={(e) =>
-                                    handleMenuOpen(e, row.prfqid)
-                                  }
-                                >
-                                  <PlayCircleIcon />
-                                </IconButton>
-                              </Tooltip>
-
-                              <Menu
-                                anchorEl={anchorEl}
-                                open={
-                                  Boolean(anchorEl) &&
-                                  selectedPRFQId === row.prfqid
-                                }
-                                onClose={handleMenuClose}
-                              >
-                                <MenuItem
-                                  onClick={() => handleSelectStatus(2)}
-                                >
-                                  <CheckIcon sx={{ mr: 1 }} /> Approve
-                                </MenuItem>
-                                <MenuItem
-                                  onClick={() => handleSelectStatus(3)}
-                                >
-                                  <CloseIcon sx={{ mr: 1 }} /> Reject
-                                </MenuItem>
-                              </Menu>
-                            </>
-                          )}
-                        </>
-                      )}
-
-                      {/* Hành động cho Draft */}
-                      {(row.status === 4 || row.status === 0) && (
+                      {row.status !== 4 ? (
+                        <Tooltip title="Chi tiết / Xem trước">
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleViewDetail(row.prfqid)}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
                         <>
                           <Tooltip title="Tiếp tục chỉnh sửa">
                             <IconButton
                               color="success"
-                              onClick={() =>
-                                handleContinue(row.prfqid, row.status)
-                              }
+                              onClick={() => handleContinue(row.prfqid)}
                             >
                               <PlayCircleIcon />
                             </IconButton>
@@ -302,7 +232,10 @@ export default function PRFQList() {
                             <IconButton
                               color="error"
                               onClick={() =>
-                                handleDelete(row.prfqid, row.status)
+                                setDeleteConfirm({
+                                  open: true,
+                                  prfqId: row.prfqid,
+                                })
                               }
                             >
                               <DeleteIcon />
@@ -317,20 +250,28 @@ export default function PRFQList() {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-          <TablePagination
-            component="div"
-            count={filteredData.length}
-            rowsPerPage={10}
-            page={0}
-            onPageChange={() => {}}
-            onRowsPerPageChange={() => {}}
-          />
-        </Box>
       </Paper>
 
-      {/* Snackbar hiển thị thông báo */}
+      {/* Popup xác nhận xóa */}
+      <Dialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, prfqId: null })}
+      >
+        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogContent>Bạn có chắc muốn xóa yêu cầu báo giá này không?</DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteConfirm({ open: false, prfqId: null })}
+          >
+            Hủy
+          </Button>
+          <Button color="error" onClick={handleDelete}>
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
