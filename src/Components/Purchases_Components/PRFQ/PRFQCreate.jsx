@@ -212,59 +212,66 @@ export default function PRFQCreate() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (status) => {
-    if (loading) return; // nếu đang gửi, bỏ qua click tiếp
-    setLoading(true);
+const handleSubmit = async (status) => {
+  if (loading) return;
+  setLoading(true);
 
-    try {
-      const productIds = formData.items
-        .map((item) => item.productId)
-        .filter((id) => id);
+  try {
+    const productIds = formData.items
+      .map((item) => item.productId)
+      .filter((id) => id);
 
-      if (productIds.length === 0) {
-        setSnackbar({
-          open: true,
-          message: "Vui lòng chọn ít nhất một sản phẩm từ danh sách!",
-          severity: "warning",
-        });
-        setLoading(false);
-        return;
-      }
-
-      const payload = {
-        id: id || undefined,
-        supplierId: Number(formData.supplierId),
-        taxCode: formData.taxCode,
-        myPhone: formData.phone,
-        myAddress: formData.address,
-        productIds,
-        prfqStatus: status === "Draft" ? 4 : 1,
-      };
-
-      await prfqApi.create(payload);
-
+    if (productIds.length === 0) {
       setSnackbar({
         open: true,
-        message: isUpdate
-          ? "Cập nhật PRFQ thành công!"
-          : "Tạo PRFQ thành công!",
-        severity: "success",
+        message: "Vui lòng chọn ít nhất một sản phẩm!",
+        severity: "warning",
       });
-
-      setTimeout(() => {
-        navigate("/purchase/prfq");
-      }, 1200);
-    } catch (error) {
-      console.error("Lỗi khi xử lý PRFQ:", error);
-      setSnackbar({
-        open: true,
-        message: "Không thể lưu, vui lòng thử lại!",
-        severity: "error",
-      });
-    } finally {
       setLoading(false);
+      return;
     }
-  };
+
+    const payload = {
+      supplierId: Number(formData.supplierId),
+      taxCode: formData.taxCode,
+      myPhone: formData.phone,
+      myAddress: formData.address,
+      productIds,
+      prfqStatus: status === "Draft" ? 4 : 1, // Draft = 4, Submit = 1
+    };
+
+    let res;
+
+    // ✅ Nếu đang chỉnh sửa bản nháp → gọi continueEdit
+    if (isUpdate) {
+      res = await prfqApi.continueEdit(id, payload);
+    } 
+    // ✅ Nếu tạo mới → create
+    else {
+      res = await prfqApi.create(payload);
+    }
+
+    setSnackbar({
+      open: true,
+      message: status === "Draft"
+        ? (isUpdate ? "Cập nhật bản nháp thành công!" : "Lưu bản nháp thành công!")
+        : "Gửi yêu cầu thành công!",
+      severity: "success",
+    });
+
+    setTimeout(() => navigate("/purchase/prfq"), 1200);
+  } catch (error) {
+    console.error("Lỗi Submit:", error);
+    setSnackbar({
+      open: true,
+      message: "Không thể lưu, vui lòng thử lại!",
+      severity: "error",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>

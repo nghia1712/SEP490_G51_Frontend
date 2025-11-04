@@ -381,7 +381,7 @@ function App() {
                       <Route path="/purchase/pq" element={<PQList />} />
 
                       {/* Routes cho PO */}
-                      <Route path="/purchase/po" element={<POList />} />
+                      <Route path="/po" element={<POList />} />
 
                       {/* Routes cho Manager Dashboard */}
                       <Route

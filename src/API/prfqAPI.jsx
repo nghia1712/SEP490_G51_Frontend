@@ -22,6 +22,10 @@ const prfqApi = {
     authorApi.put(`${API_URL}/${id}/status`, status, {
       headers: { "Content-Type": "application/json" },
     }),
+  continueEdit: (id, data) =>
+    authorApi.put(`${API_URL}/${id}/continue`, data, {
+      headers: { "Content-Type": "application/json" },
+    }),
 };
 
 export default prfqApi;
