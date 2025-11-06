@@ -22,7 +22,10 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
 import supplierAPI from "../../../API/supplierAPI";
@@ -199,6 +202,7 @@ export default function PRFQCreate() {
     }
   };
 
+
   const handleAddItem = () =>
     setFormData({
       ...formData,
@@ -212,66 +216,68 @@ export default function PRFQCreate() {
 
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (status) => {
-  if (loading) return;
-  setLoading(true);
+  const handleSubmit = async (status) => {
+    if (loading) return;
+    setLoading(true);
 
-  try {
-    const productIds = formData.items
-      .map((item) => item.productId)
-      .filter((id) => id);
+    try {
+      const productIds = formData.items
+        .map((item) => item.productId)
+        .filter((id) => id);
 
-    if (productIds.length === 0) {
+      if (productIds.length === 0) {
+        setSnackbar({
+          open: true,
+          message: "Vui lòng chọn ít nhất một sản phẩm!",
+          severity: "warning",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        supplierId: Number(formData.supplierId),
+        taxCode: formData.taxCode,
+        myPhone: formData.phone,
+        myAddress: formData.address,
+        productIds,
+        prfqStatus: status === "Draft" ? 4 : 1, // Draft = 4, Submit = 1
+      };
+
+      let res;
+
+      // ✅ Nếu đang chỉnh sửa bản nháp → gọi continueEdit
+      if (isUpdate) {
+        res = await prfqApi.continueEdit(id, payload);
+      }
+      // ✅ Nếu tạo mới → create
+      else {
+        res = await prfqApi.create(payload);
+      }
+
       setSnackbar({
         open: true,
-        message: "Vui lòng chọn ít nhất một sản phẩm!",
-        severity: "warning",
+        message:
+          status === "Draft"
+            ? isUpdate
+              ? "Cập nhật bản nháp thành công!"
+              : "Lưu bản nháp thành công!"
+            : "Gửi yêu cầu thành công!",
+        severity: "success",
       });
+
+      setTimeout(() => navigate("/purchase/prfq"), 1200);
+    } catch (error) {
+      console.error("Lỗi Submit:", error);
+      setSnackbar({
+        open: true,
+        message: "Không thể lưu, vui lòng thử lại!",
+        severity: "error",
+      });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const payload = {
-      supplierId: Number(formData.supplierId),
-      taxCode: formData.taxCode,
-      myPhone: formData.phone,
-      myAddress: formData.address,
-      productIds,
-      prfqStatus: status === "Draft" ? 4 : 1, // Draft = 4, Submit = 1
-    };
-
-    let res;
-
-    // ✅ Nếu đang chỉnh sửa bản nháp → gọi continueEdit
-    if (isUpdate) {
-      res = await prfqApi.continueEdit(id, payload);
-    } 
-    // ✅ Nếu tạo mới → create
-    else {
-      res = await prfqApi.create(payload);
-    }
-
-    setSnackbar({
-      open: true,
-      message: status === "Draft"
-        ? (isUpdate ? "Cập nhật bản nháp thành công!" : "Lưu bản nháp thành công!")
-        : "Gửi yêu cầu thành công!",
-      severity: "success",
-    });
-
-    setTimeout(() => navigate("/purchase/prfq"), 1200);
-  } catch (error) {
-    console.error("Lỗi Submit:", error);
-    setSnackbar({
-      open: true,
-      message: "Không thể lưu, vui lòng thử lại!",
-      severity: "error",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <>
@@ -518,6 +524,21 @@ const handleSubmit = async (status) => {
           maxWidth="lg"
           fullWidth
         >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 2,
+              px: 3,
+              py: 2,
+            }}
+          >
+
+            <Button variant="outlined" onClick={() => setOpenPreview(false)}>
+              Đóng
+            </Button>
+          </Box>
+
           {/* HEADER */}
           <DialogTitle
             sx={{

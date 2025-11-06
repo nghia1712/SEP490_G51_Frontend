@@ -48,7 +48,6 @@ import CustomerStatusCheck from "./Components/Customer_Components/CustomerStatus
 import CustomerApprovalList from "./Components/Manager_Components/CustomerApprovalList";
 import PRFQList from "./Components/Purchases_Components/PRFQ/PRFQList";
 import PRFQCreate from "./Components/Purchases_Components/PRFQ/PRFQCreate";
-import PRFQDetail from "./Components/Purchases_Components/PRFQ/PRFQDetail.jsx";
 import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
 import POList from "./Components/Purchases_Components/PO/POList";
 
@@ -371,10 +370,6 @@ function App() {
                       <Route
                         path="/purchase/prfq/form/:id"
                         element={<PRFQCreate />}
-                      />
-                      <Route
-                        path="/purchase/prfq/detail/:id"
-                        element={<PRFQDetail />}
                       />
 
                       {/* Routes cho PQ */}

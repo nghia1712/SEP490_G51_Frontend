@@ -30,13 +30,13 @@ import prfqApi from "../../../API/prfqAPI";
 import POActions from "./POActions";
 
 const statusMap = {
-  0: { label: "Approved",  color: "success" },
-  1: { label: "Rejected",  color: "error" },
+  0: { label: "Approved", color: "success" },
+  1: { label: "Rejected", color: "error" },
   3: { label: "Deposited", color: "info" },
-  4: { label: "Paid",      color: "error" },
+  4: { label: "Paid", color: "error" },
   5: { label: "Completed", color: "secondary" },
-  6: { label: "Sent",      color: "warning" },
-  7: { label: "Draft",     color: "default" },
+  6: { label: "Sent", color: "warning" },
+  7: { label: "Draft", color: "default" },
 };
 
 // Hàm parse ngày dd/mm/yyyy
@@ -177,7 +177,7 @@ export default function POList() {
     }
 
     const details = uploadedProducts.map((p) => ({
-      productId: p.productID,
+      stt: p.STT ?? p.stt,
       quantity: Number(p.quantity),
     }));
 
@@ -188,12 +188,15 @@ export default function POList() {
         details,
         status: 6,
       };
+
       await prfqApi.convertToPo(data);
+
       setSnackbar({
         open: true,
         message: "Tạo PO thành công!",
         severity: "success",
       });
+
       setPreviewOpen(false);
       setExcelFile(null);
       setUploadedProducts([]);
@@ -294,20 +297,23 @@ export default function POList() {
                       <TableCell>
                         {new Date(po.orderDate).toLocaleDateString()}
                       </TableCell>
-                      <TableCell align="center">{renderStatus(po.status)}</TableCell>
+                      <TableCell align="center">
+                        {renderStatus(po.status)}
+                      </TableCell>
                       <TableCell>{po.total.toLocaleString()} ₫</TableCell>
                       <TableCell align="right">
                         {po.status === 6 && po.deposit === 0
                           ? "Chưa thỏa thuận"
                           : po.deposit.toLocaleString() + " ₫"}
                       </TableCell>
-                      <TableCell>{po.debt.toLocaleString()} ₫</TableCell>
+                      <TableCell align="right">
+                        {po.debt.toLocaleString()} ₫
+                      </TableCell>
                       <TableCell>
                         {po.paymentBy === "Unknown"
                           ? "Chưa thanh toán"
                           : po.paymentBy}
                       </TableCell>
-                      
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -586,7 +592,6 @@ export default function POList() {
 
                 {/* Cột phải */}
                 <Box>
-
                   {/* Ngày đặt cọc */}
                   {selectedPO.status === 3 && selectedPO.deposit > 0 && (
                     <Typography>
