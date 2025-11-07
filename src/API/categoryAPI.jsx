@@ -12,6 +12,8 @@ const categoryAPI = {
     update: (data) => authorApi.put(`${API_URL}/updatecategory`, data),
     // Backend supports PUT /api/Category/toggleStatus/{catId}
     toggleStatus: (catId) => authorApi.put(`${API_URL}/toggleStatus/${catId}`),
+    // Backend supports DELETE /api/Category/delete/{catId}
+    delete: (catId) => authorApi.delete(`${API_URL}/delete/${catId}`),
 };
 
 export default categoryAPI;

@@ -1,11 +1,11 @@
 // Cấu hình chức năng cho Sales Staff
 import React from "react";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
-import CategoryIcon from "@mui/icons-material/Category";
 import BusinessIcon from "@mui/icons-material/Business";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import OutputIcon from "@mui/icons-material/Output";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 
 export const salesStaffFunctions = [
   {
@@ -16,10 +16,10 @@ export const salesStaffFunctions = [
     category: "core"
   },
   {
-    title: "Danh mục thuốc",
-    icon: <CategoryIcon />,
-    path: "/category",
-    description: "Quản lý các danh mục thuốc",
+    title: "Báo giá",
+    icon: <RequestQuoteIcon />,
+    path: "/request-quotation",
+    description: "Báo giá",
     category: "core"
   },
   {

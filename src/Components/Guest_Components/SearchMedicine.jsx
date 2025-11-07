@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Container,
   Typography,
@@ -30,6 +30,7 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate } from "react-router-dom";
 import guestAPI from "../../API/guestAPI";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 const SearchMedicine = () => {
   const navigate = useNavigate();
@@ -41,6 +42,18 @@ const SearchMedicine = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [categories, setCategories] = useState([]);
+
+  // Kiểm tra xem user đã đăng nhập chưa
+  const isAuthenticated = useMemo(() => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return false;
+      const role = getUserRoleFromToken();
+      return role === 'customer';
+    } catch {
+      return false;
+    }
+  }, []);
 
   // Fetch active products and categories on component mount
   useEffect(() => {
@@ -266,60 +279,65 @@ const SearchMedicine = () => {
             </Alert>
           )}
           
-          <Alert 
-            severity="info" 
-            sx={{ 
-              mb: 3, 
-              textAlign: "left",
-              backgroundColor: "rgba(72, 193, 166, 0.1)",
-              border: "1px solid rgba(72, 193, 166, 0.3)",
-              borderRadius: "12px",
-            }}
-          >
-            <Typography variant="body2">
-              <strong>Lưu ý:</strong> Bạn đang xem ở chế độ khách. 
-              Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
-            </Typography>
-          </Alert>
-          
-          <Box sx={{ display: "flex", gap: 2, justifyContent: "center", mb: 3 }}>
-            <Button
-              variant="contained"
-              onClick={() => navigate("/login")}
-              sx={{ 
-                backgroundColor: "#48C1A6",
-                borderRadius: "12px",
-                px: 4,
-                py: 1.5,
-                fontWeight: "bold",
-                "&:hover": {
-                  backgroundColor: "#3a9d8a",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 4px 12px rgba(72, 193, 166, 0.3)",
-                }
-              }}
-            >
-              Đăng nhập để mua hàng
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => navigate("/register")}
-              sx={{
-                borderRadius: "12px",
-                px: 4,
-                py: 1.5,
-                fontWeight: "bold",
-                borderColor: "#48C1A6",
-                color: "#48C1A6",
-                "&:hover": {
+          {/* Chỉ hiển thị alert và nút đăng nhập/đăng ký cho guest */}
+          {!isAuthenticated && (
+            <>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mb: 3, 
+                  textAlign: "left",
                   backgroundColor: "rgba(72, 193, 166, 0.1)",
-                  transform: "translateY(-2px)",
-                }
-              }}
-            >
-              Đăng ký tài khoản
-            </Button>
-          </Box>
+                  border: "1px solid rgba(72, 193, 166, 0.3)",
+                  borderRadius: "12px",
+                }}
+              >
+                <Typography variant="body2">
+                  <strong>Lưu ý:</strong> Bạn đang xem ở chế độ khách. 
+                  Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
+                </Typography>
+              </Alert>
+              
+              <Box sx={{ display: "flex", gap: 2, justifyContent: "center", mb: 3 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate("/login")}
+                  sx={{ 
+                    backgroundColor: "#48C1A6",
+                    borderRadius: "12px",
+                    px: 4,
+                    py: 1.5,
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#3a9d8a",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(72, 193, 166, 0.3)",
+                    }
+                  }}
+                >
+                  Đăng nhập để mua hàng
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate("/register")}
+                  sx={{
+                    borderRadius: "12px",
+                    px: 4,
+                    py: 1.5,
+                    fontWeight: "bold",
+                    borderColor: "#48C1A6",
+                    color: "#48C1A6",
+                    "&:hover": {
+                      backgroundColor: "rgba(72, 193, 166, 0.1)",
+                      transform: "translateY(-2px)",
+                    }
+                  }}
+                >
+                  Đăng ký tài khoản
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
 
       <Box sx={{ mb: 4 }}>
@@ -578,11 +596,14 @@ const SearchMedicine = () => {
               
               <Divider sx={{ my: 3 }} />
               
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2">
-                    <strong>Lưu ý:</strong> Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
-                </Typography>
-              </Alert>
+              {/* Chỉ hiển thị alert cho guest */}
+              {!isAuthenticated && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                      <strong>Lưu ý:</strong> Để mua hàng và nhận giá ưu đãi, vui lòng đăng nhập vào hệ thống.
+                  </Typography>
+                </Alert>
+              )}
             </Box>
             );
           })()}
@@ -591,13 +612,16 @@ const SearchMedicine = () => {
           <Button onClick={handleCloseDialog}>
             Đóng
           </Button>
-          <Button 
-            variant="contained" 
-            onClick={() => navigate("/login")}
-            sx={{ backgroundColor: "#48C1A6" }}
-          >
-            Đăng nhập để mua
-          </Button>
+          {/* Chỉ hiển thị nút đăng nhập cho guest */}
+          {!isAuthenticated && (
+            <Button 
+              variant="contained" 
+              onClick={() => navigate("/login")}
+              sx={{ backgroundColor: "#48C1A6" }}
+            >
+              Đăng nhập để mua
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       </Container>

@@ -57,6 +57,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import GridViewIcon from "@mui/icons-material/GridView";
 import BusinessIcon from "@mui/icons-material/Business";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 // import useUser from "../../Hooks/useUser"; // Đã xóa do lỗi phân giải
 
 // --- HÀM HELPER ---
@@ -97,10 +98,16 @@ const mainFunctions = [
     allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
   },
   {
+    title: "Báo giá",
+    icon: <RequestQuoteIcon />,
+    path: "/request-quotation",
+    allowedRoles: ["sales_staff", "manager"],
+  },
+  {
     title: "Danh mục thuốc",
     icon: <CategoryIcon />,
     path: "/category",
-    allowedRoles: ["sales_staff", "purchases_staff", "warehouse_staff", "accountant_staff", "manager"],
+    allowedRoles: ["purchases_staff", "warehouse_staff", "accountant_staff"],
   },
   {
     title: "Nhà Cung Cấp",
@@ -325,7 +332,7 @@ function Landing() {
     if (currentRole === 'purchases_staff') {
       roleSpecificEnabledPaths = new Set(['/purchases-dashboard', '/product', '/category', '/supplier']);
     } else if (currentRole === 'sales_staff') {
-      roleSpecificEnabledPaths = new Set(['/sales-dashboard', '/product', '/category']);
+      roleSpecificEnabledPaths = new Set(['/sales-dashboard', '/product', '/category', '/request-quotation']);
     } else if (currentRole === 'warehouse_staff') {
       roleSpecificEnabledPaths = new Set(['/warehouse-dashboard', '/warehouse']);
     } else if (currentRole === 'accountant_staff') {

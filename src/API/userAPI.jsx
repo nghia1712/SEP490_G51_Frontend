@@ -54,6 +54,15 @@ const userAPI = {
         console.log('FormData created, sending to /User/upload-avatar');
         return formDataApi.post('/User/upload-avatar', formData);
     },
+    
+    // Upload business certificate (chứng nhận kinh doanh)
+    uploadBusinessCertificate: (file) => {
+        console.log('Uploading business certificate:', file);
+        const formData = new FormData();
+        formData.append('file', file);
+        console.log('FormData created, sending to /User/upload-business-certificate');
+        return formDataApi.post('/User/upload-business-certificate', formData);
+    },
     getAllUsers: () => authorApi.get(`${API_URL}/get-all-user`),
     changePassword: (data) => authorApi.post('/User/changePassword', data),
     updateUser: (userId, data) => authorApi.put(`${API_URL}/update-user/${userId}`, data),
