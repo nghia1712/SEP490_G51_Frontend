@@ -12,7 +12,7 @@ export default defineConfig({
     proxy: {
       // Proxy all /api calls to the ASP.NET backend (HTTPS, dev cert)
       '/api': {
-        target: 'http://localhost:5137',
+        target: 'https://localhost:7213',
         changeOrigin: true,
         secure: false,
         // Keep the /api prefix because backend controllers are under /api
