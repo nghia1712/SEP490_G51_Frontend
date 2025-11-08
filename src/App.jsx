@@ -37,6 +37,7 @@ import ManageSupplierProducts from "./Components/Supplier_Components/ManageSuppl
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
+import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDetails.jsx";
 import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
 import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard";
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
@@ -50,6 +51,9 @@ import PRFQList from "./Components/Purchases_Components/PRFQ/PRFQList";
 import PRFQCreate from "./Components/Purchases_Components/PRFQ/PRFQCreate";
 import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
 import POList from "./Components/Purchases_Components/PO/POList";
+import GRNList from "./Components/Warehouse_Components/GRN/GRNList";
+import GRNManualCreatePage from "./Components/Warehouse_Components/GRN/GRNManualCreatePage.jsx";
+import WarehouseLocationDetailPage from "./Components/Warehouse_Components/WarehouseLocationDetails.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -378,6 +382,12 @@ function App() {
                       {/* Routes cho PO */}
                       <Route path="/po" element={<POList />} />
 
+                      {/* Routes cho GRN */}
+                      <Route path="/grn" element={<GRNList />} />
+                      <Route
+                        path="/grn/manual-create"
+                        element={<GRNManualCreatePage />}
+                      />
                       {/* Routes cho Manager Dashboard */}
                       <Route
                         path="/manager-dashboard"
@@ -438,6 +448,14 @@ function App() {
                             <ProductWarehouse />
                           </ProtectedRoute>
                         }
+                      />
+                      <Route
+                        path="/warehouse/details/:id"
+                        element={<WarehouseDetailPage />}
+                      />
+                      <Route
+                        path="/warehouse-location/details/:id"
+                        element={<WarehouseLocationDetailPage />}
                       />
 
                       {/* Routes cho tất cả Staff */}

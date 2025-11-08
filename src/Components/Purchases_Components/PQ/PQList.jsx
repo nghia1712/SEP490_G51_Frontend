@@ -25,7 +25,10 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Search as SearchIcon, Visibility as VisibilityIcon } from "@mui/icons-material";
+import {
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import pqApi from "../../../API/pqAPI";
 import palette from "../../../constants/palette";
@@ -51,12 +54,12 @@ export default function PQList() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await pqApi.getAllWithStatus();
+      const res = await pqApi.getAllBasic();
       const list = Array.isArray(res.data.data)
         ? res.data.data.map((item) => ({
             quotationId: item.qid,
             sentDate: item.sendDate,
-            supplierName: item.supplierID,
+            supplierName: item.supplierName,
             status: item.status === 0 ? "InDate" : "OutOfDate",
             expiredDate: item.quotationExpiredDate,
             items: item.quotationDetailDTOs,
@@ -100,7 +103,10 @@ export default function PQList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}>
+      <Typography
+        variant="h5"
+        sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
+      >
         💼 Quản lý báo giá NCC
       </Typography>
 
@@ -155,8 +161,11 @@ export default function PQList() {
                 filteredData.map((row, index) => (
                   <TableRow key={row.quotationId}>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{row.quotationId}</TableCell>
-                    <TableCell>{new Date(row.sentDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{`PQ-${row.quotationId}`}</TableCell>
+
+                    <TableCell>
+                      {new Date(row.sentDate).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>{row.supplierName}</TableCell>
                     <TableCell>
                       <Chip
@@ -165,10 +174,15 @@ export default function PQList() {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{new Date(row.expiredDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(row.expiredDate).toLocaleDateString()}
+                    </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Xem chi tiết">
-                        <IconButton color="primary" onClick={() => handleOpenDetail(row.quotationId)}>
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDetail(row.quotationId)}
+                        >
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
@@ -187,17 +201,29 @@ export default function PQList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết báo giá #{selectedQuotation?.quotationId}</DialogTitle>
+        <DialogTitle>
+          Chi tiết báo giá {`PQ-${selectedQuotation?.quotationId}`}
+        </DialogTitle>
 
         <DialogContent dividers>
-          <Typography><strong>Nhà cung cấp:</strong> {selectedQuotation?.supplierName}</Typography>
-          <Typography><strong>Ngày gửi:</strong> {new Date(selectedQuotation?.sentDate).toLocaleDateString()}</Typography>
-          <Typography><strong>Ngày hết hạn:</strong> {new Date(selectedQuotation?.expiredDate).toLocaleDateString()}</Typography>
+          <Typography>
+            <strong>Nhà cung cấp:</strong> {selectedQuotation?.supplierName}
+          </Typography>
+          <Typography>
+            <strong>Ngày gửi:</strong>{" "}
+            {new Date(selectedQuotation?.sentDate).toLocaleDateString()}
+          </Typography>
+          <Typography>
+            <strong>Ngày hết hạn:</strong>{" "}
+            {new Date(selectedQuotation?.expiredDate).toLocaleDateString()}
+          </Typography>
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}
             <Chip
               label={selectedQuotation?.status}
-              color={selectedQuotation?.status === "InDate" ? "success" : "error"}
+              color={
+                selectedQuotation?.status === "InDate" ? "success" : "error"
+              }
               size="small"
             />
           </Typography>
@@ -223,7 +249,11 @@ export default function PQList() {
                   <TableCell>{item.productDescription}</TableCell>
                   <TableCell>{item.productUnit}</TableCell>
                   <TableCell>{item.unitPrice?.toLocaleString()} đ</TableCell>
-                  <TableCell>{item.productDate ? new Date(item.productDate).toLocaleDateString() : "-"}</TableCell>
+                  <TableCell>
+                    {item.productDate
+                      ? new Date(item.productDate).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

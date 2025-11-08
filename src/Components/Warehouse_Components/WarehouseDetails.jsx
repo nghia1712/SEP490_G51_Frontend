@@ -1,146 +1,231 @@
-import React, { useState, useEffect } from "react";
+// src/Pages/WarehouseDetailPage.jsx
+import React, { useEffect, useState } from "react";
 import {
   Box,
-  Button,
   Typography,
-  Modal,
   Grid,
   CircularProgress,
+  Button,
+  Container,
+  Card,
+  CardContent,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import useWarehouse from "../../Hooks/useWarehouse";
+import {
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  Add as AddIcon,
+} from "@mui/icons-material";
+import { useParams, useNavigate } from "react-router-dom";
+import warehouseApi from "../../API/warehouseAPI";
 import renderStatusChip from "../../Utils/renderStatusChip";
 
-const WarehouseDetails = ({ open, onClose, warehouse }) => {
-  const { getWarehouseDetails, loading } = useWarehouse();
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+export default function WarehouseDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [warehouse, setWarehouse] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
 
-  // Load warehouse details when modal opens
   useEffect(() => {
-    if (open && warehouse) {
-      const loadDetails = async () => {
-        try {
-          const details = await getWarehouseDetails(warehouse.id);
-          setSelectedWarehouse({ ...warehouse, ...details });
-        } catch (error) {
-          console.error("Lỗi khi lấy chi tiết warehouse:", error);
-          // Fallback: hiển thị thông tin cơ bản nếu không lấy được chi tiết
-          setSelectedWarehouse(warehouse);
-        }
-      };
-      loadDetails();
-    }
-  }, [open, warehouse, getWarehouseDetails]);
+    const loadDetail = async () => {
+      try {
+        const res = await warehouseApi.getWarehouseDetails(id);
+        setWarehouse(res.data.data);
+        setLocations(res.data.data.warehouseLocations || []);
+      } catch (err) {
+        console.error("Lỗi khi lấy chi tiết kho:", err);
+        setError("Không thể tải chi tiết kho");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDetail();
+  }, [id]);
 
-  const handleClose = () => {
-    setSelectedWarehouse(null);
-    onClose();
-  };
+  const filteredLocations = locations.filter((loc) =>
+    loc.locationName.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="warehouse-details-modal"
-      aria-describedby="warehouse-details-description"
-    >
-      <Box
-        sx={{
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundImage: "url('/images/backgroundMedical2.jpg')",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        position: "relative",
+        "&::before": {
+          content: '""',
           position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: { xs: "90%", sm: 600 },
-          bgcolor: "background.paper",
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 4,
-          maxHeight: "90vh",
-          overflow: "auto",
-        }}
-      >
-        <Typography
-          id="warehouse-details-modal"
-          variant="h5"
-          component="h2"
-          sx={{ mb: 3, fontWeight: "bold", color: "#1976d2" }}
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background:
+            "linear-gradient(135deg, rgba(0,150,136,0.4), rgba(0,77,64,0.45))",
+          zIndex: 0,
+        },
+      }}
+    >
+      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 4 }}>
+        <Card
+          elevation={3}
+          sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
         >
-          Chi tiết kho
+          <CardContent sx={{ p: 3 }}>
+      <Box sx={{ mb: 3 }}>
+        <IconButton onClick={() => navigate(-1)} color="primary">
+          🔙
+        </IconButton>
+        <Typography variant="h5" component="span" sx={{ ml: 1 }}>
+          Quay lại
         </Typography>
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : selectedWarehouse ? (
-          <Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Tên kho
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  {selectedWarehouse.name}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Trạng thái
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  {renderStatusChip(selectedWarehouse.status === 1 ? "active" : "inactive")}
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Địa chỉ
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  {selectedWarehouse.address}
-                </Typography>
-              </Grid>
-              {selectedWarehouse.warehouseLocationLists && selectedWarehouse.warehouseLocationLists.length > 0 && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                    Danh sách vị trí kho ({selectedWarehouse.warehouseLocationLists.length} vị trí)
-                  </Typography>
-                  <Box sx={{ maxHeight: 200, overflow: "auto", border: "1px solid #e0e0e0", borderRadius: 1, p: 1 }}>
-                    {selectedWarehouse.warehouseLocationLists.map((location, index) => (
-                      <Box key={location.id} sx={{ mb: 1, p: 1, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-                        <Typography variant="body2">
-                          Vị trí {index + 1}: Hàng {location.rowNo}, Cột {location.columnNo}, Tầng {location.levelNo}
-                          <span style={{ marginLeft: 8, color: location.status === 1 ? "#4caf50" : "#f44336" }}>
-                            ({location.status === 1 ? "Hoạt động" : "Ngừng hoạt động"})
-                          </span>
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
-          </Box>
-        ) : (
-          <Typography variant="body1" color="textSecondary">
-            Không có thông tin để hiển thị
-          </Typography>
-        )}
-
-        <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            onClick={handleClose}
-            sx={{
-              px: 3,
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
-            }}
-          >
-            Đóng
-          </Button>
-        </Box>
       </Box>
-    </Modal>
-  );
-};
 
-export default WarehouseDetails;
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress size={28} />
+              </Box>
+            ) : error ? (
+              <Typography color="error">{error}</Typography>
+            ) : warehouse ? (
+              <>
+                <Typography
+                  variant="h4"
+                  sx={{ mb: 3, color: "#1976d2", fontWeight: "bold" }}
+                >
+                  Chi tiết kho: {warehouse.name}
+                </Typography>
+
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Tên kho</Typography>
+                    <Typography>{warehouse.name}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2">Trạng thái</Typography>
+                    {renderStatusChip(warehouse.status ? "active" : "inactive")}
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2">Địa chỉ</Typography>
+                    <Typography>
+                      {warehouse.address || "Chưa cập nhật"}
+                    </Typography>
+                  </Grid>
+                </Grid>
+
+                {/* LOCATION TABLE */}
+                <Box
+                  sx={{
+                    mb: 2,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <TextField
+                    placeholder="Tìm kiếm vị trí..."
+                    size="small"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ width: 300 }}
+                  />
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    sx={{
+                      backgroundColor: "#1976d2",
+                      "&:hover": { backgroundColor: "#1565c0" },
+                    }}
+                    onClick={() =>
+                      navigate(
+                        `/warehouse-location/create?warehouseId=${warehouse.id}`
+                      )
+                    }
+                  >
+                    Thêm vị trí
+                  </Button>
+                </Box>
+
+                <TableContainer
+                  component={Paper}
+                  sx={{ maxHeight: 400, borderRadius: 2 }}
+                >
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell>Tên vị trí</TableCell>
+                        <TableCell>Trạng thái</TableCell>
+                        <TableCell align="center">Hành động</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredLocations.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                            Không tìm thấy vị trí nào
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredLocations.map((loc, index) => (
+                          <TableRow key={loc.id} hover>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>{loc.locationName}</TableCell>
+                            <TableCell>
+                              {renderStatusChip(
+                                loc.status ? "active" : "inactive"
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Tooltip title="Xem chi tiết">
+                                <IconButton
+                                  color="primary"
+                                  onClick={() =>
+                                    navigate(
+                                      `/warehouse-location/details/${loc.id}`
+                                    )
+                                  }
+                                >
+                                  <VisibilityIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            ) : (
+              <Typography>Không có dữ liệu chi tiết</Typography>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
+}

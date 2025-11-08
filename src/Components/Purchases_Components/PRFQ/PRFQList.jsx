@@ -201,6 +201,7 @@ export default function PRFQList() {
             <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
               <TableRow>
                 <TableCell>#</TableCell>
+                <TableCell>ID</TableCell>
                 <TableCell>Ngày tạo</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
                 <TableCell>Email</TableCell>
@@ -228,6 +229,7 @@ export default function PRFQList() {
                 filteredData.map((row, index) => (
                   <TableRow key={row.prfqid}>
                     <TableCell>{index + 1}</TableCell>
+                    <TableCell>{`PRFQ-${row.prfqid}`}</TableCell>
                     <TableCell>
                       {row.requestDate
                         ? new Date(row.requestDate).toLocaleDateString("vi-VN")
@@ -323,7 +325,7 @@ export default function PRFQList() {
                 <Grid item xs={12} md={6}>
                   <Box sx={{ mb: 1 }}>
                     <Typography>
-                      <b>PRFQ ID:</b> {detailData?.prfqid}
+                      <b>PRFQ ID:</b> {`PRFQ-${detailData?.prfqid}`}
                     </Typography>
                   </Box>
 
@@ -423,7 +425,6 @@ export default function PRFQList() {
         </DialogContent>
 
         <DialogActions>
-
           <Button onClick={() => setDetailOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>

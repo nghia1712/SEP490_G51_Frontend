@@ -32,6 +32,18 @@ const poAPI = {
     authorApi.get(`${API_URL}/exportPaymentPdf/${id}`, {
       responseType: "blob",
     }),
+
+  // 🔹 Lấy danh sách PO theo trạng thái nhập kho (đủ, một phần, chưa nhập)
+  getByReceivingStatus: () => authorApi.get(`${API_URL}/by-receiving-status`),
+
+  // 🔹 Lấy danh sách PO đã nhập đủ hàng
+  getFullyReceived: () => authorApi.get(`${API_URL}/fully-received`),
+
+  // 🔹 Lấy danh sách PO mới nhập một phần
+  getPartiallyReceived: () => authorApi.get(`${API_URL}/partially-received`),
+
+  // 🔹 Lấy danh sách PO chưa nhập hàng nào
+  getNotReceived: () => authorApi.get(`${API_URL}/not-received`),
 };
 
 export default poAPI;

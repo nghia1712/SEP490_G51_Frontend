@@ -163,9 +163,7 @@ export default function POList() {
       (p) =>
         p.quantity === "" ||
         p.quantity === undefined ||
-        p.quantity < 1 ||
-        p.quantity > (p.suggestedQuantity || 1)
-    );
+        p.quantity < 1);
 
     if (invalidItem) {
       setSnackbar({
@@ -289,7 +287,7 @@ export default function POList() {
                   filteredPOs.map((po, index) => (
                     <TableRow key={po.poid}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>{po.poid}</TableCell>
+                      <TableCell>{`PO-${po.poid}`}</TableCell>
                       <TableCell>{po.userName}</TableCell>
                       <TableCell>
                         {po.supplierName ? po.supplierName : "-"}
@@ -462,14 +460,14 @@ export default function POList() {
                       error={
                         p.quantity !== "" &&
                         (p.quantity < 1 ||
-                          p.quantity > (p.suggestedQuantity || 1))
+                        p.quantity > (p.maxQuantity || 1))
                       }
                       helperText={
                         p.quantity !== "" &&
                         (p.quantity < 1
                           ? `Phải có ít nhất 1 sản phẩm`
-                          : p.quantity > (p.suggestedQuantity || 1)
-                          ? `Không thể vượt quá số lượng cho phép (${p.suggestedQuantity})`
+                          : p.quantity > (p.maxQuantity || 1)
+                          ? `Không thể vượt quá số lượng tối đa (${p.maxQuantity})`
                           : "")
                       }
                     />
@@ -564,7 +562,8 @@ export default function POList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết PO #{selectedPO?.poid}</DialogTitle>
+        <DialogTitle>Chi tiết {`PO-${selectedPO?.poid}`}</DialogTitle>
+
         <DialogContent dividers>
           {selectedPO ? (
             <>

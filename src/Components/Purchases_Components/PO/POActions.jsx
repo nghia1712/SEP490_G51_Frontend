@@ -18,9 +18,15 @@ import {
   TableRow,
   TableCell,
 } from "@mui/material";
-import { Paid, AccountBalance, CheckCircle } from "@mui/icons-material";
+import {
+  Paid,
+  AccountBalance,
+  CheckCircle,
+  NoteAdd,
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import poApi from "../../../API/poAPI";
-import getUserRoleFromToken from "../../../utils/getUserRoleFromToken"; // ✅ import hàm lấy role
+import getUserRoleFromToken from "../../../utils/getUserRoleFromToken";
 
 const STATUS = {
   APPROVED: 0,
@@ -38,9 +44,32 @@ export default function POActions({ poId, fetchPOs }) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [poDetail, setPoDetail] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  
-  // ✅ Lấy role người dùng từ token
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const navigate = useNavigate();
+  const [fullyReceivedPOs, setFullyReceivedPOs] = useState([]);
+
+  useEffect(() => {
+    loadFullyReceivedPOs();
+  }, []);
+
+  const loadFullyReceivedPOs = async () => {
+    try {
+      const res = await poApi.getFullyReceived();
+      const ids = res.data?.map((po) => po.poid) || [];
+      setFullyReceivedPOs(ids);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách PO đã nhập đủ:", err);
+    }
+  };
+
+  const handleCreateGRN = () => {
+    navigate("/grn", { state: { poId, create: true } });
+  };
+
   const [userRole, setUserRole] = useState(null);
   useEffect(() => {
     const role = getUserRoleFromToken();
@@ -57,20 +86,32 @@ export default function POActions({ poId, fetchPOs }) {
       setPoDetail(res.data?.data);
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Lấy chi tiết PO thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Lấy chi tiết PO thất bại",
+        severity: "error",
+      });
     }
   };
 
   const handleApprove = async () => {
     try {
       await poApi.changeStatus(poId, STATUS.APPROVED);
-      setSnackbar({ open: true, message: "PO đã được approve", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "PO đã được approve",
+        severity: "success",
+      });
       fetchPOs();
       fetchPoDetail();
       setDepositOpen(true);
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Approve thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Approve thất bại",
+        severity: "error",
+      });
     }
   };
 
@@ -79,14 +120,22 @@ export default function POActions({ poId, fetchPOs }) {
     setLoading(true);
     try {
       await poApi.deposit(poId, { paid: Number(amount) });
-      setSnackbar({ open: true, message: "Ghi nhận đặt cọc thành công", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Ghi nhận đặt cọc thành công",
+        severity: "success",
+      });
       setDepositOpen(false);
       setAmount("");
       fetchPOs();
       fetchPoDetail();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Ghi nhận thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Ghi nhận thất bại",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -97,14 +146,22 @@ export default function POActions({ poId, fetchPOs }) {
     setLoading(true);
     try {
       await poApi.payDebt(poId, { paid: Number(amount) });
-      setSnackbar({ open: true, message: "Thanh toán thành công", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Thanh toán thành công",
+        severity: "success",
+      });
       setPayOpen(false);
       setAmount("");
       fetchPOs();
       fetchPoDetail();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Thanh toán thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Thanh toán thất bại",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -114,29 +171,49 @@ export default function POActions({ poId, fetchPOs }) {
     if (!poDetail) return null;
     return (
       <Stack spacing={1} mb={2}>
-        <Typography><strong>PO ID:</strong> {poDetail.poid}</Typography>
-        <Typography><strong>Người tạo:</strong> {poDetail.userName}</Typography>
-        <Typography><strong>Nhà cung cấp:</strong> {poDetail.supplierName || "-"}</Typography>
-        <Typography><strong>Tổng tiền:</strong> {poDetail.total.toLocaleString()} ₫</Typography>
+        <Typography>
+          <strong>PO ID:</strong> {poDetail.poid}
+        </Typography>
+        <Typography>
+          <strong>Người tạo:</strong> {poDetail.userName}
+        </Typography>
+        {/* <Typography><strong>Nhà cung cấp:</strong> {poDetail.supplierName || "-"}</Typography> */}
+        <Typography>
+          <strong>Tổng tiền:</strong> {poDetail.total.toLocaleString()} ₫
+        </Typography>
         {Number(poDetail.status) !== STATUS.SENT && (
-          <Typography><strong>Công nợ:</strong> {poDetail.debt.toLocaleString()} ₫</Typography>
+          <Typography>
+            <strong>Công nợ:</strong> {poDetail.debt.toLocaleString()} ₫
+          </Typography>
         )}
 
         {isPayPopup && (
           <>
             {poDetail.deposit && poDetail.deposit > 0 ? (
               <>
-                <Typography><strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫</Typography>
-                <Typography><strong>Ngày trả:</strong> {new Date(poDetail.depositDate).toLocaleDateString()}</Typography>
-                <Typography><strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}</Typography>
+                <Typography>
+                  <strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫
+                </Typography>
+                <Typography>
+                  <strong>Ngày trả:</strong>{" "}
+                  {new Date(poDetail.depositDate).toLocaleDateString()}
+                </Typography>
+                <Typography>
+                  <strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}
+                </Typography>
               </>
-            ) : poDetail.deposit === 0 && Number(poDetail.status) === STATUS.APPROVED ? (
-              <Typography><strong>Cọc:</strong> Không yêu cầu cọc</Typography>
+            ) : poDetail.deposit === 0 &&
+              Number(poDetail.status) === STATUS.APPROVED ? (
+              <Typography>
+                <strong>Cọc:</strong> Không yêu cầu cọc
+              </Typography>
             ) : null}
           </>
         )}
 
-        <Typography sx={{ mt: 1, fontWeight: "bold" }}>Danh sách sản phẩm:</Typography>
+        <Typography sx={{ mt: 1, fontWeight: "bold" }}>
+          Danh sách sản phẩm:
+        </Typography>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -153,8 +230,12 @@ export default function POActions({ poId, fetchPOs }) {
                 <TableCell>{item.productName}</TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell align="center">{item.quantity}</TableCell>
-                <TableCell align="center">{item.unitPrice.toLocaleString()} ₫</TableCell>
-                <TableCell align="center">{item.unitPriceTotal.toLocaleString()} ₫</TableCell>
+                <TableCell align="center">
+                  {item.unitPrice.toLocaleString()} ₫
+                </TableCell>
+                <TableCell align="center">
+                  {item.unitPriceTotal.toLocaleString()} ₫
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -163,13 +244,17 @@ export default function POActions({ poId, fetchPOs }) {
     );
   };
 
-  const showApprove = poDetail?.status === STATUS.SENT;
+  const showApprove =
+    poDetail?.status === STATUS.SENT && userRole === "purchases_staff";
   const showDeposit = poDetail?.status === STATUS.APPROVED;
-  const showPay = poDetail?.status === STATUS.DEPOSITED || poDetail?.status === STATUS.PAID;
-
-  // ✅ Ẩn các nút theo role
+  const showPay =
+    poDetail?.status === STATUS.DEPOSITED || poDetail?.status === STATUS.PAID;
   const canDeposit = userRole === "accountant_staff" || userRole === "admin";
   const canPay = userRole === "accountant_staff" || userRole === "admin";
+  const canCreateGRN =
+    poDetail?.status === STATUS.APPROVED &&
+    userRole === "warehouse_staff" &&
+    !fullyReceivedPOs.includes(poDetail?.poid);
 
   return (
     <>
@@ -195,10 +280,22 @@ export default function POActions({ poId, fetchPOs }) {
             </IconButton>
           </Tooltip>
         )}
+        {canCreateGRN && (
+          <Tooltip title="Tạo GRN từ PO">
+            <IconButton color="secondary" onClick={handleCreateGRN}>
+              <NoteAdd />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
 
       {/* Deposit Dialog */}
-      <Dialog open={depositOpen} onClose={() => setDepositOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={depositOpen}
+        onClose={() => setDepositOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Ghi nhận tiền đặt cọc</DialogTitle>
         <DialogContent sx={{ minHeight: 400 }}>
           {renderPoInfo()}
@@ -221,7 +318,12 @@ export default function POActions({ poId, fetchPOs }) {
       </Dialog>
 
       {/* Pay Dialog */}
-      <Dialog open={payOpen} onClose={() => setPayOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={payOpen}
+        onClose={() => setPayOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Thanh toán công nợ</DialogTitle>
         <DialogContent sx={{ minHeight: 400 }}>
           {renderPoInfo(true)}
