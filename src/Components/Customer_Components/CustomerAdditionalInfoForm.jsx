@@ -19,9 +19,8 @@ import {
 import {
   CloudUpload,
   Business,
-  Receipt,
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
   Info
 } from '@mui/icons-material';
 import userAPI from '../../API/userAPI';
@@ -30,13 +29,12 @@ const CustomerAdditionalInfoForm = () => {
   const [formData, setFormData] = useState({
     mst: '',
     mshkd: '',
-    imageCnkd: null,
-    imageByt: null
+    address: '',
+    imageCnkd: null
   });
   
   const [previews, setPreviews] = useState({
-    imageCnkd: null,
-    imageByt: null
+    imageCnkd: null
   });
   
   const [loading, setLoading] = useState(false);
@@ -46,9 +44,10 @@ const CustomerAdditionalInfoForm = () => {
   const [statusLoading, setStatusLoading] = useState(true);
   const [previewDialog, setPreviewDialog] = useState({ open: false, image: null, title: '' });
 
-  // Kiểm tra trạng thái customer khi component mount
+  // Kiểm tra trạng thái customer và load address khi component mount
   useEffect(() => {
     checkCustomerStatus();
+    loadUserAddress();
   }, []);
 
   const checkCustomerStatus = async () => {
@@ -61,6 +60,22 @@ const CustomerAdditionalInfoForm = () => {
       setError('Không thể kiểm tra trạng thái tài khoản');
     } finally {
       setStatusLoading(false);
+    }
+  };
+
+  const loadUserAddress = async () => {
+    try {
+      const response = await userAPI.getProfile();
+      const profile = response.data?.data || response.data;
+      if (profile?.address || profile?.Address) {
+        setFormData(prev => ({
+          ...prev,
+          address: profile.address || profile.Address || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading user address:', error);
+      // Không hiển thị lỗi nếu không load được address, chỉ để trống
     }
   };
 
@@ -118,8 +133,16 @@ const CustomerAdditionalInfoForm = () => {
         throw new Error('Vui lòng nhập đầy đủ mã số thuế và mã số kinh doanh');
       }
 
-      if (!formData.imageCnkd || !formData.imageByt) {
-        throw new Error('Vui lòng upload đầy đủ 2 ảnh');
+      if (!formData.address || formData.address.trim() === '') {
+        throw new Error('Vui lòng nhập địa chỉ');
+      }
+
+      if (formData.address.length > 256) {
+        throw new Error('Địa chỉ không được vượt quá 256 ký tự');
+      }
+
+      if (!formData.imageCnkd) {
+        throw new Error('Vui lòng upload ảnh chứng nhận kinh doanh');
       }
 
       // Validate MST and MSHKD format (10 digits)
@@ -131,38 +154,36 @@ const CustomerAdditionalInfoForm = () => {
         throw new Error('Mã số kinh doanh phải có đúng 10 chữ số');
       }
 
-      // Upload images first
-      const imageCnkdResponse = await userAPI.uploadAvatar(formData.imageCnkd);
-      const imageBytResponse = await userAPI.uploadAvatar(formData.imageByt);
+      // Upload image chứng nhận kinh doanh
+      const imageCnkdResponse = await userAPI.uploadBusinessCertificate(formData.imageCnkd);
 
-      if (!imageCnkdResponse.data.success || !imageBytResponse.data.success) {
-        throw new Error('Lỗi khi upload ảnh');
+      if (!imageCnkdResponse.data.success) {
+        throw new Error('Lỗi khi upload ảnh chứng nhận kinh doanh');
       }
 
       // Submit additional info
       const submitData = {
         mst: parseInt(formData.mst),
         mshkd: parseInt(formData.mshkd),
-        imageCnkd: imageCnkdResponse.data.data,
-        imageByt: imageBytResponse.data.data
+        address: formData.address.trim(),
+        imageCnkd: imageCnkdResponse.data.data
       };
 
       const response = await userAPI.submitAdditionalInfo(submitData);
       
-      if (response.data.success) {
-        setSuccess(response.data.message);
+      if (response.data.success || response.data.data) {
+        setSuccess(response.data.message || 'Gửi thông tin thành công');
         // Refresh customer status
         await checkCustomerStatus();
-        // Reset form
-        setFormData({
+        // Reset form (giữ lại address)
+        setFormData(prev => ({
           mst: '',
           mshkd: '',
-          imageCnkd: null,
-          imageByt: null
-        });
+          address: prev.address, // Giữ lại address
+          imageCnkd: null
+        }));
         setPreviews({
-          imageCnkd: null,
-          imageByt: null
+          imageCnkd: null
         });
       } else {
         throw new Error(response.data.message || 'Có lỗi xảy ra');
@@ -277,6 +298,23 @@ const CustomerAdditionalInfoForm = () => {
                 />
               </Grid>
 
+              {/* Địa chỉ */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Địa chỉ"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Nhập địa chỉ của bạn"
+                  inputProps={{ maxLength: 256 }}
+                  required
+                  multiline
+                  rows={3}
+                  helperText="Địa chỉ không được vượt quá 256 ký tự"
+                />
+              </Grid>
+
               {/* Upload ảnh chứng nhận kinh doanh */}
               <Grid item xs={12}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
@@ -325,60 +363,6 @@ const CustomerAdditionalInfoForm = () => {
                           borderRadius: '4px'
                         }}
                         onClick={() => openPreview(previews.imageCnkd, 'Ảnh Chứng Nhận Kinh Doanh')}
-                      />
-                    </Box>
-                  )}
-                </Paper>
-              </Grid>
-
-              {/* Upload ảnh báo cáo thuế */}
-              <Grid item xs={12}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    <Receipt sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Ảnh Báo Cáo Thuế
-                  </Typography>
-                  
-                  <Box display="flex" alignItems="center" gap={2} mb={2}>
-                    <input
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      id="imageByt"
-                      type="file"
-                      onChange={(e) => handleFileChange(e)}
-                      name="imageByt"
-                    />
-                    <label htmlFor="imageByt">
-                      <Button
-                        variant="outlined"
-                        component="span"
-                        startIcon={<CloudUpload />}
-                        disabled={loading}
-                      >
-                        Chọn ảnh
-                      </Button>
-                    </label>
-                    
-                    {formData.imageByt && (
-                      <Typography variant="body2" color="success.main">
-                        ✓ {formData.imageByt.name}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {previews.imageByt && (
-                    <Box>
-                      <img
-                        src={previews.imageByt}
-                        alt="Preview"
-                        style={{
-                          maxWidth: '200px',
-                          maxHeight: '200px',
-                          cursor: 'pointer',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px'
-                        }}
-                        onClick={() => openPreview(previews.imageByt, 'Ảnh Báo Cáo Thuế')}
                       />
                     </Box>
                   )}

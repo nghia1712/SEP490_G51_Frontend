@@ -35,6 +35,8 @@ import ListCategory from "./Components/Category_Components/ListCategory";
 import SupplierList from "./Components/Supplier_Components/SupplierList";
 import ManageSupplierProducts from "./Components/Supplier_Components/ManageSupplierProducts";
 import SalesDashboard from "./Components/Sales_Components/SalesDashboard";
+import ListRSQ from "./Components/Sales_Components/ListRSQ";
+import CreateRSQ from "./Components/Sales_Components/CreateRSQ";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
 import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDetails.jsx";
@@ -283,7 +285,7 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["customer"]}>
                             <CustomerStatusCheck>
-                              <Landing />
+                              <SearchMedicine />
                             </CustomerStatusCheck>
                           </ProtectedRoute>
                         }
@@ -552,6 +554,26 @@ function App() {
                         path="/list-transaction"
                         element={<div>Giao dịch - Đang phát triển</div>}
                       />
+<<<<<<< HEAD
+                      <Route 
+                        path="/request-quotation" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                            <ListRSQ />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/request-quotation/create" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
+                            <CreateRSQ />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
+=======
+>>>>>>> 109613d82622b53594d4cc32f2a36240ab88c60a
                       {/* Removed legacy /admin/users route */}
                       <Route
                         path="/admin/users/customer"

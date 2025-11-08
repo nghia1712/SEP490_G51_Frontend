@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Box, Container, Typography, Grid } from "@mui/material";
 import { useAuthContext } from "../../../App";
 import { jwtDecode } from "jwt-decode";
@@ -53,6 +53,7 @@ const getUserRole = () => {
 
 const SalesStaffDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthContext();
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -162,6 +163,7 @@ const SalesStaffDashboard = () => {
           functions={accessibleFunctions}
           onNavigate={handleNavigate}
           searchTerm={searchTerm}
+          currentPath={location.pathname}
         />
       </Container>
     </Box>

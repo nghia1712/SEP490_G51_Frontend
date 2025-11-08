@@ -101,9 +101,17 @@ function Header() {
 
   // Function to check if nav item is active
   const isActiveNavItem = (path) => {
+    // Special case for /sales-dashboard (Tổng quan) - không highlight
+    if (path === "/sales-dashboard") {
+      return false;
+    }
     // Special case for /warehouse to avoid matching /warehouse-staff
     if (path === "/warehouse") {
       return location.pathname === "/warehouse";
+    }
+    // Special case for /sales to avoid matching /sales-staff
+    if (path === "/sales") {
+      return location.pathname === "/sales" || location.pathname.startsWith("/sales/");
     }
     // For other paths, use startsWith logic
     return location.pathname.startsWith(path);
@@ -148,14 +156,14 @@ function Header() {
 
   // --- NAVIGATION ITEMS ---
   const navItems = [
+    { label: "Tổng quan", path: "/sales-dashboard", allowedRoles: ["manager", "sales_staff", "purchases_staff", "warehouse_staff", "admin"] },
     { label: "Thống kê", path: "/dashboard", allowedRoles: ["manager", "admin"] },
     { label: "Thuốc", path: "/product", allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"] },
-    { label: "Danh mục thuốc", path: "/category", allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"] },
     { label: "Nhà cung cấp", path: "/supplier", allowedRoles: ["manager", "purchases_staff", "admin"] },
     { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "admin"] },
     { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
-    { label: "Bán hàng", path: "/sales", allowedRoles: ["manager", "sales_staff", "admin"] },
+    { label: "Báo giá", path: "/request-quotation", allowedRoles: ["manager", "sales_staff", "admin"] },
   ];
 
   const partnerMenuItems = [
@@ -244,14 +252,6 @@ function Header() {
                 </ListItemButton>
               </ListItem>
             ))}
-            {visiblePartnerItems.length > 0 && <Divider>Đối tác</Divider>}
-            {visiblePartnerItems.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton sx={{ textAlign: "left" }} onClick={() => handleNavigate(item.path)}>
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
-              </ListItem>
-            ))}
             {visibleTransactionItems.length > 0 && <Divider>Giao dịch</Divider>}
             {visibleTransactionItems.map((item) => (
               <ListItem key={item.path} disablePadding>
@@ -321,21 +321,6 @@ function Header() {
                     {item.label}
                   </Button>
                 ))}
-
-                {visiblePartnerItems.length > 0 && (
-                  <>
-                    <Button color="inherit" onClick={handlePartnerMenuClick} endIcon={<ArrowDropDownIcon />} sx={navButtonHoverStyle}>
-                      Đối tác
-                    </Button>
-                    <Menu anchorEl={partnerMenuAnchor} open={Boolean(partnerMenuAnchor)} onClose={handlePartnerMenuClose}>
-                      {visiblePartnerItems.map((item) => (
-                        <MenuItem key={item.path} onClick={() => handleNavigate(item.path)}>
-                          {item.label}
-                        </MenuItem>
-                      ))}
-                    </Menu>
-                  </>
-                )}
 
                 {visibleTransactionItems.length > 0 && (
                   <>

@@ -2,12 +2,19 @@ import React from "react";
 import { Grid, Box, Typography } from "@mui/material";
 import OdooAppButton from "./OdooAppButton";
 
-const FunctionGrid = ({ functions, onNavigate, searchTerm = "" }) => {
+const FunctionGrid = ({ functions, onNavigate, searchTerm = "", currentPath = "" }) => {
   // Lọc functions theo search term
   const filteredFunctions = functions.filter((func) =>
     func.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (func.description && func.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Hàm kiểm tra function có active không
+  const isFunctionActive = (func) => {
+    if (!currentPath) return false;
+    // Kiểm tra path có match không
+    return currentPath.startsWith(func.path);
+  };
 
   return (
     <>
@@ -21,6 +28,7 @@ const FunctionGrid = ({ functions, onNavigate, searchTerm = "" }) => {
               description={func.description}
               onClick={() => onNavigate(func.path)}
               isMain={false}
+              isActive={isFunctionActive(func)}
             />
           </Grid>
         ))}

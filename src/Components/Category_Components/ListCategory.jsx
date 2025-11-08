@@ -608,7 +608,7 @@ function ListCategory() {
                   ) : null}
                 </TableSortLabel>
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold', width: '200px' }}>Hành động</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold', width: '280px' }}>Hành động</TableCell>
             </TableRow>
           </TableHead>
                 <TableBody>
@@ -696,7 +696,7 @@ function ListCategory() {
                             return renderStatusChip(status);
                           })()}
                         </TableCell>
-                        <TableCell align="center" sx={{ cursor: 'pointer', width: '200px' }}>
+                        <TableCell align="center" sx={{ cursor: 'pointer', width: '280px' }}>
                           <Stack
                             direction="row"
                             spacing={1}
@@ -716,6 +716,37 @@ function ListCategory() {
                             >
                               Sửa
                             </Button>
+                            {(() => {
+                              const products = cat?.products || cat?.Products || cat?.productList || cat?.ProductList || cat?.items || cat?.Items || [];
+                              const productCount = products?.length || 0;
+                              const categoryId = cat?.categoryID || cat?.CategoryID || cat?._id || cat?.id;
+                              const canDelete = productCount === 0;
+                              return (
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  disabled={!canDelete}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!canDelete) return;
+                                    if (!window.confirm('Bạn có chắc chắn muốn xóa danh mục này? Hành động không thể hoàn tác.')) return;
+                                    const resp = await handleApiCall(
+                                      () => categoryAPI.delete(categoryId),
+                                      'Xóa danh mục thành công!',
+                                      'Không thể xóa danh mục.'
+                                    );
+                                    if (resp) {
+                                      setCategories(prev => prev.filter(c => (c?.categoryID || c?.CategoryID || c?._id || c?.id) !== categoryId));
+                                    }
+                                  }}
+                                  sx={{ width: '80px', height: '32px' }}
+                                  title={canDelete ? '' : 'Không thể xóa: danh mục này đang có sản phẩm'}
+                                >
+                                  Xóa
+                                </Button>
+                              );
+                            })()}
                             {(() => {
                               const products = cat?.products || cat?.Products || cat?.productList || cat?.ProductList || cat?.items || cat?.Items || [];
                               const productCount = products?.length || 0;
