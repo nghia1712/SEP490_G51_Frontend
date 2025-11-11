@@ -23,10 +23,13 @@ import {
   AccountBalance,
   CheckCircle,
   NoteAdd,
+  Delete,
+  Edit,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import poApi from "../../../API/poAPI";
 import getUserRoleFromToken from "../../../utils/getUserRoleFromToken";
+import prfqApi from "../../../API/prfqAPI";
 
 const STATUS = {
   APPROVED: 0,
@@ -39,8 +42,10 @@ const STATUS = {
 };
 
 export default function POActions({ poId, fetchPOs }) {
+  console.log("poApi object:", poApi);
   const [depositOpen, setDepositOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [poDetail, setPoDetail] = useState(null);
@@ -49,36 +54,30 @@ export default function POActions({ poId, fetchPOs }) {
     message: "",
     severity: "success",
   });
+  const [editData, setEditData] = useState([]);
+  const [deletePOId, setDeletePOId] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const navigate = useNavigate();
   const [fullyReceivedPOs, setFullyReceivedPOs] = useState([]);
-
-  useEffect(() => {
-    loadFullyReceivedPOs();
-  }, []);
-
-  const loadFullyReceivedPOs = async () => {
-    try {
-      const res = await poApi.getFullyReceived();
-      const ids = res.data?.map((po) => po.poid) || [];
-      setFullyReceivedPOs(ids);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách PO đã nhập đủ:", err);
-    }
-  };
-
-  const handleCreateGRN = () => {
-    navigate("/grn", { state: { poId, create: true } });
-  };
-
   const [userRole, setUserRole] = useState(null);
+
   useEffect(() => {
-    const role = getUserRoleFromToken();
-    setUserRole(role);
+    setUserRole(getUserRoleFromToken());
+    loadFullyReceivedPOs();
   }, []);
 
   useEffect(() => {
     fetchPoDetail();
   }, [poId]);
+
+  const loadFullyReceivedPOs = async () => {
+    try {
+      const res = await poApi.getFullyReceived();
+      setFullyReceivedPOs(res.data?.map((po) => po.poid) || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchPoDetail = async () => {
     try {
@@ -167,6 +166,91 @@ export default function POActions({ poId, fetchPOs }) {
     }
   };
 
+  const handleOpenConfirmDelete = (poId) => {
+    setDeletePOId(poId);
+    setConfirmDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletePOId) return;
+    console.log("Deleting PO ID:", deletePOId);
+    try {
+      await poApi.deleteDraftPO(deletePOId);
+      setSnackbar({
+        open: true,
+        message: `Xóa PO-${deletePOId} thành công`,
+        severity: "success",
+      });
+      setTimeout(() => {
+        fetchPOs();
+        fetchPoDetail();
+        setEditOpen(false);
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: `Xóa PO-${deletePOId} thất bại`,
+        severity: "error",
+      });
+    } finally {
+      setConfirmDeleteOpen(false);
+      setDeletePOId(null);
+    }
+  };
+
+  const handleContinueEdit = () => {
+    if (!poDetail) return;
+    setEditData(poDetail.details?.map((item) => ({ ...item })) || []);
+    setEditOpen(true);
+  };
+
+  const handleUpdatePO = async (status) => {
+    try {
+      setLoading(true);
+
+      const payload = {
+        qid: poDetail?.qid,
+        status,
+        details: editData.map((item) => ({
+          productID: item.productID,
+          date: item.expiredDate,
+          quantity: Number(item.quantity),
+        })),
+      };
+
+      await prfqApi.updateDraftPO(poId, payload);
+
+      setSnackbar({
+        open: true,
+        message:
+          status === STATUS.DRAFT
+            ? "Lưu bản nháp thành công"
+            : "Gửi yêu cầu thành công",
+        severity: "success",
+      });
+
+      setTimeout(() => {
+        fetchPOs();
+        fetchPoDetail();
+        setEditOpen(false);
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: "Cập nhật PO thất bại",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateGRN = () => {
+    navigate("/grn", { state: { poId, create: true } });
+  };
+
   const renderPoInfo = (isPayPopup = false) => {
     if (!poDetail) return null;
     return (
@@ -177,7 +261,6 @@ export default function POActions({ poId, fetchPOs }) {
         <Typography>
           <strong>Người tạo:</strong> {poDetail.userName}
         </Typography>
-        {/* <Typography><strong>Nhà cung cấp:</strong> {poDetail.supplierName || "-"}</Typography> */}
         <Typography>
           <strong>Tổng tiền:</strong> {poDetail.total.toLocaleString()} ₫
         </Typography>
@@ -186,31 +269,20 @@ export default function POActions({ poId, fetchPOs }) {
             <strong>Công nợ:</strong> {poDetail.debt.toLocaleString()} ₫
           </Typography>
         )}
-
-        {isPayPopup && (
+        {isPayPopup && poDetail.deposit > 0 && (
           <>
-            {poDetail.deposit && poDetail.deposit > 0 ? (
-              <>
-                <Typography>
-                  <strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫
-                </Typography>
-                <Typography>
-                  <strong>Ngày trả:</strong>{" "}
-                  {new Date(poDetail.depositDate).toLocaleDateString()}
-                </Typography>
-                <Typography>
-                  <strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}
-                </Typography>
-              </>
-            ) : poDetail.deposit === 0 &&
-              Number(poDetail.status) === STATUS.APPROVED ? (
-              <Typography>
-                <strong>Cọc:</strong> Không yêu cầu cọc
-              </Typography>
-            ) : null}
+            <Typography>
+              <strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫
+            </Typography>
+            <Typography>
+              <strong>Ngày trả:</strong>{" "}
+              {new Date(poDetail.depositDate).toLocaleDateString()}
+            </Typography>
+            <Typography>
+              <strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}
+            </Typography>
           </>
         )}
-
         <Typography sx={{ mt: 1, fontWeight: "bold" }}>
           Danh sách sản phẩm:
         </Typography>
@@ -252,9 +324,12 @@ export default function POActions({ poId, fetchPOs }) {
   const canDeposit = userRole === "accountant_staff" || userRole === "admin";
   const canPay = userRole === "accountant_staff" || userRole === "admin";
   const canCreateGRN =
-    poDetail?.status === STATUS.APPROVED &&
+    poDetail?.status !== STATUS.DRAFT &&
+    poDetail?.status !== STATUS.SENT &&
     userRole === "warehouse_staff" &&
     !fullyReceivedPOs.includes(poDetail?.poid);
+  const canDeleteDraftPO =
+    poDetail?.status === STATUS.DRAFT && userRole === "purchases_staff";
 
   return (
     <>
@@ -286,6 +361,23 @@ export default function POActions({ poId, fetchPOs }) {
               <NoteAdd />
             </IconButton>
           </Tooltip>
+        )}
+        {canDeleteDraftPO && (
+          <>
+            <Tooltip title="Tiếp tục chỉnh sửa">
+              <IconButton color="warning" onClick={handleContinueEdit}>
+                <Edit />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Xóa PO nháp">
+              <IconButton
+                color="error"
+                onClick={() => handleOpenConfirmDelete(poDetail.poid)}
+              >
+                <Delete />
+              </IconButton>
+            </Tooltip>
+          </>
         )}
       </Stack>
 
@@ -345,6 +437,136 @@ export default function POActions({ poId, fetchPOs }) {
         </DialogActions>
       </Dialog>
 
+      {/* Edit Draft Dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Chỉnh sửa PO nháp</DialogTitle>
+        <DialogContent dividers>
+          {poDetail && (
+            <>
+              <Typography>
+                <strong>PO ID:</strong> {poDetail.poid}
+              </Typography>
+              <Typography>
+                <strong>Người tạo:</strong> {poDetail.userName}
+              </Typography>
+              <Typography sx={{ mt: 2, fontWeight: "bold" }}>
+                Danh sách sản phẩm:
+              </Typography>
+              <Table size="small">
+                <TableHead sx={{ background: "#e0e0e0" }}>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Sản phẩm</TableCell>
+                    <TableCell>Mô tả</TableCell>
+                    <TableCell align="center">Số lượng</TableCell>
+                    <TableCell align="center">Đơn giá</TableCell>
+                    <TableCell align="center">Hạn dùng</TableCell>
+                    <TableCell align="center">Thành tiền</TableCell>
+                    <TableCell align="center"></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {editData.map((item, i) => (
+                    <TableRow key={`${item.podid}-${i}`}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{item.productName}</TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell align="center">
+                        <TextField
+                          type="number"
+                          size="small"
+                          inputProps={{ min: 0 }}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newData = [...editData];
+                            newData[i].quantity = Number(e.target.value);
+                            setEditData(newData);
+                          }}
+                          sx={{ width: 80 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        {item.unitPrice.toLocaleString()} ₫
+                      </TableCell>
+                      <TableCell align="center">
+                        {item.expiredDate
+                          ? new Date(item.expiredDate).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell align="center">
+                        {(item.quantity * item.unitPrice).toLocaleString()} ₫
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Xóa sản phẩm">
+                          <IconButton
+                            color="error"
+                            onClick={() => {
+                              const newData = editData.filter(
+                                (_, idx) => idx !== i
+                              );
+                              setEditData(newData);
+                            }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Hủy</Button>
+
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => handleUpdatePO(STATUS.DRAFT)}
+            disabled={loading}
+          >
+            Lưu bản nháp
+          </Button>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleUpdatePO(STATUS.SENT)}
+            disabled={loading}
+          >
+            Gửi yêu cầu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xác nhận xóa PO</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa PO-{deletePOId} không?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Hủy</Button>
+          <Button color="error" onClick={handleConfirmDelete}>
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
@@ -352,7 +574,7 @@ export default function POActions({ poId, fetchPOs }) {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -554,26 +554,6 @@ function App() {
                         path="/list-transaction"
                         element={<div>Giao dịch - Đang phát triển</div>}
                       />
-<<<<<<< HEAD
-                      <Route 
-                        path="/request-quotation" 
-                        element={
-                          <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
-                            <ListRSQ />
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/request-quotation/create" 
-                        element={
-                          <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
-                            <CreateRSQ />
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
-=======
->>>>>>> 109613d82622b53594d4cc32f2a36240ab88c60a
                       {/* Removed legacy /admin/users route */}
                       <Route
                         path="/admin/users/customer"

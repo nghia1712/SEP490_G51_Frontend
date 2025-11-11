@@ -546,6 +546,7 @@ export default function GRNListPage() {
           onClose={handleSnackClose}
           severity={snack.severity}
           sx={{ width: "100%" }}
+          variant="filled"
         >
           {snack.message}
         </Alert>

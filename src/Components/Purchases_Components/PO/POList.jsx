@@ -24,7 +24,12 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Visibility, Search, Close as CloseIcon } from "@mui/icons-material";
+import {
+  Visibility,
+  Search,
+  Close as CloseIcon,
+  Delete,
+} from "@mui/icons-material";
 import poApi from "../../../API/poAPI";
 import prfqApi from "../../../API/prfqAPI";
 import POActions from "./POActions";
@@ -39,7 +44,6 @@ const statusMap = {
   7: { label: "Draft", color: "default" },
 };
 
-// Hàm parse ngày dd/mm/yyyy
 const parseDDMMYYYY = (str) => {
   if (!str) return null;
   const [day, month, year] = str.split("/");
@@ -78,7 +82,35 @@ export default function POList() {
     setLoading(true);
     try {
       const res = await poApi.getAllPO();
-      setPoList(res.data?.data || []);
+      const poData = res?.data?.data || [];
+
+      if (!poData.length) {
+        console.warn("❗ Không có dữ liệu PO từ getAllPO");
+        setPoList([]);
+        return;
+      }
+
+      const statusRes = await poApi.getByReceivingStatus();
+      const statusData = statusRes?.data?.data || {};
+      const fullyIds = (statusData.FullyReceived || []).map((p) =>
+        Number(p.poid)
+      );
+      const partialIds = (statusData.PartiallyReceived || []).map((p) =>
+        Number(p.poid)
+      );
+      const notIds = (statusData.NotReceived || []).map((p) => Number(p.poid));
+
+      const mappedPOs = poData.map((po) => {
+        const poidNum = Number(po.poid);
+        let receivingStatus = "Chưa nhận";
+        if (fullyIds.includes(poidNum)) receivingStatus = "Đã nhận đủ";
+        else if (partialIds.includes(poidNum))
+          receivingStatus = "Nhận một phần";
+        else if (notIds.includes(poidNum)) receivingStatus = "Chưa nhận";
+        return { ...po, receivingStatus };
+      });
+
+      setPoList(mappedPOs);
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách PO:", err);
       setSnackbar({
@@ -86,6 +118,7 @@ export default function POList() {
         message: "Lấy PO thất bại",
         severity: "error",
       });
+      setPoList([]);
     } finally {
       setLoading(false);
     }
@@ -160,10 +193,8 @@ export default function POList() {
     if (sending) return;
 
     const invalidItem = uploadedProducts.find(
-      (p) =>
-        p.quantity === "" ||
-        p.quantity === undefined ||
-        p.quantity < 1);
+      (p) => p.quantity === "" || p.quantity === undefined || p.quantity < 1
+    );
 
     if (invalidItem) {
       setSnackbar({
@@ -269,6 +300,7 @@ export default function POList() {
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Ngày đặt</TableCell>
                   <TableCell>Trạng thái</TableCell>
+                  <TableCell align="center">Trạng thái nhận hàng</TableCell>
                   <TableCell>Tổng tiền</TableCell>
                   <TableCell>Đã trả</TableCell>
                   <TableCell>Còn nợ</TableCell>
@@ -297,6 +329,33 @@ export default function POList() {
                       </TableCell>
                       <TableCell align="center">
                         {renderStatus(po.status)}
+                      </TableCell>
+                      <TableCell align="center">
+                        {po.status === 6 || po.status === 7 ? (
+                          <Chip
+                            label="Chưa thỏa thuận"
+                            color="default"
+                            size="small"
+                          />
+                        ) : po.receivingStatus === "Đã nhận đủ" ? (
+                          <Chip
+                            label="Đã nhận đủ"
+                            color="success"
+                            size="small"
+                          />
+                        ) : po.receivingStatus === "Nhận một phần" ? (
+                          <Chip
+                            label="Nhận một phần"
+                            color="warning"
+                            size="small"
+                          />
+                        ) : (
+                          <Chip
+                            label="Chưa nhận"
+                            color="default"
+                            size="small"
+                          />
+                        )}
                       </TableCell>
                       <TableCell>{po.total.toLocaleString()} ₫</TableCell>
                       <TableCell align="right">
@@ -459,8 +518,7 @@ export default function POList() {
                       }}
                       error={
                         p.quantity !== "" &&
-                        (p.quantity < 1 ||
-                        p.quantity > (p.maxQuantity || 1))
+                        (p.quantity < 1 || p.quantity > (p.maxQuantity || 1))
                       }
                       helperText={
                         p.quantity !== "" &&
@@ -684,7 +742,7 @@ export default function POList() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

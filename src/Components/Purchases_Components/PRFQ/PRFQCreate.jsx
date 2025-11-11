@@ -717,6 +717,7 @@ export default function PRFQCreate() {
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: "100%" }}
+          variant="filled"
         >
           {snackbar.message}
         </Alert>

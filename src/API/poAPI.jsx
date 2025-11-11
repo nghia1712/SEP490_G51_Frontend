@@ -44,6 +44,8 @@ const poAPI = {
 
   // 🔹 Lấy danh sách PO chưa nhập hàng nào
   getNotReceived: () => authorApi.get(`${API_URL}/not-received`),
+
+  deleteDraftPO: (id) => authorApi.delete(`${API_URL}/deletePOWithDraftStatus/${id}`),
 };
 
 export default poAPI;

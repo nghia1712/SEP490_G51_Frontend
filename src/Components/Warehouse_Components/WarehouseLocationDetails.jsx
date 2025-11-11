@@ -13,22 +13,14 @@ import {
   Container,
   Card,
   CardContent,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Button,
+  TextField,
   Snackbar,
   Alert,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
-import Inventory2Icon from "@mui/icons-material/Inventory2";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import warehouseLocationApi from "../../API/warehouseLocationAPI";
 import warehouseApi from "../../API/warehouseAPI";
+import warehouseLocationAPI from "../../API/warehouseLocationAPI";
 import renderStatusChip from "../../Utils/renderStatusChip";
 
 export default function WarehouseLocationDetailPage() {
@@ -38,165 +30,158 @@ export default function WarehouseLocationDetailPage() {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const [openInventoryModal, setOpenInventoryModal] = useState(false);
-  const [openPriceModal, setOpenPriceModal] = useState(false);
-  const [selectedLot, setSelectedLot] = useState(null);
-  const [physicalQty, setPhysicalQty] = useState("");
-  const [newPrice, setNewPrice] = useState("");
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+  const [inventoryMode, setInventoryMode] = useState(false);
+  const [inventorySessionId, setInventorySessionId] = useState(null);
+  const [comparisonData, setComparisonData] = useState(null);
 
   useEffect(() => {
-    const loadLocation = async () => {
-      setLoading(true);
-      try {
-        const res = await warehouseLocationApi.getDetail(id);
-        setLocation(res.data.data);
-        setError(null);
-      } catch (err) {
-        console.error("Lỗi khi tải chi tiết location:", err);
-        setError("Không thể tải chi tiết location");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadLocation();
+    loadLocationData();
   }, [id]);
 
-  const handleInventoryCheck = (lot) => {
-    setSelectedLot(lot);
-    setPhysicalQty(lot.lotQuantity);
-    setOpenInventoryModal(true);
+  const loadLocationData = async () => {
+    setLoading(true);
+    try {
+      const [lotsRes, locationRes] = await Promise.all([
+        warehouseApi.getLotsByLocation(id),
+        warehouseLocationAPI.getDetail(id),
+      ]);
+      const locData = locationRes.data.data || locationRes.data;
+      setLocation({
+        locationID: id,
+        locationName: locData.locationName,
+        lotProduct: lotsRes.data.data.map((lot) => ({
+          ...lot,
+          realQuantity: lot.lotQuantity,
+          note: lot.note || "",
+        })),
+        status: locData.status,
+      });
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Không thể tải dữ liệu location");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleChangePrice = (lot) => {
-    setSelectedLot(lot);
-    setNewPrice(lot.salePrice);
-    setOpenPriceModal(true);
-  };
+  // 1️⃣ Bắt đầu kiểm kê: tạo session + lấy history
+  const startInventory = async () => {
+    if (!location) return;
+    try {
+      const res = await warehouseApi.createInventorySession(
+        location.locationID
+      );
+      const sessionId = res.data.data;
+      setInventorySessionId(sessionId);
+      setInventoryMode(true);
 
-  const submitInventoryCheck = async () => {
-    if (!selectedLot?.lotID || !physicalQty) {
+      // Lấy history để bind vào form
+      const historyRes = await warehouseApi.getHistoriesBySessionId(sessionId);
+      const histories = historyRes.data.data;
+      setLocation((prev) => ({
+        ...prev,
+        lotProduct: prev.lotProduct.map((lot) => {
+          const h = histories.find((x) => x.lotID === lot.lotID);
+          return {
+            ...lot,
+            realQuantity: h?.systemQuantity || lot.lotQuantity,
+            note: h?.note || "",
+            historyId: h?.inventoryHistoryID,
+          };
+        }),
+      }));
+
       setSnackbar({
         open: true,
-        message: "Vui lòng nhập số lượng thực tế",
+        message: "Bắt đầu kiểm kê thành công",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: "Không thể bắt đầu kiểm kê",
         severity: "error",
       });
-      return;
     }
+  };
 
-    const whlcid = location?.locationID || Number(id);
-    console.log("Gửi cập nhật kiểm kê vật lý:", {
-      whlcid,
-      payload: [
-        {
-          lotID: Number(selectedLot.lotID),
-          realQuantity: Number(physicalQty),
-          note: selectedLot?.note || "",
-        },
-      ],
-    });
+  // 2️⃣ Cập nhật số lượng thực tế + lấy so sánh
+  const submitInventory = async () => {
+    if (!location || !inventorySessionId) return;
 
     try {
-      await warehouseApi.updatePhysicalInventory(whlcid, [
-        {
-          lotID: Number(selectedLot.lotID),
-          realQuantity: Number(physicalQty),
-          note: selectedLot?.note || "",
-        },
-      ]);
+      const payload = {
+        lotCounts: location.lotProduct.map((lot) => ({
+          historyId: lot.historyId,
+          actualQuantity:
+            lot.realQuantity === "" || lot.realQuantity == null
+              ? lot.lotQuantity
+              : Number(lot.realQuantity),
+          note: lot.note ?? "",
+        })),
+      };
+
+      await warehouseApi.updateInventoryBatch(payload);
+
+      // Lấy dữ liệu so sánh
+      const compareRes = await warehouseApi.getInventoryComparison(
+        inventorySessionId
+      );
+      setComparisonData(compareRes.data.data);
 
       setSnackbar({
         open: true,
         message: "Cập nhật kiểm kê thành công",
         severity: "success",
       });
-      setOpenInventoryModal(false);
-
-      const res = await warehouseLocationApi.getDetail(id);
-      setLocation(res.data.data);
     } catch (err) {
-      console.error(err);
+      console.error(err.response?.data);
       setSnackbar({
         open: true,
-        message:
-          err?.response?.data?.message || err?.message || "Cập nhật thất bại",
+        message: err?.response?.data?.message || "Cập nhật thất bại",
         severity: "error",
       });
     }
   };
 
-  const submitChangePrice = async () => {
-    if (!selectedLot?.lotID || !newPrice) {
-      setSnackbar({
-        open: true,
-        message: "Vui lòng nhập giá bán mới",
-        severity: "error",
-      });
-      return;
-    }
-    const whlcid = location?.locationID || Number(id);
-    console.log("Gửi cập nhật giá bán:", {
-      whlcid,
-      lotID: selectedLot.lotID,
-      newPrice: Number(newPrice),
-    });
+  // 3️⃣ Hoàn tất phiên kiểm kê
+  const completeInventory = async () => {
+    if (!inventorySessionId) return;
 
     try {
-      await warehouseApi.updateLotSalePrice(
-        whlcid,
-        selectedLot.lotID,
-        Number(newPrice)
-      );
+      await warehouseApi.completeInventorySession(inventorySessionId);
+      setInventoryMode(false);
+      setInventorySessionId(null);
+      setComparisonData(null);
+
+      await loadLocationData();
 
       setSnackbar({
         open: true,
-        message: "Cập nhật giá bán thành công",
+        message: "Hoàn tất kiểm kê thành công",
         severity: "success",
       });
-      setOpenPriceModal(false);
-
-      // refresh lại dữ liệu
-      const res = await warehouseLocationApi.getDetail(id);
-      setLocation(res.data.data);
     } catch (err) {
-      console.error(err);
-
-      const apiMsg =
-        err?.response?.data?.message || err?.message || "Cập nhật thất bại";
-
+      console.error(err.response?.data);
       setSnackbar({
         open: true,
-        message: apiMsg,
+        message: err?.response?.data?.message || "Hoàn tất thất bại",
         severity: "error",
       });
     }
   };
-
-  const InfoRow = ({ label, value }) => (
-    <Box>
-      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-        {label}
-      </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-        {value ?? "-"}
-      </Typography>
-    </Box>
-  );
 
   return (
     <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate(-1)} color="primary">
-          🔙
-        </IconButton>
-        <Typography variant="h5" component="span" sx={{ ml: 1 }}>
-          Quay lại
-        </Typography>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+        <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
       </Box>
 
       {loading ? (
@@ -209,31 +194,49 @@ export default function WarehouseLocationDetailPage() {
         <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
           <Card sx={{ borderRadius: 2, width: "1500px" }}>
             <CardContent>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h4" sx={{ mb: 1, color: "#1976d2" }}>
-                  Chi tiết vị trí: {location.locationName}
-                </Typography>
-                {renderStatusChip(location.status ? "active" : "inactive")}
-              </Box>
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4, mb: 3 }}>
-                <Typography variant="body1">
-                  <strong>Số lô sản phẩm:</strong>{" "}
-                  {location.lotProduct?.length || 0}
-                </Typography>
-                <Typography variant="body1">
-                  <strong>Tổng số lượng:</strong>{" "}
-                  {location.lotProduct?.reduce(
-                    (sum, lot) => sum + lot.lotQuantity,
-                    0
-                  ) || 0}
-                </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
+                }}
+              >
+                <Box>
+                  <Typography variant="h4" sx={{ mb: 1, color: "#1976d2" }}>
+                    Chi tiết vị trí: {location.locationName}
+                  </Typography>
+                  {renderStatusChip(location.status ? "active" : "inactive")}
+                  <Box sx={{ display: "flex", gap: 4, mt: 1 }}>
+                    <Typography variant="body1">
+                      <strong>Số lô sản phẩm:</strong>{" "}
+                      {location.lotProduct?.length || 0}
+                    </Typography>
+                    <Typography variant="body1">
+                      <strong>Tổng số lượng:</strong>{" "}
+                      {location.lotProduct?.reduce(
+                        (sum, lot) => sum + lot.lotQuantity,
+                        0
+                      ) || 0}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box>
+                  {!inventoryMode && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={startInventory}
+                    >
+                      Kiểm kê
+                    </Button>
+                  )}
+                </Box>
               </Box>
 
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Danh sách lô sản phẩm
               </Typography>
-
               <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
                 <Table stickyHeader>
                   <TableHead>
@@ -243,16 +246,20 @@ export default function WarehouseLocationDetailPage() {
                       <TableCell>Nhà cung cấp</TableCell>
                       <TableCell>Số lượng</TableCell>
                       <TableCell>Giá nhập</TableCell>
-                      <TableCell>Giá bán</TableCell>
                       <TableCell>Ngày nhập</TableCell>
                       <TableCell>Hạn sử dụng</TableCell>
-                      <TableCell>Chênh lệch</TableCell>
-                      <TableCell>Ghi chú</TableCell>
-                      <TableCell>Hành động</TableCell>
+                      {inventoryMode && <TableCell>Thực tế</TableCell>}
+                      {inventoryMode &&
+                        comparisonData &&
+                        comparisonData.length > 0 && (
+                          <TableCell>Chênh lệch</TableCell>
+                        )}
+                      {inventoryMode && <TableCell>Ghi chú</TableCell>}
                     </TableRow>
                   </TableHead>
+
                   <TableBody>
-                    {location.lotProduct && location.lotProduct.length > 0 ? (
+                    {location.lotProduct.length > 0 ? (
                       location.lotProduct.map((lot, index) => (
                         <TableRow key={lot.lotID} hover>
                           <TableCell>{index + 1}</TableCell>
@@ -263,43 +270,71 @@ export default function WarehouseLocationDetailPage() {
                             {lot.inputPrice.toLocaleString()} đ
                           </TableCell>
                           <TableCell>
-                            {lot.salePrice.toLocaleString()} đ
-                          </TableCell>
-                          <TableCell>
                             {new Date(lot.inputDate).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             {new Date(lot.expiredDate).toLocaleDateString()}
                           </TableCell>
-                          <TableCell align="center">
-                            {lot.diffQuantity}
-                          </TableCell>
-                          <TableCell>{lot.note || "-"}</TableCell>
-                          <TableCell>
-                            <Tooltip title="Kiểm kê">
-                              <IconButton
+                          {inventoryMode && (
+                            <TableCell>
+                              <TextField
+                                type="number"
+                                value={lot.realQuantity}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setLocation((prev) => ({
+                                    ...prev,
+                                    lotProduct: prev.lotProduct.map((l) =>
+                                      l.lotID === lot.lotID
+                                        ? { ...l, realQuantity: value }
+                                        : l
+                                    ),
+                                  }));
+                                }}
                                 size="small"
-                                color="primary"
-                                onClick={() => handleInventoryCheck(lot)}
-                              >
-                                <Inventory2Icon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Thay đổi giá">
-                              <IconButton
+                              />
+                            </TableCell>
+                          )}
+                          {inventoryMode &&
+                            comparisonData &&
+                            comparisonData.length > 0 && (
+                              <TableCell>
+                                {lot.realQuantity - lot.lotQuantity}
+                              </TableCell>
+                            )}
+                          {inventoryMode && (
+                            <TableCell>
+                              <TextField
+                                value={lot.note}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setLocation((prev) => ({
+                                    ...prev,
+                                    lotProduct: prev.lotProduct.map((l) =>
+                                      l.lotID === lot.lotID
+                                        ? { ...l, note: value }
+                                        : l
+                                    ),
+                                  }));
+                                }}
                                 size="small"
-                                color="secondary"
-                                onClick={() => handleChangePrice(lot)}
-                              >
-                                <AttachMoneyIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
+                              />
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={11} align="center">
+                        <TableCell
+                          colSpan={
+                            inventoryMode
+                              ? comparisonData && comparisonData.length > 0
+                                ? 10
+                                : 9
+                              : 7
+                          }
+                          align="center"
+                        >
                           Không có lô sản phẩm nào
                         </TableCell>
                       </TableRow>
@@ -307,6 +342,40 @@ export default function WarehouseLocationDetailPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+
+              {inventoryMode && (
+                <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                  {(!comparisonData || comparisonData.length === 0) && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={submitInventory}
+                    >
+                      Cập nhật kiểm kê
+                    </Button>
+                  )}
+                  {comparisonData && comparisonData.length > 0 && (
+                    <Button
+                      variant="outlined"
+                      color="success"
+                      onClick={completeInventory}
+                    >
+                      Hoàn tất kiểm kê
+                    </Button>
+                  )}
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setInventoryMode(false);
+                      setInventorySessionId(null);
+                      setComparisonData(null);
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Box>
@@ -314,137 +383,13 @@ export default function WarehouseLocationDetailPage() {
         <Typography>Không có dữ liệu</Typography>
       )}
 
-      <Dialog
-        open={openInventoryModal}
-        onClose={() => setOpenInventoryModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Kiểm kê lô: {selectedLot?.productName}</DialogTitle>
-
-        <DialogContent sx={{ mt: 1 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              rowGap: 1.5,
-              columnGap: 3,
-              mb: 2,
-            }}
-          >
-            <InfoRow label="Nhà cung cấp" value={selectedLot?.supplierName} />
-            <InfoRow
-              label="Ngày nhập"
-              value={new Date(selectedLot?.inputDate).toLocaleDateString()}
-            />
-            <InfoRow
-              label="Hạn sử dụng"
-              value={new Date(selectedLot?.expiredDate).toLocaleDateString()}
-            />
-            <InfoRow
-              label="Tồn kho hiện tại"
-              value={selectedLot?.lotQuantity}
-            />
-          </Box>
-
-          <TextField
-            label="Số lượng thực tế"
-            type="number"
-            fullWidth
-            value={physicalQty}
-            onChange={(e) => setPhysicalQty(e.target.value)}
-          />
-          <TextField
-            label="Ghi chú"
-            fullWidth
-            multiline
-            rows={3}
-            sx={{ mt: 2 }}
-            value={selectedLot?.note || ""}
-            onChange={(e) =>
-              setSelectedLot({ ...selectedLot, note: e.target.value })
-            }
-          />
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setOpenInventoryModal(false)}>Hủy</Button>
-          <Button variant="contained" onClick={submitInventoryCheck}>
-            Cập nhật
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={openPriceModal}
-        onClose={() => setOpenPriceModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Thay đổi giá lô: {selectedLot?.productName}</DialogTitle>
-
-        <DialogContent sx={{ mt: 1 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              rowGap: 1.5,
-              columnGap: 3,
-              mb: 2,
-            }}
-          >
-            <InfoRow label="Nhà cung cấp" value={selectedLot?.supplierName} />
-            <InfoRow
-              label="Tồn kho hiện tại"
-              value={selectedLot?.lotQuantity}
-            />
-            <InfoRow
-              label="Ngày nhập"
-              value={new Date(selectedLot?.inputDate).toLocaleDateString()}
-            />
-            <InfoRow
-              label="Hạn sử dụng"
-              value={new Date(selectedLot?.expiredDate).toLocaleDateString()}
-            />
-            <InfoRow
-              label="Giá nhập"
-              value={selectedLot?.inputPrice.toLocaleString() + " đ"}
-            />
-            <InfoRow
-              label="Giá bán hiện tại"
-              value={selectedLot?.salePrice.toLocaleString() + " đ"}
-            />
-          </Box>
-
-          <TextField
-            label="Giá bán mới"
-            type="number"
-            fullWidth
-            value={newPrice}
-            onChange={(e) => setNewPrice(e.target.value)}
-          />
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setOpenPriceModal(false)}>Hủy</Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={submitChangePrice}
-          >
-            Cập nhật
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar thông báo */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
