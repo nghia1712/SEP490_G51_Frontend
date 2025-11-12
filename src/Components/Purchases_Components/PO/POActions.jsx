@@ -27,9 +27,8 @@ import {
   Edit,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import poApi from "../../../API/poAPI";
 import getUserRoleFromToken from "../../../utils/getUserRoleFromToken";
-import prfqApi from "../../../API/prfqAPI";
+import usePO from "../../../Hooks/usePO";
 
 const STATUS = {
   APPROVED: 0,
@@ -42,161 +41,79 @@ const STATUS = {
 };
 
 export default function POActions({ poId, fetchPOs }) {
-  console.log("poApi object:", poApi);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [payOpen, setPayOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [poDetail, setPoDetail] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const [editData, setEditData] = useState([]);
-  const [deletePOId, setDeletePOId] = useState(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const navigate = useNavigate();
-  const [fullyReceivedPOs, setFullyReceivedPOs] = useState([]);
-  const [userRole, setUserRole] = useState(null);
+  const [amount, setAmount] = useState("");
+
+  const {
+    selectedPO: poDetail,
+    depositOpen,
+    setDepositOpen,
+    payOpen,
+    setPayOpen,
+    editOpen,
+    setEditOpen,
+    editData,
+    setEditData,
+    confirmDeleteOpen,
+    setConfirmDeleteOpen,
+    deletePOId,
+    setDeletePOId,
+    fullyReceivedPOs,
+    userRole,
+    setUserRole,
+    snackbar,
+    setSnackbar,
+    handleDepositPO,
+    handlePayPO,
+    handleChangeStatus,
+    handleDeleteDraftPO,
+    fetchPOs: reloadPOs,
+    fetchPODetail,
+  } = usePO();
 
   useEffect(() => {
-    setUserRole(getUserRoleFromToken());
-    loadFullyReceivedPOs();
+    const role = getUserRoleFromToken();
+    if (userRole === null) {
+      setUserRole(role);
+    }
   }, []);
-
   useEffect(() => {
-    fetchPoDetail();
+    if (poId) {
+      fetchPODetail(poId);
+    }
   }, [poId]);
-
-  const loadFullyReceivedPOs = async () => {
-    try {
-      const res = await poApi.getFullyReceived();
-      setFullyReceivedPOs(res.data?.map((po) => po.poid) || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchPoDetail = async () => {
-    try {
-      const res = await poApi.getDetail(poId);
-      setPoDetail(res.data?.data);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Lấy chi tiết PO thất bại",
-        severity: "error",
-      });
-    }
-  };
 
   const handleApprove = async () => {
     try {
-      await poApi.changeStatus(poId, STATUS.APPROVED);
-      setSnackbar({
-        open: true,
-        message: "PO đã được approve",
-        severity: "success",
-      });
-      fetchPOs();
-      fetchPoDetail();
-      setDepositOpen(true);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Approve thất bại",
-        severity: "error",
-      });
-    }
+      await handleChangeStatus(poId, STATUS.APPROVED);
+    } catch {}
   };
 
   const handleDeposit = async () => {
-    if (!amount || amount <= 0) return;
-    setLoading(true);
-    try {
-      await poApi.deposit(poId, { paid: Number(amount) });
-      setSnackbar({
-        open: true,
-        message: "Ghi nhận đặt cọc thành công",
-        severity: "success",
-      });
-      setDepositOpen(false);
-      setAmount("");
-      fetchPOs();
-      fetchPoDetail();
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Ghi nhận thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
+    await handleDepositPO(poId, Number(amount));
+    setDepositOpen(false);
+    setAmount("");
+    reloadPOs();
   };
 
   const handlePay = async () => {
-    if (!amount || amount <= 0) return;
-    setLoading(true);
-    try {
-      await poApi.payDebt(poId, { paid: Number(amount) });
-      setSnackbar({
-        open: true,
-        message: "Thanh toán thành công",
-        severity: "success",
-      });
-      setPayOpen(false);
-      setAmount("");
-      fetchPOs();
-      fetchPoDetail();
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Thanh toán thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
+    await handlePayPO(poId, Number(amount));
+    setPayOpen(false);
+    setAmount("");
+    reloadPOs();
   };
 
-  const handleOpenConfirmDelete = (poId) => {
-    setDeletePOId(poId);
+  const handleOpenConfirmDelete = (id) => {
+    setDeletePOId(id);
     setConfirmDeleteOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!deletePOId) return;
-    console.log("Deleting PO ID:", deletePOId);
-    try {
-      await poApi.deleteDraftPO(deletePOId);
-      setSnackbar({
-        open: true,
-        message: `Xóa PO-${deletePOId} thành công`,
-        severity: "success",
-      });
-      setTimeout(() => {
-        fetchPOs();
-        fetchPoDetail();
-        setEditOpen(false);
-      }, 2000);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: `Xóa PO-${deletePOId} thất bại`,
-        severity: "error",
-      });
-    } finally {
-      setConfirmDeleteOpen(false);
-      setDeletePOId(null);
-    }
+    await handleDeleteDraftPO(deletePOId);
+    setConfirmDeleteOpen(false);
+    setDeletePOId(null);
+    setEditOpen(false);
   };
 
   const handleContinueEdit = () => {
@@ -205,51 +122,23 @@ export default function POActions({ poId, fetchPOs }) {
     setEditOpen(true);
   };
 
-  const handleUpdatePO = async (status) => {
-    try {
-      setLoading(true);
-
-      const payload = {
-        qid: poDetail?.qid,
-        status,
-        details: editData.map((item) => ({
-          productID: item.productID,
-          date: item.expiredDate,
-          quantity: Number(item.quantity),
-        })),
-      };
-
-      await prfqApi.updateDraftPO(poId, payload);
-
-      setSnackbar({
-        open: true,
-        message:
-          status === STATUS.DRAFT
-            ? "Lưu bản nháp thành công"
-            : "Gửi yêu cầu thành công",
-        severity: "success",
-      });
-
-      setTimeout(() => {
-        fetchPOs();
-        fetchPoDetail();
-        setEditOpen(false);
-      }, 2000);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Cập nhật PO thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateGRN = () => {
     navigate("/grn", { state: { poId, create: true } });
   };
+  const poStatus = poDetail ? Number(poDetail.status) : null;
+  const showApprove =
+    poStatus === STATUS.SENT && userRole === "purchases_staff";
+  const showDeposit = poStatus === STATUS.APPROVED;
+  const showPay = poStatus === STATUS.DEPOSITED || poStatus === STATUS.PAID;
+  const canDeposit = ["accountant_staff"].includes(userRole);
+  const canPay = ["accountant_staff"].includes(userRole);
+  const canCreateGRN =
+    poStatus !== STATUS.DRAFT &&
+    poStatus !== STATUS.SENT &&
+    userRole === "warehouse_staff" &&
+    !fullyReceivedPOs.includes(poDetail?.poid);
+  const canDeleteDraftPO =
+    poStatus === STATUS.DRAFT && userRole === "purchases_staff";
 
   const renderPoInfo = (isPayPopup = false) => {
     if (!poDetail) return null;
@@ -315,21 +204,6 @@ export default function POActions({ poId, fetchPOs }) {
       </Stack>
     );
   };
-
-  const showApprove =
-    poDetail?.status === STATUS.SENT && userRole === "purchases_staff";
-  const showDeposit = poDetail?.status === STATUS.APPROVED;
-  const showPay =
-    poDetail?.status === STATUS.DEPOSITED || poDetail?.status === STATUS.PAID;
-  const canDeposit = userRole === "accountant_staff" || userRole === "admin";
-  const canPay = userRole === "accountant_staff" || userRole === "admin";
-  const canCreateGRN =
-    poDetail?.status !== STATUS.DRAFT &&
-    poDetail?.status !== STATUS.SENT &&
-    userRole === "warehouse_staff" &&
-    !fullyReceivedPOs.includes(poDetail?.poid);
-  const canDeleteDraftPO =
-    poDetail?.status === STATUS.DRAFT && userRole === "purchases_staff";
 
   return (
     <>
@@ -403,9 +277,7 @@ export default function POActions({ poId, fetchPOs }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDepositOpen(false)}>Hủy</Button>
-          <Button onClick={handleDeposit} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Xác nhận"}
-          </Button>
+          <Button onClick={handleDeposit}>Xác nhận</Button>
         </DialogActions>
       </Dialog>
 
@@ -431,9 +303,7 @@ export default function POActions({ poId, fetchPOs }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPayOpen(false)}>Hủy</Button>
-          <Button onClick={handlePay} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Xác nhận"}
-          </Button>
+          <Button onClick={handlePay}>Xác nhận</Button>
         </DialogActions>
       </Dialog>
 
@@ -505,12 +375,11 @@ export default function POActions({ poId, fetchPOs }) {
                         <Tooltip title="Xóa sản phẩm">
                           <IconButton
                             color="error"
-                            onClick={() => {
-                              const newData = editData.filter(
-                                (_, idx) => idx !== i
-                              );
-                              setEditData(newData);
-                            }}
+                            onClick={() =>
+                              setEditData(
+                                editData.filter((_, idx) => idx !== i)
+                              )
+                            }
                           >
                             <Delete />
                           </IconButton>
@@ -525,21 +394,17 @@ export default function POActions({ poId, fetchPOs }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>Hủy</Button>
-
           <Button
             variant="outlined"
             color="secondary"
-            onClick={() => handleUpdatePO(STATUS.DRAFT)}
-            disabled={loading}
+            onClick={() => handleChangeStatus(poId, STATUS.DRAFT)}
           >
             Lưu bản nháp
           </Button>
-
           <Button
             variant="contained"
             color="primary"
-            onClick={() => handleUpdatePO(STATUS.SENT)}
-            disabled={loading}
+            onClick={() => handleChangeStatus(poId, STATUS.SENT)}
           >
             Gửi yêu cầu
           </Button>
@@ -574,7 +439,11 @@ export default function POActions({ poId, fetchPOs }) {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

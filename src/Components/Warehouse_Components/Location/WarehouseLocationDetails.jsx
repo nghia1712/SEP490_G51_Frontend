@@ -18,15 +18,17 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
-import warehouseApi from "../../API/warehouseAPI";
-import warehouseLocationAPI from "../../API/warehouseLocationAPI";
-import renderStatusChip from "../../Utils/renderStatusChip";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import warehouseApi from "../../../API/warehouseAPI";
+import warehouseLocationAPI from "../../../API/warehouseLocationAPI";
+import renderStatusChip from "../../../Utils/renderStatusChip";
 
 export default function WarehouseLocationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const locationState = useLocation();
+  const warehouseID = locationState.state?.warehouseID;
+   console.log("🏭 warehouseID nhận được:", warehouseID);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -223,13 +225,31 @@ export default function WarehouseLocationDetailPage() {
                 </Box>
                 <Box>
                   {!inventoryMode && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={startInventory}
-                    >
-                      Kiểm kê
-                    </Button>
+                    <>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={startInventory}
+                        sx={{ mr: 2 }}
+                      >
+                        Kiểm kê
+                      </Button>
+                      {console.log("🔍 location data:", location)}
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                          navigate("/inventory-report", {
+                            state: {
+                              warehouse: warehouseID,
+                              location: location.locationID,
+                            },
+                          });
+                        }}
+                      >
+                        Báo cáo kiểm kê
+                      </Button>
+                    </>
                   )}
                 </Box>
               </Box>
@@ -356,7 +376,7 @@ export default function WarehouseLocationDetailPage() {
                   )}
                   {comparisonData && comparisonData.length > 0 && (
                     <Button
-                      variant="outlined"
+                      variant="contained"
                       color="success"
                       onClick={completeInventory}
                     >
@@ -389,7 +409,11 @@ export default function WarehouseLocationDetailPage() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -88,14 +88,14 @@ export default function WarehouseDetailPage() {
           sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
         >
           <CardContent sx={{ p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate(-1)} color="primary">
-          🔙
-        </IconButton>
-        <Typography variant="h5" component="span" sx={{ ml: 1 }}>
-          Quay lại
-        </Typography>
-      </Box>
+            <Box sx={{ mb: 3 }}>
+              <IconButton onClick={() => navigate(-1)} color="primary">
+                🔙
+              </IconButton>
+              <Typography variant="h5" component="span" sx={{ ml: 1 }}>
+                Quay lại
+              </Typography>
+            </Box>
 
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -205,7 +205,7 @@ export default function WarehouseDetailPage() {
                                   color="primary"
                                   onClick={() =>
                                     navigate(
-                                      `/warehouse-location/details/${loc.id}`
+                                      `/warehouse-location/details/${loc.id}`,{state: { warehouseID: warehouse.id },}
                                     )
                                   }
                                 >

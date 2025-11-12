@@ -116,21 +116,25 @@ export default function GRNManualCreatePage({ poId }) {
     });
 
   // --- FETCH DATA ---
-  const fetchPOs = async () => {
-    try {
-      const [partialRes, notRes] = await Promise.all([
-        poAPI.getPartiallyReceived(),
-        poAPI.getNotReceived(),
-      ]);
+const fetchPOs = async () => {
+  try {
+    const [partialRes, notRes] = await Promise.all([
+      poAPI.getPartiallyReceived(),
+      poAPI.getNotReceived(),
+    ]);
 
-      const partialList = Array.isArray(partialRes.data) ? partialRes.data : [];
-      const notList = Array.isArray(notRes.data) ? notRes.data : [];
+    const partialList = Array.isArray(partialRes.data) ? partialRes.data : [];
+    const notList = Array.isArray(notRes.data) ? notRes.data : [];
 
-      setPoList([...partialList, ...notList]);
-    } catch (err) {
-      console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
-    }
-  };
+    const merged = [...partialList, ...notList].filter(
+      (po) => po.status !== 6 && po.status !== 7
+    );
+
+    setPoList(merged);
+  } catch (err) {
+    console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
+  }
+};
 
   const fetchWarehouses = async () => {
     try {

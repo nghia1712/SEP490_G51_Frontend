@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -9,7 +9,6 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Button,
   Typography,
   Chip,
   IconButton,
@@ -22,184 +21,44 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  Button,
   Snackbar,
   Alert,
 } from "@mui/material";
 import {
   Search as SearchIcon,
-  Visibility as VisibilityIcon,
+  Visibility,
   NoteAdd,
   Delete,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import pqApi from "../../../API/pqAPI";
-import prfqApi from "../../../API/prfqAPI";
 import palette from "../../../constants/palette";
+import usePQ from "../../../Hooks/usePQ";
 
 export default function PQList() {
-  const [quotations, setQuotations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    quotations,
+    loading,
+    selectedQuotation,
+    openDetailDialog,
+    setOpenDetailDialog,
+    openCreatePoDialog,
+    setOpenCreatePoDialog,
+    quotationToCreatePo,
+    sending,
+    snackbar,
+    setSnackbar,
+    openDetail,
+    openCreatePO,
+    createPO,
+    changeQuantity,
+    removeItem,
+  } = usePQ();
+
   const [search, setSearch] = useState("");
-  const [selectedQuotation, setSelectedQuotation] = useState(null);
-  const [openDetailDialog, setOpenDetailDialog] = useState(false);
-  const [openCreatePoDialog, setOpenCreatePoDialog] = useState(false);
-  const [quotationToCreatePo, setQuotationToCreatePo] = useState(null);
-  const [sending, setSending] = useState(false);
 
-  const navigate = useNavigate();
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  // Load danh sách PQ
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const res = await pqApi.getAllBasic();
-      const list = Array.isArray(res.data.data)
-        ? res.data.data.map((item) => ({
-            quotationId: item.qid,
-            sentDate: item.sendDate,
-            supplierName: item.supplierName,
-            status: item.status === 0 ? "InDate" : "OutOfDate",
-            expiredDate: item.quotationExpiredDate,
-            items: item.quotationDetailDTOs,
-          }))
-        : [];
-      setQuotations(list);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách PQ:", err);
-      setSnackbar({
-        open: true,
-        message: "Tải danh sách PQ thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Xem chi tiết PQ
-  const handleOpenDetail = async (id) => {
-    try {
-      const res = await pqApi.getDetail(id);
-      const q = res.data?.data;
-
-      setSelectedQuotation({
-        quotationId: q.qid,
-        supplierName: q.supplierName || "(Chưa có tên NCC)",
-        sentDate: q.sendDate,
-        expiredDate: q.quotationExpiredDate,
-        status: q.status === 0 ? "InDate" : "OutOfDate",
-        items: q.quotationDetailDTOs || [],
-      });
-
-      setOpenDetailDialog(true);
-    } catch (error) {
-      console.error("❌ Lỗi khi lấy chi tiết PQ:", error);
-      setSnackbar({
-        open: true,
-        message: "Lỗi tải chi tiết PQ",
-        severity: "error",
-      });
-    }
-  };
-
-// Mở dialog tạo PO
-const handleOpenCreatePO = async (id) => {
-  try {
-    const res = await pqApi.getDetail(id);
-    const q = res.data?.data;
-
-    // Set default quantity = 1 nếu chưa có và chuẩn hóa productID
-    const itemsWithQty = (q.quotationDetailDTOs || []).map((item) => ({
-      ...item,
-      productID: item.productID || item.ProductID || item.id, // dùng đúng trường ID
-      quantity: item.quantity || 1,
-    }));
-
-    setQuotationToCreatePo({
-      quotationId: q.qid,
-      supplierName: q.supplierName || "(Chưa có tên NCC)",
-      items: itemsWithQty,
-    });
-
-    setOpenCreatePoDialog(true);
-  } catch (err) {
-    console.error("❌ Lỗi mở dialog PO:", err);
-    setSnackbar({
-      open: true,
-      message: "Lỗi tải dữ liệu PQ",
-      severity: "error",
-    });
-  }
-};
-
-// Tạo PO
-const handleCreatePO = async (status) => {
-  if (!quotationToCreatePo || sending) return;
-
-  setSending(true);
-
-  const payload = {
-    qid: Number(quotationToCreatePo.quotationId),
-    details: quotationToCreatePo.items.map((item) => ({
-      productID: Number(item.productID),
-      date: item.productDate || null,
-      quantity: Number(item.quantity),
-    })),
-    status: Number(status),
-  };
-  console.log("Payload gửi lên server:", payload);
-
-  try {
-    await prfqApi.createFromQuotation(payload);
-
-    setSnackbar({
-      open: true,
-      message: status === 6 ? "Gửi PO thành công!" : "Tạo bản nháp thành công!",
-      severity: "success",
-    });
-    setOpenCreatePoDialog(false);
-  } catch (err) {
-    console.error("❌ Lỗi tạo PO:", err.response?.data || err);
-    setSnackbar({
-      open: true,
-      message: status === 6 ? "Gửi PO thất bại" : "Tạo bản nháp thất bại",
-      severity: "error",
-    });
-  } finally {
-    setSending(false);
-  }
-};
-
-
-  // Chỉnh sửa số lượng
-  const handleChangeQuantity = (index, value) => {
-    setQuotationToCreatePo((prev) => {
-      const items = [...prev.items];
-      items[index] = { ...items[index], quantity: Number(value) };
-      return { ...prev, items };
-    });
-  };
-
-  // Xóa sản phẩm
-  const handleRemoveItem = (index) => {
-    setQuotationToCreatePo((prev) => {
-      const items = [...prev.items];
-      items.splice(index, 1);
-      return { ...prev, items };
-    });
-  };
-
-  const filteredData = quotations;
+  const filtered = quotations.filter((q) =>
+    q.supplierName?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -251,16 +110,16 @@ const handleCreatePO = async (status) => {
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : filteredData.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    Không có dữ liệu báo giá NCC
+                    Không có dữ liệu
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((row, index) => (
+                filtered.map((row, i) => (
                   <TableRow key={row.quotationId}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{i + 1}</TableCell>
                     <TableCell>{`PQ-${row.quotationId}`}</TableCell>
                     <TableCell>
                       {new Date(row.sentDate).toLocaleDateString()}
@@ -280,15 +139,15 @@ const handleCreatePO = async (status) => {
                       <Tooltip title="Xem chi tiết">
                         <IconButton
                           color="primary"
-                          onClick={() => handleOpenDetail(row.quotationId)}
+                          onClick={() => openDetail(row.quotationId)}
                         >
-                          <VisibilityIcon />
+                          <Visibility />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Tạo PO">
                         <IconButton
                           color="secondary"
-                          onClick={() => handleOpenCreatePO(row.quotationId)}
+                          onClick={() => openCreatePO(row.quotationId)}
                         >
                           <NoteAdd />
                         </IconButton>
@@ -420,7 +279,7 @@ const handleCreatePO = async (status) => {
                           size="small"
                           value={item.quantity || 1}
                           onChange={(e) =>
-                            handleChangeQuantity(i, e.target.value)
+                            changeQuantity(i, e.target.value)
                           }
                           sx={{ width: 80 }}
                         />
@@ -434,7 +293,7 @@ const handleCreatePO = async (status) => {
                         <Tooltip title="Xóa sản phẩm">
                           <IconButton
                             color="error"
-                            onClick={() => handleRemoveItem(i)}
+                            onClick={() => removeItem(i)}
                           >
                             <Delete />
                           </IconButton>
@@ -447,26 +306,25 @@ const handleCreatePO = async (status) => {
             </>
           )}
         </DialogContent>
-<DialogActions>
-  <Button onClick={() => setOpenCreatePoDialog(false)}>Hủy</Button>
-  <Button
-    variant="outlined"
-    color="secondary"
-    onClick={() => handleCreatePO(7)}
-    disabled={sending}
-  >
-    Tạo bản nháp
-  </Button>
-  <Button
-    variant="contained"
-    color="primary"
-    onClick={() => handleCreatePO(6)}
-    disabled={sending}
-  >
-    Gửi yêu cầu
-  </Button>
-</DialogActions>
-
+        <DialogActions>
+          <Button onClick={() => setOpenCreatePoDialog(false)}>Hủy</Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => createPO(7)}
+            disabled={sending}
+          >
+            Tạo bản nháp
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => createPO(6)}
+            disabled={sending}
+          >
+            Gửi yêu cầu
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Snackbar

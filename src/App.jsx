@@ -55,7 +55,8 @@ import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
 import POList from "./Components/Purchases_Components/PO/POList";
 import GRNList from "./Components/Warehouse_Components/GRN/GRNList";
 import GRNManualCreatePage from "./Components/Warehouse_Components/GRN/GRNManualCreatePage.jsx";
-import WarehouseLocationDetailPage from "./Components/Warehouse_Components/WarehouseLocationDetails.jsx";
+import WarehouseLocationDetailPage from "./Components/Warehouse_Components/Location/WarehouseLocationDetails.jsx";
+import InventoryReportPage from "./Components/Warehouse_Components/Location/InventoryReportPage.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -458,6 +459,15 @@ function App() {
                       <Route
                         path="/warehouse-location/details/:id"
                         element={<WarehouseLocationDetailPage />}
+                      />
+
+                      <Route
+                        path="/inventory-report"
+                        element={<InventoryReportPage />}
+                      />
+                      <Route
+                        path="/inventory-report/:id"
+                        element={<InventoryReportPage />}
                       />
 
                       {/* Routes cho tất cả Staff */}

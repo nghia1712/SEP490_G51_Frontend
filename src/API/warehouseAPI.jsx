@@ -52,6 +52,11 @@ const warehouseAPI = {
     authorApi.get(`${API_URL}/session/${sessionId}/export`, {
       responseType: "blob",
     }),
+
+  getAllSession: () => authorApi.get(`${API_URL}/GetAllsession`),
+
+  getSessionByWarehouseLocation: (warehouseLocationId) =>
+    authorApi.get(`${API_URL}/sessionbywarehouse/${warehouseLocationId}`),
 };
 
 export default warehouseAPI;

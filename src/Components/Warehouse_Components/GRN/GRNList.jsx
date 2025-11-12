@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React from "react";
 import {
   Box,
+  Typography,
   Paper,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  IconButton,
   CircularProgress,
-  Button,
   Stack,
   TextField,
   InputAdornment,
+  Button,
+  IconButton,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -23,202 +22,47 @@ import {
   Select,
   MenuItem,
   FormControl,
+  TableContainer,
   InputLabel,
   Snackbar,
   Alert,
 } from "@mui/material";
 import { Visibility, Search, Download } from "@mui/icons-material";
-import grnApi from "../../../API/grnAPI";
-import warehouseApi from "../../../API/warehouseAPI";
-import { useSearchParams } from "react-router-dom";
-import poAPI from "../../../API/poAPI";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import useGRNList from "../../../Hooks/useGRNList";
 
 export default function GRNListPage() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { poId, create } = location.state || {};
-  const [openDetail, setOpenDetail] = useState(false);
-  const [selectedGRN, setSelectedGRN] = useState(null);
-  const [detailItems, setDetailItems] = useState([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const handleViewDetail = async (grn) => {
-    setSelectedGRN(grn);
-    setOpenDetail(true);
-    setDetailLoading(true);
-    try {
-      const res = await grnApi.getDetail(grn.grnid);
-
-      const data = res.data?.data ?? {};
-      const items = data.grnDetailViewDTO ?? [];
-      setDetailItems(items);
-    } catch (err) {
-      console.error(err);
-      setDetailItems([]);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  // Warehouse & Location
-  const [warehouses, setWarehouses] = useState([]);
-  const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [locations, setLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState("");
-  const [locationsLoading, setLocationsLoading] = useState(false);
-
-  // PO
-  const [poItems, setPoItems] = useState([]);
-  const [poInfo, setPoInfo] = useState(null);
-
-  // Dialog
-  const [openCreate, setOpenCreate] = useState(false);
-
-  // Snackbar
-  const [snack, setSnack] = useState({
-    open: false,
-    severity: "success",
-    message: "",
-  });
-
-  const handleSnackClose = () => setSnack({ ...snack, open: false });
-
-  // Fetch GRN list
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await grnApi.getAll();
-      const items = res?.data?.data ?? res?.data?.result ?? [];
-      setData(items);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch Warehouses
-  useEffect(() => {
-    const fetchWarehouses = async () => {
-      try {
-        const res = await warehouseApi.getAllWarehouses();
-        setWarehouses(res.data?.data ?? []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchWarehouses();
-  }, []);
-
-  // Fetch Locations
-  useEffect(() => {
-    if (!selectedWarehouse) return;
-
-    const fetchLocations = async () => {
-      setLocationsLoading(true);
-      try {
-        const res = await warehouseApi.getWarehouseDetails(selectedWarehouse);
-        setLocations(res.data?.data?.warehouseLocations ?? []);
-        setSelectedLocation("");
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLocationsLoading(false);
-      }
-    };
-    fetchLocations();
-  }, [selectedWarehouse]);
-
-  // Fetch PO Details
-  useEffect(() => {
-    if (poId && openCreate) fetchPOItems(poId);
-  }, [poId, openCreate]);
-
-  const fetchPOItems = async (id) => {
-    try {
-      const res = await poAPI.getDetail(id);
-      const data = res?.data?.data ?? null;
-      setPoInfo(data);
-      setPoItems(data?.details ?? []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    if (create) setOpenCreate(true);
-  }, [create]);
-
-  // Filter
-  const filtered = useMemo(() => {
-    if (!search) return data;
-    return data.filter((item) => {
-      const text = [item.grnId, item.supplierName, item.description, item.poid]
-        .join(" ")
-        .toLowerCase();
-      return text.includes(search.toLowerCase());
-    });
-  }, [search, data]);
-
-  // Submit GRN
-  const handleCreateGRN = async () => {
-    if (!selectedWarehouse || !selectedLocation) {
-      setSnack({
-        open: true,
-        severity: "error",
-        message: "Vui lòng chọn kho và vị trí kho",
-      });
-      return;
-    }
-    const payload = { warehouseLocationId: selectedLocation };
-    try {
-      await grnApi.createFromPO(poId, payload);
-      setSnack({
-        open: true,
-        severity: "success",
-        message: "Tạo phiếu nhập kho thành công",
-      });
-      setOpenCreate(false);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      setSnack({
-        open: true,
-        severity: "error",
-        message: "Tạo phiếu nhập kho thất bại",
-      });
-    }
-  };
-  const handleDownloadPDF = async (grnId) => {
-    try {
-      const response = await grnApi.exportPdf(grnId, {
-        responseType: "blob",
-      });
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `GRN_${grnId}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      setSnack({
-        open: true,
-        severity: "error",
-        message: "Không thể tải file PDF",
-      });
-    }
-  };
+  const {
+    data,
+    loading,
+    search,
+    setSearch,
+    filtered,
+    openDetail,
+    setOpenDetail,
+    selectedGRN,
+    detailItems,
+    detailLoading,
+    handleViewDetail,
+    warehouses,
+    selectedWarehouse,
+    setSelectedWarehouse,
+    locations,
+    selectedLocation,
+    setSelectedLocation,
+    locationsLoading,
+    poItems,
+    poInfo,
+    openCreate,
+    setOpenCreate,
+    handleCreateGRN,
+    handleDownloadPDF,
+    snack,
+    handleSnackClose,
+  } = useGRNList({ poId, autoOpenCreate: create });
 
   return (
     <Box sx={{ p: 3 }}>
@@ -424,13 +268,6 @@ export default function GRNListPage() {
 
         <DialogActions>
           <Button onClick={() => setOpenDetail(false)}>Đóng</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleDownloadPDF(selectedGRN.grnid)}
-          >
-            Tải PDF
-          </Button>
         </DialogActions>
       </Dialog>
 
