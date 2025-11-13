@@ -55,10 +55,24 @@ export default function PQList() {
   } = usePQ();
 
   const [search, setSearch] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   const filtered = quotations.filter((q) =>
     q.supplierName?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleCreatePO = async (status) => {
+    setProcessing(true);
+    try {
+      await createPO(status);
+    } finally {
+      setProcessing(false);
+    }
+  };
+  const statusMap = {
+    InDate: "Còn hiệu lực",
+    OutOfDate: "Hết hiệu lực",
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -117,44 +131,56 @@ export default function PQList() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((row, i) => (
-                  <TableRow key={row.quotationId}>
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell>{`PQ-${row.quotationId}`}</TableCell>
-                    <TableCell>
-                      {new Date(row.sentDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{row.supplierName}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={row.status}
-                        color={row.status === "InDate" ? "success" : "error"}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {new Date(row.expiredDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          color="primary"
-                          onClick={() => openDetail(row.quotationId)}
-                        >
-                          <Visibility />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Tạo PO">
-                        <IconButton
-                          color="secondary"
-                          onClick={() => openCreatePO(row.quotationId)}
-                        >
-                          <NoteAdd />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((row, i) => {
+                  const isValid = row.status === "InDate";
+                  return (
+                    <TableRow key={row.quotationId}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{`PQ-${row.quotationId}`}</TableCell>
+                      <TableCell>
+                        {new Date(row.sentDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{row.supplierName}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={statusMap[row.status] || row.status}
+                          color={row.status === "InDate" ? "success" : "error"}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(row.expiredDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Xem chi tiết">
+                          <span>
+                            <IconButton
+                              color="primary"
+                              onClick={() => openDetail(row.quotationId)}
+                              disabled={processing}
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+
+                        {isValid && (
+                          <Tooltip title="Tạo yêu cầu">
+                            <span>
+                              <IconButton
+                                color="secondary"
+                                onClick={() => openCreatePO(row.quotationId)}
+                                disabled={processing}
+                              >
+                                <NoteAdd />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -186,7 +212,10 @@ export default function PQList() {
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}
             <Chip
-              label={selectedQuotation?.status}
+              label={
+                statusMap[selectedQuotation?.status] ||
+                selectedQuotation?.status
+              }
               color={
                 selectedQuotation?.status === "InDate" ? "success" : "error"
               }
@@ -224,7 +253,12 @@ export default function PQList() {
           </Table>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDetailDialog(false)}>Đóng</Button>
+          <Button
+            onClick={() => setOpenDetailDialog(false)}
+            disabled={processing}
+          >
+            Đóng
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -278,10 +312,9 @@ export default function PQList() {
                           type="number"
                           size="small"
                           value={item.quantity || 1}
-                          onChange={(e) =>
-                            changeQuantity(i, e.target.value)
-                          }
+                          onChange={(e) => changeQuantity(i, e.target.value)}
                           sx={{ width: 80 }}
+                          disabled={processing}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -291,12 +324,15 @@ export default function PQList() {
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">
-                          <IconButton
-                            color="error"
-                            onClick={() => removeItem(i)}
-                          >
-                            <Delete />
-                          </IconButton>
+                          <span>
+                            <IconButton
+                              color="error"
+                              onClick={() => removeItem(i)}
+                              disabled={processing}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
@@ -307,22 +343,31 @@ export default function PQList() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenCreatePoDialog(false)}>Hủy</Button>
+          <Button
+            onClick={() => setOpenCreatePoDialog(false)}
+            disabled={processing}
+          >
+            Hủy
+          </Button>
           <Button
             variant="outlined"
             color="secondary"
-            onClick={() => createPO(7)}
-            disabled={sending}
+            onClick={() => handleCreatePO(7)}
+            disabled={processing}
           >
-            Tạo bản nháp
+            {processing ? <CircularProgress size={20} /> : "Tạo bản nháp"}
           </Button>
           <Button
             variant="contained"
             color="primary"
-            onClick={() => createPO(6)}
-            disabled={sending}
+            onClick={() => handleCreatePO(6)}
+            disabled={processing}
           >
-            Gửi yêu cầu
+            {processing ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gửi yêu cầu"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

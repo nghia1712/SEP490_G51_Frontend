@@ -4,13 +4,13 @@ import poApi from "../API/poAPI";
 import prfqApi from "../API/prfqAPI";
 
 export const statusMap = {
-  0: { label: "Approved", color: "success" },
-  1: { label: "Rejected", color: "error" },
-  3: { label: "Deposited", color: "info" },
-  4: { label: "Paid", color: "error" },
-  5: { label: "Completed", color: "secondary" },
-  6: { label: "Sent", color: "warning" },
-  7: { label: "Draft", color: "default" },
+  0: { label: "Đã duyệt", color: "success" },
+  1: { label: "Từ chối", color: "error" },
+  3: { label: "Đã đặt cọc", color: "info" },
+  4: { label: "Đã thanh toán", color: "primary" },
+  5: { label: "Hoàn thành", color: "secondary" },
+  6: { label: "Đã gửi", color: "warning" },
+  7: { label: "Nháp", color: "default" },
 };
 
 export const parseDDMMYYYY = (str) => {
@@ -45,7 +45,11 @@ export default function usePO() {
   const [sending, setSending] = useState(false);
 
   // ================== OTHER STATE ==================
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [editData, setEditData] = useState([]);
   const [fullyReceivedPOs, setFullyReceivedPOs] = useState([]);
   const [userRole, setUserRole] = useState(null);
@@ -71,16 +75,22 @@ export default function usePO() {
 
       const statusRes = await poApi.getByReceivingStatus();
       const statusData = statusRes?.data?.data || {};
-      const fullyIds = (statusData.FullyReceived || []).map((p) => Number(p.poid));
-      const partialIds = (statusData.PartiallyReceived || []).map((p) => Number(p.poid));
+      const fullyIds = (statusData.FullyReceived || []).map((p) =>
+        Number(p.poid)
+      );
+      const partialIds = (statusData.PartiallyReceived || []).map((p) =>
+        Number(p.poid)
+      );
       const notIds = (statusData.NotReceived || []).map((p) => Number(p.poid));
 
       const mappedPOs = poData.map((po) => {
         const poidNum = Number(po.poid);
-        if (po.status === 6 || po.status === 7) return { ...po, receivingStatus: "Chưa thỏa thuận" };
+        if (po.status === 6 || po.status === 7)
+          return { ...po, receivingStatus: "Chờ xác nhận" };
         let receivingStatus = "Chưa nhận";
         if (fullyIds.includes(poidNum)) receivingStatus = "Đã nhận đủ";
-        else if (partialIds.includes(poidNum)) receivingStatus = "Nhận một phần";
+        else if (partialIds.includes(poidNum))
+          receivingStatus = "Nhận một phần";
         else if (notIds.includes(poidNum)) receivingStatus = "Chưa nhận";
         return { ...po, receivingStatus };
       });
@@ -89,22 +99,30 @@ export default function usePO() {
       setFullyReceivedPOs(fullyIds);
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách PO:", err);
-      setSnackbar({ open: true, message: "Lấy PO thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Lấy PO thất bại",
+        severity: "error",
+      });
       setPoList([]);
     } finally {
       setLoading(false);
     }
   };
-const fetchPODetail = async (poId) => {
-  if (!poId) return;
-  try {
-    const res = await poApi.getDetail(poId);
-    setSelectedPO(res.data?.data || null);
-  } catch (err) {
-    console.error("❌ Lỗi khi lấy chi tiết PO:", err);
-    setSnackbar({ open: true, message: "Lấy chi tiết PO thất bại", severity: "error" });
-  }
-};
+  const fetchPODetail = async (poId) => {
+    if (!poId) return;
+    try {
+      const res = await poApi.getDetail(poId);
+      setSelectedPO(res.data?.data || null);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy chi tiết PO:", err);
+      setSnackbar({
+        open: true,
+        message: "Lấy chi tiết PO thất bại",
+        severity: "error",
+      });
+    }
+  };
 
   const handleOpenDetail = async (id) => {
     try {
@@ -113,7 +131,11 @@ const fetchPODetail = async (poId) => {
       setOpenDetail(true);
     } catch (err) {
       console.error("❌ Lỗi khi lấy chi tiết PO:", err);
-      setSnackbar({ open: true, message: "Lấy chi tiết PO thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Lấy chi tiết PO thất bại",
+        severity: "error",
+      });
     }
   };
 
@@ -124,23 +146,35 @@ const fetchPODetail = async (poId) => {
 
   // ================== EXCEL ==================
   const handleOpenUpload = () => setOpenUpload(true);
-  const handleCloseUpload = () => { setOpenUpload(false); setExcelFile(null); };
+  const handleCloseUpload = () => {
+    setOpenUpload(false);
+    setExcelFile(null);
+  };
   const handleUploadExcel = async () => {
     if (!excelFile) {
-      setSnackbar({ open: true, message: "Vui lòng chọn file Excel", severity: "warning" });
+      setSnackbar({
+        open: true,
+        message: "Vui lòng chọn file Excel",
+        severity: "warning",
+      });
       return;
     }
     setUploading(true);
     try {
       const res = await prfqApi.uploadSupplierExcel(excelFile);
       const { excelKey, products } = res.data || {};
-      if (!excelKey || !products) throw new Error("Server phản hồi không hợp lệ");
+      if (!excelKey || !products)
+        throw new Error("Server phản hồi không hợp lệ");
       setExcelKey(excelKey);
       setUploadedProducts(products);
       setPreviewOpen(true);
     } catch (err) {
       console.error("Upload error:", err);
-      setSnackbar({ open: true, message: "Upload thất bại", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: "Upload thất bại",
+        severity: "error",
+      });
     } finally {
       setUploading(false);
     }
@@ -148,38 +182,61 @@ const fetchPODetail = async (poId) => {
 
   const handleConvertExcel = async () => {
     if (sending) return;
-    const invalidItem = uploadedProducts.find((p) => p.quantity === "" || p.quantity === undefined || p.quantity < 1);
+    const invalidItem = uploadedProducts.find(
+      (p) => p.quantity === "" || p.quantity === undefined || p.quantity < 1
+    );
     if (invalidItem) {
-      setSnackbar({ open: true, message: `Sản phẩm "${invalidItem.productName}" có số lượng không hợp lệ`, severity: "error" });
+      setSnackbar({
+        open: true,
+        message: `Sản phẩm "${invalidItem.productName}" có số lượng không hợp lệ`,
+        severity: "error",
+      });
       return;
     }
-    const details = uploadedProducts.map((p) => ({ stt: p.STT ?? p.stt, quantity: Number(p.quantity) }));
+    const details = uploadedProducts.map((p) => ({
+      stt: p.STT ?? p.stt,
+      quantity: Number(p.quantity),
+    }));
     setSending(true);
     try {
       await prfqApi.convertToPo({ excelKey, details, status: 6 });
-      setSnackbar({ open: true, message: "Tạo PO thành công!", severity: "success" });
-      setPreviewOpen(false); setExcelFile(null); setUploadedProducts([]); setExcelKey(null); setOpenUpload(false);
+      setSnackbar({
+        open: true,
+        message: "Tạo PO thành công!",
+        severity: "success",
+      });
+      setPreviewOpen(false);
+      setExcelFile(null);
+      setUploadedProducts([]);
+      setExcelKey(null);
+      setOpenUpload(false);
       fetchPOs();
     } catch (err) {
       console.error(err);
 
-      const apiMsg =
-        err?.response?.data?.message || err?.message;
+      const apiMsg = err?.response?.data?.message || err?.message;
 
       setSnackbar({
         open: true,
         message: apiMsg,
         severity: "error",
       });
-    } finally { setSending(false); }
+    } finally {
+      setSending(false);
+    }
   };
 
   // ================== PO ACTIONS ==================
   const handleDepositPO = async (id, amount) => {
     if (!amount || amount <= 0) return;
     setLoading(true);
-    try { await poApi.deposit(id, { paid: Number(amount) });
-      setSnackbar({ open: true, message: "Ghi nhận đặt cọc thành công", severity: "success" });
+    try {
+      await poApi.deposit(id, { paid: Number(amount) });
+      setSnackbar({
+        open: true,
+        message: "Ghi nhận đặt cọc thành công",
+        severity: "success",
+      });
       fetchPOs();
       if (selectedPO?.poid === id) handleOpenDetail(id);
     } catch (err) {
@@ -193,39 +250,76 @@ const fetchPODetail = async (poId) => {
         message: apiMsg,
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
   const handlePayPO = async (id, amount) => {
     if (!amount || amount <= 0) return;
     setLoading(true);
-    try { await poApi.payDebt(id, { paid: Number(amount) });
-      setSnackbar({ open: true, message: "Thanh toán thành công", severity: "success" });
+    try {
+      await poApi.payDebt(id, { paid: Number(amount) });
+      setSnackbar({
+        open: true,
+        message: "Thanh toán thành công",
+        severity: "success",
+      });
       fetchPOs();
       if (selectedPO?.poid === id) handleOpenDetail(id);
-    } catch (err) { setSnackbar({ open: true, message: "Thanh toán thất bại", severity: "error" }); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Thanh toán thất bại",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChangeStatus = async (id, newStatus) => {
     setLoading(true);
-    try { await poApi.changeStatus(id, newStatus);
-      setSnackbar({ open: true, message: "Cập nhật trạng thái thành công", severity: "success" });
-      fetchPOs();
+    try {
+      await poApi.changeStatus(id, newStatus);
+      setSnackbar({
+        open: true,
+        message: "Cập nhật trạng thái thành công",
+        severity: "success",
+      });
+      await fetchPOs();
       if (selectedPO?.poid === id) handleOpenDetail(id);
-    } catch (err) { setSnackbar({ open: true, message: "Cập nhật trạng thái thất bại", severity: "error" }); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Cập nhật trạng thái thất bại",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteDraftPO = async (id) => {
     setLoading(true);
-    try { await poApi.deleteDraftPO(id);
-      setSnackbar({ open: true, message: `Xóa PO-${id} thành công`, severity: "success" });
-      fetchPOs();
+    try {
+      await poApi.deleteDraftPO(id);
+      setSnackbar({
+        open: true,
+        message: `Xóa PO-${id} thành công`,
+        severity: "success",
+      });
+      await fetchPOs();
       if (selectedPO?.poid === id) handleCloseDetail();
-    } catch (err) { setSnackbar({ open: true, message: `Xóa PO-${id} thất bại`, severity: "error" }); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: `Xóa PO-${id} thất bại`,
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportPDF = async (id) => {
@@ -236,18 +330,65 @@ const fetchPODetail = async (poId) => {
       link.href = window.URL.createObjectURL(blob);
       link.download = `PO-${id}.pdf`;
       link.click();
-    } catch (err) { setSnackbar({ open: true, message: "Xuất PDF thất bại", severity: "error" }); }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: "Xuất PDF thất bại",
+        severity: "error",
+      });
+    }
   };
 
   const handleApprovePO = async (id) => handleChangeStatus(id, 0);
   const handleRejectPO = async (id) => handleChangeStatus(id, 1);
-  const handleUpdatePODraft = async (id, payload) => { await prfqApi.updateDraftPO(id, payload); fetchPOs(); };
+
+  const handleUpdatePODraft = async (id, status) => {
+    try {
+      const payload = {
+        qid: id,
+        status,
+        details: editData.map((item) => ({
+          productID: item.productID,
+          date: item.expiredDate,
+          quantity: Number(item.quantity),
+        })),
+      };
+
+      setSending(true);
+      await prfqApi.updateDraftPO(id, payload);
+
+      if (selectedPO?.poid === id) {
+        setSelectedPO((prev) => (prev ? { ...prev, status } : prev));
+      }
+
+      setEditData([]);
+      setEditOpen(false);
+      await fetchPOs();
+      setSnackbar({
+        open: true,
+        message:
+          status === 6 ? "Gửi yêu cầu thành công" : "Lưu nháp thành công",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: "Cập nhật thất bại",
+        severity: "error",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   // ================== FILTER ==================
   const filteredPOs = useMemo(() => {
     if (!search) return poList;
     return poList.filter(
-      (po) => po.poid.toString().includes(search) || po.userName.toLowerCase().includes(search.toLowerCase())
+      (po) =>
+        po.poid.toString().includes(search) ||
+        po.userName.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, poList]);
 

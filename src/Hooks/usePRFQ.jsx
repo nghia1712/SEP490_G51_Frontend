@@ -54,13 +54,9 @@ export default function usePRFQ(prfqId = null) {
     setSnackbar((prev) => ({ ...prev, open: false }));
 
   // ===== Load List =====
-useEffect(() => {
-  const timer = setTimeout(() => {
-    loadData(search);
-  }, 500);
-
-  return () => clearTimeout(timer);
-}, [search]); 
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);

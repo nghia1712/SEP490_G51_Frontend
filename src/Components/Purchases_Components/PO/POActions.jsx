@@ -17,6 +17,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  CircularProgress,
 } from "@mui/material";
 import {
   Paid,
@@ -26,8 +27,8 @@ import {
   Delete,
   Edit,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import getUserRoleFromToken from "../../../utils/getUserRoleFromToken";
+import { useNavigate, useLocation } from "react-router-dom";
+import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 import usePO from "../../../Hooks/usePO";
 
 const STATUS = {
@@ -43,6 +44,9 @@ const STATUS = {
 export default function POActions({ poId, fetchPOs }) {
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const location = useLocation();
+  const { state } = location;
 
   const {
     selectedPO: poDetail,
@@ -69,7 +73,24 @@ export default function POActions({ poId, fetchPOs }) {
     handleDeleteDraftPO,
     fetchPOs: reloadPOs,
     fetchPODetail,
+    handleUpdatePODraft,
   } = usePO();
+
+  const [activeDepositPOId, setActiveDepositPOId] = useState(null);
+  useEffect(() => {
+    if (state?.autoOpenDeposit && userRole === "accountant_staff") {
+      setActiveDepositPOId(state.poId);
+      fetchPODetail(state.poId);
+
+      window.history.replaceState({}, document.title);
+    }
+
+    if (state?.autoCreateGRN && userRole === "warehouse_staff") {
+      navigate("/grn", { state: { poId: state.poId, create: true } });
+
+      window.history.replaceState({}, document.title);
+    }
+  }, [state, userRole]);
 
   useEffect(() => {
     const role = getUserRoleFromToken();
@@ -77,6 +98,7 @@ export default function POActions({ poId, fetchPOs }) {
       setUserRole(role);
     }
   }, []);
+
   useEffect(() => {
     if (poId) {
       fetchPODetail(poId);
@@ -84,36 +106,61 @@ export default function POActions({ poId, fetchPOs }) {
   }, [poId]);
 
   const handleApprove = async () => {
+    setProcessing(true);
     try {
       await handleChangeStatus(poId, STATUS.APPROVED);
-    } catch {}
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleDeposit = async () => {
-    await handleDepositPO(poId, Number(amount));
-    setDepositOpen(false);
-    setAmount("");
-    reloadPOs();
+    setProcessing(true);
+    try {
+      await handleDepositPO(poId, Number(amount));
+      setDepositOpen(false);
+      setAmount("");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handlePay = async () => {
-    await handlePayPO(poId, Number(amount));
-    setPayOpen(false);
-    setAmount("");
-    reloadPOs();
+    setProcessing(true);
+    try {
+      await handlePayPO(poId, Number(amount));
+      setPayOpen(false);
+      setAmount("");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletePOId) return;
+    setProcessing(true);
+    try {
+      await handleDeleteDraftPO(deletePOId);
+      setConfirmDeleteOpen(false);
+      setDeletePOId(null);
+      setEditOpen(false);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSaveDraft = async (status) => {
+    setProcessing(true);
+    try {
+      await handleUpdatePODraft(poId, status);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleOpenConfirmDelete = (id) => {
     setDeletePOId(id);
     setConfirmDeleteOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletePOId) return;
-    await handleDeleteDraftPO(deletePOId);
-    setConfirmDeleteOpen(false);
-    setDeletePOId(null);
-    setEditOpen(false);
   };
 
   const handleContinueEdit = () => {
@@ -125,6 +172,7 @@ export default function POActions({ poId, fetchPOs }) {
   const handleCreateGRN = () => {
     navigate("/grn", { state: { poId, create: true } });
   };
+
   const poStatus = poDetail ? Number(poDetail.status) : null;
   const showApprove =
     poStatus === STATUS.SENT && userRole === "purchases_staff";
@@ -210,46 +258,79 @@ export default function POActions({ poId, fetchPOs }) {
       <Stack direction="row" spacing={1} justifyContent="center">
         {showApprove && (
           <Tooltip title="Duyệt yêu cầu">
-            <IconButton color="primary" onClick={handleApprove}>
-              <CheckCircle />
-            </IconButton>
+            <span>
+              <IconButton
+                color="primary"
+                onClick={handleApprove}
+                disabled={processing}
+              >
+                {processing ? <CircularProgress size={20} /> : <CheckCircle />}
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {showDeposit && canDeposit && (
           <Tooltip title="Đặt cọc">
-            <IconButton color="info" onClick={() => setDepositOpen(true)}>
-              <AccountBalance />
-            </IconButton>
+            <span>
+              <IconButton
+                color="info"
+                onClick={() => setDepositOpen(true)}
+                disabled={processing}
+              >
+                <AccountBalance />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {showPay && canPay && (
           <Tooltip title="Thanh toán">
-            <IconButton color="success" onClick={() => setPayOpen(true)}>
-              <Paid />
-            </IconButton>
+            <span>
+              <IconButton
+                color="success"
+                onClick={() => setPayOpen(true)}
+                disabled={processing}
+              >
+                <Paid />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {canCreateGRN && (
           <Tooltip title="Tạo GRN từ PO">
-            <IconButton color="secondary" onClick={handleCreateGRN}>
-              <NoteAdd />
-            </IconButton>
+            <span>
+              <IconButton
+                color="secondary"
+                onClick={handleCreateGRN}
+                disabled={processing}
+              >
+                <NoteAdd />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {canDeleteDraftPO && (
           <>
             <Tooltip title="Tiếp tục chỉnh sửa">
-              <IconButton color="warning" onClick={handleContinueEdit}>
-                <Edit />
-              </IconButton>
+              <span>
+                <IconButton
+                  color="warning"
+                  onClick={handleContinueEdit}
+                  disabled={processing}
+                >
+                  <Edit />
+                </IconButton>
+              </span>
             </Tooltip>
             <Tooltip title="Xóa PO nháp">
-              <IconButton
-                color="error"
-                onClick={() => handleOpenConfirmDelete(poDetail.poid)}
-              >
-                <Delete />
-              </IconButton>
+              <span>
+                <IconButton
+                  color="error"
+                  onClick={() => handleOpenConfirmDelete(poDetail.poid)}
+                  disabled={processing}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
             </Tooltip>
           </>
         )}
@@ -257,14 +338,22 @@ export default function POActions({ poId, fetchPOs }) {
 
       {/* Deposit Dialog */}
       <Dialog
-        open={depositOpen}
-        onClose={() => setDepositOpen(false)}
+        open={
+          depositOpen ||
+          (activeDepositPOId !== null && activeDepositPOId === poId)
+        }
+        onClose={() => {
+          setDepositOpen(false);
+          setActiveDepositPOId(null);
+        }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>Ghi nhận tiền đặt cọc</DialogTitle>
         <DialogContent sx={{ minHeight: 400 }}>
-          {renderPoInfo()}
+          {poDetail &&
+            (depositOpen || poDetail.poid === activeDepositPOId) &&
+            renderPoInfo()}
           <TextField
             autoFocus
             margin="dense"
@@ -276,8 +365,18 @@ export default function POActions({ poId, fetchPOs }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDepositOpen(false)}>Hủy</Button>
-          <Button onClick={handleDeposit}>Xác nhận</Button>
+          <Button
+            onClick={() => {
+              setDepositOpen(false);
+              setActiveDepositPOId(null);
+            }}
+            disabled={processing}
+          >
+            Hủy
+          </Button>
+          <Button onClick={handleDeposit} disabled={processing}>
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -302,8 +401,12 @@ export default function POActions({ poId, fetchPOs }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPayOpen(false)}>Hủy</Button>
-          <Button onClick={handlePay}>Xác nhận</Button>
+          <Button onClick={() => setPayOpen(false)} disabled={processing}>
+            Hủy
+          </Button>
+          <Button onClick={handlePay} disabled={processing}>
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -358,6 +461,7 @@ export default function POActions({ poId, fetchPOs }) {
                             setEditData(newData);
                           }}
                           sx={{ width: 80 }}
+                          disabled={processing}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -373,16 +477,19 @@ export default function POActions({ poId, fetchPOs }) {
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">
-                          <IconButton
-                            color="error"
-                            onClick={() =>
-                              setEditData(
-                                editData.filter((_, idx) => idx !== i)
-                              )
-                            }
-                          >
-                            <Delete />
-                          </IconButton>
+                          <span>
+                            <IconButton
+                              color="error"
+                              onClick={() =>
+                                setEditData(
+                                  editData.filter((_, idx) => idx !== i)
+                                )
+                              }
+                              disabled={processing}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
@@ -393,20 +500,28 @@ export default function POActions({ poId, fetchPOs }) {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Hủy</Button>
+          <Button onClick={() => setEditOpen(false)} disabled={processing}>
+            Hủy
+          </Button>
           <Button
             variant="outlined"
             color="secondary"
-            onClick={() => handleChangeStatus(poId, STATUS.DRAFT)}
+            onClick={() => handleSaveDraft(7)}
+            disabled={processing}
           >
-            Lưu bản nháp
+            {processing ? <CircularProgress size={20} /> : "Lưu bản nháp"}
           </Button>
           <Button
             variant="contained"
             color="primary"
-            onClick={() => handleChangeStatus(poId, STATUS.SENT)}
+            onClick={() => handleSaveDraft(6)}
+            disabled={processing}
           >
-            Gửi yêu cầu
+            {processing ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gửi yêu cầu"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -425,9 +540,18 @@ export default function POActions({ poId, fetchPOs }) {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDeleteOpen(false)}>Hủy</Button>
-          <Button color="error" onClick={handleConfirmDelete}>
-            Xác nhận
+          <Button
+            onClick={() => setConfirmDeleteOpen(false)}
+            disabled={processing}
+          >
+            Hủy
+          </Button>
+          <Button
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={processing}
+          >
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -99,16 +99,6 @@ export default function GRNManualCreatePage({ poId }) {
     }
   };
 
-  // --- ADD / REMOVE ITEM ---
-  const handleAddItem = () =>
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        { productName: "", quantity: 1, unitPrice: 0, expiredDate: "" },
-      ],
-    });
-
   const handleRemoveItem = (index) =>
     setFormData({
       ...formData,
@@ -116,32 +106,40 @@ export default function GRNManualCreatePage({ poId }) {
     });
 
   // --- FETCH DATA ---
-const fetchPOs = async () => {
-  try {
-    const [partialRes, notRes] = await Promise.all([
-      poAPI.getPartiallyReceived(),
-      poAPI.getNotReceived(),
-    ]);
+  const fetchPOs = async () => {
+    try {
+      const [partialRes, notRes] = await Promise.all([
+        poAPI.getPartiallyReceived(),
+        poAPI.getNotReceived(),
+      ]);
 
-    const partialList = Array.isArray(partialRes.data) ? partialRes.data : [];
-    const notList = Array.isArray(notRes.data) ? notRes.data : [];
+      const partialList = Array.isArray(partialRes.data) ? partialRes.data : [];
+      const notList = Array.isArray(notRes.data) ? notRes.data : [];
 
-    const merged = [...partialList, ...notList].filter(
-      (po) => po.status !== 6 && po.status !== 7
-    );
+      const merged = [...partialList, ...notList].filter(
+        (po) => po.status !== 6 && po.status !== 7
+      );
 
-    setPoList(merged);
-  } catch (err) {
-    console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
-  }
-};
+      setPoList(merged);
+    } catch (err) {
+      console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
+    }
+  };
 
   const fetchWarehouses = async () => {
     try {
       const res = await warehouseApi.getAllWarehouses();
-      setWarehouses(res.data?.data ?? []);
+      console.log("📦 warehouseApi.getAllWarehouses raw data =", res.data);
+
+       const list = res.data?.data ?? [];
+
+      const activeList = list.filter((w) => w.status);
+
+      console.log("📦 filtered warehouses =", activeList);
+
+      setWarehouses(activeList);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Lỗi fetchWarehouses:", err);
     }
   };
 
@@ -150,7 +148,9 @@ const fetchPOs = async () => {
     setLocationsLoading(true);
     try {
       const res = await warehouseApi.getWarehouseDetails(selectedWarehouse);
-      setLocations(res.data?.data?.warehouseLocations ?? []);
+      const allLocations = res.data?.data?.warehouseLocations ?? [];
+      const activeLocations = allLocations.filter((loc) => loc.status);
+      setLocations(activeLocations);
       setSelectedLocation("");
     } catch (err) {
       console.error(err);
@@ -178,7 +178,6 @@ const fetchPOs = async () => {
     if (selectedWarehouse) fetchLocations();
   }, [selectedWarehouse]);
 
-  // --- Khi chọn PO thì tự điền supplier ---
   useEffect(() => {
     if (!selectedPO) return;
 
@@ -258,35 +257,35 @@ const fetchPOs = async () => {
       });
     }
 
+    function toISODate(dateStr) {
+      if (!dateStr) return null;
+      const [day, month, year] = dateStr.split(/[\/\-]/).map(Number);
+      if (!day || !month || !year) return null;
+      // Trả về định dạng ISO mà backend C# chắc chắn đọc được
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+        2,
+        "0"
+      )}T00:00:00.000Z`;
+    }
+
     const grndManuallyDTOs = formData.items
       .filter((i) => i.productId)
       .map((i) => ({
         productID: Number(i.productId),
         unitPrice: Number(i.unitPrice) || 0,
         quantity: Number(i.quantity) || 0,
-        expiredDate: i.expiredDate
-          ? new Date(i.expiredDate).toISOString()
-          : null,
-        grnManuallyDTO: i.note || "",
+        expiredDate: toISODate(i.expiredDate),
       }));
 
-    if (grndManuallyDTOs.length === 0) {
-      return setSnackbar({
-        open: true,
-        message: "Vui lòng chọn ít nhất một sản phẩm",
-        severity: "warning",
-      });
-    }
-
     const payload = {
-      source: selectedSupplier,
+      source: String(selectedSupplier || ""),
       total: Number(total) || 0,
       description: description || "",
       warehouseLocationID: Number(selectedLocation),
-      grndManuallyDTOs,
+      grndManuallyDTOs, // 👈 đúng theo API yêu cầu
     };
 
-    console.log("Payload GRN:", payload);
+    console.log("Payload GRN:", JSON.stringify(payload, null, 2));
 
     try {
       await grnApi.createManually(selectedPO, payload);

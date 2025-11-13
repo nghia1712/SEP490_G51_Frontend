@@ -1,4 +1,3 @@
-// src/Pages/WarehouseDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -25,10 +24,13 @@ import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   Add as AddIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import warehouseApi from "../../API/warehouseAPI";
 import renderStatusChip from "../../Utils/renderStatusChip";
+import AddWarehouseLocation from "./Location/AddWarehouseLocation";
+import EditWarehouseLocation from "./Location/EditWarehouseLocation";
 
 export default function WarehouseDetailPage() {
   const { id } = useParams();
@@ -38,6 +40,11 @@ export default function WarehouseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [openAdd, setOpenAdd] = useState(false);
+
+  // --- Thêm state cho Edit ---
+  const [openEdit, setOpenEdit] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -58,6 +65,19 @@ export default function WarehouseDetailPage() {
   const filteredLocations = locations.filter((loc) =>
     loc.locationName.toLowerCase().includes(search.toLowerCase())
   );
+
+  const reloadLocations = async () => {
+    setLoading(true);
+    try {
+      const res = await warehouseApi.getWarehouseDetails(id);
+      setWarehouse(res.data.data);
+      setLocations(res.data.data.warehouseLocations || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box
@@ -159,15 +179,28 @@ export default function WarehouseDetailPage() {
                       backgroundColor: "#1976d2",
                       "&:hover": { backgroundColor: "#1565c0" },
                     }}
-                    onClick={() =>
-                      navigate(
-                        `/warehouse-location/create?warehouseId=${warehouse.id}`
-                      )
-                    }
+                    onClick={() => setOpenAdd(true)}
                   >
                     Thêm vị trí
                   </Button>
                 </Box>
+
+                <AddWarehouseLocation
+                  open={openAdd}
+                  onClose={() => setOpenAdd(false)}
+                  warehouseId={warehouse.id}
+                  onSuccess={reloadLocations}
+                />
+
+                <EditWarehouseLocation
+                  open={openEdit}
+                  location={selectedLocation}
+                  onClose={() => setOpenEdit(false)}
+                  onSuccess={() => {
+                    setOpenEdit(false);
+                    reloadLocations();
+                  }}
+                />
 
                 <TableContainer
                   component={Paper}
@@ -205,11 +238,25 @@ export default function WarehouseDetailPage() {
                                   color="primary"
                                   onClick={() =>
                                     navigate(
-                                      `/warehouse-location/details/${loc.id}`,{state: { warehouseID: warehouse.id },}
+                                      `/warehouse-location/details/${loc.id}`,
+                                      { state: { warehouseID: warehouse.id } }
                                     )
                                   }
                                 >
                                   <VisibilityIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+
+                              <Tooltip title="Chỉnh sửa">
+                                <IconButton
+                                  color="secondary"
+                                  onClick={() => {
+                                    setSelectedLocation(loc);
+                                    setOpenEdit(true);
+                                  }}
+                                  sx={{ ml: 1 }}
+                                >
+                                  <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             </TableCell>

@@ -57,7 +57,7 @@ const prfqAPI = {
   // 🔹 Cập nhật PO draft
   updateDraftPO: (id, data) =>
     authorApi.put(`${API_URL}/continue-edit/${id}`, data, {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json-patch+json" },
     }),
 };
 

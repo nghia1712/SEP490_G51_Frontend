@@ -123,7 +123,7 @@ export default function usePQ() {
       await prfqApi.createFromQuotation(payload);
       setSnackbar({
         open: true,
-        message: status === 6 ? "Gửi PO thành công!" : "Tạo bản nháp thành công!",
+        message: status === 6 ? "Gửi yêu cầu thành công!" : "Tạo bản nháp thành công!",
         severity: "success",
       });
       setOpenCreatePoDialog(false);
@@ -131,7 +131,7 @@ export default function usePQ() {
       console.error("❌ Lỗi tạo PO:", err.response?.data || err);
       setSnackbar({
         open: true,
-        message: status === 6 ? "Gửi PO thất bại" : "Tạo bản nháp thất bại",
+        message: status === 6 ? "Gửi yêu cầu thất bại" : "Tạo bản nháp thất bại",
         severity: "error",
       });
     } finally {

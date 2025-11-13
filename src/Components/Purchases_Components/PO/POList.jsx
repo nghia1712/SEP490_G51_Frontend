@@ -58,7 +58,10 @@ export default function POList() {
   } = usePO();
 
   const renderStatus = (status) => {
-    const s = statusMap[status] || { label: "Unknown", color: "default" };
+    const s = statusMap[Number(status)] || {
+      label: "Unknown",
+      color: "default",
+    };
     return <Chip label={s.label} color={s.color} size="small" />;
   };
 
@@ -112,7 +115,7 @@ export default function POList() {
                   <TableCell>Tổng tiền</TableCell>
                   <TableCell>Đã trả</TableCell>
                   <TableCell>Còn nợ</TableCell>
-                  <TableCell>Người trả</TableCell>
+                  <TableCell align="center">Người trả</TableCell>
                   <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -137,26 +140,47 @@ export default function POList() {
                         {renderStatus(po.status)}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={po.receivingStatus}
-                          color={
-                            po.receivingStatus === "Đã nhận đủ"
-                              ? "success"
-                              : po.receivingStatus === "Nhận một phần"
-                              ? "warning"
-                              : "default"
-                          }
-                          size="small"
-                        />
+                        {po.status !== 7 && (
+                          <Chip
+                            label={po.receivingStatus}
+                            color={
+                              po.receivingStatus === "Đã nhận đủ"
+                                ? "success"
+                                : po.receivingStatus === "Nhận một phần"
+                                ? "warning"
+                                : po.receivingStatus === "Chờ xác nhận"
+                                ? "warning"
+                                : po.receivingStatus === "Chưa nhận"
+                                ? "info"
+                                : "default"
+                            }
+                            size="small"
+                          />
+                        )}
                       </TableCell>
-                      <TableCell>{po.total.toLocaleString()} ₫</TableCell>
+                      <TableCell align="right">
+                        {po.total.toLocaleString()} ₫
+                      </TableCell>
                       <TableCell align="right">
                         {po.deposit?.toLocaleString() || 0} ₫
                       </TableCell>
                       <TableCell align="right">
                         {po.debt.toLocaleString()} ₫
                       </TableCell>
-                      <TableCell>{po.paymentBy || "Chưa thanh toán"}</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          color:
+                            !po.paymentBy || po.paymentBy === "Unknown"
+                              ? "transparent"
+                              : "inherit",
+                        }}
+                      >
+                        {!po.paymentBy || po.paymentBy === "Unknown"
+                          ? "-"
+                          : po.paymentBy}
+                      </TableCell>
+
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -247,6 +271,7 @@ export default function POList() {
                     <TableCell>Số lượng</TableCell>
                     <TableCell>Gợi ý</TableCell>
                     <TableCell>Tối thiểu</TableCell>
+                    <TableCell>Hiện tại</TableCell>
                     <TableCell>Tối đa</TableCell>
                     <TableCell>Hạn sử dụng</TableCell>
                     <TableCell></TableCell>
@@ -313,7 +338,7 @@ export default function POList() {
                             (p.quantity < 1
                               ? `Phải có ít nhất 1 sản phẩm`
                               : p.quantity > (p.maxQuantity || 1)
-                              ? `Không thể vượt quá số lượng tối đa (${p.maxQuantity})`
+                              ? `Số lượng vượt quá số lượng tối đa (${p.maxQuantity})`
                               : "")
                           }
                         />
@@ -335,6 +360,18 @@ export default function POList() {
                           size="small"
                           type="number"
                           value={p.minQuantity}
+                          disabled
+                          sx={{
+                            width: "100%",
+                            "& input": { textAlign: "center" },
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ width: 110 }}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={p.currentQuantity}
                           disabled
                           sx={{
                             width: "100%",
