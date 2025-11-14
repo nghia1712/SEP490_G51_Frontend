@@ -10,9 +10,9 @@ export default defineConfig({
     open: false, // Không tự mở trình duyệt
     strictPort: true, // Không tự đổi cổng (tránh mở lại tab khác)
     proxy: {
-      // Proxy all /api calls to the ASP.NET backend (HTTPS, dev cert)
+      // Proxy all /api calls to the ASP.NET backend
       '/api': {
-        target: 'https://localhost:7213',
+        target: 'http://localhost:5137',
         changeOrigin: true,
         secure: false,
         // Keep the /api prefix because backend controllers are under /api

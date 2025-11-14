@@ -113,6 +113,10 @@ function Header() {
     if (path === "/sales") {
       return location.pathname === "/sales" || location.pathname.startsWith("/sales/");
     }
+    // Special case for /customer/request-quotation to avoid matching /request-quotation
+    if (path === "/customer/request-quotation") {
+      return location.pathname === "/customer/request-quotation";
+    }
     // For other paths, use startsWith logic
     return location.pathname.startsWith(path);
   };
@@ -163,7 +167,12 @@ function Header() {
     { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "admin"] },
     { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
-    { label: "Báo giá", path: "/request-quotation", allowedRoles: ["manager", "sales_staff", "admin"] },
+    { label: "Yêu cầu báo giá", path: "/request-quotation", allowedRoles: ["manager", "admin"] },
+    { label: "Danh sách yêu cầu báo giá", path: "/request-quotation", allowedRoles: ["sales_staff"] },
+    { label: "Danh sách báo giá", path: "/sales-quotation", allowedRoles: ["manager", "sales_staff", "admin"] },
+    { label: "Danh sách đơn hàng", path: "/sales/orders", allowedRoles: ["sales_staff"] },
+    { label: "Yêu cầu báo giá", path: "/customer/request-quotation", allowedRoles: ["customer"] },
+    { label: "Đơn hàng của tôi", path: "/customer/orders", allowedRoles: ["customer"] },
   ];
 
   const partnerMenuItems = [

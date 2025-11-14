@@ -7,6 +7,7 @@ import {
   Grid,
   Card,
   CardContent,
+  CardMedia,
   Box,
   InputAdornment,
   Chip,
@@ -425,13 +426,19 @@ const SearchMedicine = () => {
             const unit = product.unit || product.Unit || 'Đơn vị';
             const productId = product.productID || product.ProductID || product.id || product._id;
             
+            // Get product image URL
+            const productImage = product.image || product.Image;
+            const imageUrl = productImage 
+              ? `http://localhost:5137${productImage}` 
+              : "/images/login_image.jpg";
+            
             return (
               <Grid item xs={12} sm={6} md={4} key={productId}>
             <Card 
               sx={{ 
                 height: "100%", 
                 display: "flex", 
-                flexDirection: "column",
+                flexDirection: "row",
                 cursor: "pointer",
                 transition: "all 0.3s ease",
                 backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -445,8 +452,39 @@ const SearchMedicine = () => {
               }}
                   onClick={() => handleMedicineClick(product)}
             >
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" component="h2" gutterBottom>
+              {/* Product Image - Small on the left */}
+              <Box sx={{ 
+                width: "150px", 
+                minWidth: "150px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+                p: 1
+              }}>
+                <CardMedia
+                  component="img"
+                  image={imageUrl}
+                  alt={productName}
+                  sx={{
+                    width: "100%",
+                    height: "auto",
+                    maxHeight: "120px",
+                    objectFit: "contain",
+                  }}
+                  onError={(e) => {
+                    e.target.src = "/images/login_image.jpg";
+                  }}
+                />
+              </Box>
+              
+              <CardContent sx={{ 
+                flexGrow: 1, 
+                display: "flex", 
+                flexDirection: "column",
+                p: 2
+              }}>
+                <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: "bold", mb: 1 }}>
                       {productName}
                 </Typography>
                 
@@ -454,14 +492,10 @@ const SearchMedicine = () => {
                       label={categoryName}
                   color="primary"
                   size="small"
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 1.5, alignSelf: "flex-start" }}
                 />
                 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      <strong>Tồn kho:</strong> {stock} {unit}
-                </Typography>
-                
-                <Typography variant="body2" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ mb: 2, flexGrow: 1 }}>
                       {description}
                 </Typography>
                 
@@ -470,9 +504,16 @@ const SearchMedicine = () => {
                     variant="contained"
                     startIcon={<InfoIcon />}
                     fullWidth
-                    sx={{ backgroundColor: "#48C1A6" }}
+                    sx={{ 
+                      background: "linear-gradient(90deg, #48C1A6 0%, #75B39C 100%)",
+                      color: "white",
+                      fontWeight: "bold",
+                      "&:hover": {
+                        background: "linear-gradient(90deg, #3a9d8a 0%, #5a9a7f 100%)",
+                      }
+                    }}
                   >
-                        Xem chi tiết
+                        XEM CHI TIẾT
                   </Button>
                 </Box>
               </CardContent>
@@ -533,10 +574,43 @@ const SearchMedicine = () => {
             const minQuantity = selectedMedicine.minQuantity || selectedMedicine.MinQuantity || 0;
             const maxQuantity = selectedMedicine.maxQuantity || selectedMedicine.MaxQuantity || 0;
             
+            // Get product image URL for dialog
+            const dialogImageUrl = selectedMedicine.image || selectedMedicine.Image
+              ? `http://localhost:5137${selectedMedicine.image || selectedMedicine.Image}`
+              : "/images/login_image.jpg";
+            
             return (
             <Box>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                {/* Product Image - Large */}
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ 
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#f5f5f5",
+                    borderRadius: 2,
+                    p: 3,
+                    minHeight: "300px"
+                  }}>
+                    <CardMedia
+                      component="img"
+                      image={dialogImageUrl}
+                      alt={productName}
+                      sx={{
+                        maxWidth: "100%",
+                        maxHeight: "400px",
+                        objectFit: "contain",
+                      }}
+                      onError={(e) => {
+                        e.target.src = "/images/login_image.jpg";
+                      }}
+                    />
+                  </Box>
+                </Grid>
+                
+                {/* Product Information */}
+                <Grid item xs={12} md={8}>
                   <Typography variant="h5" color="primary" gutterBottom>
                     Thông tin sản phẩm
                   </Typography>
@@ -554,31 +628,10 @@ const SearchMedicine = () => {
                           <TableCell><strong>Đơn vị:</strong></TableCell>
                             <TableCell>{unit}</TableCell>
                         </TableRow>
-                        <TableRow>
-                          <TableCell><strong>Tồn kho:</strong></TableCell>
-                          <TableCell>
-                            <Typography 
-                                color={stock > 50 ? "success.main" : stock > 20 ? "warning.main" : "error.main"}
-                              fontWeight="bold"
-                            >
-                                {stock} {unit}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell><strong>Số lượng tối thiểu:</strong></TableCell>
-                            <TableCell>{minQuantity} {unit}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell><strong>Số lượng tối đa:</strong></TableCell>
-                            <TableCell>{maxQuantity} {unit}</TableCell>
-                        </TableRow>
                       </TableBody>
                     </Table>
                   </TableContainer>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
+                  
                   <Typography variant="h5" color="primary" gutterBottom>
                       Mô tả sản phẩm
                   </Typography>
