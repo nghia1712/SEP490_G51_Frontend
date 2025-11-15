@@ -56,7 +56,10 @@ export default function PRFQList() {
   } = usePRFQ();
 
   const [search, setSearch] = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, prfqId: null });
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    open: false,
+    prfqId: null,
+  });
 
   const navigate = useNavigate();
 
@@ -66,11 +69,16 @@ export default function PRFQList() {
 
   const getStatus = (statusCode) => {
     switch (statusCode) {
-      case 1: return { label: "Sent", color: "info" };
-      case 2: return { label: "Approved", color: "success" };
-      case 3: return { label: "Rejected", color: "error" };
-      case 4: return { label: "Draft", color: "default" };
-      default: return { label: "Không xác định", color: "default" };
+      case 1:
+        return { label: "Sent", color: "info" };
+      case 2:
+        return { label: "Approved", color: "success" };
+      case 3:
+        return { label: "Rejected", color: "error" };
+      case 4:
+        return { label: "Draft", color: "default" };
+      default:
+        return { label: "Không xác định", color: "default" };
     }
   };
 
@@ -108,7 +116,13 @@ export default function PRFQList() {
 
       {/* ===== Search & Create ===== */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          {/* Search */}
           <TextField
             variant="outlined"
             size="small"
@@ -124,6 +138,8 @@ export default function PRFQList() {
             }}
             sx={{ width: 350 }}
           />
+
+          {/* Button Tạo yêu cầu báo giá */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -183,7 +199,9 @@ export default function PRFQList() {
                     <TableCell align="center">
                       {(() => {
                         const { label, color } = getStatus(row.status);
-                        return <Chip label={label} color={color} size="small" />;
+                        return (
+                          <Chip label={label} color={color} size="small" />
+                        );
                       })()}
                     </TableCell>
                     <TableCell align="center">{row.createdBy || "—"}</TableCell>
@@ -211,7 +229,10 @@ export default function PRFQList() {
                             <IconButton
                               color="error"
                               onClick={() =>
-                                setDeleteConfirm({ open: true, prfqId: row.prfqid })
+                                setDeleteConfirm({
+                                  open: true,
+                                  prfqId: row.prfqid,
+                                })
                               }
                             >
                               <DeleteIcon />
@@ -236,7 +257,11 @@ export default function PRFQList() {
         fullWidth
       >
         <DialogTitle
-          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
           Chi tiết yêu cầu báo giá
           {detailData && (
@@ -278,16 +303,23 @@ export default function PRFQList() {
                     <Typography>
                       <b>Ngày yêu cầu:</b>{" "}
                       {detailData?.requestDate
-                        ? new Date(detailData?.requestDate).toLocaleDateString("vi-VN")
+                        ? new Date(detailData?.requestDate).toLocaleDateString(
+                            "vi-VN"
+                          )
                         : "—"}
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" sx={{ mb: 1 }}>Nhà cung cấp</Typography>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    Nhà cung cấp
+                  </Typography>
                   <Box sx={{ mb: 1 }}>
                     <Typography>
-                      <b>Tên:</b> {detailData?.supplier?.name || detailData?.supplierName || "—"}
+                      <b>Tên:</b>{" "}
+                      {detailData?.supplier?.name ||
+                        detailData?.supplierName ||
+                        "—"}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 1 }}>
@@ -308,7 +340,9 @@ export default function PRFQList() {
                 </Grid>
               </Grid>
 
-              <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Danh sách sản phẩm</Typography>
+              <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+                Danh sách sản phẩm
+              </Typography>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -349,7 +383,9 @@ export default function PRFQList() {
           Bạn có chắc muốn xóa yêu cầu báo giá này không?
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm({ open: false, prfqId: null })}>
+          <Button
+            onClick={() => setDeleteConfirm({ open: false, prfqId: null })}
+          >
             Hủy
           </Button>
           <Button color="error" onClick={handleConfirmDelete}>

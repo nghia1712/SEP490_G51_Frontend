@@ -68,12 +68,18 @@ export default function POList() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Danh sách yêu cầu mua hàng (PO)
+        Danh sách đơn nhập hàng (PO)
       </Typography>
 
       {/* Search + Upload */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          {/* Search */}
           <TextField
             variant="outlined"
             size="small"
@@ -89,7 +95,9 @@ export default function POList() {
             }}
             sx={{ width: 350 }}
           />
-          <Button variant="contained" onClick={handleOpenUpload} sx={{ mb: 2 }}>
+
+          {/* Button Upload Excel */}
+          <Button variant="contained" onClick={handleOpenUpload}>
             Upload Excel
           </Button>
         </Stack>
@@ -106,16 +114,15 @@ export default function POList() {
               <TableHead>
                 <TableRow>
                   <TableCell>#</TableCell>
-                  <TableCell>PO ID</TableCell>
-                  <TableCell>Người tạo</TableCell>
+                  <TableCell>Mã đơn hàng</TableCell>
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Ngày đặt</TableCell>
-                  <TableCell>Trạng thái</TableCell>
                   <TableCell align="center">Trạng thái nhận hàng</TableCell>
+                  <TableCell align="center">Trạng thái thanh toán</TableCell>
                   <TableCell>Tổng tiền</TableCell>
                   <TableCell>Đã trả</TableCell>
                   <TableCell>Còn nợ</TableCell>
-                  <TableCell align="center">Người trả</TableCell>
+                  <TableCell align="center">Người tạo</TableCell>
                   <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -131,14 +138,11 @@ export default function POList() {
                     <TableRow key={po.poid}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{`PO-${po.poid}`}</TableCell>
-                      <TableCell>{po.userName}</TableCell>
                       <TableCell>{po.supplierName || "-"}</TableCell>
                       <TableCell>
-                        {new Date(po.orderDate).toLocaleDateString()}
+                        {new Date(po.orderDate).toLocaleDateString("vi-EN")}
                       </TableCell>
-                      <TableCell align="center">
-                        {renderStatus(po.status)}
-                      </TableCell>
+
                       <TableCell align="center">
                         {po.status !== 7 && (
                           <Chip
@@ -158,6 +162,9 @@ export default function POList() {
                           />
                         )}
                       </TableCell>
+                      <TableCell align="center">
+                        {renderStatus(po.status)}
+                      </TableCell>
                       <TableCell align="right">
                         {po.total.toLocaleString()} ₫
                       </TableCell>
@@ -167,20 +174,7 @@ export default function POList() {
                       <TableCell align="right">
                         {po.debt.toLocaleString()} ₫
                       </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          color:
-                            !po.paymentBy || po.paymentBy === "Unknown"
-                              ? "transparent"
-                              : "inherit",
-                        }}
-                      >
-                        {!po.paymentBy || po.paymentBy === "Unknown"
-                          ? "-"
-                          : po.paymentBy}
-                      </TableCell>
-
+                      <TableCell align="center">{po.userName}</TableCell>
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -295,7 +289,8 @@ export default function POList() {
                         sx={{
                           width: 110,
                           display: "flex",
-                          justifyContent: "center",
+                          flexDirection: "column",
+                          alignItems: "center",
                         }}
                       >
                         <TextField
@@ -303,8 +298,11 @@ export default function POList() {
                           type="number"
                           value={p.quantity === 0 ? "" : p.quantity}
                           onChange={(e) => {
-                            const val = e.target.value;
+                            let val = e.target.value;
                             let newQuantity = val === "" ? "" : Number(val);
+                            if (newQuantity < 1 && newQuantity !== "")
+                              newQuantity = 1;
+
                             setUploadedProducts((prev) =>
                               prev.map((item, idx) =>
                                 idx === i
@@ -320,7 +318,8 @@ export default function POList() {
                                   ? {
                                       ...item,
                                       quantity:
-                                        item.quantity === ""
+                                        item.quantity === "" ||
+                                        item.quantity < 1
                                           ? 1
                                           : item.quantity,
                                     }
@@ -328,21 +327,9 @@ export default function POList() {
                               )
                             );
                           }}
-                          error={
-                            p.quantity !== "" &&
-                            (p.quantity < 1 ||
-                              p.quantity > (p.maxQuantity || 1))
-                          }
-                          helperText={
-                            p.quantity !== "" &&
-                            (p.quantity < 1
-                              ? `Phải có ít nhất 1 sản phẩm`
-                              : p.quantity > (p.maxQuantity || 1)
-                              ? `Số lượng vượt quá số lượng tối đa (${p.maxQuantity})`
-                              : "")
-                          }
                         />
                       </TableCell>
+
                       <TableCell sx={{ width: 110 }}>
                         <TextField
                           size="small"
@@ -461,39 +448,23 @@ export default function POList() {
               >
                 <Box>
                   <Typography>
-                    <strong>Người tạo:</strong> {selectedPO.userName}
-                  </Typography>
-                  <Typography>
                     <strong>Ngày đặt:</strong>{" "}
-                    {new Date(selectedPO.orderDate).toLocaleString()}
+                    {new Date(selectedPO.orderDate).toLocaleDateString("vi-EN")}
                   </Typography>
-                  <Typography>
-                    <strong>Trạng thái:</strong>{" "}
-                    {renderStatus(selectedPO.status)}
-                  </Typography>
-                  <Typography>
-                    <strong>Tổng tiền:</strong>{" "}
-                    {selectedPO.total.toLocaleString()} ₫
-                  </Typography>
-                </Box>
-                <Box>
                   {selectedPO.status === 3 && selectedPO.deposit > 0 && (
                     <Typography>
                       <strong>Ngày đặt cọc:</strong>{" "}
-                      {new Date(selectedPO.depositDate).toLocaleDateString()}
-                    </Typography>
-                  )}
-                  {selectedPO.status === 4 && (
-                    <Typography>
-                      <strong>Ngày thanh toán:</strong>{" "}
-                      {new Date(selectedPO.paymentDate).toLocaleDateString()}
+                      {new Date(selectedPO.depositDate).toLocaleDateString(
+                        "vi-EN"
+                      )}
                     </Typography>
                   )}
                   <Typography>
-                    <strong>Tiền cọc:</strong>{" "}
-                    {selectedPO.status === 6
-                      ? "Chưa thỏa thuận"
-                      : selectedPO.deposit?.toLocaleString() + " ₫"}
+                    <strong>Trạng thái thanh toán:</strong>{" "}
+                    {renderStatus(selectedPO.status)}
+                  </Typography>
+                  <Typography>
+                    <strong>Người tạo:</strong> {selectedPO.userName}
                   </Typography>
                   {(selectedPO.status === 3 ||
                     selectedPO.status === 4 ||
@@ -506,6 +477,25 @@ export default function POList() {
                         : "Chưa thanh toán"}
                     </Typography>
                   )}
+
+                  {selectedPO.status === 4 && (
+                    <Typography>
+                      <strong>Ngày thanh toán:</strong>{" "}
+                      {new Date(selectedPO.paymentDate).toLocaleDateString()}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography>
+                    <strong>Tổng tiền:</strong>{" "}
+                    {selectedPO.total.toLocaleString()} ₫
+                  </Typography>
+                  <Typography>
+                    <strong>Tiền cọc:</strong>{" "}
+                    {selectedPO.status === 6
+                      ? "Chưa thỏa thuận"
+                      : selectedPO.deposit?.toLocaleString() + " ₫"}
+                  </Typography>
                   <Typography>
                     <strong>Công nợ:</strong> {selectedPO.debt.toLocaleString()}{" "}
                     ₫

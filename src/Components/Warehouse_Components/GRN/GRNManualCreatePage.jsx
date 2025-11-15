@@ -203,13 +203,15 @@ export default function GRNManualCreatePage({ poId }) {
         const items = (poDetail.details || []).map((p) => ({
           productId: p.productID,
           productName: p.productName,
-          quantity: p.quantity || 1,
+          quantity: p.remainingQty || 1,
           unitPrice: p.unitPrice || 0,
           expiredDate: p.expiredDate
             ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
             : "",
 
           description: p.description || "",
+          remainingQty:p.remainingQty,
+          dvt:p.dvt,
         }));
 
         setFormData({ items });
@@ -282,7 +284,7 @@ export default function GRNManualCreatePage({ poId }) {
       total: Number(total) || 0,
       description: description || "",
       warehouseLocationID: Number(selectedLocation),
-      grndManuallyDTOs, // 👈 đúng theo API yêu cầu
+      grndManuallyDTOs,
     };
 
     console.log("Payload GRN:", JSON.stringify(payload, null, 2));
@@ -431,7 +433,9 @@ export default function GRNManualCreatePage({ poId }) {
                 <TableCell>STT</TableCell>
                 <TableCell>Sản phẩm</TableCell>
                 <TableCell>Mô tả</TableCell>
+                <TableCell>Đơn vị</TableCell>
                 <TableCell>Số lượng</TableCell>
+                <TableCell>Số lượng còn lại</TableCell>
                 <TableCell>Đơn giá</TableCell>
                 <TableCell>Hạn sử dụng</TableCell>
                 <TableCell align="center">Thao tác</TableCell>
@@ -443,6 +447,7 @@ export default function GRNManualCreatePage({ poId }) {
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{item.productName}</TableCell>
                   <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.dvt}</TableCell>
                   <TableCell>
                     <TextField
                       type="number"
@@ -453,6 +458,7 @@ export default function GRNManualCreatePage({ poId }) {
                       }
                     />
                   </TableCell>
+                  <TableCell align="center">{item.remainingQty}</TableCell>
                   <TableCell>
                     {item.unitPrice?.toLocaleString() || ""}
                   </TableCell>

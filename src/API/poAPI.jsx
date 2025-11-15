@@ -7,7 +7,7 @@ const poAPI = {
   getAllPO: () => authorApi.get(`${API_URL}/getAllPo`),
 
   // 🔹 Lấy chi tiết PO theo ID
-  getDetail: (id) => authorApi.get(`${API_URL}/GetPoDetailByPoId/${id}`),
+  getDetail: (id) => authorApi.get(`${API_URL}/GetPoDetailByPoId2/${id}`),
 
   // 🔹 Ghi nhận tiền gửi (đặt cọc)
   deposit: (id, data) =>
@@ -45,7 +45,15 @@ const poAPI = {
   // 🔹 Lấy danh sách PO chưa nhập hàng nào
   getNotReceived: () => authorApi.get(`${API_URL}/not-received`),
 
-  deleteDraftPO: (id) => authorApi.delete(`${API_URL}/deletePOWithDraftStatus/${id}`),
+  deleteDraftPO: (id) =>
+    authorApi.delete(`${API_URL}/deletePOWithDraftStatus/${id}`),
+
+  // 🔹 Lấy danh sách công nợ (Debt Report)
+  getAllDebtReport: () => authorApi.get(`${API_URL}/GetAllDebtReport`),
+
+  // 🔹 Lấy chi tiết công nợ theo dbid
+  getDetailDebtReport: (dbid) =>
+    authorApi.get(`${API_URL}/GetDetailDebtReport/${dbid}`),
 };
 
 export default poAPI;

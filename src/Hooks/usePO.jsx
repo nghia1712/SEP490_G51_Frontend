@@ -7,7 +7,7 @@ export const statusMap = {
   0: { label: "Đã duyệt", color: "success" },
   1: { label: "Từ chối", color: "error" },
   3: { label: "Đã đặt cọc", color: "info" },
-  4: { label: "Đã thanh toán", color: "primary" },
+  4: { label: "Thanh toán một phần", color: "primary" },
   5: { label: "Hoàn thành", color: "secondary" },
   6: { label: "Đã gửi", color: "warning" },
   7: { label: "Nháp", color: "default" },
@@ -391,6 +391,46 @@ export default function usePO() {
         po.userName.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, poList]);
+  // ================== DEBT REPORT ==================
+  const [debtList, setDebtList] = useState([]);
+  const [selectedDebt, setSelectedDebt] = useState(null);
+  const [debtLoading, setDebtLoading] = useState(false);
+
+  const fetchDebtReport = async () => {
+    setDebtLoading(true);
+    try {
+      const res = await poApi.getAllDebtReport();
+      const data = res?.data?.data || [];
+      setDebtList(data);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy danh sách công nợ:", err);
+      setSnackbar({
+        open: true,
+        message: "Lấy danh sách công nợ thất bại",
+        severity: "error",
+      });
+    } finally {
+      setDebtLoading(false);
+    }
+  };
+
+  const fetchDebtDetail = async (dbid) => {
+    if (!dbid) return;
+    setDebtLoading(true);
+    try {
+      const res = await poApi.getDetailDebtReport(dbid);
+      setSelectedDebt(res.data?.data || null);
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy chi tiết công nợ:", err);
+      setSnackbar({
+        open: true,
+        message: "Lấy chi tiết công nợ thất bại",
+        severity: "error",
+      });
+    } finally {
+      setDebtLoading(false);
+    }
+  };
 
   // ================== RETURN ==================
   return {
@@ -445,5 +485,10 @@ export default function usePO() {
     statusMap,
     parseDDMMYYYY,
     fetchPODetail,
+    debtList,
+    selectedDebt,
+    debtLoading,
+    fetchDebtReport,
+    fetchDebtDetail,
   };
 }

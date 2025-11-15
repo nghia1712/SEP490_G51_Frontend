@@ -138,7 +138,7 @@ export default function PQList() {
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{`PQ-${row.quotationId}`}</TableCell>
                       <TableCell>
-                        {new Date(row.sentDate).toLocaleDateString()}
+                        {new Date(row.sentDate).toLocaleDateString("vi-EN")}
                       </TableCell>
                       <TableCell>{row.supplierName}</TableCell>
                       <TableCell>
@@ -149,7 +149,7 @@ export default function PQList() {
                         />
                       </TableCell>
                       <TableCell>
-                        {new Date(row.expiredDate).toLocaleDateString()}
+                        {new Date(row.expiredDate).toLocaleDateString("vi-EN")}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xem chi tiết">
@@ -203,11 +203,11 @@ export default function PQList() {
           </Typography>
           <Typography>
             <strong>Ngày gửi:</strong>{" "}
-            {new Date(selectedQuotation?.sentDate).toLocaleDateString()}
+            {new Date(selectedQuotation?.sentDate).toLocaleDateString("vi-EN")}
           </Typography>
           <Typography>
             <strong>Ngày hết hạn:</strong>{" "}
-            {new Date(selectedQuotation?.expiredDate).toLocaleDateString()}
+            {new Date(selectedQuotation?.expiredDate).toLocaleDateString("vi-EN")}
           </Typography>
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}

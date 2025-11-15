@@ -26,10 +26,12 @@ import {
   InputLabel,
   Snackbar,
   Alert,
+  Grid,
 } from "@mui/material";
 import { Visibility, Search, Download } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGRNList from "../../../Hooks/useGRNList";
+import { Tab } from "bootstrap";
 
 export default function GRNListPage() {
   const navigate = useNavigate();
@@ -72,7 +74,13 @@ export default function GRNListPage() {
 
       {/* Search */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          {/* Search */}
           <TextField
             variant="outlined"
             size="small"
@@ -88,6 +96,8 @@ export default function GRNListPage() {
             }}
             sx={{ width: 350 }}
           />
+
+          {/* Button Tạo phiếu nhập kho */}
           <Button
             variant="contained"
             color="primary"
@@ -110,13 +120,13 @@ export default function GRNListPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>#</TableCell>
-                  <TableCell>GRN ID</TableCell>
+                  <TableCell align="center">Phiếu nhập kho</TableCell>
+                  <TableCell>Kho</TableCell>
+                  <TableCell>Vị trí</TableCell>
+                  <TableCell align="center">Đơn hàng</TableCell>
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Ngày tạo</TableCell>
-                  <TableCell>Mô tả</TableCell>
                   <TableCell>Người phụ trách</TableCell>
-                  <TableCell>Tổng tiền</TableCell>
-                  <TableCell>PO ID</TableCell>
                   <TableCell align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -131,7 +141,10 @@ export default function GRNListPage() {
                   filtered.map((row, idx) => (
                     <TableRow key={row.grnId + "_" + idx}>
                       <TableCell>{idx + 1}</TableCell>
-                      <TableCell>{`GRN-${row.grnid}`}</TableCell>
+                      <TableCell align="center">{`GRN-${row.grnid}`}</TableCell>
+                      <TableCell>{row.warehouse}</TableCell>
+                      <TableCell>{row.warehouseName}</TableCell>
+                      <TableCell align="center">{`PO-${row.poid}`}</TableCell>
                       <TableCell>{row.source}</TableCell>
                       <TableCell>
                         {row.createDate
@@ -139,12 +152,7 @@ export default function GRNListPage() {
                           : "-"}
                       </TableCell>
 
-                      <TableCell>{row.description}</TableCell>
                       <TableCell>{row.createBy}</TableCell>
-                      <TableCell align="right">
-                        {row.total?.toLocaleString() ?? "-"}
-                      </TableCell>
-                      <TableCell>{row.poid}</TableCell>
                       <TableCell align="center">
                         <Stack
                           direction="row"
@@ -195,31 +203,56 @@ export default function GRNListPage() {
             <>
               {selectedGRN && (
                 <Box mb={2}>
-                  <Typography>
-                    <b>GRN ID:</b>{" "}
-                    {selectedGRN ? `GRN-${selectedGRN.grnid}` : "-"}
-                  </Typography>
+                  <Grid container>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Phiếu nhập kho:</b> {`GRN-${selectedGRN.grnid}`}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Đơn hàng:</b> {`PO-${selectedGRN.poid}`}
+                      </Typography>
+                    </Grid>
 
-                  <Typography>
-                    <b>Nhà cung cấp:</b> {selectedGRN.source}
-                  </Typography>
-                  <Typography>
-                    <b>Ngày tạo:</b>{" "}
-                    {selectedGRN.createDate
-                      ? new Date(selectedGRN.createDate).toLocaleDateString(
-                          "vi-VN"
-                        )
-                      : "-"}
-                  </Typography>
-                  <Typography>
-                    <b>Người phụ trách:</b> {selectedGRN.createBy}
-                  </Typography>
-                  <Typography>
-                    <b>Mô tả:</b> {selectedGRN.description}
-                  </Typography>
-                  <Typography>
-                    <b>PO ID:</b> {`PO-${selectedGRN.poid}`}
-                  </Typography>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Kho:</b> {selectedGRN.warehouse}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Vị trí:</b> {selectedGRN.warehouseName}
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Nhà cung cấp:</b> {selectedGRN.source}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Ngày tạo:</b>{" "}
+                        {selectedGRN.createDate
+                          ? new Date(selectedGRN.createDate).toLocaleDateString(
+                              "vi-VN"
+                            )
+                          : "-"}
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Người phụ trách:</b> {selectedGRN.createBy}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography>
+                        <b>Mô tả:</b> {selectedGRN.description}
+                      </Typography>
+                    </Grid>
+                  </Grid>
                 </Box>
               )}
 
@@ -339,6 +372,7 @@ export default function GRNListPage() {
                     <TableCell>#</TableCell>
                     <TableCell>Tên sản phẩm</TableCell>
                     <TableCell>Mô tả</TableCell>
+                    <TableCell>Đơn vị</TableCell>
                     <TableCell>Số lượng</TableCell>
                   </TableRow>
                 </TableHead>
@@ -355,7 +389,8 @@ export default function GRNListPage() {
                         <TableCell>{idx + 1}</TableCell>
                         <TableCell>{item.productName}</TableCell>
                         <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{item.dvt}</TableCell>
+                        <TableCell>{item.remainingQty}</TableCell>
                       </TableRow>
                     ))
                   )}

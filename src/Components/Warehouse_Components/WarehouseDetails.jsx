@@ -103,20 +103,14 @@ export default function WarehouseDetailPage() {
       }}
     >
       <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 4 }}>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+        <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
+      </Box>
         <Card
           elevation={3}
           sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
         >
           <CardContent sx={{ p: 3 }}>
-            <Box sx={{ mb: 3 }}>
-              <IconButton onClick={() => navigate(-1)} color="primary">
-                🔙
-              </IconButton>
-              <Typography variant="h5" component="span" sx={{ ml: 1 }}>
-                Quay lại
-              </Typography>
-            </Box>
-
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                 <CircularProgress size={28} />

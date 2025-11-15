@@ -18,6 +18,7 @@ import {
   TableRow,
   TableCell,
   CircularProgress,
+  Box,
 } from "@mui/material";
 import {
   Paid,
@@ -189,39 +190,81 @@ export default function POActions({ poId, fetchPOs }) {
     poStatus === STATUS.DRAFT && userRole === "purchases_staff";
 
   const renderPoInfo = (isPayPopup = false) => {
-    if (!poDetail) return null;
+    if (!poDetail) return <Typography>Đang tải chi tiết...</Typography>;
+
     return (
-      <Stack spacing={1} mb={2}>
-        <Typography>
-          <strong>PO ID:</strong> {poDetail.poid}
-        </Typography>
-        <Typography>
-          <strong>Người tạo:</strong> {poDetail.userName}
-        </Typography>
-        <Typography>
-          <strong>Tổng tiền:</strong> {poDetail.total.toLocaleString()} ₫
-        </Typography>
-        {Number(poDetail.status) !== STATUS.SENT && (
-          <Typography>
-            <strong>Công nợ:</strong> {poDetail.debt.toLocaleString()} ₫
-          </Typography>
-        )}
-        {isPayPopup && poDetail.deposit > 0 && (
-          <>
+      <Box sx={{ mb: 2 }}>
+        {/* Thông tin PO - 2 cột */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Box>
             <Typography>
-              <strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫
+              <strong>Đơn hàng:</strong> {`PO-${poDetail.poid}`}
             </Typography>
             <Typography>
-              <strong>Ngày trả:</strong>{" "}
-              {new Date(poDetail.depositDate).toLocaleDateString()}
+              <strong>Người tạo:</strong> {poDetail.userName}
             </Typography>
             <Typography>
-              <strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}
+              <strong>Ngày đặt:</strong>{" "}
+              {poDetail.orderDate
+                ? new Date(poDetail.orderDate).toLocaleDateString("vi-EN")
+                : "-"}
             </Typography>
-          </>
-        )}
-        <Typography sx={{ mt: 1, fontWeight: "bold" }}>
-          Danh sách sản phẩm:
+            {(poDetail.status === 3 ||
+              poDetail.status === 4 ||
+              poDetail.status === 6) && (
+              <Typography>
+                <strong>Người thanh toán:</strong>{" "}
+                {poDetail.paymentBy && poDetail.paymentBy !== "Unknown"
+                  ? poDetail.paymentBy
+                  : "Chưa thanh toán"}
+              </Typography>
+            )}
+            {poDetail.status === 4 && (
+              <Typography>
+                <strong>Ngày thanh toán:</strong>{" "}
+                {poDetail.paymentDate
+                  ? new Date(poDetail.paymentDate).toLocaleDateString()
+                  : "-"}
+              </Typography>
+            )}
+            {isPayPopup && poDetail.deposit > 0 && (
+              <>
+                <Typography>
+                  <strong>Ngày trả:</strong>{" "}
+                  {poDetail.depositDate
+                    ? new Date(poDetail.depositDate).toLocaleDateString()
+                    : "-"}
+                </Typography>
+                <Typography>
+                  <strong>Người trả:</strong> {poDetail.depositBy || "-"}
+                </Typography>
+              </>
+            )}
+          </Box>
+
+          <Box>
+            <Typography>
+              <strong>Tổng tiền:</strong>{" "}
+              {poDetail.total?.toLocaleString() || 0} ₫
+            </Typography>
+            <Typography>
+              <strong>Tiền cọc:</strong>{" "}
+              {poDetail.status === 6
+                ? "Chưa thỏa thuận"
+                : poDetail.deposit?.toLocaleString() + " ₫"}
+            </Typography>
+            {Number(poDetail.status) !== STATUS.SENT && (
+              <Typography>
+                <strong>Công nợ:</strong> {poDetail.debt?.toLocaleString() || 0}{" "}
+                ₫
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* Danh sách sản phẩm */}
+        <Typography sx={{ mt: 1, mb: 1, fontWeight: "bold" }}>
+          Danh sách sản phẩm
         </Typography>
         <Table size="small">
           <TableHead>
@@ -249,7 +292,7 @@ export default function POActions({ poId, fetchPOs }) {
             ))}
           </TableBody>
         </Table>
-      </Stack>
+      </Box>
     );
   };
 

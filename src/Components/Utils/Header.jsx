@@ -197,7 +197,7 @@ function Header() {
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
     {
-      label: "Yêu cầu mua hàng",
+      label: "Đơn hàng nhập",
       path: "/po",
       allowedRoles: [
         "manager",
@@ -223,9 +223,24 @@ function Header() {
       allowedRoles: ["warehouse_staff"],
     },
     {
+      label: "Yêu cầu xuất kho",
+      path: "/stock-export",
+      allowedRoles: ["warehouse_staff", "sales_staff"],
+    },
+    {
+      label: "Xuất kho",
+      path: "/gin",
+      allowedRoles: ["warehouse_staff"],
+    },
+    {
       label: "Báo giá",
       path: "/request-quotation",
       allowedRoles: ["manager", "sales_staff", "admin"],
+    },
+    {
+      label: "Công nợ",
+      path: "/debt",
+      allowedRoles: ["accountant_staff", "manager"],
     },
   ];
 
