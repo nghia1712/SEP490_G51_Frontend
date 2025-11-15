@@ -287,7 +287,6 @@ export default function usePO() {
         message: "Cập nhật trạng thái thành công",
         severity: "success",
       });
-      await fetchPOs();
       if (selectedPO?.poid === id) handleOpenDetail(id);
     } catch (err) {
       setSnackbar({
@@ -309,7 +308,6 @@ export default function usePO() {
         message: `Xóa PO-${id} thành công`,
         severity: "success",
       });
-      await fetchPOs();
       if (selectedPO?.poid === id) handleCloseDetail();
     } catch (err) {
       setSnackbar({
@@ -363,7 +361,6 @@ export default function usePO() {
 
       setEditData([]);
       setEditOpen(false);
-      await fetchPOs();
       setSnackbar({
         open: true,
         message:
@@ -490,5 +487,6 @@ export default function usePO() {
     debtLoading,
     fetchDebtReport,
     fetchDebtDetail,
+    fetchPOs,
   };
 }

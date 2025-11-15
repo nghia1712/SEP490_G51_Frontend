@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -27,11 +27,11 @@ import {
   Snackbar,
   Alert,
   Grid,
+  Pagination,
 } from "@mui/material";
 import { Visibility, Search, Download } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGRNList from "../../../Hooks/useGRNList";
-import { Tab } from "bootstrap";
 
 export default function GRNListPage() {
   const navigate = useNavigate();
@@ -66,6 +66,21 @@ export default function GRNListPage() {
     handleSnackClose,
   } = useGRNList({ poId, autoOpenCreate: create });
 
+  // ===== Pagination =====
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredData = filtered || [];
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = filteredData.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  useEffect(() => {
+    setPage(1); // Reset page khi search thay đổi
+  }, [search]);
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -80,7 +95,6 @@ export default function GRNListPage() {
           alignItems="center"
           justifyContent="space-between"
         >
-          {/* Search */}
           <TextField
             variant="outlined"
             size="small"
@@ -97,7 +111,6 @@ export default function GRNListPage() {
             sx={{ width: 350 }}
           />
 
-          {/* Button Tạo phiếu nhập kho */}
           <Button
             variant="contained"
             color="primary"
@@ -131,16 +144,16 @@ export default function GRNListPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filtered.length === 0 ? (
+                {paginatedData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} align="center">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((row, idx) => (
+                  paginatedData.map((row, idx) => (
                     <TableRow key={row.grnId + "_" + idx}>
-                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
                       <TableCell align="center">{`GRN-${row.grnid}`}</TableCell>
                       <TableCell>{row.warehouse}</TableCell>
                       <TableCell>{row.warehouseName}</TableCell>
@@ -151,14 +164,9 @@ export default function GRNListPage() {
                           ? new Date(row.createDate).toLocaleDateString("vi-VN")
                           : "-"}
                       </TableCell>
-
                       <TableCell>{row.createBy}</TableCell>
                       <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
+                        <Stack direction="row" spacing={1} justifyContent="center">
                           <Tooltip title="Xem chi tiết">
                             <IconButton
                               color="primary"
@@ -176,8 +184,22 @@ export default function GRNListPage() {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Pagination */}
+          {filteredData.length > 0 && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </Paper>
       )}
+
+      {/* Dialogs và Snackbar giữ nguyên như code cũ */}
       {/* View GRN Detail Dialog */}
       <Dialog
         open={openDetail}
@@ -186,7 +208,6 @@ export default function GRNListPage() {
         fullWidth
       >
         <DialogTitle>Chi tiết phiếu nhập kho</DialogTitle>
-
         <DialogContent dividers>
           <IconButton
             sx={{ position: "absolute", top: 8, right: 8 }}
@@ -214,7 +235,6 @@ export default function GRNListPage() {
                         <b>Đơn hàng:</b> {`PO-${selectedGRN.poid}`}
                       </Typography>
                     </Grid>
-
                     <Grid item xs={6}>
                       <Typography>
                         <b>Kho:</b> {selectedGRN.warehouse}
@@ -225,7 +245,6 @@ export default function GRNListPage() {
                         <b>Vị trí:</b> {selectedGRN.warehouseName}
                       </Typography>
                     </Grid>
-
                     <Grid item xs={6}>
                       <Typography>
                         <b>Nhà cung cấp:</b> {selectedGRN.source}
@@ -241,7 +260,6 @@ export default function GRNListPage() {
                           : "-"}
                       </Typography>
                     </Grid>
-
                     <Grid item xs={6}>
                       <Typography>
                         <b>Người phụ trách:</b> {selectedGRN.createBy}
@@ -283,9 +301,7 @@ export default function GRNListPage() {
                           <TableCell>{idx + 1}</TableCell>
                           <TableCell>{item.productName}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            {item.unitPrice?.toLocaleString()}
-                          </TableCell>
+                          <TableCell>{item.unitPrice?.toLocaleString()}</TableCell>
                           <TableCell>
                             {(item.quantity * item.unitPrice)?.toLocaleString()}
                           </TableCell>
@@ -301,109 +317,6 @@ export default function GRNListPage() {
 
         <DialogActions>
           <Button onClick={() => setOpenDetail(false)}>Đóng</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Create GRN Dialog */}
-      <Dialog
-        open={openCreate}
-        onClose={() => setOpenCreate(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Tạo phiếu nhập kho</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} mt={1}>
-            <TextField label="PO ID" value={poId ?? ""} disabled />
-
-            {/* Warehouse Dropdown */}
-            <FormControl fullWidth>
-              <InputLabel>Kho</InputLabel>
-              <Select
-                value={selectedWarehouse}
-                label="Kho"
-                onChange={(e) => setSelectedWarehouse(e.target.value)}
-              >
-                {warehouses.length > 0 ? (
-                  warehouses.map((w) => (
-                    <MenuItem key={w.id} value={w.id}>
-                      {w.name}
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled>Không có dữ liệu kho</MenuItem>
-                )}
-              </Select>
-            </FormControl>
-
-            {/* Warehouse Location Dropdown */}
-            <FormControl
-              fullWidth
-              disabled={!selectedWarehouse || locationsLoading}
-            >
-              <InputLabel>Vị trí kho</InputLabel>
-              <Select
-                value={selectedLocation}
-                label="Vị trí kho"
-                onChange={(e) => setSelectedLocation(e.target.value)}
-              >
-                {locations.length === 0 ? (
-                  <MenuItem disabled>Không có vị trí</MenuItem>
-                ) : (
-                  locations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.id}>
-                      {loc.locationName}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-            </FormControl>
-          </Stack>
-
-          {/* PO Items */}
-          <Box mt={3}>
-            <Typography fontWeight="bold" mb={1}>
-              Danh sách sản phẩm
-            </Typography>
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Tên sản phẩm</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell>Đơn vị</TableCell>
-                    <TableCell>Số lượng</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {poItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center">
-                        Không có sản phẩm
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    poItems.map((item, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{item.productName}</TableCell>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.dvt}</TableCell>
-                        <TableCell>{item.remainingQty}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenCreate(false)}>Hủy</Button>
-          <Button variant="contained" color="primary" onClick={handleCreateGRN}>
-            Lưu
-          </Button>
         </DialogActions>
       </Dialog>
 

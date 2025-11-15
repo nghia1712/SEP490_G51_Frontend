@@ -19,7 +19,6 @@ import {
   MenuItem,
   InputAdornment,
   Stack,
-  TablePagination,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -28,6 +27,7 @@ import {
   FormControl,
   Tooltip,
   Button,
+  Pagination,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -53,7 +53,7 @@ export default function InventoryReportPage() {
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openDetail, setOpenDetail] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -82,34 +82,23 @@ export default function InventoryReportPage() {
     loadWarehouses();
   }, []);
 
-  // --- Khi navigate tới từ WarehousePage -> fill dữ liệu ---
+  // --- Khi navigate tới từ WarehousePage ---
   useEffect(() => {
     const initFromLocationState = async () => {
-      console.log("📦 locationState nhận được:", locationState.state);
-
       if (!locationState.state?.warehouse || !locationState.state?.location)
         return;
 
       const { warehouse, location } = locationState.state;
-      console.log("➡️  warehouse:", warehouse, " | location:", location);
-
       setSelectedWarehouse(warehouse);
 
       try {
         const res = await warehouseLocationAPI.getByWarehouseId(warehouse);
         const locList = res.data.data || [];
         setLocations(locList);
-        const exists = locList.find(
-          (l) => Number(l.id) === Number(location)
-        );
-        if (exists) {
-          console.log("✅ Tìm thấy location trong danh sách:", exists);
-          setSelectedLocation(location);
-        } else {
-          console.warn("⚠️ Location không tồn tại trong warehouse này!");
-        }
+        const exists = locList.find((l) => Number(l.id) === Number(location));
+        if (exists) setSelectedLocation(location);
       } catch (err) {
-        console.error("❌ Lỗi khi tải danh sách vị trí:", err);
+        console.error(err);
         setSnackbar({
           open: true,
           message: "Không thể tải danh sách vị trí",
@@ -123,9 +112,8 @@ export default function InventoryReportPage() {
         const res = await warehouseAPI.getSessionByWarehouseLocation(location);
         const data = (res.data.data || []).filter((s) => s.status === 3);
         setSessions(data);
-        console.log("📊 Số phiên kiểm kê lấy được:", data.length);
       } catch (err) {
-        console.error("❌ Lỗi khi tải session theo location:", err);
+        console.error(err);
         setSnackbar({
           open: true,
           message: "Không thể tải phiên kiểm kê theo vị trí",
@@ -187,17 +175,14 @@ export default function InventoryReportPage() {
           data = res.data.data || [];
         }
 
-        // Chỉ lấy status = 3
         data = data.filter((s) => s.status === 3);
 
-        // Lọc theo ID
         if (search) {
           data = data.filter((s) =>
             s.inventorySessionID.toString().includes(search)
           );
         }
 
-        // Lọc theo ngày
         const parseDateOnly = (d) =>
           d ? new Date(new Date(d).toDateString()) : null;
 
@@ -213,6 +198,7 @@ export default function InventoryReportPage() {
         }
 
         setSessions(data);
+        setPage(1); // Reset page khi filter thay đổi
       } catch (err) {
         console.error(err);
         setSnackbar({
@@ -228,7 +214,6 @@ export default function InventoryReportPage() {
     loadSessionsByFilter();
   }, [selectedWarehouse, selectedLocation, dateFrom, dateTo, search]);
 
-  // --- Xem chi tiết ---
   const handleViewDetail = async (sessionId) => {
     setOpenDetail(true);
     setDetailLoading(true);
@@ -247,7 +232,6 @@ export default function InventoryReportPage() {
     }
   };
 
-  // --- Xuất Excel ---
   const handleExport = async (sessionId) => {
     try {
       const res = await warehouseAPI.exportInventorySessionToExcel(sessionId);
@@ -275,9 +259,10 @@ export default function InventoryReportPage() {
         })
       : "-";
 
+  const totalPages = Math.ceil(sessions.length / rowsPerPage);
   const paginated = sessions.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    (page - 1) * rowsPerPage,
+    (page - 1) * rowsPerPage + rowsPerPage
   );
 
   return (
@@ -320,7 +305,6 @@ export default function InventoryReportPage() {
                   ),
                 }}
               />
-
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <Select
                   value={selectedWarehouse}
@@ -335,7 +319,6 @@ export default function InventoryReportPage() {
                   ))}
                 </Select>
               </FormControl>
-
               <FormControl
                 size="small"
                 sx={{ minWidth: 200 }}
@@ -354,7 +337,6 @@ export default function InventoryReportPage() {
                   ))}
                 </Select>
               </FormControl>
-
               <TextField
                 type="date"
                 size="small"
@@ -371,7 +353,6 @@ export default function InventoryReportPage() {
                 InputLabelProps={{ shrink: true }}
                 label="Đến ngày"
               />
-
               <Button
                 variant="outlined"
                 color="secondary"
@@ -416,7 +397,7 @@ export default function InventoryReportPage() {
                 ) : (
                   paginated.map((s, i) => (
                     <TableRow key={s.inventorySessionID} hover>
-                      <TableCell>{page * rowsPerPage + i + 1}</TableCell>
+                      <TableCell>{(page - 1) * rowsPerPage + i + 1}</TableCell>
                       <TableCell>{s.inventorySessionID}</TableCell>
                       <TableCell>{formatDate(s.startDate)}</TableCell>
                       <TableCell>{formatDate(s.endDate)}</TableCell>
@@ -453,18 +434,12 @@ export default function InventoryReportPage() {
 
           {/* PAGINATION */}
           {sessions.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={sessions.length}
-                rowsPerPage={rowsPerPage}
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+              <Pagination
+                count={totalPages}
                 page={page}
-                onPageChange={(e, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) =>
-                  setRowsPerPage(parseInt(e.target.value, 10))
-                }
-                labelRowsPerPage="Số hàng mỗi trang:"
+                onChange={(_, value) => setPage(value)}
+                color="primary"
               />
             </Box>
           )}

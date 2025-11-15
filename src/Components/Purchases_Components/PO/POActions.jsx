@@ -110,6 +110,7 @@ export default function POActions({ poId, fetchPOs }) {
     setProcessing(true);
     try {
       await handleChangeStatus(poId, STATUS.APPROVED);
+      fetchPOs();
     } finally {
       setProcessing(false);
     }
@@ -121,6 +122,7 @@ export default function POActions({ poId, fetchPOs }) {
       await handleDepositPO(poId, Number(amount));
       setDepositOpen(false);
       setAmount("");
+      fetchPOs();
     } finally {
       setProcessing(false);
     }
@@ -132,6 +134,7 @@ export default function POActions({ poId, fetchPOs }) {
       await handlePayPO(poId, Number(amount));
       setPayOpen(false);
       setAmount("");
+      fetchPOs();
     } finally {
       setProcessing(false);
     }
@@ -145,6 +148,7 @@ export default function POActions({ poId, fetchPOs }) {
       setConfirmDeleteOpen(false);
       setDeletePOId(null);
       setEditOpen(false);
+      fetchPOs();
     } finally {
       setProcessing(false);
     }
@@ -154,6 +158,7 @@ export default function POActions({ poId, fetchPOs }) {
     setProcessing(true);
     try {
       await handleUpdatePODraft(poId, status);
+      fetchPOs();
     } finally {
       setProcessing(false);
     }

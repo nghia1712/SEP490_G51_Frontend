@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   Grid,
+  Pagination,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -60,12 +61,31 @@ export default function PRFQList() {
     open: false,
     prfqId: null,
   });
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // ===== Filter dữ liệu =====
+  const filteredData = prfqs.filter((p) =>
+    p.supplierName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // ===== Pagination =====
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = filteredData.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  // Reset page khi search thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const getStatus = (statusCode) => {
     switch (statusCode) {
@@ -82,16 +102,12 @@ export default function PRFQList() {
     }
   };
 
-  const filteredData = prfqs.filter((p) =>
-    p.supplierName?.toLowerCase().includes(search.toLowerCase())
-  );
-
   const handleCloseDetail = () => {
     setDetailOpen(false);
     setDetailData(null);
   };
 
-  // ======= Các hàm navigate =======
+  // ===== Các hàm navigate =====
   const handleCreate = () => {
     navigate("/purchase/prfq/form");
   };
@@ -176,16 +192,16 @@ export default function PRFQList() {
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : filteredData.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
                     Không có sản phẩm tương ứng
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((row, index) => (
+                paginatedData.map((row, index) => (
                   <TableRow key={row.prfqid}>
-                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                     <TableCell>{`PRFQ-${row.prfqid}`}</TableCell>
                     <TableCell>
                       {row.requestDate
@@ -199,9 +215,7 @@ export default function PRFQList() {
                     <TableCell align="center">
                       {(() => {
                         const { label, color } = getStatus(row.status);
-                        return (
-                          <Chip label={label} color={color} size="small" />
-                        );
+                        return <Chip label={label} color={color} size="small" />;
                       })()}
                     </TableCell>
                     <TableCell align="center">{row.createdBy || "—"}</TableCell>
@@ -247,6 +261,18 @@ export default function PRFQList() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* ===== Pagination ===== */}
+        {filteredData.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
       </Paper>
 
       {/* ===== Popup chi tiết ===== */}

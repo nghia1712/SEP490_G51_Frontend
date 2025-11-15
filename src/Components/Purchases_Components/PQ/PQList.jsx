@@ -24,6 +24,7 @@ import {
   Button,
   Snackbar,
   Alert,
+  Pagination,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -53,13 +54,18 @@ export default function PQList() {
     changeQuantity,
     removeItem,
   } = usePQ();
-
   const [search, setSearch] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const filtered = quotations.filter((q) =>
     q.supplierName?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const handleCreatePO = async (status) => {
     setProcessing(true);
@@ -131,7 +137,7 @@ export default function PQList() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((row, i) => {
+                paginated.map((row, i) => {
                   const isValid = row.status === "InDate";
                   return (
                     <TableRow key={row.quotationId}>
@@ -185,6 +191,16 @@ export default function PQList() {
             </TableBody>
           </Table>
         </TableContainer>
+        {filtered.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
       </Paper>
 
       {/* Dialog Chi tiết PQ */}
@@ -207,7 +223,9 @@ export default function PQList() {
           </Typography>
           <Typography>
             <strong>Ngày hết hạn:</strong>{" "}
-            {new Date(selectedQuotation?.expiredDate).toLocaleDateString("vi-EN")}
+            {new Date(selectedQuotation?.expiredDate).toLocaleDateString(
+              "vi-EN"
+            )}
           </Typography>
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}

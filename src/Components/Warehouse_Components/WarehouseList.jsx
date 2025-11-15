@@ -20,10 +20,10 @@ import {
   CardContent,
   InputAdornment,
   Tooltip,
-  TablePagination,
   TextField,
   CircularProgress,
   Container,
+  Pagination,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -40,12 +40,8 @@ import useWarehouse from "../../Hooks/useWarehouse";
 
 export default function WarehouseList() {
   const navigate = useNavigate();
-  const {
-    warehouses: rawWarehouses,
-    loading,
-    error,
-    fetchWarehouses,
-  } = useWarehouse();
+  const { warehouses: rawWarehouses, loading, error, fetchWarehouses } =
+    useWarehouse();
 
   // map status từ 0/1 sang "active"/"inactive"
   const warehouses = rawWarehouses.map((w) => ({
@@ -79,8 +75,10 @@ export default function WarehouseList() {
     "Hoạt động": false,
     "Ngừng hoạt động": false,
   });
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // ===== Pagination =====
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     fetchWarehouses();
@@ -92,13 +90,12 @@ export default function WarehouseList() {
 
   const handleFilterChange = (e) => {
     setFilterStatus({ ...filterStatus, [e.target.name]: e.target.checked });
-    setPage(0);
+    setPage(1);
   };
 
   // ===== FILTER + SEARCH =====
   const filteredWarehouses = warehouses.filter((w) => {
     const statusLabel = w.status === "active" ? "Hoạt động" : "Ngừng hoạt động";
-
     return (
       w.name?.toLowerCase().includes(search.toLowerCase()) &&
       (Object.values(filterStatus).some((value) => value)
@@ -107,10 +104,17 @@ export default function WarehouseList() {
     );
   });
 
+  // ===== Paginated Data =====
+  const totalPages = Math.ceil(filteredWarehouses.length / pageSize);
   const paginated = filteredWarehouses.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    (page - 1) * pageSize,
+    page * pageSize
   );
+
+  // Reset page khi search hoặc filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus]);
 
   return (
     <Box
@@ -187,9 +191,7 @@ export default function WarehouseList() {
                             color="primary"
                           />
                         }
-                        label={
-                          <Typography variant="body2">{status}</Typography>
-                        }
+                        label={<Typography variant="body2">{status}</Typography>}
                       />
                     ))}
                   </FormGroup>
@@ -275,7 +277,7 @@ export default function WarehouseList() {
                           "&:hover": { backgroundColor: "#f0f7ff" },
                         }}
                       >
-                        <TableCell>{page * rowsPerPage + i + 1}</TableCell>
+                        <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                         <TableCell>{w.name}</TableCell>
                         <TableCell>{w.address || "Chưa cập nhật"}</TableCell>
                         <TableCell align="center">
@@ -314,18 +316,12 @@ export default function WarehouseList() {
 
             {/* PAGINATION */}
             {filteredWarehouses.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  component="div"
-                  count={filteredWarehouses.length}
-                  rowsPerPage={rowsPerPage}
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
                   page={page}
-                  onPageChange={(e, newPage) => setPage(newPage)}
-                  onRowsPerPageChange={(e) =>
-                    setRowsPerPage(parseInt(e.target.value, 10))
-                  }
-                  labelRowsPerPage="Số hàng mỗi trang:"
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
                 />
               </Box>
             )}

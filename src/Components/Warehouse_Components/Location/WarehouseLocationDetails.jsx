@@ -17,6 +17,7 @@ import {
   TextField,
   Snackbar,
   Alert,
+  Pagination,
 } from "@mui/material";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import warehouseApi from "../../../API/warehouseAPI";
@@ -28,7 +29,7 @@ export default function WarehouseLocationDetailPage() {
   const navigate = useNavigate();
   const locationState = useLocation();
   const warehouseID = locationState.state?.warehouseID;
-   console.log("🏭 warehouseID nhận được:", warehouseID);
+
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,6 +41,18 @@ export default function WarehouseLocationDetailPage() {
   const [inventoryMode, setInventoryMode] = useState(false);
   const [inventorySessionId, setInventorySessionId] = useState(null);
   const [comparisonData, setComparisonData] = useState(null);
+
+  // --- Pagination ---
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
+  const totalPages = location
+    ? Math.ceil(location.lotProduct.length / rowsPerPage)
+    : 0;
+  const paginatedLots =
+    location?.lotProduct?.slice(
+      (page - 1) * rowsPerPage,
+      (page - 1) * rowsPerPage + rowsPerPage
+    ) || [];
 
   useEffect(() => {
     loadLocationData();
@@ -72,7 +85,6 @@ export default function WarehouseLocationDetailPage() {
     }
   };
 
-  // 1️⃣ Bắt đầu kiểm kê: tạo session + lấy history
   const startInventory = async () => {
     if (!location) return;
     try {
@@ -83,7 +95,6 @@ export default function WarehouseLocationDetailPage() {
       setInventorySessionId(sessionId);
       setInventoryMode(true);
 
-      // Lấy history để bind vào form
       const historyRes = await warehouseApi.getHistoriesBySessionId(sessionId);
       const histories = historyRes.data.data;
       setLocation((prev) => ({
@@ -114,10 +125,8 @@ export default function WarehouseLocationDetailPage() {
     }
   };
 
-  // 2️⃣ Cập nhật số lượng thực tế + lấy so sánh
   const submitInventory = async () => {
     if (!location || !inventorySessionId) return;
-
     try {
       const payload = {
         lotCounts: location.lotProduct.map((lot) => ({
@@ -129,10 +138,8 @@ export default function WarehouseLocationDetailPage() {
           note: lot.note ?? "",
         })),
       };
-
       await warehouseApi.updateInventoryBatch(payload);
 
-      // Lấy dữ liệu so sánh
       const compareRes = await warehouseApi.getInventoryComparison(
         inventorySessionId
       );
@@ -153,18 +160,14 @@ export default function WarehouseLocationDetailPage() {
     }
   };
 
-  // 3️⃣ Hoàn tất phiên kiểm kê
   const completeInventory = async () => {
     if (!inventorySessionId) return;
-
     try {
       await warehouseApi.completeInventorySession(inventorySessionId);
       setInventoryMode(false);
       setInventorySessionId(null);
       setComparisonData(null);
-
       await loadLocationData();
-
       setSnackbar({
         open: true,
         message: "Hoàn tất kiểm kê thành công",
@@ -196,6 +199,7 @@ export default function WarehouseLocationDetailPage() {
         <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
           <Card sx={{ borderRadius: 2, width: "1500px" }}>
             <CardContent>
+              {/* HEADER */}
               <Box
                 sx={{
                   display: "flex",
@@ -234,7 +238,6 @@ export default function WarehouseLocationDetailPage() {
                       >
                         Kiểm kê
                       </Button>
-                      {console.log("🔍 location data:", location)}
                       <Button
                         variant="contained"
                         color="primary"
@@ -254,6 +257,7 @@ export default function WarehouseLocationDetailPage() {
                 </Box>
               </Box>
 
+              {/* TABLE */}
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Danh sách lô sản phẩm
               </Typography>
@@ -279,10 +283,12 @@ export default function WarehouseLocationDetailPage() {
                   </TableHead>
 
                   <TableBody>
-                    {location.lotProduct.length > 0 ? (
-                      location.lotProduct.map((lot, index) => (
+                    {paginatedLots.length > 0 ? (
+                      paginatedLots.map((lot, index) => (
                         <TableRow key={lot.lotID} hover>
-                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>
+                            {(page - 1) * rowsPerPage + index + 1}
+                          </TableCell>
                           <TableCell>{lot.productName}</TableCell>
                           <TableCell>{lot.supplierName}</TableCell>
                           <TableCell>{lot.lotQuantity}</TableCell>
@@ -363,6 +369,21 @@ export default function WarehouseLocationDetailPage() {
                 </Table>
               </TableContainer>
 
+              {/* PAGINATION */}
+              {location?.lotProduct?.length > 0 && (
+                <Box
+                  sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
+                >
+                  <Pagination
+                    count={totalPages || 1}
+                    page={page}
+                    onChange={(_, value) => setPage(value)}
+                    color="primary"
+                  />
+                </Box>
+              )}
+
+              {/* ACTION BUTTONS */}
               {inventoryMode && (
                 <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
                   {(!comparisonData || comparisonData.length === 0) && (
@@ -403,6 +424,7 @@ export default function WarehouseLocationDetailPage() {
         <Typography>Không có dữ liệu</Typography>
       )}
 
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

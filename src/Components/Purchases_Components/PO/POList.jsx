@@ -23,6 +23,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Pagination ,
 } from "@mui/material";
 import { Visibility, Search, Close as CloseIcon } from "@mui/icons-material";
 import POActions from "./POActions";
@@ -55,8 +56,16 @@ export default function POList() {
     setSnackbar,
     statusMap,
     parseDDMMYYYY,
+    fetchPOs,
   } = usePO();
+  const [page, setPage] = React.useState(1);
+  const pageSize = 10;
+  const totalPages = Math.ceil(filteredPOs.length / pageSize);
 
+  const paginatedPOs = filteredPOs.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
   const renderStatus = (status) => {
     const s = statusMap[Number(status)] || {
       label: "Unknown",
@@ -134,7 +143,7 @@ export default function POList() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredPOs.map((po, index) => (
+                  paginatedPOs.map((po, index) => (
                     <TableRow key={po.poid}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{`PO-${po.poid}`}</TableCell>
@@ -190,7 +199,7 @@ export default function POList() {
                               <Visibility />
                             </IconButton>
                           </Tooltip>
-                          <POActions poId={po.poid} fetchPOs={() => {}} />
+                          <POActions poId={po.poid} fetchPOs={fetchPOs} />
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -199,6 +208,16 @@ export default function POList() {
               </TableBody>
             </Table>
           </TableContainer>
+          {filteredPOs.length > 0 && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </Paper>
       )}
 

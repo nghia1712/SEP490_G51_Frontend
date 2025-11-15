@@ -23,6 +23,7 @@ import {
   DialogActions,
   Snackbar,
   Alert,
+  Pagination,
 } from "@mui/material";
 import {
   Search,
@@ -60,6 +61,10 @@ export default function StockExportList() {
   });
   const [confirmData, setConfirmData] = useState({ open: false, id: null });
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // ===== Pagination =====
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     refetch();
@@ -109,6 +114,17 @@ export default function StockExportList() {
     (item.createBy || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // Paginated data
+  const totalPages = Math.ceil(filteredList.length / pageSize);
+  const paginatedData = filteredList.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  useEffect(() => {
+    setPage(1); // reset page khi search thay đổi
+  }, [search]);
+
   const handleViewDetail = (item) => {
     setViewId(item.id);
     setDetailOpen(true);
@@ -118,24 +134,18 @@ export default function StockExportList() {
     setDetailOpen(false);
     setViewId(null);
   };
+
   const handleCreateGIN = async (item) => {
     try {
-      // Gọi API tạo GIN
       const payload = {
         stockExportOrderId: item.id,
         note: `Tạo phiếu nhập kho từ Yêu cầu mua hàng ${item.salesOrderCode}`,
       };
-      console.log("DEBUG payload GIN:", payload);
-
       const res = await createGIN(payload);
-
-      if (res.success) {
-        showSnack("Tạo GIN thành công!");
-      } else if (res.message?.includes("đã có phiếu xuất")) {
+      if (res.success) showSnack("Tạo GIN thành công!");
+      else if (res.message?.includes("đã có phiếu xuất"))
         showSnack("Lệnh xuất kho này đã có phiếu xuất!", "warning");
-      } else {
-        showSnack("Tạo GIN thất bại!", "error");
-      }
+      else showSnack("Tạo GIN thất bại!", "error");
     } catch (error) {
       console.error(error);
       showSnack("Có lỗi xảy ra khi tạo GIN", "error");
@@ -207,22 +217,20 @@ export default function StockExportList() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredList.length === 0 ? (
+                {paginatedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredList.map((item, index) => (
+                  paginatedData.map((item, index) => (
                     <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                       <TableCell align="center">{`SE-${item.id}`}</TableCell>
                       <TableCell>
                         {item.requestDate
-                          ? new Date(item.requestDate).toLocaleDateString(
-                              "vi-EN"
-                            )
+                          ? new Date(item.requestDate).toLocaleDateString("vi-EN")
                           : ""}
                       </TableCell>
                       <TableCell>
@@ -270,9 +278,7 @@ export default function StockExportList() {
                                   color="info"
                                   onClick={() =>
                                     navigate(`/stock-export/edit/${item.id}`, {
-                                      state: {
-                                        salesOrderId: item.soId,
-                                      },
+                                      state: { salesOrderId: item.soId },
                                     })
                                   }
                                 >
@@ -291,9 +297,7 @@ export default function StockExportList() {
                               <Tooltip title="Gửi">
                                 <IconButton
                                   color="success"
-                                  onClick={() =>
-                                    handleSend(item.id, item.status)
-                                  }
+                                  onClick={() => handleSend(item.id, item.status)}
                                 >
                                   <Send />
                                 </IconButton>
@@ -308,6 +312,18 @@ export default function StockExportList() {
               </TableBody>
             </Table>
           </TableContainer>
+        )}
+
+        {/* Pagination */}
+        {filteredList.length > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
         )}
       </Paper>
 

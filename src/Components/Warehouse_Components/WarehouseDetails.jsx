@@ -19,6 +19,8 @@ import {
   InputAdornment,
   IconButton,
   Tooltip,
+  Pagination,
+  Stack,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -41,10 +43,12 @@ export default function WarehouseDetailPage() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
-
-  // --- Thêm state cho Edit ---
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
+
+  // --- Pagination state ---
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5; // số dòng trên 1 trang
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -64,6 +68,12 @@ export default function WarehouseDetailPage() {
 
   const filteredLocations = locations.filter((loc) =>
     loc.locationName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredLocations.length / rowsPerPage);
+  const paginatedLocations = filteredLocations.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
   );
 
   const reloadLocations = async () => {
@@ -103,9 +113,9 @@ export default function WarehouseDetailPage() {
       }}
     >
       <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 4 }}>
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
-        <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
-      </Box>
+        <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+          <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
+        </Box>
         <Card
           elevation={3}
           sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
@@ -156,7 +166,10 @@ export default function WarehouseDetailPage() {
                     placeholder="Tìm kiếm vị trí..."
                     size="small"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1); // reset page khi tìm kiếm
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -210,16 +223,18 @@ export default function WarehouseDetailPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filteredLocations.length === 0 ? (
+                      {paginatedLocations.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                             Không tìm thấy vị trí nào
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredLocations.map((loc, index) => (
+                        paginatedLocations.map((loc, index) => (
                           <TableRow key={loc.id} hover>
-                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>
+                              {(page - 1) * rowsPerPage + index + 1}
+                            </TableCell>
                             <TableCell>{loc.locationName}</TableCell>
                             <TableCell>
                               {renderStatusChip(
@@ -233,7 +248,9 @@ export default function WarehouseDetailPage() {
                                   onClick={() =>
                                     navigate(
                                       `/warehouse-location/details/${loc.id}`,
-                                      { state: { warehouseID: warehouse.id } }
+                                      {
+                                        state: { warehouseID: warehouse.id },
+                                      }
                                     )
                                   }
                                 >
@@ -260,6 +277,18 @@ export default function WarehouseDetailPage() {
                     </TableBody>
                   </Table>
                 </TableContainer>
+
+                {/* PAGINATION */}
+                <Box
+                  sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
+                >
+                  <Pagination
+                    count={totalPages || 1}
+                    page={page}
+                    onChange={(_, value) => setPage(value)}
+                    color="primary"
+                  />
+                </Box>
               </>
             ) : (
               <Typography>Không có dữ liệu chi tiết</Typography>
