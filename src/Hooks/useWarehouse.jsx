@@ -308,30 +308,32 @@ const useWarehouse = () => {
   }, []);
 
   // Lấy danh sách warehouse
-  const fetchWarehouses = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const response = await warehouseAPI.getAllWarehouses();
-      console.log("Warehouse API Response:", response);
-      
-      // Kiểm tra cấu trúc response
-      const warehouses = response.data || response || [];
-      console.log("Warehouses data:", warehouses);
-      
-      setWarehouses(Array.isArray(warehouses) ? warehouses : []);
-      
-      return Array.isArray(warehouses) ? warehouses : [];
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách warehouse:", err);
-      setError(err.response?.data?.message || err.message || "Đã xảy ra lỗi khi tải danh sách warehouse");
-      setWarehouses([]);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const fetchWarehouses = useCallback(async () => {
+  setLoading(true);
+  setError("");
+  try {
+    const res = await warehouseAPI.getAllWarehouses();
+    const data = Array.isArray(res.data.data)
+      ? res.data.data.map((w) => ({
+          id: w.id,
+          name: w.name,
+          address: w.address,
+          status: w.status,
+          locations: w.warehouseLocationLists || [],
+        }))
+      : [];
+    setWarehouses(data);
+    return data;
+  } catch (err) {
+    console.error("❌ Lỗi khi tải danh sách kho:", err);
+    setError("Không thể tải danh sách kho");
+    setWarehouses([]);
+    return [];
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
 
   // Tạo warehouse mới
   const createWarehouse = useCallback(async (data) => {

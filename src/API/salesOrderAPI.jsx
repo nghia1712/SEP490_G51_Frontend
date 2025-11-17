@@ -33,6 +33,3 @@ const salesOrderAPI = {
 };
 
 export default salesOrderAPI;
-
-
-

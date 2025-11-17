@@ -20,30 +20,55 @@ import {
   CardContent,
   InputAdornment,
   Tooltip,
-  TablePagination,
+  TextField,
   CircularProgress,
   Container,
-  TextField,
-  Menu,
-  MenuItem,
+  Pagination,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   Add as AddIcon,
-  MoreVert as MoreVertIcon,
   Warehouse as WarehouseIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import warehouseApi from "../../API/warehouseAPI";
 import renderStatusChip from "../../Utils/renderStatusChip";
+import AddWarehouse from "./AddWarehouse";
+import EditWarehouse from "./EditWarehouse";
+import useWarehouse from "../../Hooks/useWarehouse";
 
 export default function WarehouseList() {
   const navigate = useNavigate();
+  const { warehouses: rawWarehouses, loading, error, fetchWarehouses } =
+    useWarehouse();
 
-  const [warehouses, setWarehouses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // map status từ 0/1 sang "active"/"inactive"
+  const warehouses = rawWarehouses.map((w) => ({
+    ...w,
+    status:
+      w.status === 1 ||
+      w.status === "1" ||
+      w.status === true ||
+      w.status === "active"
+        ? "active"
+        : "inactive",
+  }));
+
+  const [openAddWarehouse, setOpenAddWarehouse] = useState(false);
+  const handleOpenAddWarehouse = () => setOpenAddWarehouse(true);
+  const handleCloseAddWarehouse = () => setOpenAddWarehouse(false);
+
+  const [openEditWarehouse, setOpenEditWarehouse] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const handleOpenEditWarehouse = (warehouse) => {
+    setSelectedWarehouse(warehouse);
+    setOpenEditWarehouse(true);
+  };
+  const handleCloseEditWarehouse = () => {
+    setSelectedWarehouse(null);
+    setOpenEditWarehouse(false);
+  };
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState({
@@ -51,85 +76,45 @@ export default function WarehouseList() {
     "Ngừng hoạt động": false,
   });
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // ===== Pagination =====
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  // Menu
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [menuWarehouse, setMenuWarehouse] = useState(null);
-
-  // ===== LOAD DATA =====
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const res = await warehouseApi.getAllWarehouses();
-      const data = Array.isArray(res.data.data)
-        ? res.data.data.map((w) => ({
-            id: w.id,
-            name: w.name,
-            address: w.address,
-            status: w.status,
-            locations: w.warehouseLocationLists || [],
-          }))
-        : [];
-      setWarehouses(data);
-      setError(null);
-    } catch (err) {
-      console.error("❌ Lỗi khi tải danh sách kho:", err);
-      setError("Không thể tải danh sách kho");
-      setSnackbar({
-        open: true,
-        message: "Tải dữ liệu thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchWarehouses();
+  }, [fetchWarehouses]);
 
   const handleNavigateDetail = (id) => {
     navigate(`/warehouse/details/${id}`);
   };
 
-  // ===== FILTER + SEARCH =====
   const handleFilterChange = (e) => {
     setFilterStatus({ ...filterStatus, [e.target.name]: e.target.checked });
-    setPage(0);
+    setPage(1);
   };
 
-  const filteredWarehouses = warehouses.filter(
-    (warehouse) =>
-      warehouse.name?.toLowerCase().includes(search.toLowerCase()) &&
+  // ===== FILTER + SEARCH =====
+  const filteredWarehouses = warehouses.filter((w) => {
+    const statusLabel = w.status === "active" ? "Hoạt động" : "Ngừng hoạt động";
+    return (
+      w.name?.toLowerCase().includes(search.toLowerCase()) &&
       (Object.values(filterStatus).some((value) => value)
-        ? filterStatus[warehouse.status === true ? "Hoạt động" : "Ngừng hoạt động"]
+        ? filterStatus[statusLabel]
         : true)
-  );
+    );
+  });
 
+  // ===== Paginated Data =====
+  const totalPages = Math.ceil(filteredWarehouses.length / pageSize);
   const paginated = filteredWarehouses.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    (page - 1) * pageSize,
+    page * pageSize
   );
 
-  // ===== MENU =====
-  const handleMenuOpen = (e, warehouse) => {
-    setAnchorEl(e.currentTarget);
-    setMenuWarehouse(warehouse);
-  };
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuWarehouse(null);
-  };
+  // Reset page khi search hoặc filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus]);
 
   return (
     <Box
@@ -206,9 +191,7 @@ export default function WarehouseList() {
                             color="primary"
                           />
                         }
-                        label={
-                          <Typography variant="body2">{status}</Typography>
-                        }
+                        label={<Typography variant="body2">{status}</Typography>}
                       />
                     ))}
                   </FormGroup>
@@ -223,6 +206,7 @@ export default function WarehouseList() {
                         borderRadius: 2,
                         px: 3,
                       }}
+                      onClick={handleOpenAddWarehouse}
                     >
                       Thêm kho
                     </Button>
@@ -230,6 +214,21 @@ export default function WarehouseList() {
                 </Stack>
               </Paper>
             </Box>
+
+            {/* MODALS */}
+            <AddWarehouse
+              open={openAddWarehouse}
+              onClose={handleCloseAddWarehouse}
+              onSuccess={fetchWarehouses}
+            />
+            {selectedWarehouse && (
+              <EditWarehouse
+                open={openEditWarehouse}
+                warehouse={selectedWarehouse}
+                onClose={handleCloseEditWarehouse}
+                onSuccess={fetchWarehouses}
+              />
+            )}
 
             {/* TABLE */}
             <TableContainer
@@ -242,7 +241,7 @@ export default function WarehouseList() {
                     <TableCell>#</TableCell>
                     <TableCell>Tên kho</TableCell>
                     <TableCell>Địa chỉ</TableCell>
-                    <TableCell>Trạng thái</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell align="center">Hành động</TableCell>
                   </TableRow>
                 </TableHead>
@@ -278,23 +277,35 @@ export default function WarehouseList() {
                           "&:hover": { backgroundColor: "#f0f7ff" },
                         }}
                       >
-                        <TableCell>{page * rowsPerPage + i + 1}</TableCell>
+                        <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                         <TableCell>{w.name}</TableCell>
                         <TableCell>{w.address || "Chưa cập nhật"}</TableCell>
-                        <TableCell>
-                          {renderStatusChip(
-                            w.status === true ? "active" : "inactive"
-                          )}
+                        <TableCell align="center">
+                          {renderStatusChip(w.status)}
                         </TableCell>
                         <TableCell align="center">
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleNavigateDetail(w.id)}
-                            >
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleNavigateDetail(w.id)}
+                              >
+                                <VisibilityIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Chỉnh sửa">
+                              <IconButton
+                                color="secondary"
+                                onClick={() => handleOpenEditWarehouse(w)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))
@@ -303,38 +314,20 @@ export default function WarehouseList() {
               </Table>
             </TableContainer>
 
-            {/* Pagination */}
+            {/* PAGINATION */}
             {filteredWarehouses.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  component="div"
-                  count={filteredWarehouses.length}
-                  rowsPerPage={rowsPerPage}
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
                   page={page}
-                  onPageChange={(e, newPage) => setPage(newPage)}
-                  onRowsPerPageChange={(e) =>
-                    setRowsPerPage(parseInt(e.target.value, 10))
-                  }
-                  labelRowsPerPage="Số hàng mỗi trang:"
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
                 />
               </Box>
             )}
           </CardContent>
         </Card>
       </Container>
-
-      {/* MENU */}
-      <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleMenuClose}>
-        <MenuItem
-          onClick={() => {
-            handleMenuClose();
-            handleNavigateDetail(menuWarehouse?.id);
-          }}
-        >
-          <VisibilityIcon sx={{ mr: 1 }} /> Xem chi tiết
-        </MenuItem>
-      </Menu>
     </Box>
   );
 }
