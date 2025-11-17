@@ -171,6 +171,7 @@ function Header() {
     { label: "Danh sách yêu cầu báo giá", path: "/request-quotation", allowedRoles: ["sales_staff"] },
     { label: "Danh sách báo giá", path: "/sales-quotation", allowedRoles: ["manager", "sales_staff", "admin"] },
     { label: "Danh sách đơn hàng", path: "/sales/orders", allowedRoles: ["sales_staff"] },
+    { label: "Danh sách đơn hàng", path: "/accountant/orders", allowedRoles: ["accountant_staff", "manager"] },
     { label: "Yêu cầu báo giá", path: "/customer/request-quotation", allowedRoles: ["customer"] },
     { label: "Đơn hàng của tôi", path: "/customer/orders", allowedRoles: ["customer"] },
   ];

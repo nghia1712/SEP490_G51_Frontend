@@ -29,10 +29,9 @@ import {
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import salesOrderAPI from '../../API/salesOrderAPI';
 
-const SalesOrderList = () => {
+const AccountantOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,6 +44,7 @@ const SalesOrderList = () => {
   const [detailError, setDetailError] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   const fetchOrders = useCallback(async (showLoading = true) => {
     if (showLoading) {
@@ -288,95 +288,32 @@ const SalesOrderList = () => {
     }
   };
 
-  const handleOpenPaymentDialog = async (orderId) => {
-    setSelectedOrderId(orderId);
-    setDetailDialogOpen(true);
-    setDetailLoading(true);
-    setDetailError(null);
-    setOrderDetails(null);
-    try {
-      const response = await salesOrderAPI.viewDetails(orderId);
-      const data = response.data?.data;
-      if (data) {
-        setOrderDetails({
-          id: data.id ?? data.salesOrderId ?? data.SalesOrderId ?? orderId,
-          code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? '',
-          creator:
-            data.creator ??
-            data.createBy ??
-            data.CreateBy ??
-            data.createdBy ??
-            data.CreatedBy ??
-            data.customerName ??
-            data.CustomerName ??
-            '-',
-          status: data.status ?? data.Status,
-          createdAt: data.createdAt ?? data.CreateAt ?? data.CreatedAt ?? null,
-          expiredAt: data.expiredDate ?? data.ExpiredDate ?? data.dueDate ?? data.DueDate ?? null,
-          totalAmount:
-            data.totalAmount ??
-            data.TotalAmount ??
-            data.totalPrice ??
-            data.TotalPrice ??
-            data.grandTotal ??
-            0,
-          paidAmount: data.paidAmount ?? data.PaidAmount ?? 0,
-          dueAmount:
-            data.debtAmount ?? data.DebtAmount ?? data.balanceAmount ?? data.BalanceAmount ?? null,
-          details:
-            data.details ??
-            data.orderDetails ??
-            data.OrderDetails ??
-            data.salesOrderDetails ??
-            data.SalesOrderDetails ??
-            [],
-          paymentUrl: data.paymentUrl ?? data.PaymentUrl ?? '',
-          qrImage: data.qrImage ?? data.QrImage ?? data.qrCodeUrl ?? data.QRCodeUrl ?? '',
-        });
-      } else {
-        setOrderDetails(null);
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tải chi tiết đơn hàng.';
-      setDetailError(errorMessage);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleApprove = async (orderId) => {
-    try {
-      await salesOrderAPI.approveOrder(orderId);
-      setSnackbarMessage('Đã chấp thuận đơn hàng.');
-      setSnackbarOpen(true);
-      // Refresh list without showing full page loading
-      await fetchOrders(false);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể chấp thuận đơn hàng.';
-      setSnackbarMessage(errorMessage);
-      setSnackbarOpen(true);
-    }
-  };
-
-  const handleReject = async (orderId) => {
-    try {
-      await salesOrderAPI.rejectOrder(orderId);
-      setSnackbarMessage('Đã từ chối đơn hàng.');
-      setSnackbarOpen(true);
-      // Refresh list without showing full page loading
-      await fetchOrders(false);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể từ chối đơn hàng.';
-      setSnackbarMessage(errorMessage);
-      setSnackbarOpen(true);
-    }
-  };
-
   const handleCloseDetailDialog = () => {
     setDetailDialogOpen(false);
     setSelectedOrderId(null);
     setOrderDetails(null);
     setDetailError(null);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!orderDetails) return;
+    
+    setConfirmingPayment(true);
+    try {
+      // Status 5 = Paid (Đã thanh toán)
+      await salesOrderAPI.confirmPayment(orderDetails.id, 5);
+      setSnackbarMessage('Xác nhận thanh toán thành công!');
+      setSnackbarOpen(true);
+      setDetailDialogOpen(false);
+      // Refresh list without showing full page loading
+      await fetchOrders(false);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể xác nhận thanh toán';
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setConfirmingPayment(false);
+    }
   };
 
   return (
@@ -539,48 +476,6 @@ const SalesOrderList = () => {
                   <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.totalAmount)}</TableCell>
                   <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                      {order.status === 1 && (
-                        <>
-                          <Tooltip title="Chấp thuận" placement="bottom" arrow>
-                            <IconButton
-                              size="medium"
-                              onClick={() => handleApprove(order.id)}
-                              sx={{
-                                color: '#4caf50',
-                                width: '40px',
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                                },
-                              }}
-                            >
-                              <TaskAltIcon fontSize="medium" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Từ chối" placement="bottom" arrow>
-                            <IconButton
-                              size="medium"
-                              onClick={() => handleReject(order.id)}
-                              sx={{
-                                color: '#d32f2f',
-                                width: '40px',
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(211, 47, 47, 0.1)',
-                                },
-                              }}
-                            >
-                              <HighlightOffIcon fontSize="medium" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
                       <Tooltip title="Xem chi tiết" placement="bottom" arrow>
                         <IconButton
                           size="medium"
@@ -838,7 +733,20 @@ const SalesOrderList = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDetailDialog}>Đóng</Button>
+          <Button onClick={handleCloseDetailDialog} disabled={confirmingPayment}>
+            Đóng
+          </Button>
+          {orderDetails && orderDetails.status === 4 && (
+            <Button
+              onClick={handleConfirmPayment}
+              variant="contained"
+              color="success"
+              disabled={confirmingPayment}
+              startIcon={confirmingPayment ? <CircularProgress size={20} /> : <TaskAltIcon />}
+            >
+              {confirmingPayment ? 'Đang xử lý...' : 'Chấp thuận'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -852,4 +760,5 @@ const SalesOrderList = () => {
   );
 };
 
-export default SalesOrderList;
+export default AccountantOrderList;
+

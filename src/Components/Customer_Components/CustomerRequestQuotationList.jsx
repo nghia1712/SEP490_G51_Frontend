@@ -32,6 +32,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -42,6 +43,7 @@ import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 import salesOrderAPI from '../../API/salesOrderAPI';
 import productAPI from '../../API/productAPI';
+import useUser from '../../Hooks/useUser';
 
 const CustomerRequestQuotationList = () => {
   const navigate = useNavigate();
@@ -66,6 +68,14 @@ const CustomerRequestQuotationList = () => {
   const [editError, setEditError] = useState(null); // Error riêng cho dialog edit
   const [createError, setCreateError] = useState(null); // Error riêng cho dialog create
   const [statusFilter, setStatusFilter] = useState('all');
+  const [quotationDetailDialogOpen, setQuotationDetailDialogOpen] = useState(false);
+  const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [orderFormDialogOpen, setOrderFormDialogOpen] = useState(false);
+  const [orderFormData, setOrderFormData] = useState(null);
+  const [orderFormRows, setOrderFormRows] = useState([]);
+  const [orderFormLoading, setOrderFormLoading] = useState(false);
+  const { getProfile } = useUser();
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -107,6 +117,32 @@ const CustomerRequestQuotationList = () => {
     } catch (error) {
       return '-';
     }
+  };
+
+  // Format currency
+  const formatCurrency = (value) => {
+    const number = Number(value) || 0;
+    return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  // Extract tax rate from TaxText (e.g., "VAT 10%" -> 0.1)
+  const getTaxRateFromText = (taxText) => {
+    if (!taxText) return 0;
+    const matched = String(taxText).match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (matched && matched[1]) {
+      const parsed = Number(matched[1].replace(',', '.'));
+      if (!Number.isNaN(parsed)) {
+        return parsed / 100;
+      }
+    }
+    return 0;
+  };
+
+  // Calculate total before tax from total after tax and tax rate
+  const calculateTotalBeforeTax = (totalAfterTax, taxRate) => {
+    if (!totalAfterTax || totalAfterTax === 0) return 0;
+    if (!taxRate || taxRate === 0) return totalAfterTax;
+    return totalAfterTax / (1 + taxRate);
   };
 
   // Fetch data from API
@@ -543,47 +579,374 @@ const CustomerRequestQuotationList = () => {
   };
 
   const resolveQuotationId = useCallback(async (rsqId) => {
-    const response = await requestSalesQuotationAPI.viewDetails(rsqId);
-    const data = response.data?.data;
+    console.log('CustomerRequestQuotationList - resolveQuotationId called with rsqId:', rsqId);
+    try {
+      // First, get request details to get RequestCode
+      const requestResponse = await requestSalesQuotationAPI.viewDetails(rsqId);
+      console.log('CustomerRequestQuotationList - Request details response:', requestResponse);
+      const requestData = requestResponse.data?.data;
+      console.log('CustomerRequestQuotationList - Request details data:', requestData);
 
-    if (!data) {
+      if (!requestData) {
+        console.error('CustomerRequestQuotationList - No request data in response');
       return null;
     }
 
-    const quotationId = extractSalesQuotationId(data);
+      // Try to extract from request data first
+      let quotationId = extractSalesQuotationId(requestData);
+      if (quotationId) {
+        console.log('CustomerRequestQuotationList - Found quotationId from request data:', quotationId);
+        return Number(quotationId);
+      }
 
+      // If not found, get RequestCode and find in SalesQuotation list
+      const requestCode = requestData.RequestCode ?? requestData.requestCode;
+      console.log('CustomerRequestQuotationList - Request code:', requestCode);
+
+      if (!requestCode) {
+        console.error('CustomerRequestQuotationList - No RequestCode found');
+        return null;
+      }
+
+      // Fetch SalesQuotation list
+      console.log('CustomerRequestQuotationList - Fetching SalesQuotation list');
+      const quotationListResponse = await salesQuotationAPI.viewList();
+      console.log('CustomerRequestQuotationList - Quotation list response:', quotationListResponse);
+      const quotationList = quotationListResponse.data?.data;
+      console.log('CustomerRequestQuotationList - Quotation list:', quotationList);
+
+      if (!quotationList || !Array.isArray(quotationList)) {
+        console.error('CustomerRequestQuotationList - No quotation list or not an array');
+        return null;
+      }
+
+      // Find quotation with matching RequestCode
+      const matchingQuotation = quotationList.find((q) => {
+        const qRequestCode = q.RequestCode ?? q.requestCode;
+        return qRequestCode === requestCode;
+      });
+
+      if (matchingQuotation) {
+        quotationId = matchingQuotation.Id ?? matchingQuotation.id;
+        console.log('CustomerRequestQuotationList - Found quotationId from list:', quotationId);
     return quotationId ? Number(quotationId) : null;
+      }
+
+      console.error('CustomerRequestQuotationList - No matching quotation found');
+      return null;
+    } catch (err) {
+      console.error('CustomerRequestQuotationList - Error in resolveQuotationId:', err);
+      return null;
+    }
   }, []);
 
   const handleViewQuotation = async (rsqId) => {
+    console.log('CustomerRequestQuotationList - handleViewQuotation called with rsqId:', rsqId);
     setLoading(true);
     try {
+      console.log('CustomerRequestQuotationList - Resolving quotationId for rsqId:', rsqId);
       const quotationId = await resolveQuotationId(rsqId);
+      console.log('CustomerRequestQuotationList - Resolved quotationId:', quotationId);
 
       if (!quotationId) {
+        console.error('CustomerRequestQuotationList - No quotationId found');
         setSnackbarMessage('Chưa có báo giá được gửi cho yêu cầu này.');
         setSnackbarOpen(true);
+        setLoading(false);
         return;
       }
 
+      console.log('CustomerRequestQuotationList - Fetching quotation details for sqId:', quotationId);
       const quotationResponse = await salesQuotationAPI.viewDetails(quotationId);
+      console.log('CustomerRequestQuotationList - Quotation response:', quotationResponse);
       const quotationData = quotationResponse.data?.data;
+      console.log('CustomerRequestQuotationList - Quotation data:', quotationData);
 
       if (!quotationData) {
         throw new Error('Không lấy được dữ liệu báo giá');
       }
 
-      navigate(
-        `/customer/quotation/${rsqId}?sqId=${quotationId}`,
-        { state: { sqId: quotationId, quotationData } }
-      );
+      // Set quotation details and open dialog instead of navigating
+      setSelectedQuotationDetails(quotationData);
+      setQuotationDetailDialogOpen(true);
+      
+      console.log('CustomerRequestQuotationList - Dialog opened');
     } catch (err) {
+      console.error('CustomerRequestQuotationList - Error in handleViewQuotation:', err);
+      console.error('CustomerRequestQuotationList - Error response:', err.response);
       const errorMessage = err.response?.data?.message || err.message || 'Không thể lấy thông tin báo giá';
       setError(errorMessage);
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     } finally {
       setLoading(false);
+      console.log('CustomerRequestQuotationList - handleViewQuotation completed');
+    }
+  };
+
+  const handleCreateOrder = async () => {
+    if (!selectedQuotationDetails) {
+      setSnackbarMessage('Không xác định được thông tin báo giá để tạo đơn hàng.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const salesQuotationId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+    if (!salesQuotationId) {
+      setSnackbarMessage('Không xác định được mã báo giá để tạo đơn hàng.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setIsCreatingOrder(true);
+    try {
+      const quotationInfoRes = await salesOrderAPI.getQuotationInfo(salesQuotationId);
+      console.log('Quotation info response', quotationInfoRes.data);
+      const quotationInfo = quotationInfoRes.data?.data;
+
+      if (!quotationInfo) {
+        throw new Error('Không lấy được thông tin báo giá.');
+      }
+
+      const detailList = quotationInfo.Details || quotationInfo.details || [];
+
+      if (!Array.isArray(detailList) || detailList.length === 0) {
+        throw new Error('Báo giá không có sản phẩm để tạo đơn hàng.');
+      }
+
+      // Get quotation details to get tax information
+      const quotationDetailsRes = await salesQuotationAPI.viewDetails(salesQuotationId);
+      const quotationDetailsData = quotationDetailsRes.data?.data;
+      const quotationDetailsList = quotationDetailsData?.Details || quotationDetailsData?.details || [];
+
+      // Prepare form data from quotation info
+      // Map by index since both APIs return products in the same order
+      const formRows = detailList
+        .map((detail, index) => {
+          const productIdRaw = detail.ProductId ?? detail.productId;
+          const lotId = detail.LotId ?? detail.lotId;
+          const parsedProductId = Number(productIdRaw);
+          const parsedLotId = Number(lotId);
+
+          if (!Number.isFinite(parsedProductId) || !Number.isFinite(parsedLotId)) {
+            return null;
+          }
+
+          const rawQuantity =
+            detail.MinQuantity ??
+            detail.minQuantity ??
+            detail.Quantity ??
+            detail.quantity ??
+            1;
+          const parsedQuantity = Number(rawQuantity);
+          const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
+          const unitPrice = detail.UnitPrice ?? detail.unitPrice ?? 0;
+          
+          // Get tax info from quotation details by index
+          const quotationDetail = quotationDetailsList[index];
+          const taxText = quotationDetail?.TaxText ?? quotationDetail?.taxText ?? '-';
+          const taxRate = taxText !== '-' ? getTaxRateFromText(taxText) : 0;
+          const unitPriceAfterTax = unitPrice * (1 + taxRate);
+          const subtotal = quantity * unitPrice;
+          const subtotalAfterTax = quantity * unitPriceAfterTax;
+          
+          // Get expired date
+          const expiredDate = detail.LotExpiredDate ?? detail.lotExpiredDate;
+          const formattedExpiredDate = expiredDate 
+            ? formatDate(expiredDate) 
+            : (quotationDetail?.ExpiredDate ?? quotationDetail?.expiredDate ?? '-');
+
+          return {
+            id: index + 1,
+            productId: parsedProductId,
+            productName: detail.ProductName ?? detail.productName ?? '-',
+            lotId: parsedLotId,
+            quantity,
+            unitPrice,
+            taxText,
+            taxRate,
+            unitPriceAfterTax,
+            expiredDate: formattedExpiredDate,
+            subtotal,
+            subtotalAfterTax,
+          };
+        })
+        .filter(Boolean);
+
+      if (formRows.length === 0) {
+        throw new Error('Không có sản phẩm hợp lệ để tạo đơn hàng.');
+      }
+
+      // Set form data and open dialog
+      setOrderFormData({
+        salesQuotationId,
+        quotationInfo,
+      });
+      setOrderFormRows(formRows);
+      setQuotationDetailDialogOpen(false); // Close quotation dialog
+      setOrderFormDialogOpen(true); // Open order form dialog
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Không thể tải thông tin báo giá.';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setIsCreatingOrder(false);
+    }
+  };
+
+  const handleCloseOrderFormDialog = () => {
+    setOrderFormDialogOpen(false);
+    setOrderFormData(null);
+    setOrderFormRows([]);
+  };
+
+  const handleQuantityChange = (rowId, newQuantity) => {
+    const quantity = Math.max(1, Number(newQuantity) || 1);
+    setOrderFormRows(rows =>
+      rows.map(row => {
+        if (row.id === rowId) {
+          const subtotal = quantity * row.unitPrice;
+          const subtotalAfterTax = quantity * row.unitPriceAfterTax;
+          return {
+            ...row,
+            quantity,
+            subtotal,
+            subtotalAfterTax,
+          };
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleRemoveProduct = (rowId) => {
+    if (orderFormRows.length > 1) {
+      setOrderFormRows(orderFormRows.filter(row => row.id !== rowId));
+    } else {
+      setSnackbarMessage('Phải có ít nhất một sản phẩm trong đơn hàng.');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const createOrderPayload = () => {
+    if (!orderFormData || orderFormRows.length === 0) {
+      return null;
+    }
+
+    const detailsPayload = orderFormRows.map((row) => ({
+      productId: row.productId,
+      lotId: row.lotId,
+      quantity: row.quantity,
+      unitPrice: row.unitPrice,
+      subTotalPrice: 0,
+    }));
+
+    return {
+      salesOrderCode: '',
+      salesQuotationId: orderFormData.salesQuotationId,
+      createBy: 'placeholder',
+      status: 0,
+      totalPrice: 0,
+      isDeposited: false,
+      details: detailsPayload,
+      customerDebt: {
+        customerId: 'placeholder',
+        salesOrderId: 0,
+        debtAmount: 0,
+      },
+    };
+  };
+
+  const handleSaveDraftOrder = async () => {
+    if (!orderFormData || orderFormRows.length === 0) {
+      setSnackbarMessage('Không có dữ liệu để tạo đơn hàng.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setOrderFormLoading(true);
+    try {
+      const payload = createOrderPayload();
+
+      console.log('Creating order with payload', payload);
+      const createOrderRes = await salesOrderAPI.createDraftFromQuotation(payload);
+      console.log('Create order response', createOrderRes.data);
+      const orderData = createOrderRes.data?.data;
+
+      const orderId = orderData?.SalesOrderId ?? orderData?.salesOrderId;
+
+      // Close dialog
+      handleCloseOrderFormDialog();
+
+      setSnackbarMessage('Tạo đơn hàng nháp thành công.');
+      setSnackbarOpen(true);
+
+      // Navigate to orders page and auto-open order details
+      if (orderId) {
+        navigate('/customer/orders', {
+          state: {
+            openOrderId: orderId,
+            fromQuotation: true,
+          },
+        });
+      } else {
+        navigate('/customer/orders');
+      }
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Không thể tạo đơn hàng từ báo giá.';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setOrderFormLoading(false);
+    }
+  };
+
+  const handleSendOrder = async () => {
+    if (!orderFormData || orderFormRows.length === 0) {
+      setSnackbarMessage('Không có dữ liệu để tạo đơn hàng.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setOrderFormLoading(true);
+    try {
+      const payload = createOrderPayload();
+
+      console.log('Creating order with payload', payload);
+      const createOrderRes = await salesOrderAPI.createDraftFromQuotation(payload);
+      console.log('Create order response', createOrderRes.data);
+      const orderData = createOrderRes.data?.data;
+
+      const orderId = orderData?.SalesOrderId ?? orderData?.salesOrderId;
+
+      if (!orderId) {
+        throw new Error('Không lấy được mã đơn hàng sau khi tạo.');
+      }
+
+      // Send order (change status from Draft to Sent)
+      console.log('Sending order with id', orderId);
+      await salesOrderAPI.sendOrder(orderId);
+      console.log('Order sent successfully');
+
+      // Close dialog
+      handleCloseOrderFormDialog();
+
+      setSnackbarMessage('Gửi đơn hàng thành công.');
+      setSnackbarOpen(true);
+
+      // Navigate to orders page and auto-open order details
+      navigate('/customer/orders', {
+        state: {
+          openOrderId: orderId,
+          fromQuotation: true,
+        },
+      });
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Không thể gửi đơn hàng.';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setOrderFormLoading(false);
     }
   };
 
@@ -1423,7 +1786,347 @@ const CustomerRequestQuotationList = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
+      {/* Quotation Detail Dialog */}
+      <Dialog
+        open={quotationDetailDialogOpen}
+        onClose={() => setQuotationDetailDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div">
+            Chi tiết báo giá
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {selectedQuotationDetails && (
+            <Box>
+              {/* Thông tin báo giá - Layout 2 cột */}
+              <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
+                {/* Bên trái: Mã yêu cầu báo giá, Mã báo giá và Trạng thái */}
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Mã yêu cầu báo giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {selectedQuotationDetails.RequestCode || selectedQuotationDetails.requestCode || '-'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Mã báo giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {selectedQuotationDetails.QuotationCode || selectedQuotationDetails.quotationCode || '-'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Trạng thái:
+                    </Typography>
+                    <Chip
+                      label={getStatusLabel(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
+                      size="small"
+                      sx={getStatusColor(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
+                    />
+                  </Box>
+                </Box>
+                
+                {/* Bên phải: Ngày gửi và Ngày hết hạn */}
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Ngày gửi:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(selectedQuotationDetails.QuotationDate || selectedQuotationDetails.quotationDate)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Ngày hết hạn:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(selectedQuotationDetails.ExpiredDate || selectedQuotationDetails.expiredDate)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+              
+              {/* Danh sách sản phẩm */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Danh sách sản phẩm:
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '500px', overflow: 'auto' }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(() => {
+                        const details = selectedQuotationDetails.Details || selectedQuotationDetails.details || [];
+                        if (details.length > 0) {
+                          return details.map((detail, index) => {
+                            const productName = detail.ProductName || detail.productName || '-';
+                            const taxText = detail.TaxText || detail.taxText || null;
+                            const minQuantity = detail.minQuantity !== undefined && detail.minQuantity !== null 
+                              ? detail.minQuantity 
+                              : (detail.MinQuantity !== undefined && detail.MinQuantity !== null ? detail.MinQuantity : 1);
+                            const salesPrice = detail.SalesPrice !== undefined && detail.SalesPrice !== null 
+                              ? detail.SalesPrice 
+                              : (detail.salesPrice !== undefined && detail.salesPrice !== null ? detail.salesPrice : null);
+                            const itemTotal = detail.ItemTotal !== undefined && detail.ItemTotal !== null 
+                              ? detail.ItemTotal 
+                              : (detail.itemTotal !== undefined && detail.itemTotal !== null ? detail.itemTotal : null);
+                            const note = detail.Note || detail.note || '-';
+                            
+                            // Calculate tax rate and total before tax
+                            const taxRate = taxText ? getTaxRateFromText(taxText) : 0;
+                            const totalBeforeTax = itemTotal !== null && itemTotal > 0 
+                              ? calculateTotalBeforeTax(itemTotal, taxRate)
+                              : (salesPrice !== null && salesPrice > 0 ? salesPrice * minQuantity : 0);
+
+                            return (
+                              <TableRow key={detail.Id || detail.id || index}>
+                                <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
+                                <TableCell>{productName}</TableCell>
+                                <TableCell>{taxText || '-'}</TableCell>
+                                <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
+                                <TableCell sx={{ textAlign: 'right' }}>
+                                  {salesPrice !== null ? formatCurrency(salesPrice) : '-'}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: 'right' }}>
+                                  {totalBeforeTax > 0 ? formatCurrency(totalBeforeTax) : '-'}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: 'right' }}>
+                                  {itemTotal !== null ? formatCurrency(itemTotal) : '-'}
+                                </TableCell>
+                                <TableCell>{note}</TableCell>
+                              </TableRow>
+                            );
+                          });
+                        } else {
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  Không có sản phẩm
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                      })()}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Ghi chú - Thông tin cọc và thời hạn */}
+              {selectedQuotationDetails.note && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Ghi chú:
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#f9f9f9' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        whiteSpace: 'pre-line',
+                        lineHeight: 1.8
+                      }}
+                    >
+                      {selectedQuotationDetails.note}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {selectedQuotationDetails && (selectedQuotationDetails.Status === 1 || selectedQuotationDetails.status === 1) && (
+            <Button
+              variant="contained"
+              onClick={handleCreateOrder}
+              disabled={isCreatingOrder}
+              sx={{
+                backgroundColor: '#155E64',
+                '&:hover': { backgroundColor: '#0D4F52' },
+                mr: 1,
+              }}
+            >
+              {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Lên đơn hàng'}
+            </Button>
+          )}
+          <Button onClick={() => setQuotationDetailDialogOpen(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Order Form Dialog */}
+      <Dialog
+        open={orderFormDialogOpen}
+        onClose={handleCloseOrderFormDialog}
+        maxWidth="xl"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div">
+            Tạo đơn hàng từ báo giá
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {orderFormData && (
+            <Box>
+              {/* Thông tin báo giá */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Thông tin báo giá:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 4 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Mã báo giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {selectedQuotationDetails?.QuotationCode || selectedQuotationDetails?.quotationCode || '-'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Mã yêu cầu báo giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {selectedQuotationDetails?.RequestCode || selectedQuotationDetails?.requestCode || '-'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Danh sách sản phẩm */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Danh sách sản phẩm:
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '500px', overflow: 'auto' }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Số lượng</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn Giá</TableCell>
+                        <TableCell sx={{ textAlign: 'left', backgroundColor: '#f5f5f5', pl: 2 }}>Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá sau thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Tạm tính</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Tạm Tính Sau Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', width: '80px' }}>Hành Động</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {orderFormRows.map((row, index) => (
+                        <TableRow key={row.id}>
+                          <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
+                          <TableCell>{row.productName}</TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <TextField
+                              type="number"
+                              value={row.quantity}
+                              onChange={(e) => handleQuantityChange(row.id, e.target.value)}
+                              inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                              size="small"
+                              sx={{ width: '100px' }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.unitPrice)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'left', pl: 3 }}>
+                            {row.taxText || '-'}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.unitPriceAfterTax)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {row.expiredDate || '-'}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.subtotal)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.subtotalAfterTax)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveProduct(row.id)}
+                              color="error"
+                              disabled={orderFormRows.length <= 1}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Tổng tiền */}
+              <Box sx={{ mb: 2, textAlign: 'right' }}>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  Tạm tính: {formatCurrency(orderFormRows.reduce((sum, row) => sum + row.subtotal, 0))} VNĐ
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Tổng tiền sau thuế: {formatCurrency(orderFormRows.reduce((sum, row) => sum + row.subtotalAfterTax, 0))} VNĐ
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseOrderFormDialog} disabled={orderFormLoading}>
+            Hủy
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={handleSaveDraftOrder}
+            disabled={orderFormLoading}
+            sx={{
+              borderColor: '#155E64',
+              color: '#155E64',
+              '&:hover': { borderColor: '#0D4F52', backgroundColor: 'rgba(21, 94, 100, 0.04)' },
+            }}
+          >
+            {orderFormLoading ? <CircularProgress size={22} color="inherit" /> : 'Lưu nháp'}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSendOrder}
+            disabled={orderFormLoading}
+            sx={{
+              backgroundColor: '#155E64',
+              '&:hover': { backgroundColor: '#0D4F52' },
+            }}
+          >
+            {orderFormLoading ? <CircularProgress size={22} color="inherit" /> : 'Gửi đơn hàng'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}

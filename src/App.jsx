@@ -27,11 +27,10 @@ import ListRSQ from "./Components/Sales_Components/ListRSQ";
 import CreateRSQ from "./Components/Sales_Components/CreateRSQ";
 import SalesQuotationList from "./Components/Sales_Components/SalesQuotationList";
 import SalesOrderList from "./Components/Sales_Components/SalesOrderList";
+import AccountantOrderList from "./Components/Accountant_Components/AccountantOrderList";
 import RequestQuotationDetails from "./Components/Sales_Components/RequestQuotationDetails";
 import CreateSalesQuotation from "./Components/Sales_Components/CreateSalesQuotation";
 import CustomerOrderList from "./Components/Customer_Components/CustomerOrderList";
-import CustomerOrderDetails from "./Components/Customer_Components/CustomerOrderDetails";
-import CustomerOrderEdit from "./Components/Customer_Components/CustomerOrderEdit";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
 import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDetails.jsx";
@@ -242,66 +241,6 @@ function App() {
                       {/* Landing page cho authenticated users */}
                       <Route path="/landing" element={<Landing />                      } />
                       {/* Customer Orders routes - specific routes first */}
-                      <Route path="/customer/orders/:id/edit" element={
-                        <ProtectedRoute allowedRoles={['customer']}>
-                          <CustomerStatusCheck>
-                            <Box
-                              sx={{
-                                minHeight: "100vh",
-                                backgroundImage: "url('/images/backgroundMedical2.jpg')",
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                                backgroundRepeat: "no-repeat",
-                                position: "relative",
-                                "&::before": {
-                                  content: '""',
-                                  position: "absolute",
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  backgroundColor: "rgba(255, 255, 255, 0.3)",
-                                  zIndex: 1,
-                                },
-                              }}
-                            >
-                              <Box sx={{ position: "relative", zIndex: 2 }}>
-                                <CustomerOrderEdit />
-                              </Box>
-                            </Box>
-                          </CustomerStatusCheck>
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/customer/orders/:id" element={
-                        <ProtectedRoute allowedRoles={['customer']}>
-                          <CustomerStatusCheck>
-                            <Box
-                              sx={{
-                                minHeight: "100vh",
-                                backgroundImage: "url('/images/backgroundMedical2.jpg')",
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                                backgroundRepeat: "no-repeat",
-                                position: "relative",
-                                "&::before": {
-                                  content: '""',
-                                  position: "absolute",
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  backgroundColor: "rgba(255, 255, 255, 0.3)",
-                                  zIndex: 1,
-                                },
-                              }}
-                            >
-                              <Box sx={{ position: "relative", zIndex: 2 }}>
-                                <CustomerOrderDetails />
-                              </Box>
-                            </Box>
-                          </CustomerStatusCheck>
-                        </ProtectedRoute>
-                      } />
                       <Route path="/customer/orders" element={
                         <ProtectedRoute allowedRoles={['customer']}>
                           <CustomerStatusCheck>
@@ -587,6 +526,14 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={['manager', 'sales_staff']}>
                             <SalesOrderList />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/accountant/orders" 
+                        element={
+                          <ProtectedRoute allowedRoles={['manager', 'accountant_staff']}>
+                            <AccountantOrderList />
                           </ProtectedRoute>
                         } 
                       />

@@ -67,6 +67,7 @@ const SalesQuotationList = () => {
   const [notes, setNotes] = useState([]);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editError, setEditError] = useState(null);
+  const [sendingQuotationId, setSendingQuotationId] = useState(null);
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -138,8 +139,10 @@ const SalesQuotationList = () => {
 
   // Fetch data from API - Lấy danh sách yêu cầu báo giá đã gửi của customer
   // API này trả về các RequestSalesQuotation với status != Draft (đã gửi)
-  const fetchQuotations = useCallback(async () => {
-    setLoading(true);
+  const fetchQuotations = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await salesQuotationAPI.viewList();
@@ -169,7 +172,9 @@ const SalesQuotationList = () => {
       setSnackbarOpen(true);
       setQuotations([]);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -294,8 +299,8 @@ const SalesQuotationList = () => {
       return;
     }
 
-    if (!editFormData.sqnId) {
-      setEditError('Vui lòng chọn ghi chú');
+    if (!editFormData.sqnId || editFormData.sqnId === null) {
+      setEditError('Báo giá này chưa có ghi chú. Vui lòng liên hệ quản trị viên.');
       return;
     }
 
@@ -308,8 +313,14 @@ const SalesQuotationList = () => {
         ExpiredDate: editFormData.expiredDate.format('YYYY-MM-DD'),
         DepositPercent: editFormData.depositPercent,
         DepositDueDays: editFormData.depositDueDays,
-        Details: editFormData.details
+        Details: editFormData.details.map(detail => ({
+          sqdId: detail.sqdId,
+          TaxId: detail.taxId,
+          Note: detail.note || ''
+        }))
       };
+      
+      console.log('Update payload:', payload); // Debug log
       
       await salesQuotationAPI.updateSalesQuotation(payload);
       
@@ -370,19 +381,20 @@ const SalesQuotationList = () => {
   };
 
   const handleSend = async (id) => {
-    setLoading(true);
+    setSendingQuotationId(id);
     try {
       await salesQuotationAPI.sendSalesQuotation(id);
       setSnackbarMessage('Gửi báo giá thành công!');
       setSnackbarOpen(true);
-      await fetchQuotations();
+      // Refresh list without showing full page loading
+      await fetchQuotations(false);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Không thể gửi báo giá';
       setError(errorMessage);
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     } finally {
-      setLoading(false);
+      setSendingQuotationId(null);
     }
   };
 
@@ -572,6 +584,7 @@ const SalesQuotationList = () => {
                             <IconButton
                               size="medium"
                               onClick={() => handleSend(quotation.id)}
+                              disabled={sendingQuotationId === quotation.id}
                               sx={{
                                 color: '#1976d2',
                                 width: '40px',
@@ -582,9 +595,16 @@ const SalesQuotationList = () => {
                                 '&:hover': {
                                   backgroundColor: 'rgba(25, 118, 210, 0.1)',
                                 },
+                                '&:disabled': {
+                                  opacity: 0.6,
+                                },
                               }}
                             >
-                              <SendIcon fontSize="medium" />
+                              {sendingQuotationId === quotation.id ? (
+                                <CircularProgress size={20} color="inherit" />
+                              ) : (
+                                <SendIcon fontSize="medium" />
+                              )}
                             </IconButton>
                           </Tooltip>
                         </>
@@ -897,20 +917,6 @@ const SalesQuotationList = () => {
 
                 {/* Form fields */}
                 <Box sx={{ mb: 3 }}>
-                  <TextField
-                    label="ID Ghi chú"
-                    type="number"
-                    value={editFormData.sqnId || ''}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || null;
-                      setEditFormData(prev => ({ ...prev, sqnId: value }));
-                    }}
-                    fullWidth
-                    variant="standard"
-                    sx={{ mb: 2 }}
-                    helperText="Nhập ID của ghi chú báo giá"
-                  />
-
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <TextField
                       label="Phần trăm cọc (%)"
