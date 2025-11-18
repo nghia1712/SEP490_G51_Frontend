@@ -302,7 +302,7 @@ const menuItems = [
     return null; // Tất cả role khác không thấy menu tài khoản
   };
 
-  const baseVisible = navItems.filter(
+  const baseVisible = menuItems.filter(
     (item) => userRole && item.allowedRoles.includes(userRole)
   );
   const roleAccountItem = getRoleAccountItem(userRole);
