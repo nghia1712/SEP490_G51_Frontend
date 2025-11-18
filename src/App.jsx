@@ -51,7 +51,12 @@ import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
 import POList from "./Components/Purchases_Components/PO/POList";
 import GRNList from "./Components/Warehouse_Components/GRN/GRNList";
 import GRNManualCreatePage from "./Components/Warehouse_Components/GRN/GRNManualCreatePage.jsx";
-import WarehouseLocationDetailPage from "./Components/Warehouse_Components/WarehouseLocationDetails.jsx";
+import WarehouseLocationDetailPage from "./Components/Warehouse_Components/Location/WarehouseLocationDetails.jsx";
+import InventoryReportPage from "./Components/Warehouse_Components/Location/InventoryReportPage.jsx";
+import StockExportList from "./Components/Warehouse_Components/GIN/StockExportList.jsx";
+import StockExportForm from "./Components/Warehouse_Components/GIN/StockExportForm.jsx";
+import GINList from "./Components/Warehouse_Components/GIN/GINList.jsx";
+import DebtList from "./Components/Debt_Components/DebtList.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -440,7 +445,35 @@ function App() {
                         path="/warehouse-location/details/:id"
                         element={<WarehouseLocationDetailPage />}
                       />
-                      
+
+                      <Route
+                        path="/inventory-report"
+                        element={<InventoryReportPage />}
+                      />
+                      <Route
+                        path="/inventory-report/:id"
+                        element={<InventoryReportPage />}
+                      />
+                      <Route
+                        path="/stock-export"
+                        element={<StockExportList />}
+                      />
+
+                      <Route path="/debt" element={<DebtList />} />
+                      {/* Tạo mới lệnh xuất kho */}
+                      <Route
+                        path="/stock-export/create"
+                        element={<StockExportForm />}
+                      />
+
+                      {/* Cập nhật lệnh xuất kho theo id */}
+                      <Route
+                        path="/stock-export/edit/:id"
+                        element={<StockExportForm />}
+                      />
+                      <Route path="/gin" element={<GINList />} />
+
+
                       {/* Routes cho tất cả Staff */}
                       <Route 
                         path="/product" 
@@ -488,6 +521,7 @@ function App() {
                           </ProtectedRoute>
                         } 
                       />
+
                       <Route 
                         path="/request-quotation" 
                         element={
@@ -546,6 +580,7 @@ function App() {
                         } 
                       />
                       <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
+
                       {/* Removed legacy /admin/users route */}
                       <Route 
                         path="/admin/users/customer" 
