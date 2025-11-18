@@ -242,9 +242,34 @@ function Header() {
       allowedRoles: ["manager", "sales_staff", "admin"],
     },
     {
+      label: "Danh sách báo giá",
+      path: "/sales-quotation",
+      allowedRoles: ["manager", "sales_staff", "admin"],
+    },
+    {
+      label: "Danh sách đơn hàng (Sales)",
+      path: "/sales/orders",
+      allowedRoles: ["sales_staff"],
+    },
+    {
+      label: "Danh sách đơn hàng (Kế toán)",
+      path: "/accountant/orders",
+      allowedRoles: ["accountant_staff", "manager"],
+    },
+    {
       label: "Công nợ",
       path: "/debt",
       allowedRoles: ["accountant_staff", "manager"],
+    },
+    {
+      label: "Yêu cầu báo giá khách hàng",
+      path: "/customer/request-quotation",
+      allowedRoles: ["customer"],
+    },
+    {
+      label: "Đơn hàng của tôi",
+      path: "/customer/orders",
+      allowedRoles: ["customer"],
     },
   ];
 
