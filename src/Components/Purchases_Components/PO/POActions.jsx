@@ -17,16 +17,20 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  CircularProgress,
+  Box,
 } from "@mui/material";
 import {
   Paid,
   AccountBalance,
   CheckCircle,
   NoteAdd,
+  Delete,
+  Edit,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import poApi from "../../../API/poAPI";
-import getUserRoleFromToken from "../../../utils/getUserRoleFromToken";
+import { useNavigate, useLocation } from "react-router-dom";
+import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
+import usePO from "../../../Hooks/usePO";
 
 const STATUS = {
   APPROVED: 0,
@@ -39,180 +43,233 @@ const STATUS = {
 };
 
 export default function POActions({ poId, fetchPOs }) {
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [payOpen, setPayOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [poDetail, setPoDetail] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const navigate = useNavigate();
-  const [fullyReceivedPOs, setFullyReceivedPOs] = useState([]);
+  const [amount, setAmount] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const location = useLocation();
+  const { state } = location;
+
+  const {
+    selectedPO: poDetail,
+    depositOpen,
+    setDepositOpen,
+    payOpen,
+    setPayOpen,
+    editOpen,
+    setEditOpen,
+    editData,
+    setEditData,
+    confirmDeleteOpen,
+    setConfirmDeleteOpen,
+    deletePOId,
+    setDeletePOId,
+    fullyReceivedPOs,
+    userRole,
+    setUserRole,
+    snackbar,
+    setSnackbar,
+    handleDepositPO,
+    handlePayPO,
+    handleChangeStatus,
+    handleDeleteDraftPO,
+    fetchPOs: reloadPOs,
+    fetchPODetail,
+    handleUpdatePODraft,
+  } = usePO();
+
+  const [activeDepositPOId, setActiveDepositPOId] = useState(null);
+  useEffect(() => {
+    if (state?.autoOpenDeposit && userRole === "accountant_staff") {
+      setActiveDepositPOId(state.poId);
+      fetchPODetail(state.poId);
+
+      window.history.replaceState({}, document.title);
+    }
+
+    if (state?.autoCreateGRN && userRole === "warehouse_staff") {
+      navigate("/grn", { state: { poId: state.poId, create: true } });
+
+      window.history.replaceState({}, document.title);
+    }
+  }, [state, userRole]);
 
   useEffect(() => {
-    loadFullyReceivedPOs();
+    const role = getUserRoleFromToken();
+    if (userRole === null) {
+      setUserRole(role);
+    }
   }, []);
 
-  const loadFullyReceivedPOs = async () => {
-    try {
-      const res = await poApi.getFullyReceived();
-      const ids = res.data?.map((po) => po.poid) || [];
-      setFullyReceivedPOs(ids);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách PO đã nhập đủ:", err);
+  useEffect(() => {
+    if (poId) {
+      fetchPODetail(poId);
     }
+  }, [poId]);
+
+  const handleApprove = async () => {
+    setProcessing(true);
+    try {
+      await handleChangeStatus(poId, STATUS.APPROVED);
+      fetchPOs();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleDeposit = async () => {
+    setProcessing(true);
+    try {
+      await handleDepositPO(poId, Number(amount));
+      setDepositOpen(false);
+      setAmount("");
+      fetchPOs();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePay = async () => {
+    setProcessing(true);
+    try {
+      await handlePayPO(poId, Number(amount));
+      setPayOpen(false);
+      setAmount("");
+      fetchPOs();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletePOId) return;
+    setProcessing(true);
+    try {
+      await handleDeleteDraftPO(deletePOId);
+      setConfirmDeleteOpen(false);
+      setDeletePOId(null);
+      setEditOpen(false);
+      fetchPOs();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSaveDraft = async (status) => {
+    setProcessing(true);
+    try {
+      await handleUpdatePODraft(poId, status);
+      fetchPOs();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleOpenConfirmDelete = (id) => {
+    setDeletePOId(id);
+    setConfirmDeleteOpen(true);
+  };
+
+  const handleContinueEdit = () => {
+    if (!poDetail) return;
+    setEditData(poDetail.details?.map((item) => ({ ...item })) || []);
+    setEditOpen(true);
   };
 
   const handleCreateGRN = () => {
     navigate("/grn", { state: { poId, create: true } });
   };
 
-  const [userRole, setUserRole] = useState(null);
-  useEffect(() => {
-    const role = getUserRoleFromToken();
-    setUserRole(role);
-  }, []);
-
-  useEffect(() => {
-    fetchPoDetail();
-  }, [poId]);
-
-  const fetchPoDetail = async () => {
-    try {
-      const res = await poApi.getDetail(poId);
-      setPoDetail(res.data?.data);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Lấy chi tiết PO thất bại",
-        severity: "error",
-      });
-    }
-  };
-
-  const handleApprove = async () => {
-    try {
-      await poApi.changeStatus(poId, STATUS.APPROVED);
-      setSnackbar({
-        open: true,
-        message: "PO đã được approve",
-        severity: "success",
-      });
-      fetchPOs();
-      fetchPoDetail();
-      setDepositOpen(true);
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Approve thất bại",
-        severity: "error",
-      });
-    }
-  };
-
-  const handleDeposit = async () => {
-    if (!amount || amount <= 0) return;
-    setLoading(true);
-    try {
-      await poApi.deposit(poId, { paid: Number(amount) });
-      setSnackbar({
-        open: true,
-        message: "Ghi nhận đặt cọc thành công",
-        severity: "success",
-      });
-      setDepositOpen(false);
-      setAmount("");
-      fetchPOs();
-      fetchPoDetail();
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Ghi nhận thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePay = async () => {
-    if (!amount || amount <= 0) return;
-    setLoading(true);
-    try {
-      await poApi.payDebt(poId, { paid: Number(amount) });
-      setSnackbar({
-        open: true,
-        message: "Thanh toán thành công",
-        severity: "success",
-      });
-      setPayOpen(false);
-      setAmount("");
-      fetchPOs();
-      fetchPoDetail();
-    } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Thanh toán thất bại",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const poStatus = poDetail ? Number(poDetail.status) : null;
+  const showApprove =
+    poStatus === STATUS.SENT && userRole === "purchases_staff";
+  const showDeposit = poStatus === STATUS.APPROVED;
+  const showPay = poStatus === STATUS.DEPOSITED || poStatus === STATUS.PAID;
+  const canDeposit = ["accountant_staff"].includes(userRole);
+  const canPay = ["accountant_staff"].includes(userRole);
+  const canCreateGRN =
+    poStatus !== STATUS.DRAFT &&
+    poStatus !== STATUS.SENT &&
+    userRole === "warehouse_staff" &&
+    !fullyReceivedPOs.includes(poDetail?.poid);
+  const canDeleteDraftPO =
+    poStatus === STATUS.DRAFT && userRole === "purchases_staff";
 
   const renderPoInfo = (isPayPopup = false) => {
-    if (!poDetail) return null;
-    return (
-      <Stack spacing={1} mb={2}>
-        <Typography>
-          <strong>PO ID:</strong> {poDetail.poid}
-        </Typography>
-        <Typography>
-          <strong>Người tạo:</strong> {poDetail.userName}
-        </Typography>
-        {/* <Typography><strong>Nhà cung cấp:</strong> {poDetail.supplierName || "-"}</Typography> */}
-        <Typography>
-          <strong>Tổng tiền:</strong> {poDetail.total.toLocaleString()} ₫
-        </Typography>
-        {Number(poDetail.status) !== STATUS.SENT && (
-          <Typography>
-            <strong>Công nợ:</strong> {poDetail.debt.toLocaleString()} ₫
-          </Typography>
-        )}
+    if (!poDetail) return <Typography>Đang tải chi tiết...</Typography>;
 
-        {isPayPopup && (
-          <>
-            {poDetail.deposit && poDetail.deposit > 0 ? (
+    return (
+      <Box sx={{ mb: 2 }}>
+        {/* Thông tin PO - 2 cột */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Box>
+            <Typography>
+              <strong>Đơn hàng:</strong> {`PO-${poDetail.poid}`}
+            </Typography>
+            <Typography>
+              <strong>Người tạo:</strong> {poDetail.userName}
+            </Typography>
+            <Typography>
+              <strong>Ngày đặt:</strong>{" "}
+              {poDetail.orderDate
+                ? new Date(poDetail.orderDate).toLocaleDateString("vi-EN")
+                : "-"}
+            </Typography>
+            {(poDetail.status === 3 ||
+              poDetail.status === 4 ||
+              poDetail.status === 6) && (
+              <Typography>
+                <strong>Người thanh toán:</strong>{" "}
+                {poDetail.paymentBy && poDetail.paymentBy !== "Unknown"
+                  ? poDetail.paymentBy
+                  : "Chưa thanh toán"}
+              </Typography>
+            )}
+            {poDetail.status === 4 && (
+              <Typography>
+                <strong>Ngày thanh toán:</strong>{" "}
+                {poDetail.paymentDate
+                  ? new Date(poDetail.paymentDate).toLocaleDateString()
+                  : "-"}
+              </Typography>
+            )}
+            {isPayPopup && poDetail.deposit > 0 && (
               <>
                 <Typography>
-                  <strong>Đã trả:</strong> {poDetail.deposit.toLocaleString()} ₫
-                </Typography>
-                <Typography>
                   <strong>Ngày trả:</strong>{" "}
-                  {new Date(poDetail.depositDate).toLocaleDateString()}
+                  {poDetail.depositDate
+                    ? new Date(poDetail.depositDate).toLocaleDateString()
+                    : "-"}
                 </Typography>
                 <Typography>
-                  <strong>Người trả:</strong> {poDetail.depositBy || "Unknown"}
+                  <strong>Người trả:</strong> {poDetail.depositBy || "-"}
                 </Typography>
               </>
-            ) : poDetail.deposit === 0 &&
-              Number(poDetail.status) === STATUS.APPROVED ? (
-              <Typography>
-                <strong>Cọc:</strong> Không yêu cầu cọc
-              </Typography>
-            ) : null}
-          </>
-        )}
+            )}
+          </Box>
 
-        <Typography sx={{ mt: 1, fontWeight: "bold" }}>
-          Danh sách sản phẩm:
+          <Box>
+            <Typography>
+              <strong>Tổng tiền:</strong>{" "}
+              {poDetail.total?.toLocaleString() || 0} ₫
+            </Typography>
+            <Typography>
+              <strong>Tiền cọc:</strong>{" "}
+              {poDetail.status === 6
+                ? "Chưa thỏa thuận"
+                : poDetail.deposit?.toLocaleString() + " ₫"}
+            </Typography>
+            {Number(poDetail.status) !== STATUS.SENT && (
+              <Typography>
+                <strong>Công nợ:</strong> {poDetail.debt?.toLocaleString() || 0}{" "}
+                ₫
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* Danh sách sản phẩm */}
+        <Typography sx={{ mt: 1, mb: 1, fontWeight: "bold" }}>
+          Danh sách sản phẩm
         </Typography>
         <Table size="small">
           <TableHead>
@@ -240,65 +297,111 @@ export default function POActions({ poId, fetchPOs }) {
             ))}
           </TableBody>
         </Table>
-      </Stack>
+      </Box>
     );
   };
-
-  const showApprove =
-    poDetail?.status === STATUS.SENT && userRole === "purchases_staff";
-  const showDeposit = poDetail?.status === STATUS.APPROVED;
-  const showPay =
-    poDetail?.status === STATUS.DEPOSITED || poDetail?.status === STATUS.PAID;
-  const canDeposit = userRole === "accountant_staff" || userRole === "admin";
-  const canPay = userRole === "accountant_staff" || userRole === "admin";
-  const canCreateGRN =
-    poDetail?.status === STATUS.APPROVED &&
-    userRole === "warehouse_staff" &&
-    !fullyReceivedPOs.includes(poDetail?.poid);
 
   return (
     <>
       <Stack direction="row" spacing={1} justifyContent="center">
         {showApprove && (
           <Tooltip title="Duyệt yêu cầu">
-            <IconButton color="primary" onClick={handleApprove}>
-              <CheckCircle />
-            </IconButton>
+            <span>
+              <IconButton
+                color="primary"
+                onClick={handleApprove}
+                disabled={processing}
+              >
+                {processing ? <CircularProgress size={20} /> : <CheckCircle />}
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {showDeposit && canDeposit && (
           <Tooltip title="Đặt cọc">
-            <IconButton color="info" onClick={() => setDepositOpen(true)}>
-              <AccountBalance />
-            </IconButton>
+            <span>
+              <IconButton
+                color="info"
+                onClick={() => setDepositOpen(true)}
+                disabled={processing}
+              >
+                <AccountBalance />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {showPay && canPay && (
           <Tooltip title="Thanh toán">
-            <IconButton color="success" onClick={() => setPayOpen(true)}>
-              <Paid />
-            </IconButton>
+            <span>
+              <IconButton
+                color="success"
+                onClick={() => setPayOpen(true)}
+                disabled={processing}
+              >
+                <Paid />
+              </IconButton>
+            </span>
           </Tooltip>
         )}
         {canCreateGRN && (
           <Tooltip title="Tạo GRN từ PO">
-            <IconButton color="secondary" onClick={handleCreateGRN}>
-              <NoteAdd />
-            </IconButton>
+            <span>
+              <IconButton
+                color="secondary"
+                onClick={handleCreateGRN}
+                disabled={processing}
+              >
+                <NoteAdd />
+              </IconButton>
+            </span>
           </Tooltip>
+        )}
+        {canDeleteDraftPO && (
+          <>
+            <Tooltip title="Tiếp tục chỉnh sửa">
+              <span>
+                <IconButton
+                  color="warning"
+                  onClick={handleContinueEdit}
+                  disabled={processing}
+                >
+                  <Edit />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Xóa PO nháp">
+              <span>
+                <IconButton
+                  color="error"
+                  onClick={() => handleOpenConfirmDelete(poDetail.poid)}
+                  disabled={processing}
+                >
+                  <Delete />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </>
         )}
       </Stack>
 
       {/* Deposit Dialog */}
       <Dialog
-        open={depositOpen}
-        onClose={() => setDepositOpen(false)}
+        open={
+          depositOpen ||
+          (activeDepositPOId !== null && activeDepositPOId === poId)
+        }
+        onClose={() => {
+          setDepositOpen(false);
+          setActiveDepositPOId(null);
+        }}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>Ghi nhận tiền đặt cọc</DialogTitle>
         <DialogContent sx={{ minHeight: 400 }}>
-          {renderPoInfo()}
+          {poDetail &&
+            (depositOpen || poDetail.poid === activeDepositPOId) &&
+            renderPoInfo()}
           <TextField
             autoFocus
             margin="dense"
@@ -310,9 +413,17 @@ export default function POActions({ poId, fetchPOs }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDepositOpen(false)}>Hủy</Button>
-          <Button onClick={handleDeposit} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Xác nhận"}
+          <Button
+            onClick={() => {
+              setDepositOpen(false);
+              setActiveDepositPOId(null);
+            }}
+            disabled={processing}
+          >
+            Hủy
+          </Button>
+          <Button onClick={handleDeposit} disabled={processing}>
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -338,9 +449,157 @@ export default function POActions({ poId, fetchPOs }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPayOpen(false)}>Hủy</Button>
-          <Button onClick={handlePay} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Xác nhận"}
+          <Button onClick={() => setPayOpen(false)} disabled={processing}>
+            Hủy
+          </Button>
+          <Button onClick={handlePay} disabled={processing}>
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Draft Dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Chỉnh sửa PO nháp</DialogTitle>
+        <DialogContent dividers>
+          {poDetail && (
+            <>
+              <Typography>
+                <strong>PO ID:</strong> {poDetail.poid}
+              </Typography>
+              <Typography>
+                <strong>Người tạo:</strong> {poDetail.userName}
+              </Typography>
+              <Typography sx={{ mt: 2, fontWeight: "bold" }}>
+                Danh sách sản phẩm:
+              </Typography>
+              <Table size="small">
+                <TableHead sx={{ background: "#e0e0e0" }}>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Sản phẩm</TableCell>
+                    <TableCell>Mô tả</TableCell>
+                    <TableCell align="center">Số lượng</TableCell>
+                    <TableCell align="center">Đơn giá</TableCell>
+                    <TableCell align="center">Hạn dùng</TableCell>
+                    <TableCell align="center">Thành tiền</TableCell>
+                    <TableCell align="center"></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {editData.map((item, i) => (
+                    <TableRow key={`${item.podid}-${i}`}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{item.productName}</TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell align="center">
+                        <TextField
+                          type="number"
+                          size="small"
+                          inputProps={{ min: 0 }}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newData = [...editData];
+                            newData[i].quantity = Number(e.target.value);
+                            setEditData(newData);
+                          }}
+                          sx={{ width: 80 }}
+                          disabled={processing}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        {item.unitPrice.toLocaleString()} ₫
+                      </TableCell>
+                      <TableCell align="center">
+                        {item.expiredDate
+                          ? new Date(item.expiredDate).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell align="center">
+                        {(item.quantity * item.unitPrice).toLocaleString()} ₫
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Xóa sản phẩm">
+                          <span>
+                            <IconButton
+                              color="error"
+                              onClick={() =>
+                                setEditData(
+                                  editData.filter((_, idx) => idx !== i)
+                                )
+                              }
+                              disabled={processing}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)} disabled={processing}>
+            Hủy
+          </Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => handleSaveDraft(7)}
+            disabled={processing}
+          >
+            {processing ? <CircularProgress size={20} /> : "Lưu bản nháp"}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleSaveDraft(6)}
+            disabled={processing}
+          >
+            {processing ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gửi yêu cầu"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xác nhận xóa PO</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa PO-{deletePOId} không?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmDeleteOpen(false)}
+            disabled={processing}
+          >
+            Hủy
+          </Button>
+          <Button
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={processing}
+          >
+            {processing ? <CircularProgress size={20} /> : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -352,7 +611,11 @@ export default function POActions({ poId, fetchPOs }) {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

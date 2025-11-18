@@ -23,6 +23,7 @@ const salesOrderAPI = {
     // POST /api/SalesOrder/complete/{orderId}
     completeOrder: (orderId) => authorApi.post(`${API_URL}/complete/${orderId}`),
     // POST /api/SalesOrder/confirm-payment
+
     confirmPayment: (orderId, status) => authorApi.post(`${API_URL}/confirm-payment?orderId=${orderId}&status=${status}`),
     // POST /api/SalesOrder/draft/create
     createDraftFromQuotation: (data) => authorApi.post(`${API_URL}/draft/create`, data),
@@ -33,6 +34,4 @@ const salesOrderAPI = {
 };
 
 export default salesOrderAPI;
-
-
 
