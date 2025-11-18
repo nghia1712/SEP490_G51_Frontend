@@ -173,7 +173,6 @@ function Header() {
     { label: "Đơn hàng nhập", path: "/po", allowedRoles: ["manager", "admin", "purchases_staff", "warehouse_staff", "accountant_staff"] },
     { label: "Báo cáo kiểm kê", path: "/inventory-report", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kiểm kê", path: "/stocktaking", allowedRoles: ["manager", "admin"] },
-    { label: "Kệ hàng", path: "/inventory-check", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Kho hàng", path: "/warehouse", allowedRoles: ["manager", "warehouse_staff", "admin"] },
     { label: "Nhập kho", path: "/grn", allowedRoles: ["warehouse_staff"] },
     { label: "Yêu cầu xuất kho", path: "/stock-export", allowedRoles: ["warehouse_staff", "sales_staff"] },
