@@ -99,6 +99,16 @@ export default function GRNManualCreatePage({ poId }) {
     }
   };
 
+  // --- ADD / REMOVE ITEM ---
+  const handleAddItem = () =>
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        { productName: "", quantity: 1, unitPrice: 0, expiredDate: "" },
+      ],
+    });
+
   const handleRemoveItem = (index) =>
     setFormData({
       ...formData,
@@ -116,11 +126,7 @@ export default function GRNManualCreatePage({ poId }) {
       const partialList = Array.isArray(partialRes.data) ? partialRes.data : [];
       const notList = Array.isArray(notRes.data) ? notRes.data : [];
 
-      const merged = [...partialList, ...notList].filter(
-        (po) => po.status !== 6 && po.status !== 7
-      );
-
-      setPoList(merged);
+      setPoList([...partialList, ...notList]);
     } catch (err) {
       console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
     }
@@ -129,17 +135,9 @@ export default function GRNManualCreatePage({ poId }) {
   const fetchWarehouses = async () => {
     try {
       const res = await warehouseApi.getAllWarehouses();
-      console.log("📦 warehouseApi.getAllWarehouses raw data =", res.data);
-
-       const list = res.data?.data ?? [];
-
-      const activeList = list.filter((w) => w.status);
-
-      console.log("📦 filtered warehouses =", activeList);
-
-      setWarehouses(activeList);
+      setWarehouses(res.data?.data ?? []);
     } catch (err) {
-      console.error("❌ Lỗi fetchWarehouses:", err);
+      console.error(err);
     }
   };
 
@@ -148,9 +146,7 @@ export default function GRNManualCreatePage({ poId }) {
     setLocationsLoading(true);
     try {
       const res = await warehouseApi.getWarehouseDetails(selectedWarehouse);
-      const allLocations = res.data?.data?.warehouseLocations ?? [];
-      const activeLocations = allLocations.filter((loc) => loc.status);
-      setLocations(activeLocations);
+      setLocations(res.data?.data?.warehouseLocations ?? []);
       setSelectedLocation("");
     } catch (err) {
       console.error(err);
@@ -178,51 +174,12 @@ export default function GRNManualCreatePage({ poId }) {
     if (selectedWarehouse) fetchLocations();
   }, [selectedWarehouse]);
 
+  // --- Khi chọn PO thì tự điền supplier ---
   useEffect(() => {
     if (!selectedPO) return;
-
     const po = poList.find((p) => p.poid === selectedPO);
-    if (po) {
-      const supplier =
-        suppliers.find(
-          (s) =>
-            s.id === po.supplierId ||
-            s.supplierId === po.supplierId ||
-            s.id === po.supplier?.id
-        ) || {};
-      setSelectedSupplier(supplier.name || supplier.supplierName || "");
-      setDescription(po.description || "");
-    }
-
-    const fetchProductsFromPO = async () => {
-      try {
-        const res = await poAPI.getDetail(selectedPO);
-        const poDetail = res.data?.data;
-        if (!poDetail) return;
-
-        const items = (poDetail.details || []).map((p) => ({
-          productId: p.productID,
-          productName: p.productName,
-          quantity: p.remainingQty || 1,
-          unitPrice: p.unitPrice || 0,
-          expiredDate: p.expiredDate
-            ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
-            : "",
-
-          description: p.description || "",
-          remainingQty:p.remainingQty,
-          dvt:p.dvt,
-        }));
-
-        setFormData({ items });
-      } catch (err) {
-        console.error("Lỗi fetch chi tiết PO:", err);
-        setFormData({ items: [] });
-      }
-    };
-
-    fetchProductsFromPO();
-  }, [selectedPO, poList, suppliers]);
+    if (po) setSelectedSupplier(po.supplierName || "");
+  }, [selectedPO, poList]);
 
   // --- TÍNH TOTAL ---
   useEffect(() => {
@@ -259,35 +216,35 @@ export default function GRNManualCreatePage({ poId }) {
       });
     }
 
-    function toISODate(dateStr) {
-      if (!dateStr) return null;
-      const [day, month, year] = dateStr.split(/[\/\-]/).map(Number);
-      if (!day || !month || !year) return null;
-      // Trả về định dạng ISO mà backend C# chắc chắn đọc được
-      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
-        2,
-        "0"
-      )}T00:00:00.000Z`;
-    }
-
     const grndManuallyDTOs = formData.items
       .filter((i) => i.productId)
       .map((i) => ({
         productID: Number(i.productId),
         unitPrice: Number(i.unitPrice) || 0,
         quantity: Number(i.quantity) || 0,
-        expiredDate: toISODate(i.expiredDate),
+        expiredDate: i.expiredDate
+          ? new Date(i.expiredDate).toISOString()
+          : null,
+        grnManuallyDTO: i.note || "",
       }));
 
+    if (grndManuallyDTOs.length === 0) {
+      return setSnackbar({
+        open: true,
+        message: "Vui lòng chọn ít nhất một sản phẩm",
+        severity: "warning",
+      });
+    }
+
     const payload = {
-      source: String(selectedSupplier || ""),
+      source: selectedSupplier,
       total: Number(total) || 0,
       description: description || "",
       warehouseLocationID: Number(selectedLocation),
       grndManuallyDTOs,
     };
 
-    console.log("Payload GRN:", JSON.stringify(payload, null, 2));
+    console.log("Payload GRN:", payload);
 
     try {
       await grnApi.createManually(selectedPO, payload);
@@ -330,22 +287,24 @@ export default function GRNManualCreatePage({ poId }) {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Tạo phiếu nhập kho
+        Tạo phiếu nhập kho thủ công
       </Typography>
 
+      {/* --- THÔNG TIN CHUNG --- */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={4} md={4}>
+          <Grid item xs={4}>
             <FormControl fullWidth size="small">
-              <InputLabel>Đơn hàng</InputLabel>
+              <InputLabel>Đơn hàng (PO)</InputLabel>
               <Select
                 value={selectedPO}
-                onChange={(e) =>
-                  setSelectedPO(e.target.value ? Number(e.target.value) : "")
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedPO(val === "" ? "" : Number(val));
+                }}
               >
                 {poList.map((po) => (
-                  <MenuItem key={po.poid} value={po.poid}>
+                  <MenuItem key={`po-${po.poid}`} value={po.poid}>
                     {`PO-${po.poid}`}
                   </MenuItem>
                 ))}
@@ -353,26 +312,34 @@ export default function GRNManualCreatePage({ poId }) {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={8} md={8}>
-            <TextField
-              label="Nhà cung cấp"
-              fullWidth
-              size="small"
-              value={selectedSupplier || ""}
-              disabled
-              InputLabelProps={{ shrink: true }}
-            />
+          <Grid item xs={4}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Nhà cung cấp</InputLabel>
+              <Select
+                value={selectedSupplier}
+                label="Nhà cung cấp"
+                onChange={(e) => setSelectedSupplier(e.target.value)}
+                disabled
+              >
+                {suppliers.map((s) => (
+                  <MenuItem key={`supplier-${s.id}`} value={s.name}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={4}>
             <FormControl fullWidth size="small">
               <InputLabel>Kho</InputLabel>
               <Select
                 value={selectedWarehouse}
+                label="Kho"
                 onChange={(e) => setSelectedWarehouse(e.target.value)}
               >
                 {warehouses.map((w) => (
-                  <MenuItem key={w.id} value={w.id}>
+                  <MenuItem key={`warehouse-${w.id}`} value={w.id}>
                     {w.name}
                   </MenuItem>
                 ))}
@@ -380,7 +347,7 @@ export default function GRNManualCreatePage({ poId }) {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={4}>
             <FormControl
               fullWidth
               size="small"
@@ -389,15 +356,14 @@ export default function GRNManualCreatePage({ poId }) {
               <InputLabel>Vị trí kho</InputLabel>
               <Select
                 value={selectedLocation}
+                label="Vị trí kho"
                 onChange={(e) => setSelectedLocation(e.target.value)}
               >
                 {locations.length === 0 ? (
-                  <MenuItem disabled>
-                    {locationsLoading ? "Đang tải..." : "Không có vị trí"}
-                  </MenuItem>
+                  <MenuItem disabled>Không có vị trí</MenuItem>
                 ) : (
                   locations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.id}>
+                    <MenuItem key={`loc-${loc.id}`} value={loc.id}>
                       {loc.locationName}
                     </MenuItem>
                   ))
@@ -406,13 +372,12 @@ export default function GRNManualCreatePage({ poId }) {
             </FormControl>
           </Grid>
 
-          {/* Hàng 3: Mô tả phiếu nhập (Full width) */}
           <Grid item xs={12}>
             <TextField
               label="Mô tả phiếu nhập"
               fullWidth
               multiline
-              minRows={3} // Tăng minRows để vùng nhập liệu trông rõ ràng hơn
+              minRows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -432,10 +397,7 @@ export default function GRNManualCreatePage({ poId }) {
               <TableRow>
                 <TableCell>STT</TableCell>
                 <TableCell>Sản phẩm</TableCell>
-                <TableCell>Mô tả</TableCell>
-                <TableCell>Đơn vị</TableCell>
                 <TableCell>Số lượng</TableCell>
-                <TableCell>Số lượng còn lại</TableCell>
                 <TableCell>Đơn giá</TableCell>
                 <TableCell>Hạn sử dụng</TableCell>
                 <TableCell align="center">Thao tác</TableCell>
@@ -445,9 +407,47 @@ export default function GRNManualCreatePage({ poId }) {
               {formData.items.map((item, index) => (
                 <TableRow key={`item-${index}`}>
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{item.productName}</TableCell>
-                  <TableCell>{item.description}</TableCell>
-                  <TableCell>{item.dvt}</TableCell>
+                  <TableCell style={{ minWidth: 250 }}>
+                    <Autocomplete
+                      freeSolo
+                      options={productSuggestions}
+                      getOptionLabel={(p) => p.productName || ""}
+                      isOptionEqualToValue={(option, value) =>
+                        value.productId
+                          ? option.productID === value.productId
+                          : false
+                      }
+                      value={item.productId ? item : { productName: "" }}
+                      onChange={(e, value) => {
+                        const newItems = [...formData.items];
+                        if (value) {
+                          newItems[index] = {
+                            ...newItems[index],
+                            productId: value.productID,
+                            productName: value.productName,
+                          };
+                        } else {
+                          newItems[index] = {
+                            ...newItems[index],
+                            productId: null,
+                            productName: "",
+                          };
+                        }
+                        setFormData({ ...formData, items: newItems });
+                      }}
+                      onInputChange={(e, value, reason) => {
+                        if (reason === "input")
+                          handleItemChange(index, "productName", value);
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          size="small"
+                          placeholder="Tên sản phẩm"
+                        />
+                      )}
+                    />
+                  </TableCell>
                   <TableCell>
                     <TextField
                       type="number"
@@ -458,11 +458,26 @@ export default function GRNManualCreatePage({ poId }) {
                       }
                     />
                   </TableCell>
-                  <TableCell align="center">{item.remainingQty}</TableCell>
                   <TableCell>
-                    {item.unitPrice?.toLocaleString() || ""}
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={item.unitPrice || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "unitPrice", e.target.value)
+                      }
+                    />
                   </TableCell>
-                  <TableCell>{item.expiredDate || ""}</TableCell>
+                  <TableCell>
+                    <TextField
+                      type="date"
+                      size="small"
+                      value={item.expiredDate || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "expiredDate", e.target.value)
+                      }
+                    />
+                  </TableCell>
                   <TableCell align="center">
                     <Tooltip title="Xóa sản phẩm này">
                       <IconButton
@@ -475,6 +490,17 @@ export default function GRNManualCreatePage({ poId }) {
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={handleAddItem}
+                    sx={{ color: "green" }}
+                  >
+                    Thêm sản phẩm
+                  </Button>
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
@@ -502,7 +528,6 @@ export default function GRNManualCreatePage({ poId }) {
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: "100%" }}
-          variant="filled"
         >
           {snackbar.message}
         </Alert>

@@ -1,3 +1,4 @@
+// src/Pages/WarehouseDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -19,20 +20,15 @@ import {
   InputAdornment,
   IconButton,
   Tooltip,
-  Pagination,
-  Stack,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   Add as AddIcon,
-  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import warehouseApi from "../../API/warehouseAPI";
 import renderStatusChip from "../../Utils/renderStatusChip";
-import AddWarehouseLocation from "./Location/AddWarehouseLocation";
-import EditWarehouseLocation from "./Location/EditWarehouseLocation";
 
 export default function WarehouseDetailPage() {
   const { id } = useParams();
@@ -42,13 +38,6 @@ export default function WarehouseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [openAdd, setOpenAdd] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-
-  // --- Pagination state ---
-  const [page, setPage] = useState(1);
-  const rowsPerPage = 5; // số dòng trên 1 trang
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -69,25 +58,6 @@ export default function WarehouseDetailPage() {
   const filteredLocations = locations.filter((loc) =>
     loc.locationName.toLowerCase().includes(search.toLowerCase())
   );
-
-  const totalPages = Math.ceil(filteredLocations.length / rowsPerPage);
-  const paginatedLocations = filteredLocations.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
-
-  const reloadLocations = async () => {
-    setLoading(true);
-    try {
-      const res = await warehouseApi.getWarehouseDetails(id);
-      setWarehouse(res.data.data);
-      setLocations(res.data.data.warehouseLocations || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Box
@@ -113,14 +83,20 @@ export default function WarehouseDetailPage() {
       }}
     >
       <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 4 }}>
-        <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
-          <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
-        </Box>
         <Card
           elevation={3}
           sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
         >
           <CardContent sx={{ p: 3 }}>
+      <Box sx={{ mb: 3 }}>
+        <IconButton onClick={() => navigate(-1)} color="primary">
+          🔙
+        </IconButton>
+        <Typography variant="h5" component="span" sx={{ ml: 1 }}>
+          Quay lại
+        </Typography>
+      </Box>
+
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                 <CircularProgress size={28} />
@@ -166,10 +142,7 @@ export default function WarehouseDetailPage() {
                     placeholder="Tìm kiếm vị trí..."
                     size="small"
                     value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1); // reset page khi tìm kiếm
-                    }}
+                    onChange={(e) => setSearch(e.target.value)}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -186,28 +159,15 @@ export default function WarehouseDetailPage() {
                       backgroundColor: "#1976d2",
                       "&:hover": { backgroundColor: "#1565c0" },
                     }}
-                    onClick={() => setOpenAdd(true)}
+                    onClick={() =>
+                      navigate(
+                        `/warehouse-location/create?warehouseId=${warehouse.id}`
+                      )
+                    }
                   >
                     Thêm vị trí
                   </Button>
                 </Box>
-
-                <AddWarehouseLocation
-                  open={openAdd}
-                  onClose={() => setOpenAdd(false)}
-                  warehouseId={warehouse.id}
-                  onSuccess={reloadLocations}
-                />
-
-                <EditWarehouseLocation
-                  open={openEdit}
-                  location={selectedLocation}
-                  onClose={() => setOpenEdit(false)}
-                  onSuccess={() => {
-                    setOpenEdit(false);
-                    reloadLocations();
-                  }}
-                />
 
                 <TableContainer
                   component={Paper}
@@ -223,18 +183,16 @@ export default function WarehouseDetailPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedLocations.length === 0 ? (
+                      {filteredLocations.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                             Không tìm thấy vị trí nào
                           </TableCell>
                         </TableRow>
                       ) : (
-                        paginatedLocations.map((loc, index) => (
+                        filteredLocations.map((loc, index) => (
                           <TableRow key={loc.id} hover>
-                            <TableCell>
-                              {(page - 1) * rowsPerPage + index + 1}
-                            </TableCell>
+                            <TableCell>{index + 1}</TableCell>
                             <TableCell>{loc.locationName}</TableCell>
                             <TableCell>
                               {renderStatusChip(
@@ -247,27 +205,11 @@ export default function WarehouseDetailPage() {
                                   color="primary"
                                   onClick={() =>
                                     navigate(
-                                      `/warehouse-location/details/${loc.id}`,
-                                      {
-                                        state: { warehouseID: warehouse.id },
-                                      }
+                                      `/warehouse-location/details/${loc.id}`
                                     )
                                   }
                                 >
                                   <VisibilityIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-
-                              <Tooltip title="Chỉnh sửa">
-                                <IconButton
-                                  color="secondary"
-                                  onClick={() => {
-                                    setSelectedLocation(loc);
-                                    setOpenEdit(true);
-                                  }}
-                                  sx={{ ml: 1 }}
-                                >
-                                  <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             </TableCell>
@@ -277,18 +219,6 @@ export default function WarehouseDetailPage() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-
-                {/* PAGINATION */}
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
-                >
-                  <Pagination
-                    count={totalPages || 1}
-                    page={page}
-                    onChange={(_, value) => setPage(value)}
-                    color="primary"
-                  />
-                </Box>
               </>
             ) : (
               <Typography>Không có dữ liệu chi tiết</Typography>

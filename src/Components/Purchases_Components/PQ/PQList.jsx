@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Paper,
@@ -9,6 +9,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Button,
   Typography,
   Chip,
   IconButton,
@@ -21,64 +22,84 @@ import {
   DialogContent,
   DialogActions,
   Divider,
-  Button,
   Snackbar,
   Alert,
-  Pagination,
 } from "@mui/material";
 import {
   Search as SearchIcon,
-  Visibility,
-  NoteAdd,
-  Delete,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import pqApi from "../../../API/pqAPI";
 import palette from "../../../constants/palette";
-import usePQ from "../../../Hooks/usePQ";
 
 export default function PQList() {
-  const {
-    quotations,
-    loading,
-    selectedQuotation,
-    openDetailDialog,
-    setOpenDetailDialog,
-    openCreatePoDialog,
-    setOpenCreatePoDialog,
-    quotationToCreatePo,
-    sending,
-    snackbar,
-    setSnackbar,
-    openDetail,
-    openCreatePO,
-    createPO,
-    changeQuantity,
-    removeItem,
-  } = usePQ();
+  const [quotations, setQuotations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const navigate = useNavigate();
 
-  const filtered = quotations.filter((q) =>
-    q.supplierName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const handleCreatePO = async (status) => {
-    setProcessing(true);
+  const loadData = async () => {
+    setLoading(true);
     try {
-      await createPO(status);
+      const res = await pqApi.getAllBasic();
+      const list = Array.isArray(res.data.data)
+        ? res.data.data.map((item) => ({
+            quotationId: item.qid,
+            sentDate: item.sendDate,
+            supplierName: item.supplierName,
+            status: item.status === 0 ? "InDate" : "OutOfDate",
+            expiredDate: item.quotationExpiredDate,
+            items: item.quotationDetailDTOs,
+          }))
+        : [];
+
+      setQuotations(list);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách PQ:", err);
+      setSnackbar({
+        open: true,
+        message: "Tải danh sách PQ thất bại",
+        severity: "error",
+      });
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
-  const statusMap = {
-    InDate: "Còn hiệu lực",
-    OutOfDate: "Hết hiệu lực",
+
+  const handleOpenDetail = async (id) => {
+    try {
+      const res = await pqApi.getDetail(id);
+      const q = res.data?.data;
+
+      setSelectedQuotation({
+        quotationId: q.qid,
+        supplierName: q.supplierName || "(Chưa có tên NCC)",
+        sentDate: q.sendDate,
+        expiredDate: q.quotationExpiredDate,
+        status: q.status === 0 ? "InDate" : "OutOfDate",
+        items: q.quotationDetailDTOs || [],
+      });
+
+      setOpenDetailDialog(true);
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy chi tiết PQ:", error);
+    }
   };
+
+  const filteredData = quotations;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -130,80 +151,50 @@ export default function PQList() {
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ) : filtered.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    Không có dữ liệu
+                    Không có dữ liệu báo giá NCC
                   </TableCell>
                 </TableRow>
               ) : (
-                paginated.map((row, i) => {
-                  const isValid = row.status === "InDate";
-                  return (
-                    <TableRow key={row.quotationId}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{`PQ-${row.quotationId}`}</TableCell>
-                      <TableCell>
-                        {new Date(row.sentDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
-                      <TableCell>{row.supplierName}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={statusMap[row.status] || row.status}
-                          color={row.status === "InDate" ? "success" : "error"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(row.expiredDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Xem chi tiết">
-                          <span>
-                            <IconButton
-                              color="primary"
-                              onClick={() => openDetail(row.quotationId)}
-                              disabled={processing}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                filteredData.map((row, index) => (
+                  <TableRow key={row.quotationId}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{`PQ-${row.quotationId}`}</TableCell>
 
-                        {isValid && (
-                          <Tooltip title="Tạo yêu cầu">
-                            <span>
-                              <IconButton
-                                color="secondary"
-                                onClick={() => openCreatePO(row.quotationId)}
-                                disabled={processing}
-                              >
-                                <NoteAdd />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                    <TableCell>
+                      {new Date(row.sentDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{row.supplierName}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={row.status}
+                        color={row.status === "InDate" ? "success" : "error"}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {new Date(row.expiredDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDetail(row.quotationId)}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
-        {filtered.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-            />
-          </Box>
-        )}
       </Paper>
 
-      {/* Dialog Chi tiết PQ */}
       <Dialog
         open={openDetailDialog}
         onClose={() => setOpenDetailDialog(false)}
@@ -213,34 +204,32 @@ export default function PQList() {
         <DialogTitle>
           Chi tiết báo giá {`PQ-${selectedQuotation?.quotationId}`}
         </DialogTitle>
+
         <DialogContent dividers>
           <Typography>
             <strong>Nhà cung cấp:</strong> {selectedQuotation?.supplierName}
           </Typography>
           <Typography>
             <strong>Ngày gửi:</strong>{" "}
-            {new Date(selectedQuotation?.sentDate).toLocaleDateString("vi-EN")}
+            {new Date(selectedQuotation?.sentDate).toLocaleDateString()}
           </Typography>
           <Typography>
             <strong>Ngày hết hạn:</strong>{" "}
-            {new Date(selectedQuotation?.expiredDate).toLocaleDateString(
-              "vi-EN"
-            )}
+            {new Date(selectedQuotation?.expiredDate).toLocaleDateString()}
           </Typography>
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}
             <Chip
-              label={
-                statusMap[selectedQuotation?.status] ||
-                selectedQuotation?.status
-              }
+              label={selectedQuotation?.status}
               color={
                 selectedQuotation?.status === "InDate" ? "success" : "error"
               }
               size="small"
             />
           </Typography>
+
           <Divider sx={{ my: 2 }} />
+
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -270,123 +259,9 @@ export default function PQList() {
             </TableBody>
           </Table>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setOpenDetailDialog(false)}
-            disabled={processing}
-          >
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* Dialog Tạo PO */}
-      <Dialog
-        open={openCreatePoDialog}
-        onClose={() => setOpenCreatePoDialog(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Tạo yêu cầu mua hàng</DialogTitle>
-        <DialogContent dividers>
-          {quotationToCreatePo && (
-            <>
-              <Typography>
-                <strong>QID:</strong> PQ-{quotationToCreatePo.quotationId}
-              </Typography>
-              <Typography>
-                <strong>Nhà cung cấp:</strong>{" "}
-                {quotationToCreatePo.supplierName}
-              </Typography>
-              <Typography sx={{ mt: 2, fontWeight: "bold" }}>
-                Danh sách sản phẩm:
-              </Typography>
-
-              <Table size="small">
-                <TableHead sx={{ background: "#e0e0e0" }}>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Sản phẩm</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell align="center">Đơn vị</TableCell>
-                    <TableCell align="center">Đơn giá</TableCell>
-                    <TableCell align="center">Số lượng</TableCell>
-                    <TableCell align="center">Hạn dùng</TableCell>
-                    <TableCell align="center"></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {quotationToCreatePo.items?.map((item, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.productDescription}</TableCell>
-                      <TableCell align="center">{item.productUnit}</TableCell>
-                      <TableCell align="center">
-                        {item.unitPrice?.toLocaleString()} đ
-                      </TableCell>
-                      <TableCell align="center">
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={item.quantity || 1}
-                          onChange={(e) => changeQuantity(i, e.target.value)}
-                          sx={{ width: 80 }}
-                          disabled={processing}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        {item.productDate
-                          ? new Date(item.productDate).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Xóa sản phẩm">
-                          <span>
-                            <IconButton
-                              color="error"
-                              onClick={() => removeItem(i)}
-                              disabled={processing}
-                            >
-                              <Delete />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </>
-          )}
-        </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setOpenCreatePoDialog(false)}
-            disabled={processing}
-          >
-            Hủy
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => handleCreatePO(7)}
-            disabled={processing}
-          >
-            {processing ? <CircularProgress size={20} /> : "Tạo bản nháp"}
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleCreatePO(6)}
-            disabled={processing}
-          >
-            {processing ? (
-              <CircularProgress size={20} sx={{ color: "white" }} />
-            ) : (
-              "Gửi yêu cầu"
-            )}
-          </Button>
+          <Button onClick={() => setOpenDetailDialog(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

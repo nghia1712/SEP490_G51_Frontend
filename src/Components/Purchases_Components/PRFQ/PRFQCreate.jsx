@@ -20,10 +20,12 @@ import {
   DialogTitle,
   DialogContent,
   Snackbar,
-  CircularProgress,
   Alert,
 } from "@mui/material";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
 import supplierAPI from "../../../API/supplierAPI";
@@ -199,6 +201,7 @@ export default function PRFQCreate() {
       }
     }
   };
+
 
   const handleAddItem = () =>
     setFormData({
@@ -503,11 +506,7 @@ export default function PRFQCreate() {
             onClick={() => handleSubmit("Draft")}
             disabled={loading}
           >
-            {loading ? (
-              <CircularProgress size={20} sx={{ color: "white" }} />
-            ) : (
-              "Lưu bản nháp"
-            )}
+            {isUpdate ? "Cập nhật bản nháp" : "Lưu bản nháp"}
           </Button>
 
           <Button
@@ -515,11 +514,7 @@ export default function PRFQCreate() {
             onClick={() => handleSubmit("Submit")}
             disabled={loading}
           >
-            {loading ? (
-              <CircularProgress size={20} sx={{ color: "white" }} />
-            ) : (
-              "Gửi yêu cầu"
-            )}
+            {isUpdate ? "Gửi yêu cầu" : "Gửi yêu cầu"}
           </Button>
         </Box>
 
@@ -538,6 +533,7 @@ export default function PRFQCreate() {
               py: 2,
             }}
           >
+
             <Button variant="outlined" onClick={() => setOpenPreview(false)}>
               Đóng
             </Button>
@@ -721,7 +717,6 @@ export default function PRFQCreate() {
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: "100%" }}
-          variant="filled"
         >
           {snackbar.message}
         </Alert>
