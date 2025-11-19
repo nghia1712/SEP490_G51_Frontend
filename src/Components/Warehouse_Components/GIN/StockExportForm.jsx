@@ -62,8 +62,10 @@ export default function StockExportForm() {
 
   const fetchSalesOrders = async () => {
     try {
-      const res = await salesOrderAPI.listSalesOrder();
-      setSalesOrderList(res.data?.data || []);
+      const res = await salesOrderAPI.listNotDelivered();
+      const allOrders = res.data?.data || [];
+      const filteredOrders = allOrders.filter((o) => o.isDeposited === true);
+      setSalesOrderList(filteredOrders);
     } catch (err) {
       console.error(err);
     }
@@ -73,31 +75,30 @@ export default function StockExportForm() {
     fetchSalesOrders();
   }, []);
 
-const loadOrderLots = async (salesOrderId, existedDetails = []) => {
-  try {
-    const res = await getOrderInfor(salesOrderId);
-    const lots = Array.isArray(res.data?.data) ? res.data.data : [];
+  const loadOrderLots = async (salesOrderId, existedDetails = []) => {
+    try {
+      const res = await getOrderInfor(salesOrderId);
+      const lots = Array.isArray(res.data?.data) ? res.data.data : [];
 
-    const details = lots
-      .filter(lot => lot.avaiable > 0)
-      .map(lot => {
-        const existed = existedDetails.find(i => i.lotId === lot.lotId);
-        return {
-          lotId: lot.lotId,
-          productName: lot.productName,
-          expiredDate: lot.expiredDate,
-          available: lot.avaiable,
-          quantity: existed ? existed.quantity : lot.avaiable,
-        };
-      });
+      const details = lots
+        .filter((lot) => lot.avaiable > 0)
+        .map((lot) => {
+          const existed = existedDetails.find((i) => i.lotId === lot.lotId);
+          return {
+            lotId: lot.lotId,
+            productName: lot.productName,
+            expiredDate: lot.expiredDate,
+            available: lot.avaiable,
+            quantity: existed ? existed.quantity : lot.avaiable,
+          };
+        });
 
-    setForm(prev => ({ ...prev, details }));
-  } catch (err) {
-    console.error(err);
-    setForm(prev => ({ ...prev, details: [] }));
-  }
-};
-
+      setForm((prev) => ({ ...prev, details }));
+    } catch (err) {
+      console.error(err);
+      setForm((prev) => ({ ...prev, details: [] }));
+    }
+  };
 
   const handleSelectOrder = (salesOrderId) => {
     setForm((prev) => ({ ...prev, salesOrderId }));
@@ -183,14 +184,26 @@ const loadOrderLots = async (salesOrderId, existedDetails = []) => {
             quantity: d.quantity,
           })),
         };
+        console.log("CREATE PAYLOAD:", JSON.stringify(payload, null, 2));
         await createOrder(payload);
       } else {
         if (action === "Send") {
-          await sendOrder(id);
+          const payload = {
+            stockExportOrderId: id,
+            dueDate: form.dueDate,
+            status: 1,
+            details: form.details.map((d) => ({
+              lotId: d.lotId,
+              quantity: d.quantity,
+            })),
+          };
+          console.log("PAYLOAD UPDATE =", payload);
+          await updateOrder(payload);
         } else {
           const payload = {
             stockExportOrderId: id,
             dueDate: form.dueDate,
+            staus: 0,
             details: form.details.map((d) => ({
               lotId: d.lotId,
               quantity: d.quantity,
@@ -239,16 +252,31 @@ const loadOrderLots = async (salesOrderId, existedDetails = []) => {
                 <InputLabel>Đơn hàng</InputLabel>
                 <Select
                   value={form.salesOrderId || ""}
-                  displayEmpty
                   label="Đơn hàng"
                   onChange={(e) => handleSelectOrder(e.target.value)}
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      return "Chọn đơn hàng";
+                    }
+                    const selectedOrder = salesOrderList.find(
+                      (s) => s.salesOrderId === selected
+                    );
+                    return selectedOrder ? selectedOrder.salesOrderCode : "";
+                  }}
                 >
-                  {salesOrderList.map((s) => (
-                    <MenuItem key={s.salesOrderId} value={s.salesOrderId}>
-                      {s.salesOrderCode}
+                  {salesOrderList.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      Không có đơn hàng nào
                     </MenuItem>
-                  ))}
+                  ) : (
+                    salesOrderList.map((s) => (
+                      <MenuItem key={s.salesOrderId} value={s.salesOrderId}>
+                        {s.salesOrderCode}
+                      </MenuItem>
+                    ))
+                  )}
                 </Select>
+
                 {errors.salesOrderId && (
                   <FormHelperText>{errors.salesOrderId}</FormHelperText>
                 )}

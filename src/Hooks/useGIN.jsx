@@ -1,96 +1,99 @@
 import { useState, useEffect } from "react";
+import { Chip } from "@mui/material";
 import ginApi from "../API/ginAPI";
 
-export const mapGINStatus = (status) => {
-  switch (status) {
-    case 0:
-      return "Nháp";
-    case 1:
-      return "Đã gửi";
-    default:
-      return "Không xác định";
-  }
+// ==== map trạng thái ====
+const ginStatusMap = {
+  0: { label: "Nháp", color: "default" },
+  1: { label: "Đã gửi", color: "info" },
+  2: { label: "Đã xuất kho", color: "success" },
+  3: { label: "Quá hạn", color: "error" },
 };
 
-export default function useGIN(id = null) {
-  const [data, setData] = useState(id ? null : []);
-  const [loading, setLoading] = useState(id ? true : false);
-  const [error, setError] = useState(null);
+// chỉ lấy label
+export const mapGINStatus = (status) => ginStatusMap[status]?.label || "Không xác định";
 
-  // Snackbar state
+// render Chip màu
+export const renderGINStatus = (status) => {
+  const s = ginStatusMap[status] || { label: "Không xác định", color: "default" };
+  return <Chip label={s.label} color={s.color} size="small" />;
+};
+
+export default function useGIN() {
+  // ======== List ========
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+
+  // ======== Detail ========
+  const [openDetail, setOpenDetail] = useState(false);
+  const [selectedExport, setSelectedExport] = useState(null);
+  const [detailItems, setDetailItems] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // ======== Snackbar ========
   const [snack, setSnack] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
-  const handleSnackClose = () => {
-    setSnack({ ...snack, open: false });
-  };
+  const handleSnackClose = () => setSnack({ ...snack, open: false });
 
   // =========================
-  // GET LIST
+  // FETCH LIST
   // =========================
   const fetchList = async () => {
     setLoading(true);
     try {
       const res = await ginApi.getAll();
-      setList(res.data || []);
+      setData(res.data?.data || []);
     } catch (err) {
       setError(err);
-      setSnack({
-        open: true,
-        message: "Lấy danh sách thất bại",
-        severity: "error",
-      });
+      setSnack({ open: true, message: err?.response?.data?.message || "Lấy danh sách thất bại", severity: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDetail = async () => {
-    if (!id) return;
-    setLoading(true);
+  // =========================
+  // FETCH DETAIL
+  // =========================
+  const fetchDetail = async (id) => {
+    setDetailLoading(true);
     try {
       const res = await ginApi.getDetail(id);
-      setData(res.data || null);
+      const detail = res.data?.data;
+      setSelectedExport(detail);
+      setDetailItems(detail.details || []);
+      setOpenDetail(true);
     } catch (err) {
-      setError(err);
-      setSnack({
-        open: true,
-        message: "Lấy chi tiết thất bại",
-        severity: "error",
-      });
+      setSnack({ open: true, message: "Lấy chi tiết thất bại", severity: "error" });
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
+  };
+
+  const handleViewDetail = (row) => {
+    if (!row?.id) return;
+    fetchDetail(row.id);
   };
 
   // =========================
   // CREATE
   // =========================
-const createGIN = async (payload) => {
-  try {
-    const res = await ginApi.create(payload);
-    setSnack({
-      open: true,
-      message: "Tạo phiếu xuất kho thành công",
-      severity: "success",
-    });
-    refetch();
-    return { success: true, data: res.data };
-  } catch (err) {
-    const message =
-      err?.response?.data?.message || "Tạo phiếu xuất kho thất bại";
-    setSnack({
-      open: true,
-      message,
-      severity: "error",
-    });
-    return { success: false, error: err, message };
-  }
-};
-
+  const createGIN = async (payload) => {
+    try {
+      const res = await ginApi.create(payload);
+      setSnack({ open: true, message: "Tạo phiếu xuất kho thành công", severity: "success" });
+      fetchList();
+      return { success: true, data: res.data };
+    } catch (err) {
+      setSnack({ open: true, message: err?.response?.data?.message || "Tạo phiếu xuất kho thất bại", severity: "error" });
+      return { success: false, error: err };
+    }
+  };
 
   // =========================
   // SEND
@@ -98,39 +101,41 @@ const createGIN = async (payload) => {
   const sendGIN = async (ginId) => {
     try {
       const res = await ginApi.send(ginId);
-      setSnack({
-        open: true,
-        message: "Gửi phiếu xuất kho thành công",
-        severity: "success",
-      });
-      refetch();
+      setSnack({ open: true, message: "Gửi phiếu xuất kho thành công", severity: "success" });
+      fetchList();
       return { success: true, data: res.data };
     } catch (err) {
-      setSnack({
-        open: true,
-        message: "Gửi phiếu xuất kho thất bại",
-        severity: "error",
-      });
+      setSnack({ open: true, message: "Gửi phiếu xuất kho thất bại", severity: "error" });
       return { success: false, error: err };
     }
   };
 
+  // =========================
+  // useEffect khởi tạo list
+  // =========================
   useEffect(() => {
-    if (id) fetchDetail();
-    else fetchList();
-  }, [id]);
+    fetchList();
+  }, []);
 
   return {
     data,
     loading,
     error,
-    refetch: id ? fetchDetail : fetchList,
+    search,
+    setSearch,
+    refetch: fetchList,
+    renderGINStatus,
 
-    // CRUD
+    openDetail,
+    setOpenDetail,
+    selectedExport,
+    detailItems,
+    detailLoading,
+    handleViewDetail,
+
     createGIN,
     sendGIN,
 
-    // Snackbar
     snack,
     handleSnackClose,
   };

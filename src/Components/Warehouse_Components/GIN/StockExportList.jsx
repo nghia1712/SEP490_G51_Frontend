@@ -37,22 +37,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
 import useGIN from "../../../Hooks/useGIN";
+import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function StockExportList() {
-  // List hook
   const { data, loading, refetch, deleteOrder, sendOrder } = useStockExport();
-  const {
-    createGIN,
-    snack: ginSnack,
-    handleSnackClose: handleGinSnackClose,
-  } = useGIN();
-
-  // Detail hook
-  const [viewId, setViewId] = useState(null);
-  const { data: detailData, loading: detailLoading } = useStockExport(viewId);
-
+  const { createGIN } = useGIN();
   const navigate = useNavigate();
 
+  const [userRole, setUserRole] = useState(null);
   const [search, setSearch] = useState("");
   const [snack, setSnack] = useState({
     open: false,
@@ -61,18 +53,20 @@ export default function StockExportList() {
   });
   const [confirmData, setConfirmData] = useState({ open: false, id: null });
   const [detailOpen, setDetailOpen] = useState(false);
+  const [viewId, setViewId] = useState(null);
+  const { data: detailData, loading: detailLoading } = useStockExport(viewId);
 
-  // ===== Pagination =====
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
+    const role = getUserRoleFromToken();
+    setUserRole(role);
     refetch();
   }, []);
 
   const showSnack = (msg, severity = "success") =>
     setSnack({ open: true, message: msg, severity });
-
   const openConfirm = (id) => setConfirmData({ open: true, id });
   const closeConfirm = () => setConfirmData({ open: false, id: null });
 
@@ -114,46 +108,48 @@ export default function StockExportList() {
     (item.createBy || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Paginated data
   const totalPages = Math.ceil(filteredList.length / pageSize);
   const paginatedData = filteredList.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
 
-  useEffect(() => {
-    setPage(1); // reset page khi search thay đổi
-  }, [search]);
+  useEffect(() => setPage(1), [search]);
 
   const handleViewDetail = (item) => {
     setViewId(item.id);
     setDetailOpen(true);
   };
-
   const handleCloseDetail = () => {
     setDetailOpen(false);
     setViewId(null);
   };
 
-  const handleCreateGIN = async (item) => {
-    try {
-      const payload = {
-        stockExportOrderId: item.id,
-        note: `Tạo phiếu nhập kho từ Yêu cầu mua hàng ${item.salesOrderCode}`,
-      };
-      const res = await createGIN(payload);
-      if (res.success) showSnack("Tạo GIN thành công!");
-      else if (res.message?.includes("đã có phiếu xuất"))
-        showSnack("Lệnh xuất kho này đã có phiếu xuất!", "warning");
-      else showSnack("Tạo GIN thất bại!", "error");
-    } catch (error) {
-      console.error(error);
-      showSnack("Có lỗi xảy ra khi tạo GIN", "error");
-    }
-  };
+const handleCreateGIN = async (item) => {
+  try {
+    const payload = {
+      stockExportOrderId: item.id,
+      note: `Tạo phiếu xuất kho từ yêu cầu ${item.salesOrderCode}`,
+    };
+
+    const res = await createGIN(payload);
+
+    showSnack( "Tạo GIN thành công!");
+
+    setTimeout(() => {
+      refetch();
+      navigate("/gin");
+    }, 1200);
+  } catch (error) {
+    console.error(error);
+    showSnack(error?.message || "Tạo GIN thất bại", "error");
+  }
+};
+
 
   return (
     <Box p={3}>
+      {/* Header */}
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -187,16 +183,21 @@ export default function StockExportList() {
             }}
             sx={{ width: 300 }}
           />
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate("/stock-export/create")}
-          >
-            Tạo yêu cầu xuất kho
-          </Button>
+
+          {/* Chỉ show nút create với sales_staff */}
+          {userRole === "sales_staff" && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => navigate("/stock-export/create")}
+            >
+              Tạo yêu cầu xuất kho
+            </Button>
+          )}
         </Stack>
       </Paper>
 
+      {/* Table */}
       <Paper elevation={2}>
         {loading ? (
           <Stack alignItems="center" p={3}>
@@ -230,7 +231,9 @@ export default function StockExportList() {
                       <TableCell align="center">{`SE-${item.id}`}</TableCell>
                       <TableCell>
                         {item.requestDate
-                          ? new Date(item.requestDate).toLocaleDateString("vi-EN")
+                          ? new Date(item.requestDate).toLocaleDateString(
+                              "vi-EN"
+                            )
                           : ""}
                       </TableCell>
                       <TableCell>
@@ -260,16 +263,19 @@ export default function StockExportList() {
                               <Visibility />
                             </IconButton>
                           </Tooltip>
-                          {item.status === 1 && (
-                            <Tooltip title="Tạo GIN từ lệnh này">
-                              <IconButton
-                                color="secondary"
-                                onClick={() => handleCreateGIN(item)}
-                              >
-                                <NoteAdd />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+
+                          {/* Chỉ show tạo GIN với warehouse_staff */}
+                          {userRole === "warehouse_staff" &&
+                            item.status === 1 && (
+                              <Tooltip title="Tạo GIN từ lệnh này">
+                                <IconButton
+                                  color="secondary"
+                                  onClick={() => handleCreateGIN(item)}
+                                >
+                                  <NoteAdd />
+                                </IconButton>
+                              </Tooltip>
+                            )}
 
                           {item.status === 0 && (
                             <>
@@ -293,11 +299,12 @@ export default function StockExportList() {
                                   <Delete />
                                 </IconButton>
                               </Tooltip>
-
                               <Tooltip title="Gửi">
                                 <IconButton
                                   color="success"
-                                  onClick={() => handleSend(item.id, item.status)}
+                                  onClick={() =>
+                                    handleSend(item.id, item.status)
+                                  }
                                 >
                                   <Send />
                                 </IconButton>
@@ -327,7 +334,7 @@ export default function StockExportList() {
         )}
       </Paper>
 
-      {/* ================= DETAIL DIALOG ================= */}
+      {/* Detail Dialog */}
       <Dialog
         open={detailOpen}
         onClose={handleCloseDetail}
@@ -360,7 +367,6 @@ export default function StockExportList() {
                   ? new Date(detailData.dueDate).toLocaleDateString("vi-EN")
                   : "—"}
               </Typography>
-
               <Typography>
                 <b>Trạng thái:</b>{" "}
                 <Chip
@@ -373,7 +379,6 @@ export default function StockExportList() {
               <Typography variant="h6" sx={{ mt: 2 }}>
                 Danh sách sản phẩm
               </Typography>
-
               <Table size="small">
                 <TableHead>
                   <TableRow>

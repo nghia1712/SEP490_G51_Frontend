@@ -29,7 +29,6 @@ import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
 export default function GRNList() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { poId, create } = location.state || {};
 
   const {
     data,
@@ -48,7 +47,8 @@ export default function GRNList() {
     sendGIN,
     snack,
     handleSnackClose,
-  } = useGIN(); // hook hiện tại chỉ fetch list
+    renderGINStatus,
+  } = useGIN();
 
   const [filtered, setFiltered] = useState([]);
 
@@ -57,8 +57,15 @@ export default function GRNList() {
   // =========================
   useEffect(() => {
     setFiltered(
-      data?.filter((item) =>
-        item.description?.toLowerCase().includes(search.toLowerCase())
+      data?.filter(
+        (item) =>
+          (item.note || "").toLowerCase().includes(search.toLowerCase()) ||
+          (item.goodsIssueNoteCode || "")
+            .toLowerCase()
+            .includes(search.toLowerCase()) ||
+          (item.warehouseName || "")
+            .toLowerCase()
+            .includes(search.toLowerCase())
       ) || []
     );
   }, [search, data]);
@@ -114,13 +121,13 @@ export default function GRNList() {
             <TableHead>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>GIN ID</TableCell>
+                <TableCell>Phiếu xuất kho</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
                 <TableCell>Ngày tạo</TableCell>
                 <TableCell>Mô tả</TableCell>
                 <TableCell>Người phụ trách</TableCell>
                 <TableCell>Trạng thái</TableCell>
-                <TableCell>PO ID</TableCell>
+                <TableCell>Mã đơn hàng</TableCell>
                 <TableCell align="center">Action</TableCell>
               </TableRow>
             </TableHead>
@@ -133,19 +140,19 @@ export default function GRNList() {
                 </TableRow>
               ) : (
                 filtered.map((row, idx) => (
-                  <TableRow key={row.ginId + "_" + idx}>
+                  <TableRow key={row.id + "_" + idx}>
                     <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{`GIN-${row.ginId}`}</TableCell>
-                    <TableCell>{row.source}</TableCell>
+                    <TableCell>{row.goodsIssueNoteCode}</TableCell>
+                    <TableCell>{row.warehouseName}</TableCell>
                     <TableCell>
-                      {row.createDate
-                        ? new Date(row.createDate).toLocaleDateString("vi-VN")
+                      {row.createAt
+                        ? new Date(row.createAt).toLocaleDateString("vi-VN")
                         : "-"}
                     </TableCell>
-                    <TableCell>{row.description}</TableCell>
+                    <TableCell>{row.note}</TableCell>
                     <TableCell>{row.createBy}</TableCell>
-                    <TableCell>{mapGINStatus(row.status)}</TableCell>
-                    <TableCell>{row.poid}</TableCell>
+                    <TableCell>{renderGINStatus(row.status)}</TableCell>
+                    <TableCell>{row.stockExportOrderCode}</TableCell>
                     <TableCell align="center">
                       <Stack
                         direction="row"
@@ -188,42 +195,46 @@ export default function GRNList() {
             selectedExport && (
               <>
                 <Typography>
-                  <b>GIN ID:</b> {`GIN-${selectedExport.ginId}`}
+                  <b>Phiếu xuất kho:</b> {selectedExport.goodsIssueNoteCode}
                 </Typography>
                 <Typography>
-                  <b>Nhà cung cấp:</b> {selectedExport.source}
+                  <b>Kho xuất:</b> {selectedExport.warehouseName}
                 </Typography>
+
                 <Typography>
                   <b>Ngày tạo:</b>{" "}
-                  {selectedExport.createDate
-                    ? new Date(selectedExport.createDate).toLocaleDateString(
+                  {selectedExport.createAt
+                    ? new Date(selectedExport.createAt).toLocaleDateString(
                         "vi-VN"
                       )
                     : "-"}
                 </Typography>
+
                 <Typography>
                   <b>Người phụ trách:</b> {selectedExport.createBy}
                 </Typography>
                 <Typography>
-                  <b>Mô tả:</b> {selectedExport.description}
+                  <b>Mô tả:</b> {selectedExport.note}
                 </Typography>
                 <Typography>
-                  <b>PO ID:</b> {`PO-${selectedExport.poid}`}
+                  <b>Mã đơn hàng:</b> {selectedExport.stockExportOrderCode}
                 </Typography>
 
                 <Typography fontWeight="bold" mt={2} mb={1}>
                   Danh sách sản phẩm
                 </Typography>
+
                 <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>#</TableCell>
                       <TableCell>Tên sản phẩm</TableCell>
                       <TableCell>Số lượng</TableCell>
-                      <TableCell>Đơn giá</TableCell>
-                      <TableCell>Thành tiền</TableCell>
+                      <TableCell>Vị trí kho</TableCell>
+                      <TableCell>Hạn dùng</TableCell>
                     </TableRow>
                   </TableHead>
+
                   <TableBody>
                     {detailItems.length === 0 ? (
                       <TableRow>
@@ -237,11 +248,13 @@ export default function GRNList() {
                           <TableCell>{idx + 1}</TableCell>
                           <TableCell>{item.productName}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
+                          <TableCell>{item.warehouseLocationName}</TableCell>
                           <TableCell>
-                            {item.unitPrice?.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            {(item.quantity * item.unitPrice)?.toLocaleString()}
+                            {item.expiredDate
+                              ? new Date(item.expiredDate).toLocaleDateString(
+                                  "vi-VN"
+                                )
+                              : "-"}
                           </TableCell>
                         </TableRow>
                       ))
@@ -252,6 +265,7 @@ export default function GRNList() {
             )
           )}
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setOpenDetail(false)}>Đóng</Button>
         </DialogActions>

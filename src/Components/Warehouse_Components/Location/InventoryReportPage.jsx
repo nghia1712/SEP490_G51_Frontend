@@ -82,6 +82,22 @@ export default function InventoryReportPage() {
     loadWarehouses();
   }, []);
 
+  const showApiError = (err, fallback = "Có lỗi xảy ra") => {
+    console.error(err);
+
+    const apiMsg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      fallback;
+
+    setSnackbar({
+      open: true,
+      message: apiMsg,
+      severity: "error",
+    });
+  };
+
   // --- Khi navigate tới từ WarehousePage ---
   useEffect(() => {
     const initFromLocationState = async () => {
@@ -98,12 +114,7 @@ export default function InventoryReportPage() {
         const exists = locList.find((l) => Number(l.id) === Number(location));
         if (exists) setSelectedLocation(location);
       } catch (err) {
-        console.error(err);
-        setSnackbar({
-          open: true,
-          message: "Không thể tải danh sách vị trí",
-          severity: "error",
-        });
+        showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
         return;
       }
 
@@ -113,12 +124,7 @@ export default function InventoryReportPage() {
         const data = (res.data.data || []).filter((s) => s.status === 3);
         setSessions(data);
       } catch (err) {
-        console.error(err);
-        setSnackbar({
-          open: true,
-          message: "Không thể tải phiên kiểm kê theo vị trí",
-          severity: "error",
-        });
+        showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
       } finally {
         setLoading(false);
       }
@@ -142,12 +148,7 @@ export default function InventoryReportPage() {
         );
         setLocations(res.data.data || []);
       } catch (err) {
-        console.error(err);
-        setSnackbar({
-          open: true,
-          message: "Không thể tải danh sách vị trí",
-          severity: "error",
-        });
+        showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
       }
     };
     loadLocations();
@@ -200,12 +201,7 @@ export default function InventoryReportPage() {
         setSessions(data);
         setPage(1); // Reset page khi filter thay đổi
       } catch (err) {
-        console.error(err);
-        setSnackbar({
-          open: true,
-          message: "Không thể tải phiên kiểm kê",
-          severity: "error",
-        });
+        showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
       } finally {
         setLoading(false);
       }
@@ -221,12 +217,7 @@ export default function InventoryReportPage() {
       const res = await warehouseAPI.getHistoriesBySessionId(sessionId);
       setHistories(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Không thể tải chi tiết phiên kiểm kê",
-        severity: "error",
-      });
+      showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
     } finally {
       setDetailLoading(false);
     }
@@ -242,12 +233,7 @@ export default function InventoryReportPage() {
       document.body.appendChild(link);
       link.click();
     } catch (err) {
-      console.error(err);
-      setSnackbar({
-        open: true,
-        message: "Xuất Excel thất bại",
-        severity: "error",
-      });
+      showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
     }
   };
 
