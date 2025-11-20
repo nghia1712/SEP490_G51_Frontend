@@ -2,7 +2,7 @@ import authorApi from "./baseAPI/authorAPI";
 
 const API_URL = "/GoodsIssueNote";
 
-const stockExportApi = {
+const ginAPI = {
   // ✅ GET: Lấy danh sách toàn bộ phiếu xuất kho
   getAll: () => authorApi.get(`${API_URL}/goods-issue-note-list`),
 
@@ -26,4 +26,4 @@ const stockExportApi = {
   delete: (ginId) => authorApi.delete(`${API_URL}/delete-goods-issue-note`, { params: { ginId } }),
 };
 
-export default stockExportApi;
+export default ginAPI;

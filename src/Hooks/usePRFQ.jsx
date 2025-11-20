@@ -5,10 +5,10 @@ import supplierAPI from "../API/supplierAPI";
 import productAPI from "../API/productAPI";
 
 export const statusMap = {
-  1: { label: "Sent", color: "info" },
-  2: { label: "Approved", color: "success" },
-  3: { label: "Rejected", color: "error" },
-  4: { label: "Draft", color: "default" },
+  1: { label: "Đã gửi", color: "info" },
+  2: { label: "Đã duyệt", color: "success" },
+  3: { label: "Từ chối", color: "error" },
+  4: { label: "Nháp", color: "default" },
 };
 
 export default function usePRFQ(prfqId = null) {
