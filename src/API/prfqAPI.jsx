@@ -59,6 +59,9 @@ const prfqAPI = {
     authorApi.put(`${API_URL}/continue-edit/${id}`, data, {
       headers: { "Content-Type": "application/json-patch+json" },
     }),
+
+  // 🔹 Xem trước sản phẩm theo báo giá đã chọn (preview2)
+  preview2: (qid) => authorApi.get(`${API_URL}/preview2/${qid}`),
 };
 
 export default prfqAPI;

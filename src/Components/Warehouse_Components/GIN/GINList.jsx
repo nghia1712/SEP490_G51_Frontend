@@ -100,13 +100,6 @@ export default function GRNList() {
             sx={{ width: 350 }}
           />
 
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/stock-export/manual-create")}
-          >
-            Tạo phiếu xuất kho
-          </Button>
         </Stack>
       </Paper>
 
@@ -122,13 +115,13 @@ export default function GRNList() {
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Phiếu xuất kho</TableCell>
-                <TableCell>Nhà cung cấp</TableCell>
+                <TableCell>Kho</TableCell>
                 <TableCell>Ngày tạo</TableCell>
                 <TableCell>Mô tả</TableCell>
                 <TableCell>Người phụ trách</TableCell>
                 <TableCell>Trạng thái</TableCell>
-                <TableCell>Mã đơn hàng</TableCell>
-                <TableCell align="center">Action</TableCell>
+                <TableCell>Mã yêu cầu</TableCell>
+                <TableCell align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

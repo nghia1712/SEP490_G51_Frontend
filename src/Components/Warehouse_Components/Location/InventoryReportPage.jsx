@@ -361,7 +361,7 @@ export default function InventoryReportPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>#</TableCell>
-                  <TableCell>ID Phiên</TableCell>
+                  <TableCell>Phiên kiểm kê</TableCell>
                   <TableCell>Ngày bắt đầu</TableCell>
                   <TableCell>Ngày hoàn tất</TableCell>
                   <TableCell align="center">Hành động</TableCell>

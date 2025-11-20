@@ -57,6 +57,13 @@ const warehouseAPI = {
 
   getSessionByWarehouseLocation: (warehouseLocationId) =>
     authorApi.get(`${API_URL}/sessionbywarehouse/${warehouseLocationId}`),
+
+  updateLotSalePrice: (whlcid, lotid, newSalePrice) =>
+    authorApi.put(
+      `${API_URL}/warehouse-location/${whlcid}/lot/${lotid}/update-saleprice`,
+      newSalePrice,
+      { headers: { "Content-Type": "application/json" } }
+    ),
 };
 
 export default warehouseAPI;

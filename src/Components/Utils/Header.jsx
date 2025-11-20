@@ -181,6 +181,11 @@ function Header() {
       path: "/product",
       allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"],
     },
+        {
+      label: "Danh mục",
+      path: "/category",
+      allowedRoles: ["purchases_staff"],
+    },
     {
       label: "Nhà cung cấp",
       path: "/supplier",
@@ -192,7 +197,7 @@ function Header() {
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
     {
-      label: "Báo giá",
+      label: "Báo giá(PQ)",
       path: "/purchase/pq",
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },

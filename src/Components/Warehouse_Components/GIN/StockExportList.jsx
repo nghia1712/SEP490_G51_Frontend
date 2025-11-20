@@ -228,7 +228,7 @@ const handleCreateGIN = async (item) => {
                   paginatedData.map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                      <TableCell align="center">{`SE-${item.id}`}</TableCell>
+                      <TableCell align="center">{item.stockExportOrderCode}</TableCell>
                       <TableCell>
                         {item.requestDate
                           ? new Date(item.requestDate).toLocaleDateString(
