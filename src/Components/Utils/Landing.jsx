@@ -159,12 +159,6 @@ const mainFunctions = [
     path: "/purchase-history",
     allowedRoles: ["customer"],
   },
-  // {
-  //   title: "Kệ hàng",
-  //   icon: <GridViewIcon />,
-  //   path: "/inventory-check",
-  //   allowedRoles: ["manager", "employee"],
-  // },
   {
     title: "Giao dịch",
     icon: <ViewListIcon />,

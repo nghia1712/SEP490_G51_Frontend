@@ -69,9 +69,25 @@ const CustomerQuotationDetails = () => {
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return '-';
+
+    const tryParseDate = (value) => {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
     try {
-      const date = new Date(dateString);
-      if (Number.isNaN(date.getTime())) return '-';
+      let date = tryParseDate(dateString);
+
+      if (!date && typeof dateString === 'string') {
+        const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (match) {
+          const [, day, month, year] = match;
+          date = tryParseDate(`${year}-${month}-${day}T00:00:00`);
+        }
+      }
+
+      if (!date) return '-';
+
       return date.toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -86,6 +102,36 @@ const CustomerQuotationDetails = () => {
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return '-';
     return new Intl.NumberFormat('vi-VN').format(value);
+  };
+
+  const renderCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
+    return (
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: 0.25,
+        }}
+      >
+        <Typography component="span" sx={{ fontWeight: 500 }}>
+          {formatCurrency(value)}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '0.75em',
+            lineHeight: 1,
+            textDecoration: 'underline',
+            textDecorationThickness: '1px',
+            textUnderlineOffset: '1px',
+          }}
+        >
+          đ
+        </Typography>
+      </Box>
+    );
   };
 
   // Extract tax rate from TaxText (e.g., "VAT 10%" -> 0.1)
@@ -555,15 +601,22 @@ const CustomerQuotationDetails = () => {
                             <TableCell>{taxText || '-'}</TableCell>
                             <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
                             <TableCell sx={{ textAlign: 'right' }}>
-                              {salesPrice !== null ? formatCurrency(salesPrice) : '-'}
+                              {salesPrice !== null ? renderCurrency(salesPrice) : '-'}
                             </TableCell>
                             <TableCell sx={{ textAlign: 'right' }}>
-                              {totalBeforeTax > 0 ? formatCurrency(totalBeforeTax) : '-'}
+                              {totalBeforeTax > 0 ? renderCurrency(totalBeforeTax) : '-'}
                             </TableCell>
                             <TableCell sx={{ textAlign: 'right' }}>
-                              {itemTotal !== null ? formatCurrency(itemTotal) : '-'}
+                              {itemTotal !== null ? renderCurrency(itemTotal) : '-'}
                             </TableCell>
-                            <TableCell>{note}</TableCell>
+                            <TableCell
+                              sx={{
+                                textAlign: 'center',
+                                color: note === '-' ? 'text.secondary' : 'inherit',
+                              }}
+                            >
+                              {note}
+                            </TableCell>
               </TableRow>
                         );
                       });

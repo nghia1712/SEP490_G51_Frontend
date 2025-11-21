@@ -16,10 +16,12 @@ import notificationAPI from "../../API/notificationAPI";
 import poAPI from "../../API/poAPI";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
 import { useNavigate } from "react-router-dom";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 dayjs.extend(relativeTime);
+dayjs.extend(utc);
 
 export default function NotificationMenu() {
   const navigate = useNavigate();
@@ -66,12 +68,34 @@ export default function NotificationMenu() {
 
   const handleNotificationClick = async (n) => {
     if (!n.isRead) {
-      await handleMarkAsRead(n.id);
-      return;
+      try {
+        await handleMarkAsRead(n.id);
+      } catch (err) {
+        console.error("Mark read failed, continue navigation", err);
+      }
     }
 
     let poId = null;
     let state = {};
+
+    if (/yêu cầu báo giá/i.test(n.message || "")) {
+      handleClose();
+      if (userRole === "sales_staff") {
+        navigate("/request-quotation");
+      } else if (userRole === "customer") {
+        navigate("/customer/request-quotation");
+      }
+      return;
+    }
+
+    if (
+      userRole === "customer" &&
+      /báo giá mới/i.test(n.message || "")
+    ) {
+      handleClose();
+      navigate("/customer/request-quotation");
+      return;
+    }
 
     if (userRole === "warehouse_staff") {
 
@@ -166,7 +190,7 @@ export default function NotificationMenu() {
           </Typography>
         </Box>
         <Typography variant="caption" color="text.secondary">
-          {dayjs(n.createdAt).fromNow()}
+          {dayjs.utc(n.createdAt).local().fromNow()}
         </Typography>
       </Box>
     </MenuItem>

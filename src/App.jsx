@@ -40,6 +40,7 @@ import CreateRSQ from "./Components/Sales_Components/CreateRSQ";
 import SalesQuotationList from "./Components/Sales_Components/SalesQuotationList";
 import SalesOrderList from "./Components/Sales_Components/SalesOrderList";
 import AccountantOrderList from "./Components/Accountant_Components/AccountantOrderList";
+import AccountantTaxPolicy from "./Components/Accountant_Components/AccountantTaxPolicy";
 import RequestQuotationDetails from "./Components/Sales_Components/RequestQuotationDetails";
 import CreateSalesQuotation from "./Components/Sales_Components/CreateSalesQuotation";
 import CustomerOrderList from "./Components/Customer_Components/CustomerOrderList";
@@ -49,7 +50,6 @@ import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDeta
 import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
 import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard";
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
-import InventoryCheck from "./Components/Inventory_Components/InventoryCheck";
 import Stocktaking from "./Components/Inventory_Components/Stocktaking";
 import sessionManager from "./Utils/sessionManager";
 import CustomerAdditionalInfoForm from "./Components/Customer_Components/CustomerAdditionalInfoForm";
@@ -719,6 +719,7 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+
                       {/* Cập nhật lệnh xuất kho theo id */}
                       <Route
                         path="/stock-export/edit/:id"
@@ -789,21 +790,6 @@ function App() {
                       <Route
                         path="/development"
                         element={<DevelopmentPage />}
-                      />
-                      <Route
-                        path="/inventory-check"
-                        element={
-                          <ProtectedRoute
-                            allowedRoles={[
-                              "manager",
-                              "warehouse_staff",
-                              "accountant_staff",
-                              "admin",
-                            ]}
-                          >
-                            <InventoryCheck />
-                          </ProtectedRoute>
-                        }
                       />
                       <Route
                         path="/stocktaking"
@@ -922,8 +908,16 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route
-                        path="/sales-quotation"
+                      <Route 
+                        path="/accountant/tax-policy" 
+                        element={
+                          <ProtectedRoute allowedRoles={['accountant_staff']}>
+                            <AccountantTaxPolicy />
+                          </ProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/sales-quotation" 
                         element={
                           <ProtectedRoute
                             allowedRoles={["manager", "sales_staff"]}
@@ -932,10 +926,7 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route
-                        path="/list-transaction"
-                        element={<div>Giao dịch - Đang phát triển</div>}
-                      />
+                      <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
 
                       {/* Removed legacy /admin/users route */}
                       <Route

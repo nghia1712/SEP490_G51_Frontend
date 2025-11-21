@@ -28,8 +28,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Pagination,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers';
@@ -42,9 +43,17 @@ import SendIcon from '@mui/icons-material/Send';
 import AddIcon from '@mui/icons-material/Add';
 import Autocomplete from '@mui/material/Autocomplete';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
+import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
+
+const headerTextSx = {
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  letterSpacing: '0.03em',
+};
 
 const SalesQuotationList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -62,12 +71,14 @@ const SalesQuotationList = () => {
     expiredDate: null,
     depositPercent: 0,
     depositDueDays: 1,
-    details: []
   });
+  const [editRows, setEditRows] = useState([]);
   const [notes, setNotes] = useState([]);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editError, setEditError] = useState(null);
   const [sendingQuotationId, setSendingQuotationId] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -90,10 +101,77 @@ const SalesQuotationList = () => {
       case 1:
         return { backgroundColor: '#d1ecf1', color: '#0c5460' }; // Sent - Blue
       case 2:
-        return { backgroundColor: '#d4edda', color: '#155724' }; // Quoted - Green
+        return { backgroundColor: '#fdecea', color: '#b71c1c' }; // Expired - Red
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
+  };
+
+  const resolveCustomerName = (source) => {
+    if (!source) return '-';
+
+    const candidates = [
+      source.CustomerName ?? source.customerName,
+      source.CustomerProfile?.User?.FullName ?? source.CustomerProfile?.User?.fullName,
+      source.customerProfile?.user?.FullName ?? source.customerProfile?.user?.fullName,
+      source.RequestSalesQuotation?.CustomerProfile?.User?.FullName ??
+        source.RequestSalesQuotation?.CustomerProfile?.User?.fullName,
+      source.requestSalesQuotation?.customerProfile?.user?.FullName ??
+        source.requestSalesQuotation?.customerProfile?.user?.fullName,
+      source.CreatedByUserName ?? source.createdByUserName,
+      source.CreatedBy ?? source.createdBy,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate && String(candidate).trim() !== '') {
+        return candidate;
+      }
+    }
+
+    return '-';
+  };
+
+  const resolveCustomerUsername = (source) => {
+    if (!source) return '-';
+
+    const candidates = [
+      source.CustomerUserName ?? source.customerUserName,
+      source.CustomerUsername ?? source.customerUsername,
+      source.CustomerUser ?? source.customerUser,
+      source.Customer?.UserName ?? source.Customer?.userName,
+      source.Customer?.Username ?? source.Customer?.username,
+      source.CustomerProfile?.UserName ?? source.CustomerProfile?.username,
+      source.customerProfile?.UserName ?? source.customerProfile?.username,
+      source.CustomerProfile?.User?.UserName ?? source.CustomerProfile?.User?.userName,
+      source.CustomerProfile?.User?.Username ?? source.CustomerProfile?.User?.username,
+      source.customerProfile?.user?.UserName ?? source.customerProfile?.user?.userName,
+      source.customerProfile?.user?.Username ?? source.customerProfile?.user?.username,
+      source.RequestSalesQuotation?.CustomerProfile?.User?.UserName ??
+        source.RequestSalesQuotation?.CustomerProfile?.User?.userName,
+      source.RequestSalesQuotation?.CustomerProfile?.User?.Username ??
+        source.RequestSalesQuotation?.CustomerProfile?.User?.username,
+      source.requestSalesQuotation?.customerProfile?.user?.UserName ??
+        source.requestSalesQuotation?.customerProfile?.user?.userName,
+      source.requestSalesQuotation?.customerProfile?.user?.Username ??
+        source.requestSalesQuotation?.customerProfile?.user?.username,
+      source.RequestSalesQuotation?.CustomerProfile?.UserName ??
+        source.RequestSalesQuotation?.CustomerProfile?.username,
+      source.requestSalesQuotation?.customerProfile?.UserName ??
+        source.requestSalesQuotation?.customerProfile?.username,
+      source.CreatedByUsername ?? source.createdByUsername,
+      source.CreatedByUserName ?? source.createdByUserName,
+      source.CreatedBy ?? source.createdBy,
+      source.CustomerEmail ?? source.customerEmail,
+      source.Email ?? source.email,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate && String(candidate).trim() !== '') {
+        return candidate;
+      }
+    }
+
+    return '-';
   };
 
   // Format date
@@ -101,13 +179,16 @@ const SalesQuotationList = () => {
     if (!dateString) return '-';
     try {
       const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) {
+        return typeof dateString === 'string' ? dateString : '-';
+      }
       return date.toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       });
     } catch (error) {
-      return '-';
+      return typeof dateString === 'string' ? dateString : '-';
     }
   };
 
@@ -115,6 +196,36 @@ const SalesQuotationList = () => {
   const formatCurrency = (value) => {
     const number = Number(value) || 0;
     return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  const renderCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
+    return (
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: 0.25,
+        }}
+      >
+        <Typography component="span" sx={{ fontWeight: 500 }}>
+          {formatCurrency(value)}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '0.75em',
+            lineHeight: 1,
+            textDecoration: 'underline',
+            textDecorationThickness: '1px',
+            textUnderlineOffset: '1px',
+          }}
+        >
+          đ
+        </Typography>
+      </Box>
+    );
   };
 
   // Extract tax rate from TaxText (e.g., "VAT 10%" -> 0.1)
@@ -137,6 +248,26 @@ const SalesQuotationList = () => {
     return totalAfterTax / (1 + taxRate);
   };
 
+  const calculateTotals = (quantity, unitPrice, taxRate = 0) => {
+    const qty = Number(quantity) || 0;
+    const price = Number(unitPrice) || 0;
+    const rate = Number(taxRate) || 0;
+    const beforeTax = qty * price;
+    const afterTax = beforeTax * (rate > 1 ? rate / 100 : rate) + beforeTax;
+    return { beforeTax, afterTax };
+  };
+
+  const getDefaultTaxInfo = (taxes) => {
+    if (!Array.isArray(taxes) || taxes.length === 0) {
+      return { id: null, rate: 0 };
+    }
+    const first = taxes[0];
+    return {
+      id: first.id || first.Id || null,
+      rate: getTaxRateFromText(first.name || first.Name || '') || 0,
+    };
+  };
+
   // Fetch data from API - Lấy danh sách yêu cầu báo giá đã gửi của customer
   // API này trả về các RequestSalesQuotation với status != Draft (đã gửi)
   const fetchQuotations = useCallback(async (showLoading = true) => {
@@ -152,14 +283,20 @@ const SalesQuotationList = () => {
           ? response.data.data
           : [];
 
-        const mappedData = data.map((item) => ({
+        const mappedData = data.map((item) => {
+          const customerName = resolveCustomerUsername(item);
+
+          return {
           id: item.Id || item.id,
           quotationCode: item.QuotationCode || item.quotationCode || '',
           requestCode: item.RequestCode || item.requestCode || '',
           quotationDate: item.QuotationDate || item.quotationDate || null,
           expiredDate: item.ExpiredDate || item.expiredDate || null,
+            customerName,
           status: item.Status !== undefined ? item.Status : item.status,
-        }));
+            rawItem: item,
+          };
+        });
 
         setQuotations(mappedData);
       } else {
@@ -223,6 +360,23 @@ const SalesQuotationList = () => {
     });
   }, [filteredQuotations, sortConfig]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedQuotations.length / pageSize));
+
+  const paginatedQuotations = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedQuotations.slice(start, start + pageSize);
+  }, [sortedQuotations, page]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const handleEdit = async (id) => {
     // Kiểm tra trạng thái trước khi cho phép sửa
     const quotation = quotations.find(q => q.id === id);
@@ -245,27 +399,129 @@ const SalesQuotationList = () => {
         // Tạm thời lấy từ quotation details hoặc có thể cần fetch riêng
         // Set form data
         const details = data.Details || data.details || [];
-        setEditFormData({
-          sqnId: data.SqnId || data.sqnId || null,
-          expiredDate: data.ExpiredDate || data.expiredDate ? dayjs(data.ExpiredDate || data.expiredDate) : null,
-          depositPercent: data.DepositPercent !== undefined ? data.DepositPercent : (data.depositPercent !== undefined ? data.depositPercent : 0),
-          depositDueDays: data.DepositDueDays !== undefined ? data.DepositDueDays : (data.depositDueDays !== undefined ? data.depositDueDays : 1),
-          details: details.map(detail => ({
-            sqdId: detail.Id || detail.id,
-            taxId: detail.TaxId || detail.taxId || null,
-            note: detail.Note || detail.note || ''
-          }))
+        const rsqId = data.RsqId || data.rsqId || data.RequestSalesQuotationId || null;
+
+        let formDataMeta = null;
+        if (rsqId) {
+          try {
+            const formResp = await salesQuotationAPI.generateForm(rsqId);
+            formDataMeta = formResp.data?.data || null;
+          } catch (metaErr) {
+            console.error('Không thể tải form meta cho sửa báo giá', metaErr);
+          }
+        }
+
+        const lotProducts = formDataMeta?.lotProducts || formDataMeta?.LotProducts || [];
+        const taxes = formDataMeta?.taxes || formDataMeta?.Taxes || [];
+        const notesMeta = formDataMeta?.notes || formDataMeta?.Notes || [];
+        setNotes(notesMeta);
+
+        const lotsByProduct = lotProducts.reduce((acc, lot) => {
+          const productId =
+            lot.productID ||
+            lot.ProductID ||
+            lot.productId ||
+            lot.ProductId ||
+            null;
+          if (!productId) {
+            return acc;
+          }
+          if (!acc[productId]) {
+            acc[productId] = [];
+          }
+          const lotIdentifier =
+            lot.lotCode ||
+            lot.LotCode ||
+            lot.lotName ||
+            lot.LotName ||
+            (lot.lotID || lot.LotID ? `Lô ${lot.lotID || lot.LotID}` : 'Lô');
+          const expiredRaw = lot.expiredDate || lot.ExpiredDate || null;
+          const formattedExpired =
+            expiredRaw && !Number.isNaN(new Date(expiredRaw).getTime())
+              ? new Date(expiredRaw).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : null;
+          acc[productId].push({
+            lotId: lot.lotID || lot.LotID || lot.id || lot.Id || null,
+            salePrice: lot.salePrice || lot.SalePrice || 0,
+            expiredDate: expiredRaw,
+            displayLabel: `${lotIdentifier}${formattedExpired ? ` - HH: ${formattedExpired}` : ''}`,
+          });
+          return acc;
+        }, {});
+
+        const defaultTaxInfo = getDefaultTaxInfo(taxes);
+
+        const initializedRows = details.map((detail, idx) => {
+          const productId = detail.ProductId || detail.productId;
+          const productName = detail.ProductName || detail.productName || '';
+          const productLots = lotsByProduct[productId] || [];
+          const currentLotId = detail.LotId || detail.lotId || null;
+          const sqdId = detail.Id || detail.id || null;
+          const lotOptions =
+            productLots.length > 0
+              ? productLots
+              : [
+                  {
+                    lotId: currentLotId,
+                    salePrice: detail.SalesPrice || detail.salesPrice || 0,
+                    expiredDate: detail.LotExpiredDate || detail.lotExpiredDate || null,
+                    displayLabel: currentLotId ? `Lô ${currentLotId}` : 'Không có lô',
+                  },
+                ];
+          const selectedLot =
+            lotOptions.find((lot) => lot.lotId === currentLotId) || lotOptions[0] || null;
+          const lotId = selectedLot ? selectedLot.lotId : null;
+          const unitPrice = selectedLot ? selectedLot.salePrice || 0 : detail.SalesPrice || detail.salesPrice || 0;
+
+          const taxOptions = taxes.length > 0 ? taxes : detail.Taxes || detail.taxes || [];
+          const taxId =
+            detail.TaxId ||
+            detail.taxId ||
+            (taxOptions[0]?.id ?? taxOptions[0]?.Id ?? defaultTaxInfo.id);
+          const selectedTax = (taxOptions || []).find((tax) => (tax.id || tax.Id) === taxId);
+          const taxRate = selectedTax ? getTaxRateFromText(selectedTax.name || selectedTax.Name) : defaultTaxInfo.rate;
+
+          const { beforeTax, afterTax } = calculateTotals(1, unitPrice, taxRate);
+
+          return {
+            id: idx + 1,
+            sqdId,
+            productId,
+            productName,
+            lotId,
+            lotOptions,
+            taxId,
+            taxOptions: taxOptions.length > 0 ? taxOptions : [],
+            minQuantity: 1,
+            unitPrice,
+            totalBeforeTax: beforeTax,
+            totalAfterTax: afterTax,
+            taxRate,
+            note: detail.Note || detail.note || '',
+          };
         });
 
-        // Load notes từ generateForm - cần rsqId từ RequestSalesQuotation
-        // Có thể lấy rsqId từ quotation hoặc từ RequestCode
-        // Tạm thời, để notes trống vì không có rsqId trực tiếp
-        // Có thể cần fetch từ quotation để lấy rsqId
-        // Hoặc có API riêng để load notes
-        setNotes([]);
-        
-        // TODO: Load notes từ API hoặc từ quotation details
-        // Có thể cần fetch rsqId từ quotation và gọi generateForm để lấy notes
+        setEditRows(initializedRows);
+
+        setEditFormData({
+          sqnId: data.SqnId || data.sqnId || null,
+          expiredDate:
+            data.ExpiredDate || data.expiredDate
+              ? dayjs(data.ExpiredDate || data.expiredDate)
+              : null,
+          depositPercent:
+            data.DepositPercent !== undefined
+              ? data.DepositPercent
+              : data.depositPercent !== undefined
+              ? data.depositPercent
+              : 0,
+          depositDueDays:
+            data.DepositDueDays !== undefined
+              ? data.DepositDueDays
+              : data.depositDueDays !== undefined
+              ? data.depositDueDays
+              : 1,
+        });
         
         setEditDialogOpen(true);
       }
@@ -279,6 +535,80 @@ const SalesQuotationList = () => {
     }
   };
 
+  const handleEditLotChange = (rowId, lotId) => {
+    const normalizedLotId = lotId === 'NONE' ? null : Number(lotId);
+    setEditRows((prevRows) =>
+      prevRows.map((row) => {
+        if (row.id !== rowId) return row;
+        if (!normalizedLotId) {
+          const { beforeTax, afterTax } = calculateTotals(1, 0, row.taxRate || 0);
+          return {
+            ...row,
+            lotId: null,
+            unitPrice: 0,
+            totalBeforeTax: beforeTax,
+            totalAfterTax: afterTax,
+          };
+        }
+        const selectedLot = (row.lotOptions || []).find((lot) => lot.lotId === normalizedLotId);
+        if (selectedLot) {
+          const unitPrice = selectedLot.salePrice ?? 0;
+          const { beforeTax, afterTax } = calculateTotals(1, unitPrice, row.taxRate || 0);
+          return {
+            ...row,
+            lotId: normalizedLotId,
+            unitPrice,
+            totalBeforeTax: beforeTax,
+            totalAfterTax: afterTax,
+          };
+        }
+        return { ...row, lotId: normalizedLotId };
+      })
+    );
+  };
+
+  const handleEditTaxChange = (rowId, taxId) => {
+    const normalizedTaxId = taxId ? Number(taxId) : null;
+    setEditRows((prevRows) =>
+      prevRows.map((row) => {
+        if (row.id !== rowId) return row;
+
+        if (!normalizedTaxId) {
+          const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, 0);
+          return {
+            ...row,
+            taxId: null,
+            taxRate: 0,
+            totalBeforeTax: beforeTax,
+            totalAfterTax: afterTax,
+          };
+        }
+
+        const selectedTax = (row.taxOptions || []).find(
+          (tax) => (tax.id || tax.Id) === normalizedTaxId
+        );
+        const taxRate = getTaxRateFromText(
+          selectedTax?.name || selectedTax?.Name || ''
+        );
+        const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, taxRate);
+
+        return {
+          ...row,
+          taxId: normalizedTaxId,
+          taxRate,
+          totalBeforeTax: beforeTax,
+          totalAfterTax: afterTax,
+        };
+      })
+    );
+  };
+
+  const handleEditNoteChange = (rowId, value) => {
+    setEditRows((prevRows) =>
+      prevRows.map((row) => (row.id === rowId ? { ...row, note: value } : row))
+    );
+  };
+
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditingQuotationId(null);
@@ -288,8 +618,8 @@ const SalesQuotationList = () => {
       expiredDate: null,
       depositPercent: 0,
       depositDueDays: 1,
-      details: []
     });
+    setEditRows([]);
     setEditError(null);
   };
 
@@ -304,6 +634,21 @@ const SalesQuotationList = () => {
       return;
     }
 
+    const detailPayload = editRows
+      .filter((row) => row.lotId !== null && row.lotId !== undefined && row.lotId !== 'NONE')
+      .map((row) => ({
+        sqdId: row.sqdId || null,
+        productId: row.productId,
+        lotId: row.lotId,
+        taxId: row.taxId,
+        note: row.note || '',
+      }));
+
+    if (detailPayload.length === 0) {
+      setEditError('Vui lòng chọn lô và thuế cho ít nhất một sản phẩm trước khi cập nhật');
+      return;
+    }
+
     setUpdateLoading(true);
     setEditError(null);
     try {
@@ -313,11 +658,13 @@ const SalesQuotationList = () => {
         ExpiredDate: editFormData.expiredDate.format('YYYY-MM-DD'),
         DepositPercent: editFormData.depositPercent,
         DepositDueDays: editFormData.depositDueDays,
-        Details: editFormData.details.map(detail => ({
-          sqdId: detail.sqdId,
+        Details: detailPayload.map((detail) => ({
+          SqdId: detail.sqdId,
+          ProductId: detail.productId,
+          LotId: detail.lotId,
           TaxId: detail.taxId,
-          Note: detail.note || ''
-        }))
+          Note: detail.note,
+        })),
       };
       
       console.log('Update payload:', payload); // Debug log
@@ -360,7 +707,8 @@ const SalesQuotationList = () => {
     }
   };
 
-  const handleViewDetails = async (id) => {
+  const handleViewDetails = useCallback(async (id) => {
+    if (!id) return;
     setLoading(true);
     try {
       const response = await salesQuotationAPI.viewDetails(id);
@@ -378,7 +726,7 @@ const SalesQuotationList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleSend = async (id) => {
     setSendingQuotationId(id);
@@ -397,6 +745,14 @@ const SalesQuotationList = () => {
       setSendingQuotationId(null);
     }
   };
+
+  useEffect(() => {
+    const openId = location.state?.openQuotationId;
+    if (openId) {
+      handleViewDetails(openId);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, handleViewDetails]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -455,29 +811,54 @@ const SalesQuotationList = () => {
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
+            overflow: 'hidden',
           }}
         >
           <Table sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ width: '8%', py: 1.5, px: 2, textAlign: 'left' }}>
+                <TableCell
+                  sx={{
+                    width: '8%',
+                    py: 1.5,
+                    px: 2,
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   STT
                 </TableCell>
-                <TableCell sx={{ width: '22%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'quotationCode'}
                     direction={sortConfig.key === 'quotationCode' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('quotationCode')}
                     hideSortIcon
+                    sx={headerTextSx}
                   >
                     Mã báo giá
                   </TableSortLabel>
+                </TableCell>
+                <TableCell
+                  sx={{
+                    width: '18%',
+                    py: 1.5,
+                    px: 2,
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  Khách hàng
                 </TableCell>
                 <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'quotationDate'}
                     direction={sortConfig.key === 'quotationDate' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('quotationDate')}
+                    sx={headerTextSx}
                   >
                     Ngày gửi
                   </TableSortLabel>
@@ -487,6 +868,7 @@ const SalesQuotationList = () => {
                     active={sortConfig.key === 'expiredDate'}
                     direction={sortConfig.key === 'expiredDate' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('expiredDate')}
+                    sx={headerTextSx}
                   >
                     Ngày hết hạn
                   </TableSortLabel>
@@ -496,21 +878,24 @@ const SalesQuotationList = () => {
                     active={sortConfig.key === 'status'}
                     direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('status')}
+                    sx={headerTextSx}
                   >
                     Trạng thái
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span>Hành động</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                      Hành động
+                    </span>
                   </Box>
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedQuotations.map((quotation, index) => (
+              {paginatedQuotations.map((quotation, index) => (
                 <TableRow 
-                  key={quotation.id} 
+                  key={quotation.id || index} 
                   hover
                   sx={{
                     '&:nth-of-type(even)': {
@@ -523,8 +908,15 @@ const SalesQuotationList = () => {
                     }
                   }}
                 >
-                  <TableCell sx={{ textAlign: 'left' }}>{index + 1}</TableCell>
+                  <TableCell sx={{ textAlign: 'left' }}>
+                    {(page - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{quotation.quotationCode}</TableCell>
+                <TableCell>
+                  {quotation.customerName && quotation.customerName !== '-'
+                    ? quotation.customerName
+                    : resolveCustomerUsername(quotation.rawItem)}
+                </TableCell>
                   <TableCell>{formatDate(quotation.quotationDate)}</TableCell>
                   <TableCell>{formatDate(quotation.expiredDate)}</TableCell>
                   <TableCell>
@@ -634,7 +1026,7 @@ const SalesQuotationList = () => {
               ))}
               {sortedQuotations.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
                       Chưa có báo giá nào
                     </Typography>
@@ -643,6 +1035,25 @@ const SalesQuotationList = () => {
               )}
             </TableBody>
           </Table>
+          {sortedQuotations.length > 0 && (
+            <Box
+              sx={{
+                pt: 2,
+                pb: 2,
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                backgroundColor: '#fff',
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </TableContainer>
       )}
 
@@ -705,6 +1116,20 @@ const SalesQuotationList = () => {
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
+                      Khách hàng:
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedQuotationDetails.CustomerName ||
+                        selectedQuotationDetails.customerName ||
+                        selectedQuotationDetails.CustomerProfile?.User?.FullName ||
+                        selectedQuotationDetails.customerProfile?.user?.fullName ||
+                        selectedQuotationDetails.RequestSalesQuotation?.CustomerProfile?.User?.FullName ||
+                        selectedQuotationDetails.requestSalesQuotation?.customerProfile?.user?.fullName ||
+                        '-'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
                       Ngày gửi:
                     </Typography>
                     <Typography variant="body1">
@@ -733,6 +1158,7 @@ const SalesQuotationList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
@@ -758,6 +1184,17 @@ const SalesQuotationList = () => {
                               ? detail.ItemTotal 
                               : (detail.itemTotal !== undefined && detail.itemTotal !== null ? detail.itemTotal : null);
                             const note = detail.Note || detail.note || '-';
+                            const rawExpiredDate =
+                              detail.LotExpiredDate ||
+                              detail.lotExpiredDate ||
+                              detail.ExpiredDate ||
+                              detail.expiredDate ||
+                              detail.LotProduct?.ExpiredDate ||
+                              detail.LotProduct?.expiredDate ||
+                              detail.lotProduct?.ExpiredDate ||
+                              detail.lotProduct?.expiredDate ||
+                              null;
+                            const expiredDisplay = rawExpiredDate ? formatDate(rawExpiredDate) : '-';
                             
                             // Calculate tax rate and total before tax
                             const taxRate = taxText ? getTaxRateFromText(taxText) : 0;
@@ -769,18 +1206,21 @@ const SalesQuotationList = () => {
                               <TableRow key={detail.Id || detail.id || index}>
                                 <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
                                 <TableCell>{productName}</TableCell>
+                                <TableCell>{expiredDisplay}</TableCell>
                                 <TableCell>{taxText || '-'}</TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {salesPrice !== null ? formatCurrency(salesPrice) : '-'}
+                                {salesPrice !== null ? renderCurrency(salesPrice) : '-'}
                                 </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {totalBeforeTax > 0 ? formatCurrency(totalBeforeTax) : '-'}
+                                  {totalBeforeTax > 0 ? renderCurrency(totalBeforeTax) : '-'}
                                 </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {itemTotal !== null ? formatCurrency(itemTotal) : '-'}
+                                  {itemTotal !== null ? renderCurrency(itemTotal) : '-'}
                                 </TableCell>
-                                <TableCell>{note}</TableCell>
+                                <TableCell sx={{ textAlign: 'center', color: note === '-' ? 'text.secondary' : 'inherit' }}>
+                                  {note}
+                                </TableCell>
                               </TableRow>
                             );
                           });
@@ -960,6 +1400,7 @@ const SalesQuotationList = () => {
                         <TableRow>
                           <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                           <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                          <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Lô hàng</TableCell>
                           <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
                           <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
                           <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
@@ -969,49 +1410,76 @@ const SalesQuotationList = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {editFormData.details.map((detail, index) => {
-                          const initialDetail = (editInitialData.Details || editInitialData.details || [])[index];
-                          const productName = initialDetail?.ProductName || initialDetail?.productName || '-';
-                          const taxText = initialDetail?.TaxText || initialDetail?.taxText || null;
-                          const minQuantity = initialDetail?.minQuantity !== undefined && initialDetail?.minQuantity !== null 
-                            ? initialDetail.minQuantity 
-                            : (initialDetail?.MinQuantity !== undefined && initialDetail?.MinQuantity !== null ? initialDetail.MinQuantity : 1);
-                          const salesPrice = initialDetail?.SalesPrice !== undefined && initialDetail?.SalesPrice !== null 
-                            ? initialDetail.SalesPrice 
-                            : (initialDetail?.salesPrice !== undefined && initialDetail?.salesPrice !== null ? initialDetail.salesPrice : null);
-                          const itemTotal = initialDetail?.ItemTotal !== undefined && initialDetail?.ItemTotal !== null 
-                            ? initialDetail.ItemTotal 
-                            : (initialDetail?.itemTotal !== undefined && initialDetail?.itemTotal !== null ? initialDetail.itemTotal : null);
-                          
-                          // Calculate tax rate and total before tax
-                          const taxRate = taxText ? getTaxRateFromText(taxText) : 0;
-                          const totalBeforeTax = itemTotal !== null && itemTotal > 0 
-                            ? calculateTotalBeforeTax(itemTotal, taxRate)
-                            : (salesPrice !== null && salesPrice > 0 ? salesPrice * minQuantity : 0);
-                          
-                          return (
-                            <TableRow key={detail.sqdId || index}>
-                              <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
-                              <TableCell>{productName}</TableCell>
-                              <TableCell>{taxText || '-'}</TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
+                        {editRows.length > 0 ? (
+                          editRows.map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell sx={{ textAlign: 'center' }}>{row.id}</TableCell>
+                              <TableCell>{row.productName || '-'}</TableCell>
+                              <TableCell sx={{ minWidth: 200 }}>
+                                {row.lotOptions && row.lotOptions.length > 0 ? (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={
+                                        row.lotId !== null && row.lotId !== undefined
+                                          ? row.lotId
+                                          : 'NONE'
+                                      }
+                                      onChange={(e) => handleEditLotChange(row.id, e.target.value)}
+                                    >
+                                      {row.lotOptions.map((lot, idx) => (
+                                        <MenuItem
+                                          key={`${row.id}-${idx}`}
+                                          value={
+                                            lot.lotId !== null && lot.lotId !== undefined
+                                              ? lot.lotId
+                                              : 'NONE'
+                                          }
+                                        >
+                                          {lot.displayLabel || (lot.lotId ? `Lô ${lot.lotId}` : 'Không có lô')}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    Hết lô hàng
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 150 }}>
+                                {row.taxOptions && row.taxOptions.length > 0 ? (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={row.taxId ?? row.taxOptions[0]?.id ?? row.taxOptions[0]?.Id ?? ''}
+                                      onChange={(e) => handleEditTaxChange(row.id, e.target.value)}
+                                    >
+                                      {row.taxOptions.map((tax) => (
+                                        <MenuItem key={tax.id || tax.Id} value={tax.id || tax.Id}>
+                                          {tax.name || tax.Name || '-'}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    Không có thuế
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{row.minQuantity ?? 1}</TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>
-                                {salesPrice !== null ? formatCurrency(salesPrice) : '-'}
+                                {row.unitPrice !== undefined ? renderCurrency(row.unitPrice) : '-'}
                               </TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>
-                                {totalBeforeTax > 0 ? formatCurrency(totalBeforeTax) : '-'}
+                                {row.totalBeforeTax !== undefined ? renderCurrency(row.totalBeforeTax) : '-'}
                               </TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>
-                                {itemTotal !== null ? formatCurrency(itemTotal) : '-'}
+                                {row.totalAfterTax !== undefined ? renderCurrency(row.totalAfterTax) : '-'}
                               </TableCell>
                               <TableCell>
                                 <TextField
-                                  value={detail.note || ''}
-                                  onChange={(e) => {
-                                    const newDetails = [...editFormData.details];
-                                    newDetails[index] = { ...newDetails[index], note: e.target.value };
-                                    setEditFormData(prev => ({ ...prev, details: newDetails }));
-                                  }}
+                                  value={row.note || ''}
+                                  onChange={(e) => handleEditNoteChange(row.id, e.target.value)}
                                   variant="standard"
                                   size="small"
                                   fullWidth
@@ -1019,11 +1487,10 @@ const SalesQuotationList = () => {
                                 />
                               </TableCell>
                             </TableRow>
-                          );
-                        })}
-                        {editFormData.details.length === 0 && (
+                          ))
+                        ) : (
                           <TableRow>
-                            <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                            <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
                               <Typography variant="body2" color="text.secondary">
                                 Không có sản phẩm
                               </Typography>

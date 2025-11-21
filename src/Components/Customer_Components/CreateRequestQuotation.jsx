@@ -30,6 +30,7 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -87,8 +88,7 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
     }));
   };
 
-  // Handle create request (save as draft)
-  const handleCreateRequest = async () => {
+  const handleSubmitRequest = async (status = 0) => {
     const selectedProductIds = rows
       .filter(row => row.productId)
       .map(row => row.productId);
@@ -100,17 +100,19 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
       return;
     }
 
+    setSubmitStatus(status);
     setLoading(true);
     setError(null);
     try {
       const payload = {
-        ProductIdList: selectedProductIds
+        ProductIdList: selectedProductIds,
+        Status: status,
       };
       
       const response = await requestSalesQuotationAPI.createRequest(payload);
       
       if (response.data) {
-        setSnackbarMessage('Tạo yêu cầu thành công!');
+        setSnackbarMessage(status === 1 ? 'Gửi yêu cầu báo giá thành công!' : 'Lưu nháp yêu cầu thành công!');
         setSnackbarOpen(true);
         setRows([{ id: 1, productId: null, productCode: '', productName: '' }]);
         // Call onSuccess callback after a short delay
@@ -126,6 +128,7 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     } finally {
+      setSubmitStatus(null);
       setLoading(false);
     }
   };
@@ -287,8 +290,26 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
           Hủy
         </Button>
         <Button
+          variant="outlined"
+          onClick={() => handleSubmitRequest(0)}
+          disabled={loading}
+          sx={{
+            borderColor: '#155E64',
+            color: '#155E64',
+            '&:hover': {
+              borderColor: '#0D4F52',
+              backgroundColor: 'rgba(21, 94, 100, 0.05)',
+            },
+            borderRadius: '8px',
+            px: 4,
+            py: 1.5,
+          }}
+        >
+          {loading && submitStatus === 0 ? <CircularProgress size={24} color="inherit" /> : 'Lưu nháp'}
+        </Button>
+        <Button
           variant="contained"
-          onClick={handleCreateRequest}
+          onClick={() => handleSubmitRequest(1)}
           disabled={loading}
           sx={{
             backgroundColor: '#155E64',
@@ -300,7 +321,7 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
             py: 1.5,
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Tạo yêu cầu'}
+          {loading && submitStatus === 1 ? <CircularProgress size={24} color="inherit" /> : 'Gửi yêu cầu'}
         </Button>
       </Box>
 

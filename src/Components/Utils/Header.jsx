@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { jwtDecode } from "jwt-decode";
 import useUser from "../../Hooks/useUser";
@@ -187,9 +187,6 @@ function Header() {
         "manager",
         "sales_staff",
         "purchases_staff",
-        "warehouse_staff",
-        "accountant_staff",
-        "admin",
       ],
     },
     {
@@ -257,16 +254,6 @@ function Header() {
       label: "Kiểm kê",
       path: "/stocktaking",
       allowedRoles: ["manager", "admin"],
-    },
-    {
-      label: "Kệ hàng",
-      path: "/inventory-check",
-      allowedRoles: [
-        "manager",
-        "warehouse_staff",
-        "accountant_staff",
-        "admin",
-      ],
     },
     {
       label: "Yêu cầu báo giá",

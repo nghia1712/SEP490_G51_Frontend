@@ -30,6 +30,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Pagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -44,6 +45,12 @@ import salesQuotationAPI from '../../API/salesQuotationAPI';
 import salesOrderAPI from '../../API/salesOrderAPI';
 import productAPI from '../../API/productAPI';
 import useUser from '../../Hooks/useUser';
+
+const headerTextSx = {
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  letterSpacing: '0.03em',
+};
 
 const CustomerRequestQuotationList = () => {
   const navigate = useNavigate();
@@ -61,6 +68,7 @@ const CustomerRequestQuotationList = () => {
   const [editRows, setEditRows] = useState([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createRows, setCreateRows] = useState([{ id: 1, productId: null, productCode: '', productName: '' }]);
+  const [createSubmitStatus, setCreateSubmitStatus] = useState(null);
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -77,6 +85,37 @@ const CustomerRequestQuotationList = () => {
   const [orderFormLoading, setOrderFormLoading] = useState(false);
   const { getProfile } = useUser();
 
+  const parseDateValue = (value) => {
+    if (!value) return null;
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct;
+
+    if (typeof value === 'string') {
+      const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (match) {
+        const alternative = new Date(`${match[3]}-${match[2]}-${match[1]}`);
+        if (!Number.isNaN(alternative.getTime())) {
+          return alternative;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const isExpiredDate = (value) => {
+    const parsed = parseDateValue(value);
+    if (!parsed) return false;
+    const deadline = new Date(parsed);
+    deadline.setHours(23, 59, 59, 999);
+    return deadline.getTime() < Date.now();
+  };
+
+  const getTimestamp = (value) => {
+    const parsed = parseDateValue(value);
+    return parsed ? parsed.getTime() : 0;
+  };
+
   // Map status enum
   const getStatusLabel = (status) => {
     switch (status) {
@@ -86,6 +125,8 @@ const CustomerRequestQuotationList = () => {
         return 'Đã gửi';
       case 2:
         return 'Đã báo giá';
+      case 3:
+        return 'Hết hạn';
       default:
         return 'Không xác định';
     }
@@ -99,16 +140,38 @@ const CustomerRequestQuotationList = () => {
         return { backgroundColor: '#d1ecf1', color: '#0c5460' }; // Sent - Blue
       case 2:
         return { backgroundColor: '#d4edda', color: '#155724' }; // Quoted - Green
+      case 3:
+        return { backgroundColor: '#f8d7da', color: '#721c24' }; // Expired - Red
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
   };
 
+  const getDisplayStatus = (status, expiredDate = null) => {
+    if (status === undefined || status === null) return status;
+    const normalizedStatus = Number(status);
+    if (normalizedStatus === 2 && expiredDate && isExpiredDate(expiredDate)) {
+      return 3;
+    }
+    return normalizedStatus;
+  };
+
+  const getQuotationDetailStatus = (status, expiredDate = null) => {
+    if (expiredDate && isExpiredDate(expiredDate)) {
+      return 3; // Hết hạn
+    }
+    return 2; // Đã báo giá
+  };
+
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return '-';
+
     try {
-      const date = new Date(dateString);
+      const date = parseDateValue(dateString);
+
+      if (!date) return '-';
+
       return date.toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -123,6 +186,35 @@ const CustomerRequestQuotationList = () => {
   const formatCurrency = (value) => {
     const number = Number(value) || 0;
     return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  const renderCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
+    return (
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: 0.35,
+        }}
+      >
+        <Typography component="span" sx={{ fontWeight: 500 }}>
+          {formatCurrency(value)}
+        </Typography>
+        <Box
+        component="span"
+        sx={{
+          fontSize: '0.8em',
+          lineHeight: 1,
+          borderBottom: '1px solid currentColor',
+          paddingBottom: '1px',
+        }}
+      >
+          đ
+        </Box>
+      </Box>
+    );
   };
 
   // Extract tax rate from TaxText (e.g., "VAT 10%" -> 0.1)
@@ -150,70 +242,111 @@ const CustomerRequestQuotationList = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await requestSalesQuotationAPI.viewList();
-      
-      // Backend trả về: { message, data }
-      if (response.data && response.data.data) {
-        const data = Array.isArray(response.data.data) 
-          ? response.data.data 
-          : [];
-        
-        // Map data from API to component format
-        // Backend trả về: Id, RequestCode, RequestDate (nullable), Status
-        // Logic: 
-        // - Khi tạo (status = 0 - Nháp): RequestDate = null, hiển thị ngày tạo (extract từ RequestCode), ngày gửi = null
-        // - Khi gửi (status = 1 hoặc 2): RequestDate có giá trị (ngày gửi), hiển thị ngày gửi
-        
-        // Hàm extract ngày từ RequestCode (format: RSQ-{yyyyMMdd}-{random})
-        const extractDateFromCode = (code) => {
-          if (!code) return null;
-          try {
-            // RequestCode format: RSQ-20250115-ABC12345
-            const parts = code.split('-');
-            if (parts.length >= 2) {
-              const dateStr = parts[1]; // yyyyMMdd
-              if (dateStr && dateStr.length === 8) {
-                const year = dateStr.substring(0, 4);
-                const month = dateStr.substring(4, 6);
-                const day = dateStr.substring(6, 8);
-                return new Date(`${year}-${month}-${day}`);
-              }
-            }
-          } catch (error) {
-            console.error('Error extracting date from code:', error);
-          }
-          return null;
-        };
-        
-        const mappedData = data.map((item, index) => {
-          const status = item.Status !== undefined ? item.Status : item.status;
-          const requestDate = item.RequestDate || item.requestDate || null;
-          const requestCode = item.RequestCode || item.requestCode || '';
-          
-          // Ngày tạo: extract từ RequestCode (format: RSQ-{yyyyMMdd}-{random})
-          // RequestCode được generate với ngày hiện tại khi tạo yêu cầu
-          const createdDate = extractDateFromCode(requestCode);
-          
-          // Ngày gửi: chỉ có khi status là Đã gửi (1) hoặc Đã báo giá (2) và RequestDate có giá trị
-          // RequestDate được set khi gửi yêu cầu (trong SendRequest service)
-          const sentDate = (status === 1 || status === 2) && requestDate ? requestDate : null;
-          
-          return {
-            id: item.Id || item.id,
-            code: requestCode,
-            createdDate, // Extract từ RequestCode
-            sentDate, // RequestDate khi đã gửi
-            status,
-            originalIndex: index,
-          };
-        });
-        
-        setRequests(mappedData);
-      } else {
-        setRequests([]);
+      const [requestsResult, quotationsResult] = await Promise.allSettled([
+        requestSalesQuotationAPI.viewList(),
+        salesQuotationAPI.viewList(),
+      ]);
+
+      if (requestsResult.status === 'rejected') {
+        throw requestsResult.reason;
       }
+
+      const requestResponse = requestsResult.value;
+      const requestPayload = requestResponse?.data?.data;
+      const requestsData = Array.isArray(requestPayload) ? requestPayload : [];
+
+      if (quotationsResult.status === 'rejected') {
+        console.warn('Không thể tải danh sách báo giá để đồng bộ trạng thái hết hạn:', quotationsResult.reason);
+      }
+
+      const quotationPayload = quotationsResult.status === 'fulfilled'
+        ? quotationsResult.value?.data?.data
+        : [];
+      const quotationsData = Array.isArray(quotationPayload) ? quotationPayload : [];
+
+      // Hàm extract ngày từ RequestCode (format: RSQ-{yyyyMMdd}-{random})
+      const extractDateFromCode = (code) => {
+        if (!code) return null;
+        try {
+          // RequestCode format: RSQ-20250115-ABC12345
+          const parts = code.split('-');
+          if (parts.length >= 2) {
+            const dateStr = parts[1]; // yyyyMMdd
+            if (dateStr && dateStr.length === 8) {
+              const year = dateStr.substring(0, 4);
+              const month = dateStr.substring(4, 6);
+              const day = dateStr.substring(6, 8);
+              return new Date(`${year}-${month}-${day}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error extracting date from code:', error);
+        }
+        return null;
+      };
+
+      const quotationInfoMap = quotationsData.reduce((acc, quotation) => {
+        const requestCode = quotation.RequestCode || quotation.requestCode || '';
+        if (!requestCode) return acc;
+
+        const quotationStatus = quotation.Status !== undefined ? quotation.Status : quotation.status;
+        const expiredDate = quotation.ExpiredDate || quotation.expiredDate || null;
+        const quotationDate = quotation.QuotationDate || quotation.quotationDate || null;
+        const timestamp = getTimestamp(quotationDate);
+        const existing = acc[requestCode];
+        const existingPriority = existing?.status ?? -1;
+        const newPriority = quotationStatus ?? -1;
+        const shouldReplace =
+          !existing ||
+          newPriority > existingPriority ||
+          (newPriority === existingPriority && timestamp >= (existing?.timestamp ?? 0));
+
+        if (shouldReplace) {
+          acc[requestCode] = {
+            status: quotationStatus,
+            expiredDate,
+            timestamp,
+          };
+        }
+
+        return acc;
+      }, {});
+
+      const mappedData = requestsData.map((item, index) => {
+        const backendStatus = item.Status !== undefined ? item.Status : item.status;
+        const requestDate = item.RequestDate || item.requestDate || null;
+        const requestCode = item.RequestCode || item.requestCode || '';
+
+        const createdDate = extractDateFromCode(requestCode);
+        const sentDate = (backendStatus === 1 || backendStatus === 2) && requestDate ? requestDate : null;
+
+        const quotationInfo = quotationInfoMap[requestCode];
+        const quotationExpiredDate = quotationInfo?.expiredDate || null;
+        const quotationStatus = quotationInfo?.status;
+        const expiredByStatus = quotationStatus === 2;
+        const expiredByDate = quotationExpiredDate ? isExpiredDate(quotationExpiredDate) : false;
+        const isExpired = backendStatus === 2 && (expiredByStatus || expiredByDate);
+        const displayStatus = isExpired ? 3 : backendStatus;
+
+        return {
+          id: item.Id || item.id,
+          code: requestCode,
+          createdDate,
+          sentDate,
+          status: displayStatus,
+          rawStatus: backendStatus,
+          quotationExpiredDate,
+          isExpired,
+          originalIndex: index,
+        };
+      });
+
+      setRequests(mappedData);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tải danh sách yêu cầu báo giá';
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Không thể tải danh sách yêu cầu báo giá';
       setError(errorMessage);
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
@@ -286,6 +419,25 @@ const CustomerRequestQuotationList = () => {
     }));
   }, [filteredRequests, sortConfig]);
 
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRequests.length / pageSize));
+  const paginatedRequests = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedRequests.slice(start, start + pageSize);
+  }, [sortedRequests, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const handleCreate = async () => {
     // Fetch products if not already loaded
     if (products.length === 0) {
@@ -327,7 +479,7 @@ const CustomerRequestQuotationList = () => {
     }));
   };
 
-  const handleCreateRequest = async () => {
+  const handleCreateRequest = async (status = 0) => {
     const selectedProductIds = createRows
       .filter(row => row.productId)
       .map(row => row.productId);
@@ -337,17 +489,19 @@ const CustomerRequestQuotationList = () => {
       return;
     }
 
+    setCreateSubmitStatus(status);
     setCreateLoading(true);
     setCreateError(null);
     try {
       const payload = {
-        ProductIdList: selectedProductIds
+        ProductIdList: selectedProductIds,
+        Status: status,
       };
       
       const response = await requestSalesQuotationAPI.createRequest(payload);
       
       if (response.data) {
-        setSnackbarMessage('Tạo yêu cầu thành công!');
+        setSnackbarMessage(status === 1 ? 'Gửi yêu cầu báo giá thành công!' : 'Lưu nháp yêu cầu thành công!');
         setSnackbarOpen(true);
         handleCloseCreateDialog();
         // Refresh list
@@ -360,6 +514,7 @@ const CustomerRequestQuotationList = () => {
       // Chỉ hiển thị lỗi trong dialog create, không hiển thị snackbar ở ngoài
       setCreateError(errorMessage);
     } finally {
+      setCreateSubmitStatus(null);
       setCreateLoading(false);
     }
   };
@@ -778,9 +933,29 @@ const CustomerRequestQuotationList = () => {
       }
 
       // Set form data and open dialog
+      const depositPercent = quotationInfo.DepositPercent ?? quotationInfo.depositPercent ?? null;
+      const depositDueDaysRaw = quotationInfo.DepositDueDays ?? quotationInfo.depositDueDays ?? null;
+      const depositDueDays =
+        depositDueDaysRaw !== null && depositDueDaysRaw !== undefined
+          ? Number(depositDueDaysRaw)
+          : null;
+      const quotationDateRaw = quotationInfo.QuotationDate ?? quotationInfo.quotationDate ?? null;
+      let depositExpiredDate = null;
+      if (quotationDateRaw && Number.isFinite(depositDueDays) && depositDueDays > 0) {
+        const baseDate = new Date(quotationDateRaw);
+        if (!Number.isNaN(baseDate.getTime())) {
+          const expired = new Date(baseDate);
+          expired.setDate(expired.getDate() + depositDueDays);
+          depositExpiredDate = expired.toISOString();
+        }
+      }
+
       setOrderFormData({
         salesQuotationId,
         quotationInfo,
+        depositPercent,
+        depositDueDays,
+        depositExpiredDate,
       });
       setOrderFormRows(formRows);
       setQuotationDetailDialogOpen(false); // Close quotation dialog
@@ -950,6 +1125,23 @@ const CustomerRequestQuotationList = () => {
     }
   };
 
+  const orderTotals = React.useMemo(() => {
+    const totals = orderFormRows.reduce(
+      (acc, row) => {
+        const before = Number(row.subtotal) || 0;
+        const after = Number(row.subtotalAfterTax) || 0;
+        acc.before += before;
+        acc.after += after;
+        return acc;
+      },
+      { before: 0, after: 0 }
+    );
+    return {
+      ...totals,
+      tax: Math.max(totals.after - totals.before, 0),
+    };
+  }, [orderFormRows]);
+
   const handleGoToDraftOrders = async (rsqId) => {
     setLoading(true);
     try {
@@ -1047,6 +1239,7 @@ const CustomerRequestQuotationList = () => {
             <MenuItem value="0">Nháp</MenuItem>
             <MenuItem value="1">Đã gửi</MenuItem>
             <MenuItem value="2">Đã báo giá</MenuItem>
+            <MenuItem value="3">Hết hạn</MenuItem>
           </Select>
         </FormControl>
 
@@ -1083,12 +1276,23 @@ const CustomerRequestQuotationList = () => {
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
+            overflow: 'hidden',
           }}
         >
           <Table sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ width: '8%', py: 1.5, px: 2, textAlign: 'left', fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    width: '8%',
+                    py: 1.5,
+                    px: 2,
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   STT
                 </TableCell>
                 <TableCell sx={{ width: '22%', py: 1.5, px: 2 }}>
@@ -1097,6 +1301,7 @@ const CustomerRequestQuotationList = () => {
                     direction={sortConfig.key === 'code' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('code')}
                     hideSortIcon
+                    sx={headerTextSx}
                   >
                     Mã yêu cầu báo giá
                   </TableSortLabel>
@@ -1106,6 +1311,7 @@ const CustomerRequestQuotationList = () => {
                     active={sortConfig.key === 'createdDate'}
                     direction={sortConfig.key === 'createdDate' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('createdDate')}
+                    sx={headerTextSx}
                   >
                     Ngày tạo
                   </TableSortLabel>
@@ -1115,6 +1321,7 @@ const CustomerRequestQuotationList = () => {
                     active={sortConfig.key === 'sentDate'}
                     direction={sortConfig.key === 'sentDate' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('sentDate')}
+                    sx={headerTextSx}
                   >
                     Ngày gửi
                   </TableSortLabel>
@@ -1124,34 +1331,33 @@ const CustomerRequestQuotationList = () => {
                     active={sortConfig.key === 'status'}
                     direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('status')}
+                    sx={headerTextSx}
                   >
                     Trạng thái
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span>Hành động</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                      Hành động
+                    </span>
                   </Box>
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedRequests.map((request, index) => (
-                <TableRow 
-                  key={request.id || index} 
+              {paginatedRequests.map((request, index) => (
+                <TableRow
+                  key={request.id || index}
                   hover
                   sx={{
-                    '&:nth-of-type(even)': {
-                      backgroundColor: '#f9f9f9',
-                    },
-                    '& td': {
-                      py: 1.5,
-                      px: 2,
-                      verticalAlign: 'middle',
-                    }
+                    '&:nth-of-type(even)': { backgroundColor: '#f9f9f9' },
+                    '& td': { py: 1.5, px: 2, verticalAlign: 'middle' },
                   }}
                 >
-                  <TableCell sx={{ fontWeight: 500, textAlign: 'left' }}>{index + 1}</TableCell>
+                  <TableCell sx={{ fontWeight: 500, textAlign: 'left' }}>
+                    {(page - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{request.code}</TableCell>
                   <TableCell>{formatDate(request.createdDate)}</TableCell>
                   <TableCell>{formatDate(request.sentDate)}</TableCell>
@@ -1168,8 +1374,7 @@ const CustomerRequestQuotationList = () => {
                   </TableCell>
                   <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                      {/* Chỉ hiển thị nút Sửa và Xóa khi status là Draft (0) */}
-                      {request.status === 0 && (
+                      {request.rawStatus === 0 && (
                         <>
                           <Tooltip title="Sửa" placement="bottom" arrow>
                             <IconButton
@@ -1182,9 +1387,7 @@ const CustomerRequestQuotationList = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                                },
+                                '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.1)' },
                               }}
                             >
                               <EditIcon fontSize="medium" />
@@ -1201,9 +1404,7 @@ const CustomerRequestQuotationList = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(211, 47, 47, 0.1)',
-                                },
+                                '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' },
                               }}
                             >
                               <DeleteIcon fontSize="medium" />
@@ -1211,7 +1412,7 @@ const CustomerRequestQuotationList = () => {
                           </Tooltip>
                         </>
                       )}
-                      {request.status === 2 && (
+                      {request.rawStatus === 2 && (
                         <Tooltip title="Xem báo giá" placement="bottom" arrow>
                           <IconButton
                             size="medium"
@@ -1223,17 +1424,14 @@ const CustomerRequestQuotationList = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              '&:hover': {
-                                backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                              },
+                              '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.1)' },
                             }}
                           >
                             <DescriptionIcon fontSize="medium" />
                           </IconButton>
                         </Tooltip>
                       )}
-                      {/* Chỉ hiển thị nút Gửi khi status là Draft (0) */}
-                      {request.status === 0 && (
+                      {request.rawStatus === 0 && (
                         <Tooltip title="Gửi" placement="bottom" arrow>
                           <IconButton
                             size="medium"
@@ -1245,16 +1443,13 @@ const CustomerRequestQuotationList = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              '&:hover': {
-                                backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                              },
+                              '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.1)' },
                             }}
                           >
                             <SendIcon fontSize="medium" />
                           </IconButton>
                         </Tooltip>
                       )}
-                      {/* Nút Xem chi tiết luôn hiển thị và luôn ở vị trí cuối cùng để thẳng hàng */}
                       <Tooltip title="Xem chi tiết" placement="bottom" arrow>
                         <IconButton
                           size="medium"
@@ -1266,9 +1461,7 @@ const CustomerRequestQuotationList = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            '&:hover': {
-                              backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                            },
+                            '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.1)' },
                           }}
                         >
                           <VisibilityIcon fontSize="medium" />
@@ -1280,7 +1473,7 @@ const CustomerRequestQuotationList = () => {
               ))}
               {sortedRequests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
                       Chưa có yêu cầu báo giá nào
                     </Typography>
@@ -1289,6 +1482,25 @@ const CustomerRequestQuotationList = () => {
               )}
             </TableBody>
           </Table>
+          {sortedRequests.length > 0 && (
+            <Box
+              sx={{
+                pt: 2,
+                pb: 2,
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                backgroundColor: '#fff',
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </TableContainer>
       )}
 
@@ -1372,11 +1584,27 @@ const CustomerRequestQuotationList = () => {
                   </Box>
                 </Box>
               </Box>
-              <Box sx={{ mb: 2 }}>
+              <Box
+                sx={{
+                  mb: 2,
+                  maxWidth: 300,
+                  mx: 'auto',
+                }}
+              >
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                   Danh sách sản phẩm:
                 </Typography>
-                <TableContainer component={Paper} variant="outlined">
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{
+                    '& .MuiTableCell-root': {
+                      py: 0.75,
+                      px: 1.25,
+                      fontSize: '0.9rem',
+                    },
+                  }}
+                >
                   <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
@@ -1771,7 +1999,26 @@ const CustomerRequestQuotationList = () => {
             Hủy
           </Button>
           <Button
-            onClick={handleCreateRequest}
+            onClick={() => handleCreateRequest(0)}
+            variant="outlined"
+            disabled={createLoading}
+            sx={{
+              borderColor: '#155E64',
+              color: '#155E64',
+              '&:hover': {
+                borderColor: '#0D4F52',
+                backgroundColor: 'rgba(21, 94, 100, 0.05)',
+              },
+            }}
+          >
+            {createLoading && createSubmitStatus === 0 ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Lưu nháp'
+            )}
+          </Button>
+          <Button
+            onClick={() => handleCreateRequest(1)}
             variant="contained"
             disabled={createLoading}
             sx={{
@@ -1781,7 +2028,11 @@ const CustomerRequestQuotationList = () => {
               },
             }}
           >
-            {createLoading ? <CircularProgress size={24} color="inherit" /> : 'Tạo yêu cầu'}
+            {createLoading && createSubmitStatus === 1 ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Gửi yêu cầu'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1825,19 +2076,28 @@ const CustomerRequestQuotationList = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái:
                     </Typography>
-                    <Chip
-                      label={getStatusLabel(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
-                      size="small"
-                      sx={getStatusColor(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
-                    />
+                    {(() => {
+                      const rawStatus = selectedQuotationDetails.Status !== undefined
+                        ? selectedQuotationDetails.Status
+                        : selectedQuotationDetails.status;
+                      const expiredDate = selectedQuotationDetails.ExpiredDate ?? selectedQuotationDetails.expiredDate ?? null;
+                      const displayStatus = getQuotationDetailStatus(rawStatus, expiredDate);
+                      return (
+                        <Chip
+                          label={getStatusLabel(displayStatus)}
+                          size="small"
+                          sx={getStatusColor(displayStatus)}
+                        />
+                      );
+                    })()}
                   </Box>
                 </Box>
                 
-                {/* Bên phải: Ngày gửi và Ngày hết hạn */}
+                {/* Bên phải: Ngày nhận báo giá và Ngày hết hạn */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Ngày gửi:
+                      Ngày nhận báo giá:
                     </Typography>
                     <Typography variant="body1">
                       {formatDate(selectedQuotationDetails.QuotationDate || selectedQuotationDetails.quotationDate)}
@@ -1865,6 +2125,7 @@ const CustomerRequestQuotationList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
@@ -1879,6 +2140,15 @@ const CustomerRequestQuotationList = () => {
                         if (details.length > 0) {
                           return details.map((detail, index) => {
                             const productName = detail.ProductName || detail.productName || '-';
+                            const rawExpired =
+                              detail.LotExpiredDate ||
+                              detail.lotExpiredDate ||
+                              detail.ExpiredDate ||
+                              detail.expiredDate ||
+                              detail.LotProduct?.ExpiredDate ||
+                              detail.LotProduct?.expiredDate ||
+                              null;
+                            const expiredDisplay = rawExpired ? formatDate(rawExpired) : '-';
                             const taxText = detail.TaxText || detail.taxText || null;
                             const minQuantity = detail.minQuantity !== undefined && detail.minQuantity !== null 
                               ? detail.minQuantity 
@@ -1901,18 +2171,26 @@ const CustomerRequestQuotationList = () => {
                               <TableRow key={detail.Id || detail.id || index}>
                                 <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
                                 <TableCell>{productName}</TableCell>
+                                <TableCell>{expiredDisplay}</TableCell>
                                 <TableCell>{taxText || '-'}</TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {salesPrice !== null ? formatCurrency(salesPrice) : '-'}
+                                  {salesPrice !== null ? renderCurrency(salesPrice) : '-'}
                                 </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {totalBeforeTax > 0 ? formatCurrency(totalBeforeTax) : '-'}
+                                  {totalBeforeTax > 0 ? renderCurrency(totalBeforeTax) : '-'}
                                 </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
-                                  {itemTotal !== null ? formatCurrency(itemTotal) : '-'}
+                                  {itemTotal !== null ? renderCurrency(itemTotal) : '-'}
                                 </TableCell>
-                                <TableCell>{note}</TableCell>
+                                <TableCell
+                                  sx={{
+                                    textAlign: 'center',
+                                    color: note === '-' ? 'text.secondary' : 'inherit',
+                                  }}
+                                >
+                                  {note}
+                                </TableCell>
                               </TableRow>
                             );
                           });
@@ -1994,7 +2272,7 @@ const CustomerRequestQuotationList = () => {
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                   Thông tin báo giá:
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 4 }}>
+                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary">
                       Mã báo giá:
@@ -2011,6 +2289,24 @@ const CustomerRequestQuotationList = () => {
                       {selectedQuotationDetails?.RequestCode || selectedQuotationDetails?.requestCode || '-'}
                     </Typography>
                   </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Cọc (% đơn hàng):
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {orderFormData.depositPercent !== null && orderFormData.depositPercent !== undefined
+                        ? `${orderFormData.depositPercent}%`
+                        : '-'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Ngày hết hạn cọc:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {orderFormData.depositExpiredDate ? formatDate(orderFormData.depositExpiredDate) : '-'}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
 
@@ -2024,14 +2320,14 @@ const CustomerRequestQuotationList = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
-                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
+                      <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
+                      <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Số lượng</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn Giá</TableCell>
                         <TableCell sx={{ textAlign: 'left', backgroundColor: '#f5f5f5', pl: 2 }}>Thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá sau thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Tạm tính</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Tạm Tính Sau Thuế</TableCell>
+                      <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá sau thuế</TableCell>
+                      <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
+                      <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
                         <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', width: '80px' }}>Hành Động</TableCell>
                       </TableRow>
                     </TableHead>
@@ -2039,7 +2335,14 @@ const CustomerRequestQuotationList = () => {
                       {orderFormRows.map((row, index) => (
                         <TableRow key={row.id}>
                           <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
-                          <TableCell>{row.productName}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {row.productName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            {row.expiredDate || '-'}
+                          </TableCell>
                           <TableCell sx={{ textAlign: 'center' }}>
                             <TextField
                               type="number"
@@ -2051,22 +2354,19 @@ const CustomerRequestQuotationList = () => {
                             />
                           </TableCell>
                           <TableCell sx={{ textAlign: 'right' }}>
-                            {formatCurrency(row.unitPrice)}
+                            {renderCurrency(row.unitPrice)}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'left', pl: 3 }}>
                             {row.taxText || '-'}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'right' }}>
-                            {formatCurrency(row.unitPriceAfterTax)}
+                            {renderCurrency(row.unitPriceAfterTax)}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'right' }}>
-                            {row.expiredDate || '-'}
+                            {renderCurrency(row.subtotal)}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'right' }}>
-                            {formatCurrency(row.subtotal)}
-                          </TableCell>
-                          <TableCell sx={{ textAlign: 'right' }}>
-                            {formatCurrency(row.subtotalAfterTax)}
+                            {renderCurrency(row.subtotalAfterTax)}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'center' }}>
                             <IconButton
@@ -2087,12 +2387,28 @@ const CustomerRequestQuotationList = () => {
 
               {/* Tổng tiền */}
               <Box sx={{ mb: 2, textAlign: 'right' }}>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  Tạm tính: {formatCurrency(orderFormRows.reduce((sum, row) => sum + row.subtotal, 0))} VNĐ
+                <Typography variant="body1" sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <span>Thành tiền trước thuế:</span>
+                  <Box component="span">{renderCurrency(orderTotals.before)}</Box>
                 </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Tổng tiền sau thuế: {formatCurrency(orderFormRows.reduce((sum, row) => sum + row.subtotalAfterTax, 0))} VNĐ
+                <Typography variant="body1" sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <span>Thuế:</span>
+                  <Box component="span">{renderCurrency(orderTotals.tax)}</Box>
                 </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1,
+                    alignItems: 'center',
+                    fontSize: '1.25rem',
+                  }}
+                >
+                  <Typography component="span" sx={{ fontWeight: 'bold' }}>
+                    Tổng tiền sau thuế:
+                  </Typography>
+                  <Box component="span">{renderCurrency(orderTotals.after)}</Box>
+                </Box>
               </Box>
             </Box>
           )}

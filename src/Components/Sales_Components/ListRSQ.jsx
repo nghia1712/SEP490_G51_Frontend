@@ -29,6 +29,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Pagination,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -38,6 +39,12 @@ import 'dayjs/locale/vi';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
+
+const headerTextSx = {
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  letterSpacing: '0.03em',
+};
 
 const ListRSQ = () => {
   const navigate = useNavigate();
@@ -62,6 +69,9 @@ const ListRSQ = () => {
   });
   const [quotationLoading, setQuotationLoading] = useState(false);
   const [quotationError, setQuotationError] = useState(null);
+  const [quotationAction, setQuotationAction] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -95,6 +105,36 @@ const ListRSQ = () => {
     return new Intl.NumberFormat('vi-VN').format(number);
   };
 
+  const renderCurrency = (value) => {
+    if (value === null || value === undefined) return '-';
+    return (
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: 0.25,
+        }}
+      >
+        <Typography component="span" sx={{ fontWeight: 500 }}>
+          {formatCurrency(value)}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '0.75em',
+            lineHeight: 1,
+            textDecoration: 'underline',
+            textDecorationThickness: '1px',
+            textUnderlineOffset: '1px',
+          }}
+        >
+          đ
+        </Typography>
+      </Box>
+    );
+  };
+
   const getTaxRateValue = (tax) => {
     if (!tax) return 0;
     const raw =
@@ -124,8 +164,46 @@ const ListRSQ = () => {
     return 0;
   };
 
+  const extractErrorMessage = (error, fallback = 'Đã xảy ra lỗi') => {
+    if (!error) return fallback;
+    const data = error.response?.data ?? {};
+    const errorsObj = data.errors || data.Errors;
+    const errorsArray =
+      Array.isArray(errorsObj)
+        ? errorsObj
+        : typeof errorsObj === 'object'
+          ? Object.values(errorsObj).flat()
+          : null;
+
+    const candidates = [
+      typeof data === 'string' ? data : null,
+      data.message,
+      data.Message,
+      data.error,
+      data.Error,
+      data.title,
+      data.Title,
+      errorsArray && errorsArray[0],
+      Array.isArray(errorsArray) && errorsArray.length > 0 ? errorsArray.join(', ') : null,
+      error.response?.data?.Data?.Message,
+      error.message,
+    ];
+
+    const message = candidates.find(
+      (msg) => typeof msg === 'string' && msg.trim() !== ''
+    );
+
+    if (message) {
+      if (message.trim() === 'One or more validation errors occurred.') {
+        return 'Bạn chưa điền đủ thông tin báo giá, vui lòng kiểm tra lại.';
+      }
+      return message;
+    }
+    return fallback;
+  };
+
   const calculateTotals = (minQuantity, unitPrice, taxRate = 0) => {
-    const qty = Number(minQuantity) || 0;
+    const qty = Math.max(1, Number(minQuantity) || 1);
     const price = Number(unitPrice) || 0;
     const rateRaw = Number(taxRate) || 0;
     const rate = rateRaw > 1 ? rateRaw / 100 : rateRaw;
@@ -155,6 +233,7 @@ const ListRSQ = () => {
     if (!dateString) return '-';
     try {
       const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return '-';
       return date.toLocaleDateString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -165,26 +244,96 @@ const ListRSQ = () => {
     }
   };
 
+  const resolveCustomerName = (source) => {
+    if (!source) return '-';
+
+    const candidates = [
+      source.CustomerName ?? source.customerName,
+      source.CreatedByUserName ?? source.createdByUserName,
+      source.CreatedByUsername ?? source.createdByUsername,
+      source.CustomerUserName ?? source.customerUserName,
+      source.CustomerUsername ?? source.customerUsername,
+      source.CreatedBy ?? source.createdBy ?? source.CreateBy,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate && String(candidate).trim() !== '') {
+        return candidate;
+      }
+    }
+
+    const profileCandidates = [
+      source.CustomerProfile?.User?.FullName,
+      source.CustomerProfile?.User?.fullName,
+      source.customerProfile?.user?.FullName,
+      source.customerProfile?.user?.fullName,
+    ];
+
+    for (const profile of profileCandidates) {
+      if (profile && String(profile).trim() !== '') {
+        return profile;
+      }
+    }
+
+    return '-';
+  };
+
   // Fetch data from API
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await requestSalesQuotationAPI.viewList();
+      const [requestsResult, quotationsResult] = await Promise.allSettled([
+        requestSalesQuotationAPI.viewList(),
+        salesQuotationAPI.viewList(),
+      ]);
 
-      if (response.data && response.data.data) {
-        const data = Array.isArray(response.data.data)
-          ? response.data.data
+      if (requestsResult.status !== 'fulfilled') {
+        throw requestsResult.reason;
+      }
+
+      const requestResponse = requestsResult.value;
+      const requestData = Array.isArray(requestResponse.data?.data)
+        ? requestResponse.data.data
+        : [];
+
+      const quotationsData =
+        quotationsResult.status === 'fulfilled' && Array.isArray(quotationsResult.value.data?.data)
+          ? quotationsResult.value.data.data
           : [];
 
-        // Debug: Kiểm tra response có CustomerName không
-        if (data.length > 0) {
-          console.log('Sample response item:', data[0]);
-          console.log('CustomerName in response:', data[0].CustomerName || data[0].customerName);
+      if (quotationsResult.status === 'rejected') {
+        console.error('Không thể tải danh sách báo giá để lấy ngày báo giá', quotationsResult.reason);
+      }
+
+      const quotationInfoMap = quotationsData.reduce((acc, quotation) => {
+        const requestCode = quotation.RequestCode || quotation.requestCode || null;
+        const quotationDate = quotation.QuotationDate || quotation.quotationDate || null;
+        const quotationCode = quotation.QuotationCode || quotation.quotationCode || null;
+        const quotationId = quotation.Id || quotation.id || null;
+        if (!requestCode) {
+          return acc;
+        }
+        const incomingTime = quotationDate ? Date.parse(quotationDate) : 0;
+        const existing = acc[requestCode];
+        if (
+          !existing ||
+          (incomingTime && (!existing.time || incomingTime > existing.time)) ||
+          (!incomingTime && !existing.time)
+        ) {
+          acc[requestCode] = {
+            quotationDate: quotationDate || null,
+            quotationCode: quotationCode || null,
+            quotationId: quotationId || null,
+            time: Number.isNaN(incomingTime) ? 0 : incomingTime,
+          };
         }
 
+        return acc;
+      }, {});
+
         // Chỉ giữ các yêu cầu đã gửi từ customer (status != 0) và có trạng thái hợp lệ
-        const filteredData = data.filter((item) => {
+      const filteredData = requestData.filter((item) => {
           const status = item.Status !== undefined ? item.Status : item.status;
           return status !== undefined && status !== null && status !== 0;
         });
@@ -193,53 +342,29 @@ const ListRSQ = () => {
           const status = item.Status !== undefined ? item.Status : item.status;
           const requestDate = item.RequestDate || item.requestDate || null;
           const createdDate = item.CreatedDate || item.createdDate || requestDate;
-          // Backend trả về CustomerName trong ViewRsqDTO
-          // Kiểm tra cả null, undefined và empty string
-          const getCreator = () => {
-            const customerName = item.CustomerName || item.customerName;
-            if (customerName && customerName.trim() !== '') {
-              return customerName;
-            }
-            const createdByUserName = item.CreatedByUserName || item.createdByUserName;
-            if (createdByUserName && createdByUserName.trim() !== '') {
-              return createdByUserName;
-            }
-            const createdByUsername = item.CreatedByUsername || item.createdByUsername;
-            if (createdByUsername && createdByUsername.trim() !== '') {
-              return createdByUsername;
-            }
-            const customerUserName = item.CustomerUserName || item.customerUserName;
-            if (customerUserName && customerUserName.trim() !== '') {
-              return customerUserName;
-            }
-            const customerUsername = item.CustomerUsername || item.customerUsername;
-            if (customerUsername && customerUsername.trim() !== '') {
-              return customerUsername;
-            }
-            const createdBy = item.CreatedBy || item.createdBy || item.CreateBy;
-            if (createdBy && createdBy.trim() !== '') {
-              return createdBy;
-            }
-            return '-';
-          };
-          const creator = getCreator();
+        const requestCode = item.RequestCode || item.requestCode || '';
+        const customerName = resolveCustomerName(item);
+        const quotationInfo = requestCode ? quotationInfoMap[requestCode] : null;
+        const quotationDate = quotationInfo?.quotationDate || null;
+        const quotationCode = quotationInfo?.quotationCode || null;
+        const quotationId = quotationInfo?.quotationId || null;
 
           return {
             id: item.Id || item.id,
-            code: item.RequestCode || item.requestCode || '',
-            creator,
+          code: requestCode,
+          customerName,
             createdDate,
             sentDate: status === 1 || status === 2 ? requestDate : null,
+          quotationDate,
+          quotationId,
+          quotationCode,
             status,
           };
         });
 
         setRequests(mappedData);
-      } else {
-        setRequests([]);
-      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tải danh sách yêu cầu báo giá';
+      const errorMessage = extractErrorMessage(err, 'Không thể tải danh sách yêu cầu báo giá');
       setError(errorMessage);
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
@@ -271,7 +396,7 @@ const ListRSQ = () => {
           setDetailDialogOpen(true);
         }
       } catch (err) {
-        const errorMessage = err.response?.data?.message || 'Không thể tải chi tiết yêu cầu';
+        const errorMessage = extractErrorMessage(err, 'Không thể tải chi tiết yêu cầu');
         setError(errorMessage);
         setSnackbarMessage(errorMessage);
         setSnackbarOpen(true);
@@ -373,7 +498,7 @@ const ListRSQ = () => {
           const productName = detail.productName || detail.ProductName || '';
           const productLots = lotsByProduct[productId] || [];
           const defaultLot = productLots[0] || null;
-          const minQuantity = defaultLot ? (defaultLot.lotQuantity ?? 1) : 0;
+          const minQuantity = 1;
           const unitPrice = defaultLot ? (defaultLot.salePrice ?? 0) : 0;
           const { beforeTax, afterTax } = calculateTotals(minQuantity, unitPrice, defaultTaxInfo.rate);
           
@@ -399,7 +524,7 @@ const ListRSQ = () => {
         setCreateQuotationDialogOpen(true);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tạo báo giá từ yêu cầu này';
+      const errorMessage = extractErrorMessage(err, 'Không thể tạo báo giá từ yêu cầu này');
       setQuotationError(errorMessage);
       setError(errorMessage);
       setSnackbarMessage(errorMessage);
@@ -420,6 +545,7 @@ const ListRSQ = () => {
       noteId: 1,
     });
     setQuotationError(null);
+    setQuotationAction(null);
   };
 
 const handleLotChange = (rowId, lotId) => {
@@ -428,11 +554,11 @@ const handleLotChange = (rowId, lotId) => {
       if (row.id === rowId) {
       if (!normalizedLotId) {
         const defaultTax = getDefaultTaxInfo(row.taxOptions || []);
-        const { beforeTax, afterTax } = calculateTotals(0, 0, defaultTax.rate || 0);
+        const { beforeTax, afterTax } = calculateTotals(1, 0, defaultTax.rate || 0);
         return {
           ...row,
           lotId: null,
-          minQuantity: 0,
+          minQuantity: 1,
           unitPrice: 0,
           totalBeforeTax: beforeTax,
           totalAfterTax: afterTax,
@@ -442,7 +568,7 @@ const handleLotChange = (rowId, lotId) => {
       }
       const selectedLot = (row.lotOptions || []).find(lot => lot.lotId === normalizedLotId);
       if (selectedLot) {
-        const minQuantity = selectedLot.lotQuantity ?? 1;
+        const minQuantity = 1;
         const unitPrice = selectedLot.salePrice ?? 0;
         const { beforeTax, afterTax } = calculateTotals(minQuantity, unitPrice, row.taxRate || 0);
         return {
@@ -484,7 +610,7 @@ const handleDepositPercentChange = (value) => {
     if (row.id !== rowId) return row;
 
     if (!normalizedTaxId) {
-      const { beforeTax, afterTax } = calculateTotals(row.minQuantity, row.unitPrice, 0);
+        const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, 0);
       return {
         ...row,
         taxId: null,
@@ -498,7 +624,7 @@ const handleDepositPercentChange = (value) => {
       tax => (tax.id || tax.Id) === normalizedTaxId
     );
     const taxRate = getTaxRateValue(selectedTax);
-    const { beforeTax, afterTax } = calculateTotals(row.minQuantity, row.unitPrice, taxRate);
+    const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, taxRate);
     return {
       ...row,
       taxId: normalizedTaxId,
@@ -509,7 +635,25 @@ const handleDepositPercentChange = (value) => {
   }));
   };
 
-  const handleSubmitQuotation = async () => {
+  const handleSubmitQuotation = async (shouldSend = false) => {
+    const detailPayload = quotationRows
+      .filter(row => row.lotId !== null && row.lotId !== undefined && row.lotId !== 'NONE')
+      .map(row => ({
+        productId: row.productId,
+        lotId: row.lotId,
+        taxId: row.taxId,
+        note: row.note || '',
+      }));
+
+    if (detailPayload.length === 0) {
+      const message = 'Vui lòng chọn lô và thuế cho ít nhất một sản phẩm trước khi tạo báo giá';
+      setQuotationError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setQuotationAction(shouldSend ? 'send' : 'draft');
     setQuotationLoading(true);
     setQuotationError(null);
     try {
@@ -519,35 +663,39 @@ const handleDepositPercentChange = (value) => {
         expiredDate: quotationForm.expiredDate,
       depositPercent: Number(quotationForm.depositPercent) || 0,
         depositDueDays: quotationForm.depositDueDays || 1,
-        details: quotationRows
-          .filter(row => row.lotId !== null && row.lotId !== undefined && row.lotId !== 'NONE')
-          .map(row => ({
-            productId: row.productId,
-            lotId: row.lotId,
-            taxId: row.taxId,
-            note: row.note || '',
-          })),
+        status: shouldSend ? 1 : 0,
+        details: detailPayload,
       };
       
       const response = await salesQuotationAPI.createSalesQuotation(payload);
-      if (response.data) {
-        setSnackbarMessage('Tạo báo giá thành công!');
+      const serverMessage =
+        response.data?.message ||
+        response.data?.Message ||
+        response.data?.data?.message ||
+        response.data?.data?.Message ||
+        null;
+
+      setSnackbarMessage(
+        serverMessage ||
+          (shouldSend ? 'Gửi báo giá thành công!' : 'Lưu nháp báo giá thành công!')
+      );
         setSnackbarOpen(true);
         handleCloseCreateQuotationDialog();
-        // Refresh list
         setTimeout(() => {
           fetchRequests();
         }, 500);
-      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể tạo báo giá';
+      console.error('Submit quotation error:', err.response?.data || err);
+      const errorMessage = extractErrorMessage(err, 'Không thể xử lý báo giá');
       setQuotationError(errorMessage);
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     } finally {
       setQuotationLoading(false);
+      setQuotationAction(null);
     }
   };
+
 
   // Filter requests by status
   const filteredRequests = useMemo(() => {
@@ -555,6 +703,49 @@ const handleDepositPercentChange = (value) => {
     const filterStatus = parseInt(statusFilter, 10);
     return requests.filter(request => request.status === filterStatus);
   }, [requests, statusFilter]);
+
+  const detailMatchedRequest = useMemo(() => {
+    if (!selectedRequestDetails) return null;
+    const detailId = selectedRequestDetails.Id || selectedRequestDetails.id || null;
+    if (!detailId) return null;
+    return requests.find((request) => request.id === detailId) || null;
+  }, [requests, selectedRequestDetails]);
+
+  const detailQuotationDate = useMemo(() => {
+    if (!selectedRequestDetails) return null;
+    return (
+      detailMatchedRequest?.quotationDate ||
+      selectedRequestDetails.QuotationDate ||
+      selectedRequestDetails.quotationDate ||
+      null
+    );
+  }, [detailMatchedRequest, selectedRequestDetails]);
+
+  const detailQuotationCode = useMemo(() => {
+    if (!selectedRequestDetails) return null;
+    return (
+      detailMatchedRequest?.quotationCode ||
+      selectedRequestDetails.QuotationCode ||
+      selectedRequestDetails.quotationCode ||
+      null
+    );
+  }, [detailMatchedRequest, selectedRequestDetails]);
+
+  const detailQuotationId = useMemo(() => {
+    if (!selectedRequestDetails) return null;
+    return (
+      detailMatchedRequest?.quotationId ||
+      selectedRequestDetails.QuotationId ||
+      selectedRequestDetails.quotationId ||
+      null
+    );
+  }, [detailMatchedRequest, selectedRequestDetails]);
+
+  const handleOpenQuotationDetail = () => {
+    if (!detailQuotationId) return;
+    navigate('/sales-quotation', { state: { openQuotationId: detailQuotationId } });
+    setDetailDialogOpen(false);
+  };
 
   // Sort requests
   const sortedRequests = useMemo(() => {
@@ -567,10 +758,10 @@ const handleDepositPercentChange = (value) => {
       if (sortConfig.key === 'code') {
         aValue = aValue || '';
         bValue = bValue || '';
-      } else if (sortConfig.key === 'creator') {
+      } else if (sortConfig.key === 'customerName') {
         aValue = aValue || '';
         bValue = bValue || '';
-      } else if (sortConfig.key === 'sentDate') {
+      } else if (sortConfig.key === 'sentDate' || sortConfig.key === 'quotationDate') {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
       } else if (sortConfig.key === 'status') {
@@ -587,6 +778,23 @@ const handleDepositPercentChange = (value) => {
       return 0;
     });
   }, [filteredRequests, sortConfig]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRequests.length / pageSize));
+
+  const paginatedRequests = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedRequests.slice(start, start + pageSize);
+  }, [sortedRequests, page]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -613,7 +821,16 @@ const handleDepositPercentChange = (value) => {
       )}
 
       {/* Filter */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
           <Select
@@ -638,18 +855,29 @@ const handleDepositPercentChange = (value) => {
 
       {/* Table */}
       {!loading && (
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
+        <TableContainer
+          component={Paper}
+          sx={{
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
+            overflow: 'hidden',
           }}
         >
           <Table sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ width: '8%', py: 1.5, px: 2, textAlign: 'left' }}>
+                <TableCell
+                  sx={{
+                    width: '8%',
+                    py: 1.5,
+                    px: 2,
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   STT
                 </TableCell>
                 <TableCell sx={{ width: '22%', py: 1.5, px: 2 }}>
@@ -658,26 +886,39 @@ const handleDepositPercentChange = (value) => {
                     direction={sortConfig.key === 'code' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('code')}
                     hideSortIcon
+                    sx={headerTextSx}
                   >
                     Mã yêu cầu báo giá
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
-                    active={sortConfig.key === 'creator'}
-                    direction={sortConfig.key === 'creator' ? sortConfig.direction : 'asc'}
-                    onClick={() => handleSort('creator')}
+                    active={sortConfig.key === 'customerName'}
+                    direction={sortConfig.key === 'customerName' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('customerName')}
+                    sx={headerTextSx}
                   >
-                    Người gửi
+                    Khách hàng
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '17%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'sentDate'}
                     direction={sortConfig.key === 'sentDate' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('sentDate')}
+                    sx={headerTextSx}
                   >
-                    Ngày gửi
+                    Ngày khách hàng gửi
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '17%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'quotationDate'}
+                    direction={sortConfig.key === 'quotationDate' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('quotationDate')}
+                    sx={headerTextSx}
+                  >
+                    Ngày báo giá
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
@@ -685,19 +926,22 @@ const handleDepositPercentChange = (value) => {
                     active={sortConfig.key === 'status'}
                     direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('status')}
+                    sx={headerTextSx}
                   >
                     Trạng thái
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span>Hành động</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                      Hành động
+                    </span>
                   </Box>
                 </TableCell>
             </TableRow>
           </TableHead>
             <TableBody>
-              {sortedRequests.map((request, index) => (
+              {paginatedRequests.map((request, index) => (
                 <TableRow 
                   key={request.id || index} 
                   hover
@@ -712,10 +956,13 @@ const handleDepositPercentChange = (value) => {
                     }
                   }}
                 >
-                  <TableCell sx={{ textAlign: 'left' }}>{index + 1}</TableCell>
+                  <TableCell sx={{ textAlign: 'left' }}>
+                    {(page - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{request.code}</TableCell>
-                <TableCell>{request.creator || '-'}</TableCell>
+                <TableCell>{request.customerName || '-'}</TableCell>
                 <TableCell>{formatDate(request.sentDate)}</TableCell>
+                <TableCell>{formatDate(request.quotationDate)}</TableCell>
                 <TableCell>
                   {request.status !== undefined && request.status !== null ? (
                     <Chip
@@ -754,7 +1001,7 @@ const handleDepositPercentChange = (value) => {
             ))}
               {sortedRequests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
                       Chưa có yêu cầu báo giá nào
                     </Typography>
@@ -763,7 +1010,27 @@ const handleDepositPercentChange = (value) => {
               )}
           </TableBody>
         </Table>
-      </TableContainer>
+          {sortedRequests.length > 0 && (
+            <Box
+              sx={{
+                mt: 0,
+                pt: 2,
+                pb: 2,
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                backgroundColor: '#fff',
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
+        </TableContainer>
       )}
 
       {/* Snackbar for notifications */}
@@ -791,15 +1058,43 @@ const handleDepositPercentChange = (value) => {
             <Box>
               {/* Thông tin yêu cầu - Layout 2 cột */}
               <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
-                {/* Bên trái: Mã yêu cầu báo giá và Trạng thái */}
+                {/* Bên trái: Mã yêu cầu báo giá, Mã báo giá và Trạng thái */}
                 <Box sx={{ flex: 1 }}>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Mã báo giá:
+                  Mã yêu cầu báo giá:
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {selectedRequestDetails.RequestCode || selectedRequestDetails.requestCode || '-'}
                 </Typography>
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã báo giá:
+                </Typography>
+                <Box sx={{ fontWeight: 500 }}>
+                  {detailQuotationCode ? (
+                    <Button
+                      variant="text"
+                      color="primary"
+                      onClick={handleOpenQuotationDetail}
+                      disabled={!detailQuotationId}
+                      sx={{
+                        textTransform: 'none',
+                        padding: 0,
+                        minWidth: 0,
+                        fontWeight: 500,
+                        '&:disabled': {
+                          color: 'text.disabled',
+                        },
+                      }}
+                    >
+                      {detailQuotationCode}
+                    </Button>
+                  ) : (
+                    '-'
+                  )}
+                </Box>
               </Box>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -813,56 +1108,61 @@ const handleDepositPercentChange = (value) => {
                   </Box>
                 </Box>
                 
-                {/* Bên phải: Người gửi và Ngày gửi */}
+                {/* Bên phải: Khách hàng và ngày gửi */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Người gửi:
+                      Khách hàng:
                     </Typography>
                     <Typography variant="body1">
-                      {(() => {
-                        // Ưu tiên lấy CustomerName từ backend
-                        const customerName = selectedRequestDetails.CustomerName || selectedRequestDetails.customerName;
-                        if (customerName && customerName.trim() !== '') {
-                          return customerName;
-                        }
-                        // Fallback các field khác
-                        const createdByUserName = selectedRequestDetails.CreatedByUserName || selectedRequestDetails.createdByUserName;
-                        if (createdByUserName && createdByUserName.trim() !== '') {
-                          return createdByUserName;
-                        }
-                        const createdBy = selectedRequestDetails.CreatedBy || selectedRequestDetails.createdBy;
-                        if (createdBy && createdBy.trim() !== '') {
-                          return createdBy;
-                        }
-                        // Nếu có CustomerProfile.User trong response
-                        const userFullName = selectedRequestDetails.CustomerProfile?.User?.FullName || 
-                                            selectedRequestDetails.customerProfile?.user?.fullName ||
-                                            selectedRequestDetails.CustomerProfile?.User?.fullName ||
-                                            selectedRequestDetails.customerProfile?.User?.FullName;
-                        if (userFullName && userFullName.trim() !== '') {
-                          return userFullName;
-                        }
-                        return '-';
-                      })()}
+                      {resolveCustomerName(selectedRequestDetails)}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Ngày gửi:
+                      Ngày khách hàng gửi:
                     </Typography>
                     <Typography variant="body1">
                       {formatDate(selectedRequestDetails.RequestDate || selectedRequestDetails.requestDate)}
                     </Typography>
                   </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Ngày báo giá:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(detailQuotationDate)}
+                    </Typography>
                 </Box>
               </Box>
-              <Box sx={{ mb: 2 }}>
+              </Box>
+              <Box
+                sx={{
+                  mb: 2,
+                  maxWidth: 300,
+                  mx: 'auto',
+                }}
+              >
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                   Danh sách sản phẩm:
                 </Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{
+                    '& .MuiTableCell-root': {
+                      py: 0.75,
+                      px: 1.25,
+                      fontSize: '0.9rem',
+                    },
+                  }}
+                >
+                  <Table
+                    size="small"
+                    sx={{
+                      tableLayout: 'fixed',
+                    }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ width: '60px', textAlign: 'center' }}>STT</TableCell>
@@ -1119,16 +1419,16 @@ const handleDepositPercentChange = (value) => {
                               )}
                             </TableCell>
                             <TableCell align="right">
-                              {row.minQuantity ?? '-'}
+                              {row.minQuantity ?? 1}
                             </TableCell>
                             <TableCell align="right">
-                              {row.unitPrice !== undefined ? `${formatCurrency(row.unitPrice)}₫` : '-'}
+                              {row.unitPrice !== undefined ? renderCurrency(row.unitPrice) : '-'}
                             </TableCell>
                             <TableCell align="right">
-                              {row.totalBeforeTax !== undefined ? `${formatCurrency(row.totalBeforeTax)}₫` : '-'}
+                              {row.totalBeforeTax !== undefined ? renderCurrency(row.totalBeforeTax) : '-'}
                             </TableCell>
                             <TableCell align="right">
-                              {row.totalAfterTax !== undefined ? `${formatCurrency(row.totalAfterTax)}₫` : '-'}
+                              {row.totalAfterTax !== undefined ? renderCurrency(row.totalAfterTax) : '-'}
                             </TableCell>
                             <TableCell>
                               <TextField
@@ -1158,7 +1458,26 @@ const handleDepositPercentChange = (value) => {
             Hủy
           </Button>
           <Button
-            onClick={handleSubmitQuotation}
+            onClick={() => handleSubmitQuotation(false)}
+            variant="outlined"
+            disabled={quotationLoading}
+            sx={{
+              borderColor: '#155E64',
+              color: '#155E64',
+              '&:hover': {
+                borderColor: '#0D4F52',
+                backgroundColor: 'rgba(21, 94, 100, 0.05)',
+              },
+            }}
+          >
+            {quotationLoading && quotationAction === 'draft' ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Lưu nháp'
+            )}
+          </Button>
+          <Button
+            onClick={() => handleSubmitQuotation(true)}
             variant="contained"
             disabled={quotationLoading}
             sx={{
@@ -1168,7 +1487,11 @@ const handleDepositPercentChange = (value) => {
               },
             }}
           >
-            {quotationLoading ? <CircularProgress size={24} color="inherit" /> : 'Tạo báo giá'}
+            {quotationLoading && quotationAction === 'send' ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Gửi báo giá'
+            )}
           </Button>
         </DialogActions>
       </Dialog>

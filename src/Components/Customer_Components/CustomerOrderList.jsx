@@ -28,6 +28,7 @@ import {
   DialogActions,
   TextField,
   Autocomplete,
+  Pagination,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -36,6 +37,12 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import salesOrderAPI from '../../API/salesOrderAPI';
+
+const headerTextSx = {
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  letterSpacing: '0.03em',
+};
 
 const CustomerOrderList = () => {
   const navigate = useNavigate();
@@ -56,6 +63,8 @@ const CustomerOrderList = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('VietQR');
   const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -122,6 +131,23 @@ const CustomerOrderList = () => {
   useEffect(() => {
     setOrders(applyStatusFilter(allOrders));
   }, [applyStatusFilter, allOrders]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return orders.slice(start, start + pageSize);
+  }, [orders, page]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const getStatusLabel = (status) => {
     switch (status) {
@@ -304,50 +330,57 @@ const CustomerOrderList = () => {
         console.log('Order details response:', data);
         const totalAmount = data.totalAmount ?? data.TotalAmount ?? data.totalPrice ?? data.TotalPrice ?? data.grandTotal ?? 0;
         const depositPercent = data.depositPercent ?? data.DepositPercent ?? 0;
+        const depositDueDays = data.depositDueDays ?? data.DepositDueDays ?? null;
+        const depositExpiredDate = data.depositExpiredDate ?? data.DepositExpiredDate ?? null;
         const paidAmount = data.paidAmount ?? data.PaidAmount ?? 0;
         const depositAmount = totalAmount * (depositPercent / 100);
-        const remainingDeposit = Math.max(0, depositAmount - paidAmount);
+        const remainingDeposit = data.remainingDeposit ?? data.RemainingDeposit ?? Math.max(0, depositAmount - paidAmount);
         
         // Process details with tax information from backend
         const rawDetails = data.details ?? data.Details ?? data.orderDetails ?? data.OrderDetails ?? data.salesOrderDetails ?? data.SalesOrderDetails ?? [];
         const processedDetails = rawDetails.map((detail) => {
           const quantity = detail.quantity ?? detail.Quantity ?? 0;
-          // Backend now returns UnitPrice (before tax) and UnitPriceAfterTax
-          const unitPrice = detail.unitPrice ?? detail.UnitPrice ?? 0;
-          const unitPriceAfterTax = detail.unitPriceAfterTax ?? detail.UnitPriceAfterTax ?? unitPrice;
-          const subtotal = quantity * unitPrice;
-          const subtotalAfterTax = quantity * unitPriceAfterTax;
-          
-          // Get expired date from Lot
-          const expiredDate = detail.Lot?.ExpiredDate ?? detail.lot?.ExpiredDate ?? detail.expiredDate ?? detail.ExpiredDate ?? null;
-          const formattedExpiredDate = expiredDate ? formatDate(expiredDate) : '-';
-          
-          // Get tax information from backend response
+          const unitPrice = detail.unitPrice ?? detail.UnitPrice ?? detail.UnitPriceBeforeTax ?? 0;
+          const unitPriceAfterTax = detail.unitPriceAfterTax ?? detail.UnitPriceAfterTax ?? unitPrice * (1 + (detail.taxRate ?? detail.TaxRate ?? 0));
+          const subtotal = detail.subtotal ?? detail.Subtotal ?? detail.subTotalPrice ?? detail.SubTotalPrice ?? quantity * unitPrice;
+          const subtotalAfterTax = detail.subtotalAfterTax ?? detail.SubtotalAfterTax ?? quantity * unitPriceAfterTax;
           const taxText = detail.taxText ?? detail.TaxText ?? '-';
           const taxRate = detail.taxRate ?? detail.TaxRate ?? (taxText !== '-' ? getTaxRateFromText(taxText) : 0);
-          
+          const expiredDate =
+            detail.expiredDate ??
+            detail.ExpiredDate ??
+            detail.expiredDateText ??
+            detail.Lot?.ExpiredDate ??
+            detail.lot?.ExpiredDate ??
+            null;
+          const productName = detail.productName ?? detail.ProductName ?? '-';
+          const expiredDisplay = expiredDate ? formatDate(expiredDate) : '-';
           return {
             ...detail,
+            productName,
             quantity,
             unitPrice,
             unitPriceAfterTax,
             subtotal,
             subtotalAfterTax,
-            expiredDate: formattedExpiredDate,
             taxText: taxText || '-',
             taxRate,
+            expiredDate,
+            expiredDisplay,
           };
         });
         
         setOrderDetails({
           id: data.id ?? data.salesOrderId ?? data.SalesOrderId ?? orderId,
           code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? '',
-          status: data.status ?? data.Status,
+          status: data.status ?? data.Status ?? data.SalesOrderStatus,
+          statusName: data.statusName ?? data.StatusName ?? data.salesOrderStatusName ?? null,
           createdAt: data.CreateAt ?? data.createAt ?? data.CreatedAt ?? data.createdAt ?? data.createdDate ?? data.CreatedDate ?? null,
           expiredDate: data.orderExpiredDate ?? data.OrderExpiredDate ?? data.salesOrderExpiredDate ?? data.SalesOrderExpiredDate ?? data.expiredDate ?? data.ExpiredDate ?? null,
-          depositExpiredDate: data.depositExpiredDate ?? data.DepositExpiredDate ?? null,
+          depositExpiredDate,
           totalAmount: totalAmount,
           depositPercent: depositPercent,
+          depositDueDays,
           paidAmount: paidAmount,
           depositAmount: depositAmount,
           remainingDeposit: remainingDeposit,
@@ -583,22 +616,35 @@ const CustomerOrderList = () => {
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
+            overflow: 'hidden',
           }}
         >
           <Table sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell sx={{ width: '8%', py: 1.5, px: 2, textAlign: 'left', fontWeight: 600 }}>
+                <TableCell
+                  sx={{
+                    width: '8%',
+                    py: 1.5,
+                    px: 2,
+                    textAlign: 'left',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   STT
                 </TableCell>
-                <TableCell sx={{ width: '20%', py: 1.5, px: 2 }}>Mã đơn hàng</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>Thời gian tạo</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>Trạng thái</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6 }}>Tiền đã trả</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, pl: 5 }}>Tổng tiền đơn hàng</TableCell>
+                <TableCell sx={{ width: '20%', py: 1.5, px: 2, ...headerTextSx }}>Mã đơn hàng</TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>Thời gian tạo</TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>Trạng thái</TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6, ...headerTextSx }}>Tiền đã trả</TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2, pl: 5, ...headerTextSx }}>Tổng tiền đơn hàng</TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span>Hành động</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                      Hành động
+                    </span>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -613,7 +659,7 @@ const CustomerOrderList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.map((order, index) => (
+                paginatedOrders.map((order, index) => (
                   <TableRow
                     key={order.id || index}
                     hover
@@ -628,7 +674,9 @@ const CustomerOrderList = () => {
                       }
                     }}
                   >
-                    <TableCell sx={{ fontWeight: 500, textAlign: 'left' }}>{index + 1}</TableCell>
+                    <TableCell sx={{ fontWeight: 500, textAlign: 'left' }}>
+                      {(page - 1) * pageSize + index + 1}
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{order.quotationCode || order.quotationId || '-'}</TableCell>
                     <TableCell>{formatDate(order.createdAt || order.createAt || order.createdDate)}</TableCell>
                     <TableCell>
@@ -648,6 +696,25 @@ const CustomerOrderList = () => {
               )}
             </TableBody>
           </Table>
+          {orders.length > 0 && (
+            <Box
+              sx={{
+                pt: 2,
+                pb: 2,
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                backgroundColor: '#fff',
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
+          )}
         </TableContainer>
       )}
 
@@ -691,8 +758,8 @@ const CustomerOrderList = () => {
                       Trạng thái:
                     </Typography>
                     <Chip
-                      label={getStatusLabel(orderDetails.status)}
-                      color={getStatusColor(orderDetails.status)}
+                      label={orderDetails.statusName || getStatusLabel(orderDetails.status)}
+                      color={orderDetails.status !== undefined ? getStatusColor(orderDetails.status) : 'default'}
                       size="small"
                     />
                   </Box>
@@ -721,7 +788,9 @@ const CustomerOrderList = () => {
                       Cọc (% đơn hàng):
                     </Typography>
                     <Typography variant="body1">
-                      {orderDetails.depositPercent ? `${orderDetails.depositPercent}%` : '-'}
+                      {orderDetails.depositPercent !== undefined && orderDetails.depositPercent !== null
+                        ? `${orderDetails.depositPercent}%`
+                        : '-'}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -801,12 +870,14 @@ const CustomerOrderList = () => {
                           return (
                             <TableRow key={detail.id ?? detail.productId ?? index}>
                               <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
-                              <TableCell>{detail.productName ?? detail.ProductName ?? '-'}</TableCell>
+                                  <TableCell>{detail.productName ?? detail.ProductName ?? '-'}</TableCell>
                               <TableCell sx={{ textAlign: 'center' }}>{quantity}</TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPrice)}</TableCell>
-                              <TableCell sx={{ textAlign: 'left', pl: 3 }}>{taxText}</TableCell>
+                                  <TableCell sx={{ textAlign: 'left', pl: 3 }}>{taxText}</TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPriceAfterTax)}</TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>{expiredDate}</TableCell>
+                                  <TableCell sx={{ textAlign: 'right' }}>
+                                    {detail.expiredDisplay ?? (expiredDate ? formatDate(expiredDate) : '-')}
+                                  </TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(subtotal)}</TableCell>
                               <TableCell align="right" sx={{ whiteSpace: 'nowrap', pr: 2 }}>
                                 <Box component="div" sx={{ textAlign: 'right', width: '100%', display: 'block' }}>
@@ -1025,4 +1096,3 @@ const CustomerOrderList = () => {
 };
 
 export default CustomerOrderList;
-
