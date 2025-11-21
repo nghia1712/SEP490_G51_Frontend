@@ -117,8 +117,6 @@ const PaymentRemainList = () => {
         return <Chip color="success" label="Đã thanh toán" />;
       case 2:
         return <Chip color="error" label="Từ chối" />;
-      default:
-        return <Chip label="Không xác định" />;
     }
   };
 
