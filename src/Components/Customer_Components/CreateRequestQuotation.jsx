@@ -1,6 +1,5 @@
-// File: CreateRSQ.jsx - Tạo yêu cầu báo giá
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+// File: CreateRequestQuotation.jsx - Form tạo yêu cầu báo giá cho Customer
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -13,29 +12,27 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton,
-  TableSortLabel,
-  TextField,
-  Autocomplete,
+  Chip,
   CircularProgress,
   Alert,
   Snackbar,
+  TextField,
+  Autocomplete,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import productAPI from '../../API/productAPI';
 import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
 
-const CreateRSQ = () => {
-  const navigate = useNavigate();
+const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  
-  // Table rows state
   const [rows, setRows] = useState([
     { id: 1, productId: null, productCode: '', productName: '' }
   ]);
@@ -107,7 +104,7 @@ const CreateRSQ = () => {
     setError(null);
     try {
       const payload = {
-        productIdList: selectedProductIds
+        ProductIdList: selectedProductIds
       };
       
       const response = await requestSalesQuotationAPI.createRequest(payload);
@@ -115,9 +112,12 @@ const CreateRSQ = () => {
       if (response.data) {
         setSnackbarMessage('Tạo yêu cầu thành công!');
         setSnackbarOpen(true);
-        // Navigate back to list after 1 second
+        setRows([{ id: 1, productId: null, productCode: '', productName: '' }]);
+        // Call onSuccess callback after a short delay
         setTimeout(() => {
-          navigate('/request-quotation');
+          if (onSuccess) {
+            onSuccess();
+          }
         }, 1000);
       }
     } catch (err) {
@@ -130,15 +130,9 @@ const CreateRSQ = () => {
     }
   };
 
-  // Handle send (create and send immediately)
-  const handleSend = async () => {
-    // Same as create for now, backend will handle status
-    await handleCreateRequest();
-  };
-
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Title */}
+      {/* Header */}
       <Box sx={{ mb: 4, textAlign: 'center' }}>
         <Typography
           variant="h4"
@@ -277,6 +271,23 @@ const CreateRSQ = () => {
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
         <Button
           variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={onCancel}
+          disabled={loading}
+          sx={{
+            backgroundColor: '#155E64',
+            '&:hover': {
+              backgroundColor: '#0D4F52',
+            },
+            borderRadius: '8px',
+            px: 4,
+            py: 1.5,
+          }}
+        >
+          Hủy
+        </Button>
+        <Button
+          variant="contained"
           onClick={handleCreateRequest}
           disabled={loading}
           sx={{
@@ -291,22 +302,6 @@ const CreateRSQ = () => {
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Tạo yêu cầu'}
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleSend}
-          disabled={loading}
-          sx={{
-            backgroundColor: '#1976d2',
-            '&:hover': {
-              backgroundColor: '#1565c0',
-            },
-            borderRadius: '8px',
-            px: 4,
-            py: 1.5,
-          }}
-        >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Gửi'}
-        </Button>
       </Box>
 
       {/* Snackbar for notifications */}
@@ -320,5 +315,5 @@ const CreateRSQ = () => {
   );
 };
 
-export default CreateRSQ;
+export default CreateRequestQuotation;
 
