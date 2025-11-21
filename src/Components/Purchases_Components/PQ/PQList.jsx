@@ -115,7 +115,7 @@ export default function PQList() {
             <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>QID</TableCell>
+                <TableCell>Mã báo giá</TableCell>
                 <TableCell>Ngày gửi</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
                 <TableCell>Trạng thái</TableCell>
@@ -292,11 +292,8 @@ export default function PQList() {
           {quotationToCreatePo && (
             <>
               <Typography>
-                <strong>QID:</strong> PQ-{quotationToCreatePo.quotationId}
-              </Typography>
-              <Typography>
-                <strong>Nhà cung cấp:</strong>{" "}
-                {quotationToCreatePo.supplierName}
+                <strong>Mã báo giá:</strong> PQ-
+                {quotationToCreatePo.quotationId}
               </Typography>
               <Typography sx={{ mt: 2, fontWeight: "bold" }}>
                 Danh sách sản phẩm:
@@ -311,10 +308,16 @@ export default function PQList() {
                     <TableCell align="center">Đơn vị</TableCell>
                     <TableCell align="center">Đơn giá</TableCell>
                     <TableCell align="center">Số lượng</TableCell>
+                    <TableCell align="center">Gợi ý</TableCell>
+                    <TableCell align="center">Tối thiểu</TableCell>
+                    <TableCell align="center">Hiện tại</TableCell>
+                    <TableCell align="center">Tối đa</TableCell>
+
                     <TableCell align="center">Hạn dùng</TableCell>
                     <TableCell align="center"></TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {quotationToCreatePo.items?.map((item, i) => (
                     <TableRow key={i}>
@@ -336,10 +339,20 @@ export default function PQList() {
                         />
                       </TableCell>
                       <TableCell align="center">
+                        {item.suggestedQty ?? "-"}
+                      </TableCell>
+                      <TableCell align="center">{item.minQty ?? "-"}</TableCell>
+                      <TableCell align="center">
+                        {item.currentQty ?? "-"}
+                      </TableCell>
+                      <TableCell align="center">{item.maxQty ?? "-"}</TableCell>
+
+                      <TableCell align="center">
                         {item.productDate
                           ? new Date(item.productDate).toLocaleDateString()
                           : "-"}
                       </TableCell>
+
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">
                           <span>

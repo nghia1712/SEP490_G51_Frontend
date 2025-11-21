@@ -23,7 +23,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
-  Pagination ,
+  Pagination,
 } from "@mui/material";
 import { Visibility, Search, Close as CloseIcon } from "@mui/icons-material";
 import POActions from "./POActions";
@@ -304,50 +304,55 @@ export default function POList() {
                       <TableCell sx={{ width: 100 }}>
                         {p.unitPrice.toLocaleString()} ₫
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          width: 110,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                        }}
-                      >
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={p.quantity === 0 ? "" : p.quantity}
-                          onChange={(e) => {
-                            let val = e.target.value;
-                            let newQuantity = val === "" ? "" : Number(val);
-                            if (newQuantity < 1 && newQuantity !== "")
-                              newQuantity = 1;
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={p.quantity === 0 ? "" : p.quantity}
+                        error={p.quantity > p.suggestedQuantity}
+                        helperText={
+                          p.quantity > p.suggestedQuantity
+                            ? "Vượt quá số lượng gợi ý"
+                            : ""
+                        }
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          let newQuantity = val === "" ? "" : Number(val);
+                          if (newQuantity < 1 && newQuantity !== "")
+                            newQuantity = 1;
 
-                            setUploadedProducts((prev) =>
-                              prev.map((item, idx) =>
-                                idx === i
-                                  ? { ...item, quantity: newQuantity }
-                                  : item
-                              )
-                            );
-                          }}
-                          onBlur={() => {
-                            setUploadedProducts((prev) =>
-                              prev.map((item, idx) =>
-                                idx === i
-                                  ? {
-                                      ...item,
-                                      quantity:
-                                        item.quantity === "" ||
-                                        item.quantity < 1
-                                          ? 1
-                                          : item.quantity,
-                                    }
-                                  : item
-                              )
-                            );
-                          }}
-                        />
-                      </TableCell>
+                          setUploadedProducts((prev) =>
+                            prev.map((item, idx) =>
+                              idx === i
+                                ? { ...item, quantity: newQuantity }
+                                : item
+                            )
+                          );
+
+                          // Snackbar thông báo
+                          if (newQuantity > p.suggestedQuantity) {
+                            setSnackbar({
+                              open: true,
+                              message: `Số lượng "${p.productName}" vượt quá số lượng gợi ý (${p.suggestedQuantity})`,
+                              severity: "warning",
+                            });
+                          }
+                        }}
+                        onBlur={() => {
+                          setUploadedProducts((prev) =>
+                            prev.map((item, idx) =>
+                              idx === i
+                                ? {
+                                    ...item,
+                                    quantity:
+                                      item.quantity === "" || item.quantity < 1
+                                        ? 1
+                                        : item.quantity,
+                                  }
+                                : item
+                            )
+                          );
+                        }}
+                      />
 
                       <TableCell sx={{ width: 110 }}>
                         <TextField
@@ -430,22 +435,27 @@ export default function POList() {
                 borderTop: "1px solid #ddd",
               }}
             >
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => setPreviewOpen(false)}
-                sx={{ px: 3, py: 1 }}
-              >
-                Đóng
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleConvertExcel}
-                disabled={sending}
-              >
-                {sending ? "Đang gửi..." : "Gửi yêu cầu"}
-              </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => setPreviewOpen(false)}
+                  sx={{ px: 3, py: 1 }}
+                  disabled={sending}
+                >
+                   {sending ? <CircularProgress size={20} color="inherit" /> : "Đóng"}
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleConvertExcel}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    "Gửi yêu cầu"
+                  )}
+                </Button>
             </DialogActions>
           </>
         )}
@@ -530,7 +540,7 @@ export default function POList() {
                   <TableRow>
                     <TableCell>Sản phẩm</TableCell>
                     <TableCell>Mô tả</TableCell>
-                    <TableCell>ĐVT</TableCell>
+                    <TableCell>Đơn vị</TableCell>
                     <TableCell align="center">Số lượng</TableCell>
                     <TableCell align="center">Đơn giá</TableCell>
                     <TableCell align="center">Thành tiền</TableCell>

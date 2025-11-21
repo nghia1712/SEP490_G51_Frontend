@@ -199,7 +199,108 @@ export default function GRNListPage() {
         </Paper>
       )}
 
-      {/* Dialogs và Snackbar giữ nguyên như code cũ */}
+   {/* Create GRN Dialog */}
+      <Dialog
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Tạo phiếu nhập kho</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <TextField label="PO ID" value={poId ?? ""} disabled />
+
+            {/* Warehouse Dropdown */}
+            <FormControl fullWidth>
+              <InputLabel>Kho</InputLabel>
+              <Select
+                value={selectedWarehouse}
+                label="Kho"
+                onChange={(e) => setSelectedWarehouse(e.target.value)}
+              >
+                {warehouses.length > 0 ? (
+                  warehouses.map((w) => (
+                    <MenuItem key={w.id} value={w.id}>
+                      {w.name}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>Không có dữ liệu kho</MenuItem>
+                )}
+              </Select>
+            </FormControl>
+
+            {/* Warehouse Location Dropdown */}
+            <FormControl
+              fullWidth
+              disabled={!selectedWarehouse || locationsLoading}
+            >
+              <InputLabel>Vị trí kho</InputLabel>
+              <Select
+                value={selectedLocation}
+                label="Vị trí kho"
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                {locations.length === 0 ? (
+                  <MenuItem disabled>Không có vị trí</MenuItem>
+                ) : (
+                  locations.map((loc) => (
+                    <MenuItem key={loc.id} value={loc.id}>
+                      {loc.locationName}
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          </Stack>
+
+          {/* PO Items */}
+          <Box mt={3}>
+            <Typography fontWeight="bold" mb={1}>
+              Danh sách sản phẩm
+            </Typography>
+            <TableContainer component={Paper}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Tên sản phẩm</TableCell>
+                    <TableCell>Mô tả</TableCell>
+                    <TableCell>Đơn vị</TableCell>
+                    <TableCell>Số lượng</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {poItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        Không có sản phẩm
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    poItems.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{item.productName}</TableCell>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell>{item.dvt}</TableCell>
+                        <TableCell>{item.remainingQty}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenCreate(false)}>Hủy</Button>
+          <Button variant="contained" color="primary" onClick={handleCreateGRN}>
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* View GRN Detail Dialog */}
       <Dialog
         open={openDetail}

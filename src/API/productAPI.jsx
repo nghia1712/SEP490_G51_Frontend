@@ -22,6 +22,9 @@ const productAPI = {
   // Backend expects raw boolean in body, not an object
   setStatus: (id, statusBool) =>
     authorApi.put(`${API_URL}/${id}/status`, statusBool),
+  
+  searchLotByProductId: (poid) =>
+    authorApi.get(`${API_URL}/SearchLotProductByproductId/${poid}`),
 };
 
 export default productAPI;
