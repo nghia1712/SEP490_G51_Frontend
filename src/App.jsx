@@ -57,6 +57,7 @@ import StockExportList from "./Components/Warehouse_Components/GIN/StockExportLi
 import StockExportForm from "./Components/Warehouse_Components/GIN/StockExportForm.jsx";
 import GINList from "./Components/Warehouse_Components/GIN/GINList.jsx";
 import DebtList from "./Components/Debt_Components/DebtList.jsx";
+import PaymentRemainList from "./Components/PaymentRemain/PaymentRemainList.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -521,6 +522,8 @@ function App() {
                           </ProtectedRoute>
                         } 
                       />
+
+<Route path="/payment-remain" element={<PaymentRemainList />} />
 
                       <Route 
                         path="/request-quotation" 

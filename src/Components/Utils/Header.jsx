@@ -240,7 +240,7 @@ const navItems = [
   {
     label: "Xuất kho",
     path: "/gin",
-    allowedRoles: ["warehouse_staff"],
+    allowedRoles: ["warehouse_staff","accountant_staff"],
   },
   {
     label: "Báo giá",
@@ -339,7 +339,7 @@ const navItems = [
     return null; // Tất cả role khác không thấy menu tài khoản
   };
 
-  const baseVisible = menuItems.filter(
+  const baseVisible = navItems.filter(
     (item) => userRole && item.allowedRoles.includes(userRole)
   );
   const roleAccountItem = getRoleAccountItem(userRole);

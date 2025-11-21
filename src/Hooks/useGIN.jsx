@@ -136,6 +136,7 @@ export default function useGIN() {
     createGIN,
     sendGIN,
 
+    setSnack,
     snack,
     handleSnackClose,
   };
