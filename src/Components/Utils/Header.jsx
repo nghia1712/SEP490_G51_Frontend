@@ -183,7 +183,19 @@ function Header() {
     {
       label: "Thuốc",
       path: "/product",
-      allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"],
+      allowedRoles: [
+        "manager",
+        "sales_staff",
+        "purchases_staff",
+        "warehouse_staff",
+        "accountant_staff",
+        "admin",
+      ],
+    },
+    {
+      label: "Danh mục",
+      path: "/category",
+      allowedRoles: ["purchases_staff"],
     },
     {
       label: "Nhà cung cấp",
@@ -196,7 +208,7 @@ function Header() {
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
     {
-      label: "Báo giá",
+      label: "Báo giá(PQ)",
       path: "/purchase/pq",
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
@@ -214,7 +226,12 @@ function Header() {
     {
       label: "Báo cáo kiểm kê",
       path: "/inventory-report",
-      allowedRoles: ["manager", "warehouse_staff", "admin"],
+      allowedRoles: [
+        "manager",
+        "warehouse_staff",
+        "accountant_staff",
+        "admin",
+      ],
     },
     {
       label: "Kho hàng",
@@ -234,7 +251,22 @@ function Header() {
     {
       label: "Xuất kho",
       path: "/gin",
-      allowedRoles: ["warehouse_staff"],
+      allowedRoles: ["warehouse_staff", "accountant_staff"],
+    },
+    {
+      label: "Kiểm kê",
+      path: "/stocktaking",
+      allowedRoles: ["manager", "admin"],
+    },
+    {
+      label: "Kệ hàng",
+      path: "/inventory-check",
+      allowedRoles: [
+        "manager",
+        "warehouse_staff",
+        "accountant_staff",
+        "admin",
+      ],
     },
     {
       label: "Yêu cầu báo giá",
@@ -257,9 +289,24 @@ function Header() {
       allowedRoles: ["accountant_staff", "manager"],
     },
     {
+      label: "Thuế sản phẩm",
+      path: "/accountant/tax-policy",
+      allowedRoles: ["accountant_staff"],
+    },
+    {
+      label: "Hóa đơn",
+      path: "/accountant/invoices",
+      allowedRoles: ["accountant_staff", "manager"],
+    },
+    {
       label: "Công nợ",
       path: "/debt",
       allowedRoles: ["accountant_staff", "manager"],
+    },
+    {
+      label: "Yêu cầu thanh toán",
+      path: "/payment-remain",
+      allowedRoles: ["accountant_staff", "customer"],
     },
     {
       label: "Yêu cầu báo giá khách hàng",

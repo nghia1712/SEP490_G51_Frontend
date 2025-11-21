@@ -90,13 +90,13 @@ export default function PRFQList() {
   const getStatus = (statusCode) => {
     switch (statusCode) {
       case 1:
-        return { label: "Sent", color: "info" };
+        return { label: "Đã gửi", color: "info" };
       case 2:
-        return { label: "Approved", color: "success" };
+        return { label: "Đã duyệt", color: "success" };
       case 3:
-        return { label: "Rejected", color: "error" };
+        return { label: "Từ chối", color: "error" };
       case 4:
-        return { label: "Draft", color: "default" };
+        return { label: "Nháp", color: "default" };
       default:
         return { label: "Không xác định", color: "default" };
     }
@@ -174,7 +174,7 @@ export default function PRFQList() {
             <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>ID</TableCell>
+                <TableCell>Mã yêu cầu</TableCell>
                 <TableCell>Ngày tạo</TableCell>
                 <TableCell>Nhà cung cấp</TableCell>
                 <TableCell>Email</TableCell>

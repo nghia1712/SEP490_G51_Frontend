@@ -66,13 +66,19 @@ export default function PRFQCreate() {
   const searchTimeout = useRef(null);
 
   const handleProductSearch = async (keyword) => {
-    if (!keyword.trim()) {
-      setProductSuggestions([]);
-      return;
-    }
     try {
-      const res = await productAPI.search(keyword);
-      const list = Array.isArray(res.data?.data) ? res.data.data : [];
+      let list = [];
+      if (!keyword.trim()) {
+        // Nếu không nhập keyword → lấy tất cả sản phẩm
+        const res = await productAPI.getAll();
+        list = Array.isArray(res.data?.data) ? res.data.data : [];
+      } else {
+        // Nếu có keyword → search
+        const res = await productAPI.search(keyword);
+        list = Array.isArray(res.data?.data) ? res.data.data : [];
+      }
+
+      // Lọc những sản phẩm đã chọn
       const selectedIds = formData.items
         .map((item) => item.productId)
         .filter(Boolean);
@@ -81,9 +87,12 @@ export default function PRFQCreate() {
       );
       setProductSuggestions(filteredList.slice(0, 10));
     } catch (err) {
-      console.error("Lỗi search sản phẩm:", err);
+      console.error("Lỗi tải sản phẩm:", err);
     }
   };
+  useEffect(() => {
+    handleProductSearch("");
+  }, []);
 
   const handleItemChange = (index, value) => {
     const newItems = [...formData.items];

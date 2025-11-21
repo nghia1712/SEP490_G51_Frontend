@@ -22,13 +22,17 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Visibility, Search } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
+import { Visibility, Search, Paid } from "@mui/icons-material";
+import paymentRemainAPI from "../../../API/paymentRemainAPI";
+import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function GRNList() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const role = getUserRoleFromToken(); // ⬅️ Lấy role
 
   const {
     data,
@@ -45,6 +49,7 @@ export default function GRNList() {
     handleViewDetail,
     createGIN,
     sendGIN,
+    setSnack,
     snack,
     handleSnackClose,
     renderGINStatus,
@@ -70,13 +75,52 @@ export default function GRNList() {
     );
   }, [search, data]);
 
+const handleCreatePaymentRemain = async (ginId) => {
+  if (role !== "accountant_staff") {
+    setSnack({
+      open: true,
+      severity: "error",
+      message: "Bạn không có quyền tạo yêu cầu thanh toán!",
+    });
+    return;
+  }
+
+  try {
+    const res = await paymentRemainAPI.createPaymentRemainRequest(ginId);
+
+    const isOk = !!res.data?.message;
+
+    setSnack({
+      open: true,
+      severity: isOk ? "success" : "error",
+      message: res.data?.message || "Không thể tạo yêu cầu thanh toán",
+    });
+
+    if (res.data?.success) {
+      refetch();
+    }
+  } catch (err) {
+    const errorMessage =
+      err.response?.data?.message ||
+      err.message ||
+      "Lỗi không xác định khi tạo yêu cầu thanh toán";
+
+    setSnack({
+      open: true,
+      severity: "error",
+      message: errorMessage,
+    });
+  }
+};
+
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
         Phiếu xuất kho
       </Typography>
 
-      {/* Search + Tạo phiếu */}
+      {/* Search */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Stack
           direction="row"
@@ -99,14 +143,6 @@ export default function GRNList() {
             }}
             sx={{ width: 350 }}
           />
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/stock-export/manual-create")}
-          >
-            Tạo phiếu xuất kho
-          </Button>
         </Stack>
       </Paper>
 
@@ -122,13 +158,13 @@ export default function GRNList() {
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Phiếu xuất kho</TableCell>
-                <TableCell>Nhà cung cấp</TableCell>
+                <TableCell>Kho</TableCell>
                 <TableCell>Ngày tạo</TableCell>
                 <TableCell>Mô tả</TableCell>
                 <TableCell>Người phụ trách</TableCell>
                 <TableCell>Trạng thái</TableCell>
-                <TableCell>Mã đơn hàng</TableCell>
-                <TableCell align="center">Action</TableCell>
+                <TableCell>Mã yêu cầu</TableCell>
+                <TableCell align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -168,6 +204,19 @@ export default function GRNList() {
                             <Visibility />
                           </IconButton>
                         </Tooltip>
+
+                        {/* ⬅️ Chỉ hiện nút thanh toán cho accountant_staff */}
+                        {role === "accountant_staff" && (
+                          <Tooltip title="Tạo yêu cầu thanh toán phần còn lại">
+                            <IconButton
+                              color="success"
+                              size="small"
+                              onClick={() => handleCreatePaymentRemain(row.id)}
+                            >
+                              <Paid />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>

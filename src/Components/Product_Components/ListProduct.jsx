@@ -32,6 +32,7 @@ import {
   Grid,
   TableFooter,
   Pagination,
+  Snackbar,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -42,6 +43,7 @@ import AddProduct from "./AddProduct";
 import EditProduct from "./EditProduct";
 import ProductDetails from "./ProductDetails";
 import useProduct from "../../Hooks/useProduct";
+import ProductLotsModal from "./ProductLotsModal";
 
 const PAGE_SIZE = 5;
 
@@ -73,6 +75,11 @@ const itemVariants = {
 };
 
 const ListProduct = () => {
+    const [snack, setSnack] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
   // Use custom hook for product logic
   const {
     products,
@@ -82,7 +89,26 @@ const ListProduct = () => {
     createProduct, // <-- Thêm hàm createProduct từ hook
     inactiveProduct,
     checkProductName,
+    fetchProductLots,
   } = useProduct();
+  const [showLotsModal, setShowLotsModal] = useState(false);
+  const [lotsData, setLotsData] = useState([]);
+  const [lotsLoading, setLotsLoading] = useState(false);
+  const handleViewLots = async (product) => {
+    setLotsLoading(true);
+    try {
+      const lots = await fetchProductLots(
+        product._pid ?? product.productID ?? product.ProductID
+      );
+      setLotsData(lots);
+      setSelectedProduct(product);
+      setShowLotsModal(true);
+    } catch (err) {
+      alert("Lấy danh sách lô thất bại: " + err.message);
+    } finally {
+      setLotsLoading(false);
+    }
+  };
 
   // States for filtering and sorting
   const [filterText, setFilterText] = useState("");
@@ -111,20 +137,35 @@ const ListProduct = () => {
     let updatedProducts = [...products];
     if (filterText) {
       updatedProducts = updatedProducts.filter((product) => {
-        const name = product.productName || product.ProductName || '';
+        const name = product.productName || product.ProductName || "";
         return String(name).toLowerCase().includes(filterText.toLowerCase());
       });
     }
     if (statusFilter !== null) {
       updatedProducts = updatedProducts.filter((product) => {
-        const normalized = (product.status === true || product.status === 'active' || product.Status === true) ? 'active' : 'inactive';
-        return normalized === (statusFilter ? 'active' : 'inactive');
+        const normalized =
+          product.status === true ||
+          product.status === "active" ||
+          product.Status === true
+            ? "active"
+            : "inactive";
+        return normalized === (statusFilter ? "active" : "inactive");
       });
     }
     updatedProducts.sort((a, b) => {
       const isAsc = sortDirection === "asc";
-      const aVal = sortBy === 'productId' ? (a._pid ?? getProductIdValue(a) ?? 0) : (a[sortBy] || a?.[sortBy?.charAt(0).toUpperCase() + sortBy?.slice(1)] || "");
-      const bVal = sortBy === 'productId' ? (b._pid ?? getProductIdValue(b) ?? 0) : (b[sortBy] || b?.[sortBy?.charAt(0).toUpperCase() + sortBy?.slice(1)] || "");
+      const aVal =
+        sortBy === "productId"
+          ? a._pid ?? getProductIdValue(a) ?? 0
+          : a[sortBy] ||
+            a?.[sortBy?.charAt(0).toUpperCase() + sortBy?.slice(1)] ||
+            "";
+      const bVal =
+        sortBy === "productId"
+          ? b._pid ?? getProductIdValue(b) ?? 0
+          : b[sortBy] ||
+            b?.[sortBy?.charAt(0).toUpperCase() + sortBy?.slice(1)] ||
+            "";
       if (typeof aVal === "string" && typeof bVal === "string") {
         return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
@@ -154,24 +195,33 @@ const ListProduct = () => {
     setSortDirection(isCurrentlyAsc ? "desc" : "asc");
     setSortBy(column);
   };
-  
+
   const handleOpenEditModal = (product) => {
     setSelectedProduct(product);
     setShowEditModal(true);
   };
-  
+
   const handleOpenProductDetailsModal = (product) => {
     setSelectedProduct(product);
     setShowProductDetailsModal(true);
   };
-  
+
   const handleChangeStatus = async (product, currentStatus) => {
-    const isActive = currentStatus === 'active' || currentStatus === true;
-    const actionLabel = isActive ? 'Dừng bán' : 'Kích hoạt';
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionLabel.toLowerCase()} sản phẩm?`)) return;
+    const isActive = currentStatus === "active" || currentStatus === true;
+    const actionLabel = isActive ? "Dừng bán" : "Kích hoạt";
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn ${actionLabel.toLowerCase()} sản phẩm?`
+      )
+    )
+      return;
     try {
       const idForLog = product?._pid ?? getProductIdValue(product);
-      console.log('Toggle product status →', { id: idForLog, currentStatus, product });
+      console.log("Toggle product status →", {
+        id: idForLog,
+        currentStatus,
+        product,
+      });
       await inactiveProduct(product);
       await fetchProducts();
     } catch (err) {
@@ -181,7 +231,10 @@ const ListProduct = () => {
 
   const observer = useRef();
   const hasMore = false;
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PAGE_SIZE)
+  );
   const pageStart = (page - 1) * PAGE_SIZE;
   const pageEnd = page * PAGE_SIZE;
 
@@ -219,11 +272,18 @@ const ListProduct = () => {
       p?.id ??
       p?._id ??
       p?.code ??
-      `${p?.productName || 'product'}-${idx}`
+      `${p?.productName || "product"}-${idx}`
     );
   }, []);
 
-  const getProductIdValue = (p) => p?.ProductID ?? p?.productID ?? p?.ProductId ?? p?.productId ?? p?.id ?? p?._id ?? '';
+  const getProductIdValue = (p) =>
+    p?.ProductID ??
+    p?.productID ??
+    p?.ProductId ??
+    p?.productId ??
+    p?.id ??
+    p?._id ??
+    "";
 
   const renderStatusChip = (status) => (
     <Box
@@ -242,14 +302,24 @@ const ListProduct = () => {
       {status === "active" ? "Đang Bán" : "Ngừng Bán"}
     </Box>
   );
-  
+
   const headCells = [
     { id: "productId", label: "#", sortable: true, align: "center" },
     { id: "productImage", label: "Hình Ảnh", sortable: false },
     { id: "productName", label: "Tên Thuốc", sortable: true },
-    { id: "minQuantity", label: "SL Tối thiểu", sortable: true, align: "center" },
+    {
+      id: "minQuantity",
+      label: "SL Tối thiểu",
+      sortable: true,
+      align: "center",
+    },
     { id: "maxQuantity", label: "SL Tối đa", sortable: true, align: "center" },
-    { id: "totalCurrentQuantity", label: "Tổng SL hiện tại", sortable: true, align: "center" },
+    {
+      id: "totalCurrentQuantity",
+      label: "Tổng SL hiện tại",
+      sortable: true,
+      align: "center",
+    },
     { id: "unit", label: "Đơn Vị", sortable: true },
     { id: "status", label: "Trạng Thái", sortable: true },
     { id: "actions", label: "Hành Động", sortable: false, align: "center" },
@@ -293,7 +363,7 @@ const ListProduct = () => {
           p: { xs: 1, sm: 2, md: 3 },
           position: "relative",
           zIndex: 1,
-          pt: 4
+          pt: 4,
         }}
       >
         <Box sx={{ textAlign: "center", mb: 4 }}>
@@ -305,13 +375,13 @@ const ListProduct = () => {
             sx={{
               textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
               mb: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
             }}
           >
-            <InventoryIcon sx={{ fontSize: '2.5rem' }} />
+            <InventoryIcon sx={{ fontSize: "2.5rem" }} />
             Quản Lý Thuốc
           </Typography>
         </Box>
@@ -379,7 +449,10 @@ const ListProduct = () => {
                 onClick={() => setStatusFilter(true)}
                 variant={statusFilter === true ? "contained" : "outlined"}
                 sx={{
-                  backgroundColor: statusFilter === true ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                  backgroundColor:
+                    statusFilter === true
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "transparent",
                   color: "white",
                   borderColor: "rgba(255, 255, 255, 0.3)",
                   "&:hover": {
@@ -394,7 +467,10 @@ const ListProduct = () => {
                 onClick={() => setStatusFilter(false)}
                 variant={statusFilter === false ? "contained" : "outlined"}
                 sx={{
-                  backgroundColor: statusFilter === false ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                  backgroundColor:
+                    statusFilter === false
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "transparent",
                   color: "white",
                   borderColor: "rgba(255, 255, 255, 0.3)",
                   "&:hover": {
@@ -409,7 +485,10 @@ const ListProduct = () => {
                 onClick={() => setStatusFilter(null)}
                 variant={statusFilter === null ? "contained" : "outlined"}
                 sx={{
-                  backgroundColor: statusFilter === null ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                  backgroundColor:
+                    statusFilter === null
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "transparent",
                   color: "white",
                   borderColor: "rgba(255, 255, 255, 0.3)",
                   "&:hover": {
@@ -466,15 +545,21 @@ const ListProduct = () => {
                                       : null
                                   }
                                   alt={product.productName}
-                                  sx={{ 
-                                    width: "100%", 
+                                  sx={{
+                                    width: "100%",
                                     height: "auto",
-                                    backgroundColor: product.image ? 'transparent' : '#1976d2',
-                                    fontSize: '1.2rem',
-                                    fontWeight: 'bold'
+                                    backgroundColor: product.image
+                                      ? "transparent"
+                                      : "#1976d2",
+                                    fontSize: "1.2rem",
+                                    fontWeight: "bold",
                                   }}
                                 >
-                                  {!product.image && product.productName ? product.productName.charAt(0).toUpperCase() : null}
+                                  {!product.image && product.productName
+                                    ? product.productName
+                                        .charAt(0)
+                                        .toUpperCase()
+                                    : null}
                                 </Avatar>
                               </Grid>
                               <Grid item xs={9}>
@@ -487,9 +572,9 @@ const ListProduct = () => {
                                     fontSize: "1.1rem",
                                     p: 0,
                                     minWidth: 0,
-                                    '&:hover': { textDecoration: 'underline' },
+                                    "&:hover": { textDecoration: "underline" },
                                   }}
-                                  onClick={e => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     handleOpenProductDetailsModal(product);
                                   }}
@@ -532,7 +617,9 @@ const ListProduct = () => {
                             <Button
                               size="small"
                               color={
-                                product.status === "active" ? "error" : "success"
+                                product.status === "active"
+                                  ? "error"
+                                  : "success"
                               }
                               variant="outlined"
                               onClick={(e) => {
@@ -544,6 +631,14 @@ const ListProduct = () => {
                                 ? "Vô hiệu"
                                 : "Kích hoạt"}
                             </Button>
+                            <Button
+                              variant="outlined"
+                              color="info"
+                              size="small"
+                              onClick={() => handleViewLots(product)}
+                            >
+                              Xem Lô
+                            </Button>
                           </CardActions>
                         </Card>
                       </motion.div>
@@ -552,17 +647,24 @@ const ListProduct = () => {
               </AnimatePresence>
             </Box>
             <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
-              <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, v) => setPage(v)}
+                color="primary"
+              />
             </Box>
           </>
         ) : (
           // --- BƯỚC 5: ÁP DỤNG MOTION CHO DESKTOP VIEW ---
-          <Paper sx={{
-            width: "100%",
-            overflow: "hidden",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(10px)",
-          }}>
+          <Paper
+            sx={{
+              width: "100%",
+              overflow: "hidden",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(10px)",
+            }}
+          >
             <TableContainer sx={{ maxHeight: "calc(100vh - 280px)" }}>
               <Table stickyHeader aria-label="sticky table">
                 <TableHead>
@@ -580,10 +682,10 @@ const ListProduct = () => {
                             active={sortBy === headCell.id}
                             hideSortIcon
                             direction={(() => {
-                              if (sortBy !== headCell.id) return 'asc';
+                              if (sortBy !== headCell.id) return "asc";
                               // For productId, show up-arrow for desc (5->1), down-arrow for asc (1->5)
-                              if (headCell.id === 'productId') {
-                                return sortDirection === 'asc' ? 'desc' : 'asc';
+                              if (headCell.id === "productId") {
+                                return sortDirection === "asc" ? "desc" : "asc";
                               }
                               return sortDirection;
                             })()}
@@ -629,7 +731,12 @@ const ListProduct = () => {
                           }
                         >
                           <TableCell align="center">
-                            {product._pid ?? product.ProductID ?? product.productID ?? product.ProductId ?? product.productId ?? index + 1}
+                            {product._pid ??
+                              product.ProductID ??
+                              product.productID ??
+                              product.ProductId ??
+                              product.productId ??
+                              index + 1}
                           </TableCell>
                           <TableCell>
                             <Avatar
@@ -641,12 +748,16 @@ const ListProduct = () => {
                               }
                               alt={product.productName}
                               sx={{
-                                backgroundColor: product.image ? 'transparent' : '#1976d2',
-                                fontSize: '1rem',
-                                fontWeight: 'bold'
+                                backgroundColor: product.image
+                                  ? "transparent"
+                                  : "#1976d2",
+                                fontSize: "1rem",
+                                fontWeight: "bold",
                               }}
                             >
-                              {!product.image && product.productName ? product.productName.charAt(0).toUpperCase() : null}
+                              {!product.image && product.productName
+                                ? product.productName.charAt(0).toUpperCase()
+                                : null}
                             </Avatar>
                           </TableCell>
                           <TableCell>
@@ -659,9 +770,9 @@ const ListProduct = () => {
                                 fontSize: "1rem",
                                 p: 0,
                                 minWidth: 0,
-                                '&:hover': { textDecoration: 'underline' },
+                                "&:hover": { textDecoration: "underline" },
                               }}
-                              onClick={e => {
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenProductDetailsModal(product);
                               }}
@@ -677,12 +788,19 @@ const ListProduct = () => {
                             {product.MaxQuantity ?? product.maxQuantity ?? 0}
                           </TableCell>
                           <TableCell align="center">
-                            {product.TotalCurrentQuantity ?? product.totalCurrentQuantity ?? product.totalStock ?? 0}
+                            {product.TotalCurrentQuantity ??
+                              product.totalCurrentQuantity ??
+                              product.totalStock ??
+                              0}
                           </TableCell>
                           <TableCell>{product.Unit ?? product.unit}</TableCell>
                           {/* Xóa cột vị trí theo yêu cầu */}
                           <TableCell>
-                            {renderStatusChip((product.status ?? product.Status) ? "active" : "inactive")}
+                            {renderStatusChip(
+                              product.status ?? product.Status
+                                ? "active"
+                                : "inactive"
+                            )}
                           </TableCell>
                           <TableCell align="center">
                             <Stack
@@ -698,19 +816,48 @@ const ListProduct = () => {
                               >
                                 Sửa
                               </Button>
-                              <Tooltip title={product._pid ? "" : "Không tìm thấy ProductID từ API - không thể đổi trạng thái"}>
+                              <Tooltip
+                                title={
+                                  product._pid
+                                    ? ""
+                                    : "Không tìm thấy ProductID từ API - không thể đổi trạng thái"
+                                }
+                              >
                                 <span>
                                   <Button
                                     variant="contained"
-                                    color={(product.status ?? product.Status) ? "error" : "success"}
+                                    color={
+                                      product.status ?? product.Status
+                                        ? "error"
+                                        : "success"
+                                    }
                                     size="small"
                                     disabled={!product._pid}
-                                    onClick={() => handleChangeStatus(product, (product.status ?? product.Status) ? "active" : "inactive")}
+                                    onClick={() =>
+                                      handleChangeStatus(
+                                        product,
+                                        product.status ?? product.Status
+                                          ? "active"
+                                          : "inactive"
+                                      )
+                                    }
                                   >
-                                    {(product.status ?? product.Status) ? "Ngừng bán" : "Kích hoạt"}
+                                    {product.status ?? product.Status
+                                      ? "Ngừng bán"
+                                      : "Kích hoạt"}
                                   </Button>
                                 </span>
                               </Tooltip>
+
+                              {/* Thêm button Xem Lô */}
+                              <Button
+                                variant="outlined"
+                                color="info"
+                                size="small"
+                                onClick={() => handleViewLots(product)}
+                              >
+                                Xem Lô
+                              </Button>
                             </Stack>
                           </TableCell>
                         </TableRow>
@@ -719,9 +866,17 @@ const ListProduct = () => {
                 </Box>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={headCells.length} sx={{ borderBottom: "none", p: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                    <TableCell
+                      colSpan={headCells.length}
+                      sx={{ borderBottom: "none", p: 1 }}
+                    >
+                      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                        <Pagination
+                          count={totalPages}
+                          page={page}
+                          onChange={(_, v) => setPage(v)}
+                          color="primary"
+                        />
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -730,6 +885,15 @@ const ListProduct = () => {
             </TableContainer>
           </Paper>
         )}
+        <ProductLotsModal
+          open={showLotsModal}
+          onClose={() => setShowLotsModal(false)}
+          productName={selectedProduct?.productName ?? ""}
+          lots={lotsData}
+          loading={lotsLoading}
+          onNotify={(snack) => setSnack(snack)}
+        />
+
 
         {selectedProduct && (
           <>

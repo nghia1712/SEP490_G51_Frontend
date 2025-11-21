@@ -75,20 +75,33 @@ export default function usePQ() {
   };
 
   // 🔹 Mở dialog tạo PO
-  const openCreatePO = async (id) => {
+  const openCreatePO = async (qid) => {
     try {
-      const res = await pqApi.getDetail(id);
-      const q = res.data?.data;
+      const res = await prfqApi.preview2(qid);
+      const list = res.data?.data;
 
-      const itemsWithQty = (q.quotationDetailDTOs || []).map((item) => ({
-        ...item,
-        productID: item.productID || item.ProductID || item.id,
-        quantity: item.quantity || 1,
-      }));
+      if (!Array.isArray(list)) {
+        throw new Error("Dữ liệu preview2 không hợp lệ");
+      }
+
+      // Map lại cho UI PO:
+const itemsWithQty = list.map((item) => ({
+  productID: item.productID,
+  productName: item.productName,
+  productDescription: item.description, // sửa lại
+  productUnit: item.dvt,               // sửa lại
+  unitPrice: item.unitPrice,
+  expiredDate: item.expiredDateDisplay,
+  productDate: item.expiredDateDisplay, // để UI hiển thị hạn dùng
+  currentQty: item.currentQuantity,
+  minQty: item.minQuantity,
+  maxQty: item.maxQuantity,
+  suggestedQty: item.suggestedQuantity,
+  quantity: item.suggestedQuantity ?? 1,
+}));
 
       setQuotationToCreatePo({
-        quotationId: q.qid,
-        supplierName: q.supplierName || "(Chưa có tên NCC)",
+        quotationId: qid,
         items: itemsWithQty,
       });
 
@@ -97,7 +110,7 @@ export default function usePQ() {
       console.error("❌ Lỗi mở dialog PO:", err);
       setSnackbar({
         open: true,
-        message: "Lỗi tải dữ liệu PQ",
+        message: "Không lấy được dữ liệu Preview2",
         severity: "error",
       });
     }
@@ -123,7 +136,8 @@ export default function usePQ() {
       await prfqApi.createFromQuotation(payload);
       setSnackbar({
         open: true,
-        message: status === 6 ? "Gửi yêu cầu thành công!" : "Tạo bản nháp thành công!",
+        message:
+          status === 6 ? "Gửi yêu cầu thành công!" : "Tạo bản nháp thành công!",
         severity: "success",
       });
       setOpenCreatePoDialog(false);
@@ -131,7 +145,8 @@ export default function usePQ() {
       console.error("❌ Lỗi tạo PO:", err.response?.data || err);
       setSnackbar({
         open: true,
-        message: status === 6 ? "Gửi yêu cầu thất bại" : "Tạo bản nháp thất bại",
+        message:
+          status === 6 ? "Gửi yêu cầu thất bại" : "Tạo bản nháp thất bại",
         severity: "error",
       });
     } finally {
