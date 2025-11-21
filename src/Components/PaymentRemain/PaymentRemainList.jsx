@@ -114,9 +114,17 @@ const PaymentRemainList = () => {
       case 0:
         return <Chip color="warning" label="Chờ xử lý" />;
       case 1:
-        return <Chip color="success" label="Đã thanh toán" />;
+        return <Chip color="info" label="Đã đặt cọc" />;
       case 2:
-        return <Chip color="error" label="Từ chối" />;
+        return <Chip color="primary" label="Đã thanh toán" />;
+      case 3:
+        return <Chip color="success" label="Thành công" />;
+      case 4:
+        return <Chip color="error" label="Thất bại" />;
+      case 5:
+        return <Chip color="default" label="Đã hoàn tiền" />;
+      default:
+        return <Chip color="default" label="Không xác định" />;
     }
   };
 
@@ -233,12 +241,16 @@ const PaymentRemainList = () => {
             size="small"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            sx={{ width: 150 }}
+            sx={{ width: 180 }}
           >
-            <MenuItem value="">Trạng thái</MenuItem>
+            <MenuItem value="">Tất cả trạng thái</MenuItem>
+
             <MenuItem value={0}>Chờ xử lý</MenuItem>
-            <MenuItem value={1}>Đã thanh toán</MenuItem>
-            <MenuItem value={2}>Từ chối</MenuItem>
+            <MenuItem value={1}>Đã đặt cọc</MenuItem>
+            <MenuItem value={2}>Đã thanh toán</MenuItem>
+            <MenuItem value={3}>Thành công</MenuItem>
+            <MenuItem value={4}>Thất bại</MenuItem>
+            <MenuItem value={5}>Đã hoàn tiền</MenuItem>
           </Select>
 
           <Button variant="outlined" color="secondary" onClick={handleClear}>
