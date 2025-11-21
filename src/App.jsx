@@ -696,7 +696,7 @@ function App() {
                         element={
                           <ProtectedRoute
                             allowedRoles={[
-                              "manager",
+                              "sales_staff",
                               "warehouse_staff",
                               "admin",
                             ]}

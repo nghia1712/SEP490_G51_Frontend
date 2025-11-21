@@ -154,9 +154,7 @@ export default function PQList() {
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>
-                        {new Date(row.expiredDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
+                      <TableCell>{row.expiredDate}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xem chi tiết">
                           <span>
@@ -260,11 +258,7 @@ export default function PQList() {
                   <TableCell>{item.productDescription}</TableCell>
                   <TableCell>{item.productUnit}</TableCell>
                   <TableCell>{item.unitPrice?.toLocaleString()} đ</TableCell>
-                  <TableCell>
-                    {item.productDate
-                      ? new Date(item.productDate).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
+                  <TableCell>{item.productDate}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -307,6 +301,7 @@ export default function PQList() {
                     <TableCell>Mô tả</TableCell>
                     <TableCell align="center">Đơn vị</TableCell>
                     <TableCell align="center">Đơn giá</TableCell>
+                    <TableCell align="center">Thuế</TableCell>
                     <TableCell align="center">Số lượng</TableCell>
                     <TableCell align="center">Gợi ý</TableCell>
                     <TableCell align="center">Tối thiểu</TableCell>
@@ -325,6 +320,7 @@ export default function PQList() {
                       <TableCell>{item.productName}</TableCell>
                       <TableCell>{item.productDescription}</TableCell>
                       <TableCell align="center">{item.productUnit}</TableCell>
+                      <TableCell align="center">{item.tax * 100} %</TableCell>
                       <TableCell align="center">
                         {item.unitPrice?.toLocaleString()} đ
                       </TableCell>
@@ -347,11 +343,7 @@ export default function PQList() {
                       </TableCell>
                       <TableCell align="center">{item.maxQty ?? "-"}</TableCell>
 
-                      <TableCell align="center">
-                        {item.productDate
-                          ? new Date(item.productDate).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
+                      <TableCell align="center">{item.productDate}</TableCell>
 
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">

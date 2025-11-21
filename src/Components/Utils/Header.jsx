@@ -200,20 +200,19 @@ function Header() {
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
     {
-      label: "Yêu cầu báo giá",
+      label: "Yêu cầu báo giá nhập",
       path: "/purchase/prfq",
-      allowedRoles: ["manager", "purchases_staff", "admin"],
+      allowedRoles: ["purchases_staff", "admin"],
     },
     {
       label: "Báo giá(PQ)",
       path: "/purchase/pq",
-      allowedRoles: ["manager", "purchases_staff", "admin"],
+      allowedRoles: [ "purchases_staff", "admin"],
     },
     {
       label: "Đơn hàng nhập",
       path: "/po",
       allowedRoles: [
-        "manager",
         "admin",
         "purchases_staff",
         "warehouse_staff",
@@ -261,7 +260,7 @@ function Header() {
       allowedRoles: ["manager", "sales_staff", "admin"],
     },
     {
-      label: "Danh sách báo giá",
+      label: "Báo giá",
       path: "/sales-quotation",
       allowedRoles: ["manager", "sales_staff", "admin"],
     },
