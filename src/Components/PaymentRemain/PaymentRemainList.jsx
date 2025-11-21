@@ -32,6 +32,7 @@ import PaymentRemainDetail from "./PaymentRemainDetail";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 const PaymentRemainList = () => {
+  const [fullList, setFullList] = useState([]);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState({
@@ -42,7 +43,6 @@ const PaymentRemainList = () => {
 
   const [filters, setFilters] = useState({
     salesOrderId: "",
-    goodsIssueNoteId: "",
     status: "",
   });
 
@@ -62,33 +62,25 @@ const PaymentRemainList = () => {
     if (role === "customer") {
       userAPI
         .getProfile()
-        .then((res) => {
-          const cid = res.data.data.userId;
-          setCustomerId(cid);
-        })
-        .catch((err) => {
-          console.error("Lỗi lấy profile:", err);
-        });
+        .then((res) => setCustomerId(res.data.data.userId))
+        .catch((err) => console.error("Lỗi lấy profile:", err));
     }
   }, []);
 
-  // Lấy danh sách
+  // Lấy danh sách từ API
   const getList = async () => {
     setLoading(true);
     try {
       const res = await paymentRemainAPI.getList({
-        SalesOrderId: filters.salesOrderId || null,
-        GoodsIssueNoteId: filters.goodsIssueNoteId || null,
-        Status: filters.status || null,
-        CustomerId: customerId || null, // chỉ filter nếu là customer
-        Page: page,
-        PageSize: pageSize,
+        CustomerId: customerId || null,
+        Page: 1,
+        PageSize: 1000, // lấy nhiều dữ liệu để search trên FE
       });
-
-      setList(res.data?.data || []);
-      const totalRecords =
-        res.data?.totalRecords || res.data?.data?.length || 0;
-      setTotalPages(Math.ceil(totalRecords / pageSize));
+      const data = res.data?.data || [];
+      setFullList(data);
+      setList(data);
+      setTotalPages(Math.ceil(data.length / pageSize));
+      setPage(1);
     } catch (error) {
       console.error(error);
       setSnack({
@@ -102,13 +94,39 @@ const PaymentRemainList = () => {
 
   useEffect(() => {
     getList();
-  }, [filters, page, customerId]);
+  }, [customerId]);
 
-  const handleClear = () => {
-    setFilters({ salesOrderId: "", goodsIssueNoteId: "", status: "" });
+  // Search và filter trên FE
+  const handleSearch = () => {
+    const keyword = filters.salesOrderId.trim().toLowerCase();
+
+    let filtered = fullList;
+
+    if (keyword) {
+      filtered = filtered.filter(
+        (item) =>
+          item.salesOrderCode?.toLowerCase().includes(keyword) ||
+          item.salesOrderId?.toString().includes(keyword)
+      );
+    }
+
+    if (filters.status !== "") {
+      filtered = filtered.filter((item) => item.status === filters.status);
+    }
+
+    setTotalPages(Math.ceil(filtered.length / pageSize));
     setPage(1);
+    setList(filtered);
   };
 
+  const handleClear = () => {
+    setFilters({ salesOrderId: "", status: "" });
+    setList(fullList);
+    setPage(1);
+    setTotalPages(Math.ceil(fullList.length / pageSize));
+  };
+
+  // Các hàm render
   const renderStatus = (s) => {
     switch (s) {
       case 0:
@@ -159,14 +177,10 @@ const PaymentRemainList = () => {
         paymentRemainId: item.id,
       };
       const res = await paymentAPI.init(payload);
-
-      if (res.data?.message) {
+      if (res.data?.message)
         setSnack({ open: true, message: res.data.message, severity: "info" });
-      }
-
-      if (res.data?.data?.paymentUrl) {
+      if (res.data?.data?.paymentUrl)
         window.location.href = res.data.data.paymentUrl;
-      }
     } catch (error) {
       console.error(error);
       setSnack({
@@ -181,7 +195,6 @@ const PaymentRemainList = () => {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState(null);
-
   const handleViewDetail = async (item) => {
     try {
       const res = await paymentRemainAPI.getDetail(item.id);
@@ -196,11 +209,13 @@ const PaymentRemainList = () => {
       });
     }
   };
-
   const handleDetailClose = () => {
     setDetailOpen(false);
     setDetailData(null);
   };
+
+  // Pagination FE
+  const paginatedList = list.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <Box p={3}>
@@ -208,15 +223,39 @@ const PaymentRemainList = () => {
         Danh sách yêu cầu thanh toán
       </Typography>
 
-      {/* Filters */}
+      {/* Filters & Search */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <TextField
             label="Mã đơn hàng"
             value={filters.salesOrderId}
-            onChange={(e) =>
-              setFilters({ ...filters, salesOrderId: e.target.value })
-            }
+            onChange={(e) => {
+              const val = e.target.value;
+              setFilters({ ...filters, salesOrderId: val });
+
+              // Realtime search
+              const keyword = val.trim().toLowerCase();
+              let filtered = fullList;
+
+              if (keyword) {
+                filtered = filtered.filter(
+                  (item) =>
+                    item.salesOrderCode?.toLowerCase().includes(keyword) ||
+                    item.salesOrderId?.toString().includes(keyword)
+                );
+              }
+
+              if (filters.status !== "") {
+                filtered = filtered.filter(
+                  (item) => item.status === filters.status
+                );
+              }
+
+              setList(filtered);
+              setTotalPages(Math.ceil(filtered.length / pageSize));
+              setPage(1);
+            }}
+            size="small"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -224,27 +263,39 @@ const PaymentRemainList = () => {
                 </InputAdornment>
               ),
             }}
-            size="small"
-          />
-
-          <TextField
-            label="Phiếu xuất kho"
-            value={filters.goodsIssueNoteId}
-            onChange={(e) =>
-              setFilters({ ...filters, goodsIssueNoteId: e.target.value })
-            }
-            size="small"
           />
 
           <Select
             displayEmpty
             size="small"
             value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value === "" ? "" : Number(e.target.value);
+              setFilters({ ...filters, status: val });
+
+              // Realtime filter
+              let filtered = fullList;
+
+              const keyword = filters.salesOrderId.trim().toLowerCase();
+              if (keyword) {
+                filtered = filtered.filter(
+                  (item) =>
+                    item.salesOrderCode?.toLowerCase().includes(keyword) ||
+                    item.salesOrderId?.toString().includes(keyword)
+                );
+              }
+
+              if (val !== "") {
+                filtered = filtered.filter((item) => item.status === val);
+              }
+
+              setList(filtered);
+              setTotalPages(Math.ceil(filtered.length / pageSize));
+              setPage(1);
+            }}
             sx={{ width: 180 }}
           >
             <MenuItem value="">Tất cả trạng thái</MenuItem>
-
             <MenuItem value={0}>Chờ xử lý</MenuItem>
             <MenuItem value={1}>Đã đặt cọc</MenuItem>
             <MenuItem value={2}>Đã thanh toán</MenuItem>
@@ -272,7 +323,7 @@ const PaymentRemainList = () => {
                 <TableCell>Phương thức</TableCell>
                 <TableCell>Số tiền</TableCell>
                 <TableCell>Trạng thái</TableCell>
-                <TableCell>Ngày thanh toán</TableCell>
+                <TableCell>Ngày yêu cầu</TableCell>
                 <TableCell align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
@@ -283,8 +334,8 @@ const PaymentRemainList = () => {
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ) : list.length > 0 ? (
-                list.map((item) => (
+              ) : paginatedList.length > 0 ? (
+                paginatedList.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.id}</TableCell>
                     <TableCell>
@@ -348,7 +399,7 @@ const PaymentRemainList = () => {
         </TableContainer>
 
         {/* Pagination */}
-        {list.length > 0 && (
+        {paginatedList.length > 0 && (
           <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
             <Pagination
               count={totalPages}
