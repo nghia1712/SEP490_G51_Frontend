@@ -162,146 +162,139 @@ function Header() {
     ? `http://localhost:9999${profile.profile.avatar}`
     : "/images/avatar/default.png";
 
-// --- NAVIGATION ITEMS ---
-const navItems = [
-  // ===== Base (anhtu) =====
-  {
-    label: "Tổng quan",
-    path: "/sales-dashboard",
-    allowedRoles: [
-      "manager",
-      "sales_staff",
-      "purchases_staff",
-      "warehouse_staff",
-      "admin",
-    ],
-  },
-  {
-    label: "Thống kê",
-    path: "/dashboard",
-    allowedRoles: ["manager", "admin"],
-  },
-  {
-    label: "Thuốc",
-    path: "/product",
-    allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"],
-  },
-  {
-    label: "Danh mục",
-    path: "/category",
-    allowedRoles: ["purchases_staff"],
-  },
-  {
-    label: "Nhà cung cấp",
-    path: "/supplier",
-    allowedRoles: ["manager", "purchases_staff", "admin"],
-  },
-  {
-    label: "Yêu cầu báo giá",
-    path: "/purchase/prfq",
-    allowedRoles: ["manager", "purchases_staff", "admin"],
-  },
-  {
-    label: "Báo giá(PQ)",
-    path: "/purchase/pq",
-    allowedRoles: ["manager", "purchases_staff", "admin"],
-  },
-  {
-    label: "Đơn hàng nhập",
-    path: "/po",
-    allowedRoles: [
-      "manager",
-      "admin",
-      "purchases_staff",
-      "warehouse_staff",
-      "accountant_staff",
-    ],
-  },
-  {
-    label: "Báo cáo kiểm kê",
-    path: "/inventory-report",
-    allowedRoles: ["manager", "warehouse_staff", "admin"],
-  },
-  {
-    label: "Kho hàng",
-    path: "/warehouse",
-    allowedRoles: ["manager", "warehouse_staff", "admin"],
-  },
-  {
-    label: "Nhập kho",
-    path: "/grn",
-    allowedRoles: ["warehouse_staff"],
-  },
-  {
-    label: "Yêu cầu xuất kho",
-    path: "/stock-export",
-    allowedRoles: ["warehouse_staff", "sales_staff"],
-  },
-  {
-    label: "Xuất kho",
-    path: "/gin",
-    allowedRoles: ["warehouse_staff","accountant_staff"],
-  },
-  {
-    label: "Báo giá",
-    path: "/request-quotation",
-    allowedRoles: ["manager", "sales_staff", "admin"],
-  },
-  {
-    label: "Công nợ",
-    path: "/debt",
-    allowedRoles: ["accountant_staff", "manager"],
-  },
+  // --- NAVIGATION ITEMS ---
+  const navItems = [
+    // ===== Base (anhtu) =====
+    {
+      label: "Thống kê",
+      path: "/dashboard",
+      allowedRoles: ["manager", "admin"],
+    },
+    {
+      label: "Thuốc",
+      path: "/product",
+      allowedRoles: ["manager", "sales_staff", "purchases_staff", "admin"],
+    },
+    {
+      label: "Danh mục",
+      path: "/category",
+      allowedRoles: ["purchases_staff"],
+    },
+    {
+      label: "Nhà cung cấp",
+      path: "/supplier",
+      allowedRoles: ["manager", "purchases_staff", "admin"],
+    },
+    {
+      label: "Yêu cầu báo giá",
+      path: "/purchase/prfq",
+      allowedRoles: ["manager", "purchases_staff", "admin"],
+    },
+    {
+      label: "Báo giá(PQ)",
+      path: "/purchase/pq",
+      allowedRoles: ["manager", "purchases_staff", "admin"],
+    },
+    {
+      label: "Đơn hàng nhập",
+      path: "/po",
+      allowedRoles: [
+        "manager",
+        "admin",
+        "purchases_staff",
+        "warehouse_staff",
+        "accountant_staff",
+      ],
+    },
+    {
+      label: "Báo cáo kiểm kê",
+      path: "/inventory-report",
+      allowedRoles: ["manager", "warehouse_staff", "admin"],
+    },
+    {
+      label: "Kho hàng",
+      path: "/warehouse",
+      allowedRoles: ["manager", "warehouse_staff", "admin"],
+    },
+    {
+      label: "Nhập kho",
+      path: "/grn",
+      allowedRoles: ["warehouse_staff"],
+    },
+    {
+      label: "Yêu cầu xuất kho",
+      path: "/stock-export",
+      allowedRoles: ["warehouse_staff", "sales_staff"],
+    },
+    {
+      label: "Xuất kho",
+      path: "/gin",
+      allowedRoles: ["warehouse_staff", "accountant_staff"],
+    },
+    {
+      label: "Báo giá",
+      path: "/request-quotation",
+      allowedRoles: ["manager", "sales_staff", "admin"],
+    },
+    {
+      label: "Công nợ",
+      path: "/debt",
+      allowedRoles: ["accountant_staff", "manager"],
+    },
 
-  // ===== Additional items from main =====
-  {
-    label: "Kiểm kê",
-    path: "/stocktaking",
-    allowedRoles: ["manager", "admin"],
-  },
-  {
-    label: "Kệ hàng",
-    path: "/inventory-check",
-    allowedRoles: ["manager", "warehouse_staff", "admin"],
-  },
+    // ===== Additional items from main =====
+    {
+      label: "Kiểm kê",
+      path: "/stocktaking",
+      allowedRoles: ["manager", "admin"],
+    },
+    {
+      label: "Kệ hàng",
+      path: "/inventory-check",
+      allowedRoles: ["manager", "warehouse_staff", "admin"],
+    },
 
-  // Salesperson-only screens
-  {
-    label: "Danh sách yêu cầu báo giá",
-    path: "/request-quotation",
-    allowedRoles: ["sales_staff"],
-  },
-  {
-    label: "Danh sách báo giá",
-    path: "/sales-quotation",
-    allowedRoles: ["manager", "sales_staff", "admin"],
-  },
-  {
-    label: "Danh sách đơn hàng",
-    path: "/sales/orders",
-    allowedRoles: ["sales_staff"],
-  },
+    // Salesperson-only screens
+    {
+      label: "Danh sách yêu cầu báo giá",
+      path: "/request-quotation",
+      allowedRoles: ["sales_staff"],
+    },
+    {
+      label: "Danh sách báo giá",
+      path: "/sales-quotation",
+      allowedRoles: ["manager", "sales_staff", "admin"],
+    },
+    {
+      label: "Danh sách đơn hàng",
+      path: "/sales/orders",
+      allowedRoles: ["sales_staff"],
+    },
 
-  // Accountant views
-  {
-    label: "Danh sách đơn hàng",
-    path: "/accountant/orders",
-    allowedRoles: ["accountant_staff", "manager"],
-  },
+    // Accountant views
+    {
+      label: "Danh sách đơn hàng",
+      path: "/accountant/orders",
+      allowedRoles: ["accountant_staff", "manager"],
+    },
 
-  // Customer views
-  {
-    label: "Yêu cầu báo giá",
-    path: "/customer/request-quotation",
-    allowedRoles: ["customer"],
-  },
-  {
-    label: "Đơn hàng của tôi",
-    path: "/customer/orders",
-    allowedRoles: ["customer"],
-  },
-];
-
+    {
+      label: "Yêu cầu thanh toán",
+      path: "/payment-remain",
+      allowedRoles: ["accountant_staff", "customer"],
+    },
+    // Customer views
+    {
+      label: "Yêu cầu báo giá",
+      path: "/customer/request-quotation",
+      allowedRoles: ["customer"],
+    },
+    {
+      label: "Đơn hàng của tôi",
+      path: "/customer/orders",
+      allowedRoles: ["customer"],
+    },
+  ];
 
   const partnerMenuItems = [
     {

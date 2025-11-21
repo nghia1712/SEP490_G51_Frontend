@@ -26,7 +26,10 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { Visibility, Paid } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
+import paymentAPI from "../../API/paymentAPI";
+import userAPI from "../../API/userAPI";
 import PaymentRemainDetail from "./PaymentRemainDetail";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 const PaymentRemainList = () => {
   const [list, setList] = useState([]);
@@ -43,11 +46,33 @@ const PaymentRemainList = () => {
     status: "",
   });
 
-  // Phân trang
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10); // số bản ghi mỗi trang
+  const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
+  // User info
+  const [userRole, setUserRole] = useState(null);
+  const [customerId, setCustomerId] = useState(null);
+
+  // Lấy role và customerId nếu role là customer
+  useEffect(() => {
+    const role = getUserRoleFromToken();
+    setUserRole(role);
+
+    if (role === "customer") {
+      userAPI
+        .getProfile()
+        .then((res) => {
+          const cid = res.data.data.userId;
+          setCustomerId(cid);
+        })
+        .catch((err) => {
+          console.error("Lỗi lấy profile:", err);
+        });
+    }
+  }, []);
+
+  // Lấy danh sách
   const getList = async () => {
     setLoading(true);
     try {
@@ -55,6 +80,7 @@ const PaymentRemainList = () => {
         SalesOrderId: filters.salesOrderId || null,
         GoodsIssueNoteId: filters.goodsIssueNoteId || null,
         Status: filters.status || null,
+        CustomerId: customerId || null, // chỉ filter nếu là customer
         Page: page,
         PageSize: pageSize,
       });
@@ -64,7 +90,7 @@ const PaymentRemainList = () => {
         res.data?.totalRecords || res.data?.data?.length || 0;
       setTotalPages(Math.ceil(totalRecords / pageSize));
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setSnack({
         open: true,
         message: "Lỗi khi lấy danh sách",
@@ -74,17 +100,12 @@ const PaymentRemainList = () => {
     setLoading(false);
   };
 
-  // Auto load khi filters hoặc page thay đổi
   useEffect(() => {
     getList();
-  }, [filters, page]);
+  }, [filters, page, customerId]);
 
   const handleClear = () => {
-    setFilters({
-      salesOrderId: "",
-      goodsIssueNoteId: "",
-      status: "",
-    });
+    setFilters({ salesOrderId: "", goodsIssueNoteId: "", status: "" });
     setPage(1);
   };
 
@@ -123,13 +144,31 @@ const PaymentRemainList = () => {
     }
   };
 
-  const handlePay = (item) => {
-    console.log("Thanh toán:", item);
-    setSnack({
-      open: true,
-      message: "Chức năng thanh toán đang demo",
-      severity: "info",
-    });
+  const handlePay = async (item) => {
+    try {
+      const payload = {
+        salesOrderId: item.salesOrderId,
+        paymentType: "remain",
+        locale: "vn",
+        paymentRemainId: item.id,
+      };
+      const res = await paymentAPI.init(payload);
+
+      if (res.data?.message) {
+        setSnack({ open: true, message: res.data.message, severity: "info" });
+      }
+
+      if (res.data?.data?.paymentUrl) {
+        window.location.href = res.data.data.paymentUrl;
+      }
+    } catch (error) {
+      console.error(error);
+      setSnack({
+        open: true,
+        message: error.response?.data?.message || "Lỗi khi tạo link thanh toán",
+        severity: "error",
+      });
+    }
   };
 
   const handleSnackClose = () => setSnack({ ...snack, open: false });
@@ -143,7 +182,7 @@ const PaymentRemainList = () => {
       setDetailData(res.data.data);
       setDetailOpen(true);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setSnack({
         open: true,
         message: "Lỗi khi lấy chi tiết",
@@ -163,7 +202,7 @@ const PaymentRemainList = () => {
         Danh sách yêu cầu thanh toán
       </Typography>
 
-      {/* BỘ LỌC */}
+      {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <TextField
@@ -210,7 +249,7 @@ const PaymentRemainList = () => {
         </Stack>
       </Paper>
 
-      {/* BẢNG DỮ LIỆU */}
+      {/* Table */}
       <Paper>
         <TableContainer>
           <Table>
@@ -227,7 +266,6 @@ const PaymentRemainList = () => {
                 <TableCell align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
               {loading ? (
                 <TableRow>
@@ -271,15 +309,19 @@ const PaymentRemainList = () => {
                             <Visibility />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Thanh toán">
-                          <IconButton
-                            color="success"
-                            size="small"
-                            onClick={() => handlePay(item)}
-                          >
-                            <Paid />
-                          </IconButton>
-                        </Tooltip>
+                        {userRole === "customer" && item.status === 0 && (
+                          <Tooltip title="Thanh toán">
+                            <span>
+                              <IconButton
+                                color="success"
+                                onClick={() => handlePay(item)}
+                                disabled={loading}
+                              >
+                                <Paid />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -294,6 +336,7 @@ const PaymentRemainList = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
         {/* Pagination */}
         {list.length > 0 && (
           <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
@@ -307,7 +350,7 @@ const PaymentRemainList = () => {
         )}
       </Paper>
 
-      {/* Dialog chi tiết */}
+      {/* Detail Dialog */}
       <PaymentRemainDetail
         open={detailOpen}
         onClose={handleDetailClose}
