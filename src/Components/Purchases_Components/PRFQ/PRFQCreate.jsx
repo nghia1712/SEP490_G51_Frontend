@@ -77,7 +77,7 @@ export default function PRFQCreate() {
         const res = await productAPI.search(keyword);
         list = Array.isArray(res.data?.data) ? res.data.data : [];
       }
-
+      list = list.filter((p) => p.status === true);
       // Lọc những sản phẩm đã chọn
       const selectedIds = formData.items
         .map((item) => item.productId)
@@ -249,7 +249,6 @@ export default function PRFQCreate() {
         productIds,
         prfqStatus: status === "Draft" ? 4 : 1, // Draft = 4, Submit = 1
       };
-
       let res;
 
       // ✅ Nếu đang chỉnh sửa bản nháp → gọi continueEdit
@@ -275,9 +274,10 @@ export default function PRFQCreate() {
       setTimeout(() => navigate("/purchase/prfq"), 1200);
     } catch (error) {
       console.error("Lỗi Submit:", error);
+
       setSnackbar({
         open: true,
-        message: "Không thể lưu, vui lòng thử lại!",
+        message: error.response?.data?.message || "Có lỗi xảy ra!",
         severity: "error",
       });
     } finally {
@@ -685,21 +685,28 @@ export default function PRFQCreate() {
               </TableContainer>
 
               {/* SECTION: Notes */}
-              <Box sx={{ bgcolor: "#E8EAF6", p: 2 }}>
+              {/* NOTES – giống bản Excel */}
+              <Box sx={{ borderTop: "1px solid black", p: 2 }}>
                 <Typography sx={{ fontWeight: 700, mb: 1 }}>
                   GHI CHÚ (NOTES)
                 </Typography>
-                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                  <li>
-                    Vui lòng phản hồi báo giá qua email hoặc hệ thống trong thời
-                    gian sớm nhất.
-                  </li>
-                  <li>
-                    Báo giá cần ghi rõ điều kiện thanh toán và thời gian giao
-                    hàng.
-                  </li>
-                  <li>Đảm bảo tính trung thực, rõ ràng trong báo giá.</li>
-                </ul>
+
+                <Typography
+                  component="div"
+                  sx={{ whiteSpace: "pre-line", lineHeight: 1.7 }}
+                >
+                  • Vui lòng phản hồi báo giá qua email hoặc hệ thống trong thời
+                  gian sớm nhất.{"\n"}• Báo giá cần ghi rõ điều kiện thanh toán
+                  và thời gian đáo hạn thanh toán.{"\n"}• Đảm bảo tính trung
+                  thực, rõ ràng trong báo giá.{"\n"}• Yêu cầu file phản hồi báo
+                  giá theo chuẩn Format đã thống nhất.{"\n"}• Mọi thắc mắc, phát
+                  sinh vui lòng liên lạc theo SĐT đã đính kèm.{"\n"}• BBPhamarcy
+                  xin cam kết, đảm bảo tính pháp lý của những mặt hàng được yêu
+                  cầu báo giá, thuộc loại được cấp phép lưu hành của BYT (Bộ Y
+                  Tế) trên lãnh thổ Việt Nam.{"\n"}• BBPharmacy với tư cách bên
+                  mua, cam kết chịu mọi trách nhiệm trước pháp luật, hiến pháp
+                  nước CHXHCN Việt Nam.
+                </Typography>
               </Box>
 
               {/* FOOTER */}

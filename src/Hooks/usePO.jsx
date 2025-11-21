@@ -92,7 +92,10 @@ export default function usePO() {
         else if (partialIds.includes(poidNum))
           receivingStatus = "Nhận một phần";
         else if (notIds.includes(poidNum)) receivingStatus = "Chưa nhận";
-        return { ...po, receivingStatus };
+        let debt = po.debt ?? 0;
+        if (Number(po.status) === 0) debt = po.total ?? debt;
+
+        return { ...po, receivingStatus, debt };
       });
 
       setPoList(mappedPOs);
@@ -109,11 +112,18 @@ export default function usePO() {
       setLoading(false);
     }
   };
+
   const fetchPODetail = async (poId) => {
     if (!poId) return;
     try {
       const res = await poApi.getDetail(poId);
-      setSelectedPO(res.data?.data || null);
+      let po = res.data?.data || null;
+      if (po) {
+        if (Number(po.status) === 0) {
+          po.debt = po.total;
+        }
+      }
+      setSelectedPO(po);
     } catch (err) {
       console.error("❌ Lỗi khi lấy chi tiết PO:", err);
       setSnackbar({
@@ -127,7 +137,10 @@ export default function usePO() {
   const handleOpenDetail = async (id) => {
     try {
       const res = await poApi.getDetail(id);
-      setSelectedPO(res.data?.data);
+      const po = res.data?.data;
+      if (po && Number(po.status) === 0) po.debt = po.total;
+      setSelectedPO(po);
+
       setOpenDetail(true);
     } catch (err) {
       console.error("❌ Lỗi khi lấy chi tiết PO:", err);

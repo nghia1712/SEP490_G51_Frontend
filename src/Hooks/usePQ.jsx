@@ -88,13 +88,14 @@ export default function usePQ() {
 const itemsWithQty = list.map((item) => ({
   productID: item.productID,
   productName: item.productName,
-  productDescription: item.description, // sửa lại
-  productUnit: item.dvt,               // sửa lại
+  productDescription: item.description,
+  productUnit: item.dvt,
   unitPrice: item.unitPrice,
   expiredDate: item.expiredDateDisplay,
-  productDate: item.expiredDateDisplay, // để UI hiển thị hạn dùng
+  productDate: item.expiredDateDisplay,
   currentQty: item.currentQuantity,
   minQty: item.minQuantity,
+  tax: item.tax,
   maxQty: item.maxQuantity,
   suggestedQty: item.suggestedQuantity,
   quantity: item.suggestedQuantity ?? 1,

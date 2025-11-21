@@ -281,6 +281,7 @@ export default function POList() {
                     <TableCell>Mô tả</TableCell>
                     <TableCell>ĐVT</TableCell>
                     <TableCell>Đơn giá</TableCell>
+                    <TableCell>Thuế</TableCell>
                     <TableCell>Số lượng</TableCell>
                     <TableCell>Gợi ý</TableCell>
                     <TableCell>Tối thiểu</TableCell>
@@ -304,6 +305,7 @@ export default function POList() {
                       <TableCell sx={{ width: 100 }}>
                         {p.unitPrice.toLocaleString()} ₫
                       </TableCell>
+                      <TableCell>{p.tax * 100} %</TableCell>
                       <TextField
                         size="small"
                         type="number"
@@ -435,27 +437,31 @@ export default function POList() {
                 borderTop: "1px solid #ddd",
               }}
             >
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => setPreviewOpen(false)}
-                  sx={{ px: 3, py: 1 }}
-                  disabled={sending}
-                >
-                   {sending ? <CircularProgress size={20} color="inherit" /> : "Đóng"}
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleConvertExcel}
-                  disabled={sending}
-                >
-                  {sending ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : (
-                    "Gửi yêu cầu"
-                  )}
-                </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => setPreviewOpen(false)}
+                sx={{ px: 3, py: 1 }}
+                disabled={sending}
+              >
+                {sending ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Đóng"
+                )}
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleConvertExcel}
+                disabled={sending}
+              >
+                {sending ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Gửi yêu cầu"
+                )}
+              </Button>
             </DialogActions>
           </>
         )}

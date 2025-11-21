@@ -94,19 +94,18 @@ export default function usePRFQ(prfqId = null) {
   };
 
   // ===== Detail =====
-const handleViewDetail = async (id) => {
-  setDetailLoading(true);
-  setDetailOpen(true);
-  try {
-    const res = await prfqApi.getDetail(id);
-    setDetailData(res.data?.data || null);
-  } catch (err) {
-    showSnackbar("Không thể tải chi tiết!", "error");
-  } finally {
-    setDetailLoading(false);
-  }
-};
-
+  const handleViewDetail = async (id) => {
+    setDetailLoading(true);
+    setDetailOpen(true);
+    try {
+      const res = await prfqApi.getDetail(id);
+      setDetailData(res.data?.data || null);
+    } catch (err) {
+      showSnackbar("Không thể tải chi tiết!", "error");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   // ===== Download Excel =====
   const handleDownload = async () => {
@@ -224,8 +223,13 @@ const handleViewDetail = async (id) => {
     try {
       const res = await productAPI.search(keyword);
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      const selectedIds = formData.items.map((item) => item.productId).filter(Boolean);
-      const filteredList = list.filter((p) => !selectedIds.includes(p.productID));
+      list = list.filter((p) => p.status === true);
+      const selectedIds = formData.items
+        .map((item) => item.productId)
+        .filter(Boolean);
+      const filteredList = list.filter(
+        (p) => !selectedIds.includes(p.productID)
+      );
       setProductSuggestions(filteredList.slice(0, 10));
     } catch (err) {
       console.error("Lỗi search sản phẩm:", err);
@@ -257,7 +261,10 @@ const handleViewDetail = async (id) => {
   };
 
   const handleAddItem = () =>
-    setFormData({ ...formData, items: [...formData.items, { productName: "" }] });
+    setFormData({
+      ...formData,
+      items: [...formData.items, { productName: "" }],
+    });
 
   const handleRemoveItem = (index) =>
     setFormData({
@@ -270,7 +277,9 @@ const handleViewDetail = async (id) => {
     setLoading(true);
 
     try {
-      const productIds = formData.items.map((item) => item.productId).filter((id) => id);
+      const productIds = formData.items
+        .map((item) => item.productId)
+        .filter((id) => id);
 
       if (productIds.length === 0) {
         showSnackbar("Vui lòng chọn ít nhất một sản phẩm!", "warning");
@@ -291,7 +300,9 @@ const handleViewDetail = async (id) => {
       else await prfqApi.create(payload);
 
       showSnackbar(
-        status === "Draft" ? "Lưu bản nháp thành công!" : "Gửi yêu cầu thành công!",
+        status === "Draft"
+          ? "Lưu bản nháp thành công!"
+          : "Gửi yêu cầu thành công!",
         "success"
       );
     } catch (err) {

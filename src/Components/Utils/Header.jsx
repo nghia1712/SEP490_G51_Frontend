@@ -186,20 +186,19 @@ function Header() {
       allowedRoles: ["manager", "purchases_staff", "admin"],
     },
     {
-      label: "Yêu cầu báo giá",
+      label: "Yêu cầu báo giá nhập",
       path: "/purchase/prfq",
-      allowedRoles: ["manager", "purchases_staff", "admin"],
+      allowedRoles: ["purchases_staff", "admin"],
     },
     {
       label: "Báo giá(PQ)",
       path: "/purchase/pq",
-      allowedRoles: ["manager", "purchases_staff", "admin"],
+      allowedRoles: [ "purchases_staff", "admin"],
     },
     {
       label: "Đơn hàng nhập",
       path: "/po",
       allowedRoles: [
-        "manager",
         "admin",
         "purchases_staff",
         "warehouse_staff",
@@ -209,7 +208,7 @@ function Header() {
     {
       label: "Báo cáo kiểm kê",
       path: "/inventory-report",
-      allowedRoles: ["manager", "warehouse_staff", "admin"],
+      allowedRoles: ["warehouse_staff", "admin"],
     },
     {
       label: "Kho hàng",
@@ -232,11 +231,6 @@ function Header() {
       allowedRoles: ["warehouse_staff", "accountant_staff"],
     },
     {
-      label: "Báo giá",
-      path: "/request-quotation",
-      allowedRoles: ["manager", "sales_staff", "admin"],
-    },
-    {
       label: "Công nợ",
       path: "/debt",
       allowedRoles: ["accountant_staff", "manager"],
@@ -256,17 +250,17 @@ function Header() {
 
     // Salesperson-only screens
     {
-      label: "Danh sách yêu cầu báo giá",
+      label: "Yêu cầu báo giá",
       path: "/request-quotation",
       allowedRoles: ["sales_staff"],
     },
     {
-      label: "Danh sách báo giá",
+      label: "Báo giá",
       path: "/sales-quotation",
       allowedRoles: ["manager", "sales_staff", "admin"],
     },
     {
-      label: "Danh sách đơn hàng",
+      label: "Đơn hàng",
       path: "/sales/orders",
       allowedRoles: ["sales_staff"],
     },
