@@ -56,16 +56,26 @@ export default function StockExportForm() {
     severity: "success",
   });
 
-  useEffect(() => {
-    console.log("StockExport ID nhận được:", id);
-    console.log("SalesOrderId từ state:", location.state?.salesOrderId);
-  }, [id, location]);
+  useEffect(() => {}, [id, location]);
 
   const fetchSalesOrders = async () => {
     try {
       const res = await salesOrderAPI.listNotDelivered();
       const allOrders = res.data?.data || [];
-      const filteredOrders = allOrders.filter((o) => o.isDeposited === true);
+
+      const filteredOrders = [];
+
+      for (const order of allOrders) {
+        if (!order.isDeposited) continue;
+
+        const detailRes = await getOrderInfor(order.salesOrderId);
+        const details = detailRes.data?.data?.details || [];
+
+        if (details.some((lot) => lot.avaiable > 0)) {
+          filteredOrders.push(order);
+        }
+      }
+
       setSalesOrderList(filteredOrders);
     } catch (err) {
       console.error(err);
