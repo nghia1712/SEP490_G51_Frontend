@@ -1,6 +1,6 @@
 // File: CustomerRequestQuotationList.jsx - Danh sách yêu cầu báo giá cho Customer
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -54,6 +54,7 @@ const headerTextSx = {
 
 const CustomerRequestQuotationList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -79,6 +80,8 @@ const CustomerRequestQuotationList = () => {
   const [quotationDetailDialogOpen, setQuotationDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [commentInput, setCommentInput] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [orderFormDialogOpen, setOrderFormDialogOpen] = useState(false);
   const [orderFormData, setOrderFormData] = useState(null);
   const [orderFormRows, setOrderFormRows] = useState([]);
@@ -359,6 +362,37 @@ const CustomerRequestQuotationList = () => {
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  // Auto-open quotation dialog from notification
+  useEffect(() => {
+    const sqId = location.state?.sqId || location.state?.openQuotationId;
+    if (sqId) {
+      // Clear state to prevent re-opening on re-render
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Open quotation dialog directly with sqId
+      const openQuotationDialog = async () => {
+        try {
+          // Get quotation details
+          const quotationResponse = await salesQuotationAPI.viewDetails(sqId);
+          const quotationData = quotationResponse.data?.data;
+          
+          if (quotationData) {
+            // Open dialog directly
+            setSelectedQuotationDetails(quotationData);
+            setCommentInput('');
+            setQuotationDetailDialogOpen(true);
+          }
+        } catch (err) {
+          console.error('Error opening quotation dialog from notification:', err);
+          setSnackbarMessage('Không thể mở chi tiết báo giá');
+          setSnackbarOpen(true);
+        }
+      };
+      
+      openQuotationDialog();
+    }
+  }, [location.state, navigate]);
 
   const handleSort = (key) => {
     const isAsc = sortConfig.key === key && sortConfig.direction === 'asc';
@@ -823,9 +857,11 @@ const CustomerRequestQuotationList = () => {
 
       // Set quotation details and open dialog instead of navigating
       setSelectedQuotationDetails(quotationData);
+      setCommentInput(''); // Reset comment input
       setQuotationDetailDialogOpen(true);
       
       console.log('CustomerRequestQuotationList - Dialog opened');
+      console.log('CustomerRequestQuotationList - Comments:', quotationData.Comments || quotationData.comments);
     } catch (err) {
       console.error('CustomerRequestQuotationList - Error in handleViewQuotation:', err);
       console.error('CustomerRequestQuotationList - Error response:', err.response);
@@ -836,6 +872,46 @@ const CustomerRequestQuotationList = () => {
     } finally {
       setLoading(false);
       console.log('CustomerRequestQuotationList - handleViewQuotation completed');
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedQuotationDetails) {
+      setSnackbarMessage('Không xác định được thông tin báo giá');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    const salesQuotationId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+    if (!salesQuotationId) {
+      setSnackbarMessage('Không xác định được mã báo giá');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    if (!commentInput.trim()) {
+      setSnackbarMessage('Vui lòng nhập nội dung bình luận');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      await salesQuotationAPI.addComment(salesQuotationId, commentInput.trim());
+      setCommentInput('');
+      // Reload quotation details to get updated comments
+      const quotationResponse = await salesQuotationAPI.viewDetails(salesQuotationId);
+      if (quotationResponse.data && quotationResponse.data.data) {
+        setSelectedQuotationDetails(quotationResponse.data.data);
+      }
+      setSnackbarMessage('Đã gửi bình luận');
+      setSnackbarOpen(true);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Không thể gửi bình luận';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -2230,6 +2306,132 @@ const CustomerRequestQuotationList = () => {
                   </Paper>
                 </Box>
               )}
+
+              {/* Lịch sử trao đổi */}
+              <Paper sx={{ p: 3, mt: 3 }} elevation={1}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3, fontSize: '1.5rem' }}>
+                  Lịch sử trao đổi
+                </Typography>
+                
+                {/* Debug: Log comments để kiểm tra */}
+                {console.log('CustomerRequestQuotationList - Comments in dialog:', selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments)}
+                {console.log('CustomerRequestQuotationList - Comments length:', (selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || []).length)}
+                
+                {/* Hiển thị các comment đã có */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+                  {(() => {
+                    const comments = selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || [];
+                    if (comments.length === 0) {
+                      return <Typography color="text.secondary">Chưa có bình luận nào.</Typography>;
+                    }
+                    return comments.map((comment, index) => {
+                      const label = String.fromCharCode(65 + index); // A, B, C, D...
+                      const senderName = comment.FullName || comment.fullName || 'Ẩn danh';
+                      return (
+                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                          {/* Box label (A, B, C...) */}
+                          <Box
+                            sx={{
+                              minWidth: 40,
+                              height: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f5f5f5',
+                              border: '2px solid #ddd',
+                              borderRadius: 1,
+                              fontWeight: 'bold',
+                              fontSize: '1.1rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {label}
+                          </Box>
+                          {/* Input field hiển thị nội dung comment (readonly) */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary" 
+                              sx={{ mb: 0.5, display: 'block', fontSize: '0.75rem' }}
+                            >
+                              {senderName}
+                            </Typography>
+                            <TextField
+                              value={comment.Content || comment.content || ''}
+                              placeholder="Không có nội dung"
+                              multiline
+                              fullWidth
+                              InputProps={{
+                                readOnly: true,
+                              }}
+                              sx={{
+                                '& .MuiInputBase-root': {
+                                  backgroundColor: '#fafafa',
+                                },
+                                '& .MuiInputBase-input': {
+                                  cursor: 'default',
+                                },
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    });
+                  })()}
+                </Box>
+
+                {/* Phần nhập comment mới */}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  {/* Box label cho comment mới */}
+                  <Box
+                    sx={{
+                      minWidth: 40,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#f5f5f5',
+                      border: '2px solid #ddd',
+                      borderRadius: 1,
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {String.fromCharCode(65 + ((selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || []).length))}
+                  </Box>
+                  {/* Input field để nhập comment mới */}
+                  <TextField
+                    placeholder="Viết bình luận"
+                    multiline
+                    minRows={2}
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    fullWidth
+                    sx={{
+                      flex: 1,
+                    }}
+                  />
+                  {/* Button Gửi */}
+                  <Button
+                    variant="contained"
+                    onClick={handleAddComment}
+                    disabled={isSubmittingComment || !commentInput.trim()}
+                    sx={{
+                      backgroundColor: '#155E64',
+                      '&:hover': { backgroundColor: '#0D4F52' },
+                      '&:disabled': {
+                        backgroundColor: '#ccc',
+                      },
+                      minWidth: 100,
+                      boxShadow: 2,
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    {isSubmittingComment ? <CircularProgress size={20} color="inherit" /> : 'Gửi'}
+                  </Button>
+                </Box>
+              </Paper>
             </Box>
           )}
         </DialogContent>
@@ -2248,7 +2450,10 @@ const CustomerRequestQuotationList = () => {
               {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Lên đơn hàng'}
             </Button>
           )}
-          <Button onClick={() => setQuotationDetailDialogOpen(false)}>Đóng</Button>
+          <Button onClick={() => {
+            setQuotationDetailDialogOpen(false);
+            setCommentInput(''); // Reset comment when closing
+          }}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

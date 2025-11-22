@@ -37,8 +37,20 @@ authorApi.interceptors.request.use(async config => {
 
 // Response Interceptor
 authorApi.interceptors.response.use(
-    response => response,
+    response => {
+        console.log("=== RESPONSE INTERCEPTOR ===");
+        console.log("URL:", response.config?.url);
+        console.log("Status:", response.status);
+        console.log("Response data:", response.data);
+        return response;
+    },
     async error => {
+        console.log("=== RESPONSE ERROR INTERCEPTOR ===");
+        console.log("URL:", error.config?.url);
+        console.log("Status:", error.response?.status);
+        console.log("Error message:", error.message);
+        console.log("Error response:", error.response);
+        console.log("Error response data:", error.response?.data);
         const originalRequest = error.config;
 
         if (error.response && error.response.status === 401 && !originalRequest._retry) {

@@ -29,6 +29,7 @@ import {
   TextField,
   Autocomplete,
   Pagination,
+  TableSortLabel,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -54,6 +55,7 @@ const CustomerOrderList = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(null);
@@ -134,14 +136,55 @@ const CustomerOrderList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, sortConfig]);
 
-  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+  const handleSort = (key) => {
+    const isAsc = sortConfig.key === key && sortConfig.direction === 'asc';
+    setSortConfig({ key, direction: isAsc ? 'desc' : 'asc' });
+  };
+
+  // Sort orders based on sortConfig
+  const sortedOrders = useMemo(() => {
+    if (!sortConfig.key) return orders;
+
+    return [...orders].sort((a, b) => {
+      let aValue, bValue;
+
+      if (sortConfig.key === 'quotationCode') {
+        aValue = (a.quotationCode || '').toLowerCase();
+        bValue = (b.quotationCode || '').toLowerCase();
+      } else if (sortConfig.key === 'createdAt') {
+        aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      } else if (sortConfig.key === 'status') {
+        aValue = a.status !== undefined && a.status !== null ? a.status : -1;
+        bValue = b.status !== undefined && b.status !== null ? b.status : -1;
+      } else if (sortConfig.key === 'paidAmount') {
+        aValue = a.paidAmount || 0;
+        bValue = b.paidAmount || 0;
+      } else if (sortConfig.key === 'totalAmount') {
+        aValue = a.totalAmount || 0;
+        bValue = b.totalAmount || 0;
+      } else {
+        return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [orders, sortConfig]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedOrders.length / pageSize));
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return orders.slice(start, start + pageSize);
-  }, [orders, page]);
+    return sortedOrders.slice(start, start + pageSize);
+  }, [sortedOrders, page]);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -635,11 +678,56 @@ const CustomerOrderList = () => {
                 >
                   STT
                 </TableCell>
-                <TableCell sx={{ width: '20%', py: 1.5, px: 2, ...headerTextSx }}>Mã đơn hàng</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>Thời gian tạo</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>Trạng thái</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6, ...headerTextSx }}>Tiền đã trả</TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, pl: 5, ...headerTextSx }}>Tổng tiền đơn hàng</TableCell>
+                <TableCell sx={{ width: '20%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'quotationCode'}
+                    direction={sortConfig.key === 'quotationCode' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('quotationCode')}
+                    sx={headerTextSx}
+                  >
+                    Mã đơn hàng
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'createdAt'}
+                    direction={sortConfig.key === 'createdAt' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('createdAt')}
+                    sx={headerTextSx}
+                  >
+                    Thời gian tạo
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'status'}
+                    direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('status')}
+                    sx={headerTextSx}
+                  >
+                    Trạng thái
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'paidAmount'}
+                    direction={sortConfig.key === 'paidAmount' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('paidAmount')}
+                    sx={headerTextSx}
+                  >
+                    Tiền đã trả
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2, pl: 5 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'totalAmount'}
+                    direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('totalAmount')}
+                    sx={headerTextSx}
+                  >
+                    Tổng tiền đơn hàng
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                     <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>

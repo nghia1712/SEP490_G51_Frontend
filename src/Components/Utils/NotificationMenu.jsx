@@ -14,6 +14,8 @@ import {
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import notificationAPI from "../../API/notificationAPI";
 import poAPI from "../../API/poAPI";
+import salesQuotationAPI from "../../API/salesQuotationAPI";
+import requestSalesQuotationAPI from "../../API/requestSalesQuotationAPI";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
@@ -94,6 +96,102 @@ export default function NotificationMenu() {
     ) {
       handleClose();
       navigate("/customer/request-quotation");
+      return;
+    }
+
+    // Xử lý notification về bình luận mới trong báo giá (cho sales_staff)
+    if (userRole === "sales_staff" && /bình luận mới trong báo giá/i.test(n.message || "")) {
+      handleClose();
+      try {
+        // Parse QuotationCode từ message: "Bạn có 1 bình luận mới trong báo giá SQ-20251122-D8863FDA"
+        const match = n.message.match(/báo giá\s+([A-Z0-9-]+)/i);
+        if (match && match[1]) {
+          const quotationCode = match[1];
+          console.log("NotificationMenu - Parsed quotationCode:", quotationCode);
+          
+          // Tìm sqId từ QuotationCode
+          const quotationListResponse = await salesQuotationAPI.viewList();
+          if (quotationListResponse.data && quotationListResponse.data.data) {
+            const quotationList = Array.isArray(quotationListResponse.data.data) 
+              ? quotationListResponse.data.data 
+              : [];
+            
+            const matchingQuotation = quotationList.find(
+              (q) => (q.QuotationCode || q.quotationCode) === quotationCode
+            );
+            
+            if (matchingQuotation) {
+              const sqId = matchingQuotation.Id || matchingQuotation.id;
+              console.log("NotificationMenu - Found sqId:", sqId);
+              navigate("/sales-quotation", { state: { openQuotationId: sqId } });
+              return;
+            } else {
+              console.warn("NotificationMenu - Quotation not found with code:", quotationCode);
+              // Fallback: navigate to sales-quotation page anyway
+              navigate("/sales-quotation");
+              return;
+            }
+          }
+        } else {
+          console.warn("NotificationMenu - Could not parse quotationCode from message:", n.message);
+          // Fallback: navigate to sales-quotation page
+          navigate("/sales-quotation");
+          return;
+        }
+      } catch (err) {
+        console.error("NotificationMenu - Error handling comment notification:", err);
+        // Fallback: navigate to sales-quotation page
+        navigate("/sales-quotation");
+      }
+      return;
+    }
+
+    // Xử lý notification về bình luận mới trong báo giá (cho customer)
+    if (userRole === "customer" && /bình luận mới trong báo giá/i.test(n.message || "")) {
+      handleClose();
+      try {
+        // Parse QuotationCode từ message: "Bạn có 1 bình luận mới trong báo giá SQ-20251122-D8863FDA"
+        const match = n.message.match(/báo giá\s+([A-Z0-9-]+)/i);
+        if (match && match[1]) {
+          const quotationCode = match[1];
+          console.log("NotificationMenu (Customer) - Parsed quotationCode:", quotationCode);
+          
+          // Tìm sqId từ QuotationCode
+          const quotationListResponse = await salesQuotationAPI.viewList();
+          if (quotationListResponse.data && quotationListResponse.data.data) {
+            const quotationList = Array.isArray(quotationListResponse.data.data) 
+              ? quotationListResponse.data.data 
+              : [];
+            
+            const matchingQuotation = quotationList.find(
+              (q) => (q.QuotationCode || q.quotationCode) === quotationCode
+            );
+            
+            if (matchingQuotation) {
+              const sqId = matchingQuotation.Id || matchingQuotation.id;
+              console.log("NotificationMenu (Customer) - Found sqId:", sqId);
+              
+              // Navigate đến trang request quotation với sqId trong state để tự động mở dialog
+              navigate("/customer/request-quotation", { state: { sqId } });
+              return;
+            } else {
+              console.warn("NotificationMenu (Customer) - Quotation not found with code:", quotationCode);
+              // Fallback: navigate to customer request quotation page
+              navigate("/customer/request-quotation");
+              return;
+            }
+          }
+        } else {
+          console.warn("NotificationMenu (Customer) - Could not parse quotationCode from message:", n.message);
+          // Fallback: navigate to customer request quotation page
+          navigate("/customer/request-quotation");
+          return;
+        }
+      } catch (err) {
+        console.error("NotificationMenu (Customer) - Error handling comment notification:", err);
+        // Fallback: navigate to customer request quotation page
+        navigate("/customer/request-quotation");
+      }
       return;
     }
 

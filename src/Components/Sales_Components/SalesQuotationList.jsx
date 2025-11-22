@@ -41,6 +41,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SendIcon from '@mui/icons-material/Send';
 import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import Autocomplete from '@mui/material/Autocomplete';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
@@ -79,6 +80,8 @@ const SalesQuotationList = () => {
   const [sendingQuotationId, setSendingQuotationId] = useState(null);
   const [page, setPage] = useState(1);
   const pageSize = 5;
+  const [commentInput, setCommentInput] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -710,6 +713,7 @@ const SalesQuotationList = () => {
   const handleViewDetails = useCallback(async (id) => {
     if (!id) return;
     setLoading(true);
+    setCommentInput(''); // Reset comment input
     try {
       const response = await salesQuotationAPI.viewDetails(id);
       if (response.data && response.data.data) {
@@ -727,6 +731,39 @@ const SalesQuotationList = () => {
       setLoading(false);
     }
   }, []);
+
+  const handleAddComment = async () => {
+    if (!selectedQuotationDetails?.Id && !selectedQuotationDetails?.id) {
+      setSnackbarMessage('Không xác định được mã báo giá');
+      setSnackbarOpen(true);
+      return;
+    }
+    if (!commentInput.trim()) {
+      setSnackbarMessage('Vui lòng nhập nội dung bình luận');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const sqId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+    setIsSubmittingComment(true);
+    try {
+      await salesQuotationAPI.addComment(sqId, commentInput.trim());
+      setCommentInput('');
+      // Reload details to get updated comments
+      const response = await salesQuotationAPI.viewDetails(sqId);
+      if (response.data && response.data.data) {
+        setSelectedQuotationDetails(response.data.data);
+      }
+      setSnackbarMessage('Đã gửi bình luận');
+      setSnackbarOpen(true);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Không thể gửi bình luận';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   const handleSend = async (id) => {
     setSendingQuotationId(id);
@@ -753,6 +790,35 @@ const SalesQuotationList = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, navigate, handleViewDetails]);
+
+  // Auto-refresh comments khi dialog mở
+  useEffect(() => {
+    if (!detailDialogOpen || !selectedQuotationDetails) return;
+
+    const sqId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+    if (!sqId) return;
+
+    // Refresh comments mỗi 5 giây khi dialog mở
+    const refreshInterval = setInterval(async () => {
+      try {
+        const response = await salesQuotationAPI.viewDetails(sqId);
+        if (response.data && response.data.data) {
+          const currentComments = selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || [];
+          const newComments = response.data.data.Comments || response.data.data.comments || [];
+          
+          // Chỉ update nếu số lượng comments thay đổi (có comment mới)
+          if (newComments.length !== currentComments.length) {
+            setSelectedQuotationDetails(response.data.data);
+            console.log('SalesQuotationList - Comments auto-refreshed:', newComments.length);
+          }
+        }
+      } catch (err) {
+        console.error('Error auto-refreshing comments:', err);
+      }
+    }, 5000); // Refresh mỗi 5 giây
+
+    return () => clearInterval(refreshInterval);
+  }, [detailDialogOpen, selectedQuotationDetails]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -1260,11 +1326,160 @@ const SalesQuotationList = () => {
                   </Paper>
                 </Box>
               )}
+
+              {/* Lịch sử trao đổi */}
+              <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.5rem' }}>
+                    Lịch sử trao đổi
+                  </Typography>
+                  <Tooltip title="Làm mới bình luận">
+                    <IconButton
+                      size="small"
+                      onClick={async () => {
+                        const sqId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+                        if (sqId) {
+                          try {
+                            const response = await salesQuotationAPI.viewDetails(sqId);
+                            if (response.data && response.data.data) {
+                              setSelectedQuotationDetails(response.data.data);
+                              setSnackbarMessage('Đã làm mới bình luận');
+                              setSnackbarOpen(true);
+                            }
+                          } catch (err) {
+                            console.error('Error refreshing comments:', err);
+                          }
+                        }
+                      }}
+                      sx={{ color: '#155E64' }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                
+                {/* Hiển thị các comment đã có */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+                  {(() => {
+                    const comments = selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || [];
+                    if (comments.length === 0) {
+                      return <Typography color="text.secondary">Chưa có bình luận nào.</Typography>;
+                    }
+                    return comments.map((comment, index) => {
+                      const label = String.fromCharCode(65 + index); // A, B, C, D...
+                      return (
+                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                          {/* Box label (A, B, C...) */}
+                          <Box
+                            sx={{
+                              minWidth: 40,
+                              height: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f5f5f5',
+                              border: '2px solid #ddd',
+                              borderRadius: 1,
+                              fontWeight: 'bold',
+                              fontSize: '1.1rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {label}
+                          </Box>
+                          {/* Input field hiển thị nội dung comment (readonly) */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ mb: 0.5, display: 'block', fontSize: '0.75rem' }}
+                            >
+                              {comment.FullName || comment.fullName || 'Ẩn danh'}
+                            </Typography>
+                            <TextField
+                              value={comment.Content || comment.content || ''}
+                              placeholder="Không có nội dung"
+                            multiline
+                            fullWidth
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            sx={{
+                              '& .MuiInputBase-root': {
+                                backgroundColor: '#fafafa',
+                              },
+                              '& .MuiInputBase-input': {
+                                cursor: 'default',
+                              },
+                            }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    });
+                  })()}
+                </Box>
+
+                {/* Phần nhập comment mới */}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  {/* Box label cho comment mới */}
+                  <Box
+                    sx={{
+                      minWidth: 40,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#f5f5f5',
+                      border: '2px solid #ddd',
+                      borderRadius: 1,
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {String.fromCharCode(65 + ((selectedQuotationDetails?.Comments || selectedQuotationDetails?.comments || []).length))}
+                  </Box>
+                  {/* Input field để nhập comment mới */}
+                  <TextField
+                    placeholder="Viết bình luận"
+                    multiline
+                    minRows={2}
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    fullWidth
+                    sx={{
+                      flex: 1,
+                    }}
+                  />
+                  {/* Button Gửi */}
+                  <Button
+                    variant="contained"
+                    onClick={handleAddComment}
+                    disabled={isSubmittingComment || !commentInput.trim()}
+                    sx={{
+                      backgroundColor: '#155E64',
+                      '&:hover': { backgroundColor: '#0D4F52' },
+                      '&:disabled': {
+                        backgroundColor: '#ccc',
+                      },
+                      minWidth: 100,
+                      boxShadow: 2,
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    {isSubmittingComment ? <CircularProgress size={20} color="inherit" /> : 'Gửi'}
+                  </Button>
+                </Box>
+              </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailDialogOpen(false)}>Đóng</Button>
+          <Button onClick={() => {
+            setDetailDialogOpen(false);
+            setCommentInput(''); // Reset comment when closing
+          }}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

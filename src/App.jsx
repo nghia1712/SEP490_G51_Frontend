@@ -56,7 +56,6 @@ import CustomerAdditionalInfoForm from "./Components/Customer_Components/Custome
 import CustomerStatusCheck from "./Components/Customer_Components/CustomerStatusCheck";
 import CustomerApprovalList from "./Components/Manager_Components/CustomerApprovalList";
 import CustomerRequestQuotationList from "./Components/Customer_Components/CustomerRequestQuotationList";
-import CustomerQuotationDetails from "./Components/Customer_Components/CustomerQuotationDetails";
 import PRFQList from "./Components/Purchases_Components/PRFQ/PRFQList";
 import PRFQCreate from "./Components/Purchases_Components/PRFQ/PRFQCreate";
 import PQList from "./Components/Purchases_Components/PQ/PQList.jsx";
@@ -386,14 +385,6 @@ function App() {
                                 </Box>
                               </Box>
                             </CustomerStatusCheck>
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/customer/quotation/:id"
-                        element={
-                          <ProtectedRoute allowedRoles={["customer"]}>
-                            <CustomerQuotationDetails />
                           </ProtectedRoute>
                         }
                       />

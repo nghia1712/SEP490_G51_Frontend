@@ -22,12 +22,21 @@ import {
   Snackbar,
   Alert,
   Pagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Divider,
+  Autocomplete,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { Visibility, Paid } from "@mui/icons-material";
+import { Visibility, Paid, Receipt } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import paymentAPI from "../../API/paymentAPI";
 import userAPI from "../../API/userAPI";
+import invoiceAPI from "../../API/invoiceAPI";
+import salesOrderAPI from "../../API/salesOrderAPI";
 import PaymentRemainDetail from "./PaymentRemainDetail";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
@@ -192,6 +201,84 @@ const PaymentRemainList = () => {
   };
 
   const handleSnackClose = () => setSnack({ ...snack, open: false });
+
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [selectedPaymentRemain, setSelectedPaymentRemain] = useState(null);
+
+  const handleCreateInvoice = async (item) => {
+    setSelectedPaymentRemain(item);
+    setInvoiceDialogOpen(true);
+    setInvoiceLoading(true);
+    try {
+      // Lấy thông tin customer từ PaymentRemain detail
+      const paymentDetailRes = await paymentRemainAPI.getDetail(item.id);
+      const paymentDetail = paymentDetailRes.data?.data;
+      
+      // Lấy thông tin SalesOrder để có đầy đủ thông tin customer
+      let salesOrderData = null;
+      try {
+        const salesOrderRes = await salesOrderAPI.viewDetails(item.salesOrderId);
+        salesOrderData = salesOrderRes.data?.data;
+      } catch (err) {
+        console.warn("Không thể lấy thông tin SalesOrder:", err);
+      }
+      
+      // Tạo hóa đơn
+      const payload = {
+        SalesOrderId: item.salesOrderId,
+        PaymentRemainIds: [item.id],
+      };
+      const res = await invoiceAPI.generateFromPaymentRemains(payload);
+      const invoiceData = res.data?.data;
+      
+      // Merge thông tin customer vào invoice data
+      if (invoiceData) {
+        // Từ PaymentRemain detail
+        invoiceData.customerName = paymentDetail?.customerName || paymentDetail?.CustomerName;
+        invoiceData.customerId = paymentDetail?.customerId || paymentDetail?.CustomerId;
+        invoiceData.salesOrderCode = paymentDetail?.salesOrderCode || paymentDetail?.SalesOrderCode || item.salesOrderCode;
+        
+        // Từ SalesOrder (nếu có)
+        if (salesOrderData) {
+          invoiceData.customerName = salesOrderData.customerName || salesOrderData.CustomerName || invoiceData.customerName;
+          invoiceData.customerAddress = salesOrderData.customerAddress || salesOrderData.CustomerAddress || salesOrderData.customer?.address || salesOrderData.Customer?.Address;
+          invoiceData.customerPhone = salesOrderData.customerPhone || salesOrderData.CustomerPhone || salesOrderData.customer?.phoneNumber || salesOrderData.Customer?.PhoneNumber;
+          invoiceData.customerTaxId = salesOrderData.customerTaxId || salesOrderData.CustomerTaxId || salesOrderData.customer?.mst || salesOrderData.Customer?.Mst;
+        }
+      }
+      
+      setInvoiceData(invoiceData);
+    } catch (error) {
+      console.error(error);
+      setSnack({
+        open: true,
+        message: error.response?.data?.message || "Lỗi khi tạo hóa đơn",
+        severity: "error",
+      });
+      setInvoiceDialogOpen(false);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  const handleInvoiceDialogClose = () => {
+    setInvoiceDialogOpen(false);
+    setInvoiceData(null);
+    setSelectedPaymentRemain(null);
+  };
+
+  const handleSaveInvoice = async () => {
+    // API đã được gọi khi mở dialog, chỉ cần đóng và refresh
+    setSnack({
+      open: true,
+      message: "Tạo hóa đơn thành công",
+      severity: "success",
+    });
+    handleInvoiceDialogClose();
+    await getList();
+  };
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState(null);
@@ -383,6 +470,18 @@ const PaymentRemainList = () => {
                             </span>
                           </Tooltip>
                         )}
+                        {userRole === "accountant_staff" && item.status === 3 && (
+                          <Tooltip title="Tạo hóa đơn">
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              onClick={() => handleCreateInvoice(item)}
+                              disabled={loading}
+                            >
+                              <Receipt />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -417,6 +516,216 @@ const PaymentRemainList = () => {
         onClose={handleDetailClose}
         data={detailData}
       />
+
+      {/* Invoice Dialog */}
+      <Dialog
+        open={invoiceDialogOpen}
+        onClose={handleInvoiceDialogClose}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { maxHeight: '90vh' }
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+            Hóa Đơn Giá Trị Gia Tăng (VAT INVOICE)
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          {invoiceLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : invoiceData ? (
+            <Box>
+              {/* Header Info */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Mã hóa đơn"
+                    value={invoiceData.invoiceCode || invoiceData.InvoiceCode || ''}
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Mã đơn hàng"
+                    value={invoiceData.salesOrderCode || invoiceData.SalesOrderCode || selectedPaymentRemain?.salesOrderCode || ''}
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Mã Số Thuế"
+                    value={invoiceData.customerTaxId || invoiceData.CustomerTaxId || invoiceData.taxId || invoiceData.TaxId || ''}
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Tỷ giá"
+                    type="number"
+                    value={invoiceData.exchangeRate || invoiceData.ExchangeRate || 1}
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Customer Info */}
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Thông tin khách hàng
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Khách hàng:</strong> {invoiceData.customerName || invoiceData.CustomerName || '-'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Địa chỉ:</strong> {invoiceData.customerAddress || invoiceData.CustomerAddress || '-'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Số điện thoại:</strong> {invoiceData.customerPhone || invoiceData.CustomerPhone || '-'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Hình thức thanh toán:</strong> {invoiceData.paymentMethod || invoiceData.PaymentMethod || 'TM/CK'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Products Table */}
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    Chi tiết sản phẩm
+                  </Typography>
+                  <Button variant="outlined" size="small" startIcon={<Receipt />}>
+                    Add
+                  </Button>
+                </Box>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>#</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Tên Sản Phẩm</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Mã Sản Phẩm</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Đơn Vị</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Số Lượng</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>Đơn Giá</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Thuế Suất (%)</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>Tiền Thuế</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>Thành Tiền</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>Thành Tiền Sau Thuế</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>Lần Xuất Hàng</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {invoiceData.details && invoiceData.details.length > 0 ? (
+                        invoiceData.details.map((detail, index) => {
+                          const product = detail.product || detail.Product || {};
+                          const quantity = detail.quantity || detail.Quantity || 0;
+                          const unitPrice = detail.unitPrice || detail.UnitPrice || 0;
+                          const taxRate = detail.taxRate || detail.TaxRate || 0;
+                          const subtotal = quantity * unitPrice;
+                          const taxAmount = subtotal * (taxRate / 100);
+                          const totalAfterTax = subtotal + taxAmount;
+                          
+                          return (
+                            <TableRow key={index}>
+                              <TableCell align="center">{index + 1}</TableCell>
+                              <TableCell>{product.name || product.Name || '-'}</TableCell>
+                              <TableCell>{product.code || product.Code || '-'}</TableCell>
+                              <TableCell align="center">{product.unit || product.Unit || '-'}</TableCell>
+                              <TableCell align="center">{quantity}</TableCell>
+                              <TableCell align="right">{unitPrice.toLocaleString('vi-VN')} ₫</TableCell>
+                              <TableCell align="center">{taxRate}%</TableCell>
+                              <TableCell align="right">{taxAmount.toLocaleString('vi-VN')} ₫</TableCell>
+                              <TableCell align="right">{subtotal.toLocaleString('vi-VN')} ₫</TableCell>
+                              <TableCell align="right">{totalAfterTax.toLocaleString('vi-VN')} ₫</TableCell>
+                              <TableCell align="center">{detail.exportIndex || detail.ExportIndex || '-'}</TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={11} align="center">
+                            Chưa có sản phẩm
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Summary */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Box sx={{ minWidth: 300 }}>
+                  <Grid container spacing={1}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        Tổng cộng:
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                      <Typography variant="body2">
+                        {(invoiceData.totalAmount || invoiceData.TotalAmount || 0).toLocaleString('vi-VN')} ₫
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        Thuế:
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                      <Typography variant="body2">
+                        {((invoiceData.totalTax || invoiceData.TotalTax) || 0).toLocaleString('vi-VN')} ₫
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        Tổng tiền thanh toán:
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                        {((invoiceData.totalAmount || invoiceData.TotalAmount || 0) + (invoiceData.totalTax || invoiceData.TotalTax || 0)).toLocaleString('vi-VN')} ₫
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Box>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleInvoiceDialogClose}>Đóng</Button>
+          <Button variant="contained" onClick={handleSaveInvoice} disabled={invoiceLoading || !invoiceData}>
+            Lưu hóa đơn
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar

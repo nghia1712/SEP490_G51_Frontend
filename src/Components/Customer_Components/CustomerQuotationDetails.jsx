@@ -284,6 +284,8 @@ const CustomerQuotationDetails = () => {
         console.log('CustomerQuotationDetails - Quotation details:', quotationData);
         console.log('CustomerQuotationDetails - Quotation details type:', typeof quotationData);
         console.log('CustomerQuotationDetails - Quotation details keys:', Object.keys(quotationData || {}));
+        console.log('CustomerQuotationDetails - Comments:', quotationData.Comments || quotationData.comments);
+        console.log('CustomerQuotationDetails - Comments type:', typeof (quotationData.Comments || quotationData.comments));
         setQuotationDetails(quotationData);
         setSalesQuotationId(numericSqId);
       } else {
@@ -673,6 +675,132 @@ const CustomerQuotationDetails = () => {
           </Button>
             </Box>
           )}
+
+          {/* Lịch sử trao đổi */}
+          <Paper sx={{ p: 3, mt: 3 }} elevation={1}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3, fontSize: '1.5rem' }}>
+              Lịch sử trao đổi
+            </Typography>
+            
+            {/* Debug: Log comments để kiểm tra */}
+            {console.log('CustomerQuotationDetails - Comments:', quotationDetails?.Comments || quotationDetails?.comments)}
+            {console.log('CustomerQuotationDetails - Comments length:', (quotationDetails?.Comments || quotationDetails?.comments || []).length)}
+            
+            {/* Hiển thị các comment đã có */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+              {(() => {
+                const comments = quotationDetails?.Comments || quotationDetails?.comments || [];
+                if (comments.length === 0) {
+                  return <Typography color="text.secondary">Chưa có bình luận nào.</Typography>;
+                }
+                return comments.map((comment, index) => {
+                  const label = String.fromCharCode(65 + index); // A, B, C, D...
+                  const senderName = comment.FullName || comment.fullName || 'Ẩn danh';
+                  return (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                      {/* Box label (A, B, C...) */}
+                      <Box
+                        sx={{
+                          minWidth: 40,
+                          height: 40,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#f5f5f5',
+                          border: '2px solid #ddd',
+                          borderRadius: 1,
+                          fontWeight: 'bold',
+                          fontSize: '1.1rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {label}
+                      </Box>
+                      {/* Input field hiển thị nội dung comment (readonly) */}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary" 
+                          sx={{ mb: 0.5, display: 'block', fontSize: '0.75rem' }}
+                        >
+                          {senderName}
+                        </Typography>
+                        <TextField
+                          value={comment.Content || comment.content || ''}
+                          placeholder="Không có nội dung"
+                          multiline
+                          fullWidth
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          sx={{
+                            '& .MuiInputBase-root': {
+                              backgroundColor: '#fafafa',
+                            },
+                            '& .MuiInputBase-input': {
+                              cursor: 'default',
+                            },
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                });
+              })()}
+            </Box>
+
+            {/* Phần nhập comment mới */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              {/* Box label cho comment mới */}
+              <Box
+                sx={{
+                  minWidth: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#f5f5f5',
+                  border: '2px solid #ddd',
+                  borderRadius: 1,
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  flexShrink: 0,
+                }}
+              >
+                {String.fromCharCode(65 + ((quotationDetails?.Comments || quotationDetails?.comments || []).length))}
+              </Box>
+              {/* Input field để nhập comment mới */}
+              <TextField
+                placeholder="Viết bình luận"
+                multiline
+                minRows={2}
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+                fullWidth
+                sx={{
+                  flex: 1,
+                }}
+              />
+              {/* Button Gửi */}
+              <Button
+                variant="contained"
+                onClick={handleAddComment}
+                disabled={isSubmittingComment || !commentInput.trim()}
+                sx={{
+                  backgroundColor: '#155E64',
+                  '&:hover': { backgroundColor: '#0D4F52' },
+                  '&:disabled': {
+                    backgroundColor: '#ccc',
+                  },
+                  minWidth: 100,
+                  boxShadow: 2,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                {isSubmittingComment ? <CircularProgress size={20} color="inherit" /> : 'Gửi'}
+              </Button>
+            </Box>
+          </Paper>
         </Box>
       ) : !loading ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -694,51 +822,6 @@ const CustomerQuotationDetails = () => {
           </Button>
         </Box>
       ) : null}
-
-      {/* Lịch sử trao đổi */}
-      <Paper sx={{ p: 3 }} elevation={1}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-          Lịch sử trao đổi
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-          {(quotationDetails?.Comments || []).length === 0 ? (
-            <Typography>Chưa có bình luận nào.</Typography>
-          ) : (
-            quotationDetails.Comments.map((comment, index) => (
-              <Box key={index} sx={{ backgroundColor: '#f8f9fa', borderRadius: 1, p: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Người dùng: {comment.UserId || 'Ẩn danh'}
-                </Typography>
-                <Typography>{comment.Content || ''}</Typography>
-              </Box>
-            ))
-          )}
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-          <TextField
-            label="Viết bình luận"
-            placeholder="Viết bình luận"
-            multiline
-            minRows={2}
-            value={commentInput}
-            onChange={(e) => setCommentInput(e.target.value)}
-            sx={{ flex: 1 }}
-          />
-          <Button
-            variant="contained"
-            onClick={handleAddComment}
-            disabled={isSubmittingComment}
-            sx={{
-              backgroundColor: '#155E64',
-              '&:hover': { backgroundColor: '#0D4F52' },
-              alignSelf: 'flex-start',
-            }}
-          >
-            {isSubmittingComment ? <CircularProgress size={20} color="inherit" /> : 'Gửi'}
-          </Button>
-        </Box>
-      </Paper>
 
       <Snackbar
         open={snackbarOpen}

@@ -265,12 +265,12 @@ function Header() {
       allowedRoles: ["manager", "sales_staff", "admin"],
     },
     {
-      label: "Danh sách đơn hàng (Sales)",
+      label: "Đơn hàng (Sales)",
       path: "/sales/orders",
       allowedRoles: ["sales_staff"],
     },
     {
-      label: "Danh sách đơn hàng (Kế toán)",
+      label: "Đơn hàng (Kế toán)",
       path: "/accountant/orders",
       allowedRoles: ["accountant_staff", "manager"],
     },
@@ -295,7 +295,7 @@ function Header() {
       allowedRoles: ["accountant_staff", "customer"],
     },
     {
-      label: "Yêu cầu báo giá khách hàng",
+      label: "Yêu cầu báo giá của tôi",
       path: "/customer/request-quotation",
       allowedRoles: ["customer"],
     },

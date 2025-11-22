@@ -44,6 +44,12 @@ const CreateSalesQuotation = () => {
     depositDueDays: 1,
   });
 
+  // State cho lịch sử trao đổi
+  const [quotationComments, setQuotationComments] = useState([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [salesQuotationId, setSalesQuotationId] = useState(null);
+
   const [rows, setRows] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [noteId, setNoteId] = useState(1); // Default note ID
@@ -261,6 +267,48 @@ const CreateSalesQuotation = () => {
     })),
   });
 
+  // Load comments từ báo giá đã có
+  const loadQuotationComments = useCallback(async (sqId) => {
+    try {
+      const response = await salesQuotationAPI.viewDetails(sqId);
+      if (response.data && response.data.data) {
+        const comments = response.data.data.Comments || response.data.data.comments || [];
+        setQuotationComments(comments);
+        setSalesQuotationId(sqId);
+      }
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    }
+  }, []);
+
+  const handleAddComment = async () => {
+    if (!salesQuotationId) {
+      setSnackbarMessage('Vui lòng tạo báo giá trước khi thêm bình luận');
+      setSnackbarOpen(true);
+      return;
+    }
+    if (!commentInput.trim()) {
+      setSnackbarMessage('Vui lòng nhập nội dung bình luận');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      await salesQuotationAPI.addComment(salesQuotationId, commentInput.trim());
+      setCommentInput('');
+      await loadQuotationComments(salesQuotationId);
+      setSnackbarMessage('Đã gửi bình luận');
+      setSnackbarOpen(true);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Không thể gửi bình luận';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   const handleCreateQuotation = async (shouldSend) => {
     if (!validateForm()) return;
 
@@ -271,18 +319,24 @@ const CreateSalesQuotation = () => {
       const response = await salesQuotationAPI.createSalesQuotation(payload);
       if (response.data && response.data.data) {
         const sqId = response.data.data.id || response.data.data.Id;
+        setSalesQuotationId(sqId);
 
         if (shouldSend && sqId) {
           await salesQuotationAPI.sendSalesQuotation(sqId);
+          // Load comments sau khi gửi
+          await loadQuotationComments(sqId);
           setSnackbarMessage('Gửi báo giá thành công!');
         } else {
+          // Load comments sau khi tạo nháp
+          await loadQuotationComments(sqId);
           setSnackbarMessage('Tạo báo giá thành công!');
         }
 
         setSnackbarOpen(true);
-        setTimeout(() => {
-          navigate('/sales-quotation');
-        }, 1000);
+        // Không navigate ngay, để user có thể thêm comment
+        // setTimeout(() => {
+        //   navigate('/sales-quotation');
+        // }, 1000);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Không thể xử lý báo giá';
@@ -396,6 +450,118 @@ const CreateSalesQuotation = () => {
           size="small"
         />
       </Box>
+
+      {/* Lịch sử trao đổi - chỉ hiển thị khi đã có báo giá */}
+      {salesQuotationId && (
+        <Paper sx={{ p: 3, mb: 3 }} elevation={1}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3, fontSize: '1.5rem' }}>
+            Lịch sử trao đổi
+          </Typography>
+          
+          {/* Hiển thị các comment đã có */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 3 }}>
+            {quotationComments.length === 0 ? (
+              <Typography color="text.secondary">Chưa có bình luận nào.</Typography>
+            ) : (
+              quotationComments.map((comment, index) => {
+                const label = String.fromCharCode(65 + index); // A, B, C, D...
+                return (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    {/* Box label (A, B, C...) */}
+                    <Box
+                      sx={{
+                        minWidth: 40,
+                        height: 40,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f5f5f5',
+                        border: '2px solid #ddd',
+                        borderRadius: 1,
+                        fontWeight: 'bold',
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {label}
+                    </Box>
+                    {/* Input field hiển thị nội dung comment (readonly) */}
+                    <TextField
+                      value={comment.Content || comment.content || ''}
+                      placeholder="Không có nội dung"
+                      multiline
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          backgroundColor: '#fafafa',
+                        },
+                        '& .MuiInputBase-input': {
+                          cursor: 'default',
+                        },
+                      }}
+                    />
+                  </Box>
+                );
+              })
+            )}
+          </Box>
+
+          {/* Phần nhập comment mới */}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+            {/* Box label cho comment mới */}
+            <Box
+              sx={{
+                minWidth: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f5f5f5',
+                border: '2px solid #ddd',
+                borderRadius: 1,
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                flexShrink: 0,
+              }}
+            >
+              {String.fromCharCode(65 + quotationComments.length)}
+            </Box>
+            {/* Input field để nhập comment mới */}
+            <TextField
+              placeholder="Viết bình luận"
+              multiline
+              minRows={2}
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              fullWidth
+              sx={{
+                flex: 1,
+              }}
+            />
+            {/* Button Gửi */}
+            <Button
+              variant="contained"
+              onClick={handleAddComment}
+              disabled={isSubmittingComment || !commentInput.trim()}
+              sx={{
+                backgroundColor: '#155E64',
+                '&:hover': { backgroundColor: '#0D4F52' },
+                '&:disabled': {
+                  backgroundColor: '#ccc',
+                },
+                minWidth: 100,
+                boxShadow: 2,
+                alignSelf: 'flex-start',
+              }}
+            >
+              {isSubmittingComment ? <CircularProgress size={20} color="inherit" /> : 'Gửi'}
+            </Button>
+          </Box>
+        </Paper>
+      )}
 
       <TableContainer component={Paper} sx={{ boxShadow: 2, mb: 3 }}>
         <Table>
