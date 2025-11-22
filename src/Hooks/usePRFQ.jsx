@@ -220,16 +220,22 @@ export default function usePRFQ(prfqId = null) {
       setProductSuggestions([]);
       return;
     }
+
     try {
       const res = await productAPI.search(keyword);
-      const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      list = list.filter((p) => p.status === true);
+
+      const rawList = Array.isArray(res.data?.data) ? res.data.data : [];
+
+      const activeList = rawList.filter((p) => p.status === true);
+
       const selectedIds = formData.items
         .map((item) => item.productId)
         .filter(Boolean);
-      const filteredList = list.filter(
+
+      const filteredList = activeList.filter(
         (p) => !selectedIds.includes(p.productID)
       );
+
       setProductSuggestions(filteredList.slice(0, 10));
     } catch (err) {
       console.error("Lỗi search sản phẩm:", err);
