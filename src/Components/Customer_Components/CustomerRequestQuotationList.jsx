@@ -187,8 +187,14 @@ const CustomerRequestQuotationList = () => {
 
   // Format currency
   const formatCurrency = (value) => {
-    const number = Number(value) || 0;
-    return new Intl.NumberFormat('vi-VN').format(number);
+    if (value === null || value === undefined) return '-';
+    // Convert to number
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    // Round to integer (Vietnamese currency doesn't use decimals)
+    const intValue = Math.round(numValue);
+    // Format with comma as thousand separator
+    return intValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
   const renderCurrency = (value) => {
@@ -1233,10 +1239,10 @@ const CustomerRequestQuotationList = () => {
       const quotationInfo = quotationInfoResponse.data?.data;
 
       if (!quotationInfo) {
-        throw new Error('Không lấy được dữ liệu báo giá để lên đơn hàng.');
+        throw new Error('Không lấy được dữ liệu báo giá để Tạo đơn hàng.');
       }
 
-      setSnackbarMessage('Đã lấy thông tin báo giá để lên đơn hàng.');
+      setSnackbarMessage('Đã lấy thông tin báo giá để Tạo đơn hàng.');
       setSnackbarOpen(true);
 
       setTimeout(() => {
@@ -2201,10 +2207,9 @@ const CustomerRequestQuotationList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
@@ -2216,6 +2221,7 @@ const CustomerRequestQuotationList = () => {
                         if (details.length > 0) {
                           return details.map((detail, index) => {
                             const productName = detail.ProductName || detail.productName || '-';
+                            const productUnit = detail.Unit || detail.unit || detail.ProductUnit || detail.productUnit || '-';
                             const rawExpired =
                               detail.LotExpiredDate ||
                               detail.lotExpiredDate ||
@@ -2247,12 +2253,9 @@ const CustomerRequestQuotationList = () => {
                               <TableRow key={detail.Id || detail.id || index}>
                                 <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
                                 <TableCell>{productName}</TableCell>
+                                <TableCell>{productUnit}</TableCell>
                                 <TableCell>{expiredDisplay}</TableCell>
                                 <TableCell>{taxText || '-'}</TableCell>
-                                <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
-                                <TableCell sx={{ textAlign: 'right' }}>
-                                  {salesPrice !== null ? renderCurrency(salesPrice) : '-'}
-                                </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
                                   {totalBeforeTax > 0 ? renderCurrency(totalBeforeTax) : '-'}
                                 </TableCell>
@@ -2447,7 +2450,7 @@ const CustomerRequestQuotationList = () => {
                 mr: 1,
               }}
             >
-              {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Lên đơn hàng'}
+              {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Tạo đơn hàng'}
             </Button>
           )}
           <Button onClick={() => {

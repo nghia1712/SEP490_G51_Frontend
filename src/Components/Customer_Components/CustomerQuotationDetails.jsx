@@ -101,7 +101,13 @@ const CustomerQuotationDetails = () => {
   // Format currency
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return '-';
-    return new Intl.NumberFormat('vi-VN').format(value);
+    // Convert to number
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    // Round to integer (Vietnamese currency doesn't use decimals)
+    const intValue = Math.round(numValue);
+    // Format with comma as thousand separator
+    return intValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
   const renderCurrency = (value) => {
@@ -659,7 +665,7 @@ const CustomerQuotationDetails = () => {
           </Box>
           )}
 
-          {/* Nút Lên đơn hàng */}
+          {/* Nút Tạo đơn hàng */}
           {quotationDetails.Status === 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 3 }}>
           <Button
@@ -671,7 +677,7 @@ const CustomerQuotationDetails = () => {
               '&:hover': { backgroundColor: '#0D4F52' },
             }}
           >
-              {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Lên đơn hàng'}
+              {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Tạo đơn hàng'}
           </Button>
             </Box>
           )}

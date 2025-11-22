@@ -101,8 +101,14 @@ const ListRSQ = () => {
   };
 
   const formatCurrency = (value) => {
-    const number = Number(value) || 0;
-    return new Intl.NumberFormat('vi-VN').format(number);
+    if (value === null || value === undefined) return '-';
+    // Convert to number
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    // Round to integer (Vietnamese currency doesn't use decimals)
+    const intValue = Math.round(numValue);
+    // Format with comma as thousand separator
+    return intValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
   const renderCurrency = (value) => {
@@ -498,6 +504,18 @@ const ListRSQ = () => {
           const productName = detail.productName || detail.ProductName || '';
           const productLots = lotsByProduct[productId] || [];
           const defaultLot = productLots[0] || null;
+          
+          // Lấy unit từ lotProducts - tìm lot đầu tiên có unit (không phải lot "Hết lô hàng")
+          let productUnit = '-';
+          const lotWithUnit = lotProducts.find(lot => 
+            (lot.productID || lot.ProductID) === productId && (lot.unit || lot.Unit) && (lot.unit || lot.Unit).trim() !== ''
+          );
+          if (lotWithUnit) {
+            productUnit = lotWithUnit.unit || lotWithUnit.Unit || '-';
+          } else if (defaultLot && defaultLot.unit && defaultLot.unit.trim() !== '') {
+            productUnit = defaultLot.unit;
+          }
+          
           const minQuantity = 1;
           const unitPrice = defaultLot ? (defaultLot.salePrice ?? 0) : 0;
           const { beforeTax, afterTax } = calculateTotals(minQuantity, unitPrice, defaultTaxInfo.rate);
@@ -506,6 +524,7 @@ const ListRSQ = () => {
             id: index + 1,
             productId,
             productName,
+            productUnit: productUnit,
             lotId: defaultLot?.lotId || null,
             lotOptions: productLots,
             taxId: defaultTaxInfo.id,
@@ -560,6 +579,7 @@ const handleLotChange = (rowId, lotId) => {
           lotId: null,
           minQuantity: 1,
           unitPrice: 0,
+          productUnit: row.productUnit || '-',
           totalBeforeTax: beforeTax,
           totalAfterTax: afterTax,
           taxId: defaultTax.id,
@@ -576,6 +596,7 @@ const handleLotChange = (rowId, lotId) => {
           lotId: normalizedLotId,
           minQuantity,
           unitPrice,
+          productUnit: selectedLot.unit || row.productUnit || '-',
           totalBeforeTax: beforeTax,
           totalAfterTax: afterTax,
         };
@@ -1342,10 +1363,9 @@ const handleDepositPercentChange = (value) => {
                       <TableRow>
                         <TableCell sx={{ width: '60px', textAlign: 'center' }}>STT</TableCell>
                         <TableCell>Tên sản phẩm</TableCell>
+                        <TableCell>Đơn vị</TableCell>
                         <TableCell>Lô hàng</TableCell>
                         <TableCell>Thuế</TableCell>
-                        <TableCell align="right">SL tối thiểu</TableCell>
-                        <TableCell align="right">Đơn giá</TableCell>
                         <TableCell align="right">Thành tiền trước thuế</TableCell>
                         <TableCell align="right">Thành tiền sau thuế</TableCell>
                         <TableCell>Ghi chú</TableCell>
@@ -1367,6 +1387,7 @@ const handleDepositPercentChange = (value) => {
                               {row.id}
                             </TableCell>
                             <TableCell>{row.productName || '-'}</TableCell>
+                            <TableCell>{row.productUnit || '-'}</TableCell>
                             <TableCell sx={{ minWidth: 200 }}>
                               {row.lotOptions && row.lotOptions.length > 0 ? (
                                 <FormControl fullWidth size="small">
@@ -1417,12 +1438,6 @@ const handleDepositPercentChange = (value) => {
                                   Không có thuế
                                 </Typography>
                               )}
-                            </TableCell>
-                            <TableCell align="right">
-                              {row.minQuantity ?? 1}
-                            </TableCell>
-                            <TableCell align="right">
-                              {row.unitPrice !== undefined ? renderCurrency(row.unitPrice) : '-'}
                             </TableCell>
                             <TableCell align="right">
                               {row.totalBeforeTax !== undefined ? renderCurrency(row.totalBeforeTax) : '-'}
