@@ -324,16 +324,36 @@ export default function PQList() {
                       <TableCell align="center">
                         {item.unitPrice?.toLocaleString()} đ
                       </TableCell>
-                      <TableCell align="center">
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={item.quantity || 1}
-                          onChange={(e) => changeQuantity(i, e.target.value)}
-                          sx={{ width: 80 }}
-                          disabled={processing}
-                        />
-                      </TableCell>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={item.quantity === 0 ? "" : item.quantity}
+                        error={item.quantity > item.suggestedQty}
+                        helperText={
+                          item.quantity > item.suggestedQty
+                            ? "Vượt quá số lượng gợi ý"
+                            : ""
+                        }
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          let newQty = val === "" ? "" : Number(val);
+
+                          if (newQty < 1 && newQty !== "") newQty = 1;
+
+                          changeQuantity(i, newQty);
+
+                          if (newQty > item.suggestedQty) {
+                            setSnackbar({
+                              open: true,
+                              message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
+                              severity: "warning",
+                            });
+                          }
+                        }}
+                        sx={{ width: 80 }}
+                        disabled={processing}
+                      />
+
                       <TableCell align="center">
                         {item.suggestedQty ?? "-"}
                       </TableCell>
@@ -379,6 +399,14 @@ export default function PQList() {
             disabled={processing}
           >
             {processing ? <CircularProgress size={20} /> : "Tạo bản nháp"}
+          </Button>
+          <Button
+            variant="outlined"
+            color="info"
+            onClick={() => openCreatePO(quotationToCreatePo?.quotationId)}
+            disabled={processing}
+          >
+            {processing ? <CircularProgress size={20} /> : "Tải lại"}
           </Button>
           <Button
             variant="contained"

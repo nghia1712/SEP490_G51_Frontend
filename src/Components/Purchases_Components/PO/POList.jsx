@@ -28,6 +28,8 @@ import {
 import { Visibility, Search, Close as CloseIcon } from "@mui/icons-material";
 import POActions from "./POActions";
 import usePO from "../../../Hooks/usePO";
+import PODialogs from "./PODialogs";
+import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function POList() {
   const {
@@ -61,6 +63,7 @@ export default function POList() {
   const [page, setPage] = React.useState(1);
   const pageSize = 10;
   const totalPages = Math.ceil(filteredPOs.length / pageSize);
+  const userRole = getUserRoleFromToken();
 
   const paginatedPOs = filteredPOs.slice(
     (page - 1) * pageSize,
@@ -106,9 +109,11 @@ export default function POList() {
           />
 
           {/* Button Upload Excel */}
-          <Button variant="contained" onClick={handleOpenUpload}>
-            Upload Excel
-          </Button>
+          {userRole === "purchases_staff" && (
+            <Button variant="contained" onClick={handleOpenUpload}>
+              Upload Excel
+            </Button>
+          )}
         </Stack>
       </Paper>
 
@@ -221,251 +226,23 @@ export default function POList() {
         </Paper>
       )}
 
-      {/* Upload Excel Dialog */}
-      <Dialog
-        open={previewOpen || openUpload}
-        onClose={handleCloseUpload}
-        fullWidth
-      >
-        {openUpload && (
-          <>
-            <DialogTitle>Upload file Excel PO</DialogTitle>
-            <DialogContent>
-              <Button variant="outlined" component="label" disabled={uploading}>
-                Chọn file Excel
-                <input
-                  type="file"
-                  hidden
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setExcelFile(e.target.files[0])}
-                />
-              </Button>
-              {excelFile && <p>{excelFile.name}</p>}
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseUpload} disabled={uploading}>
-                Hủy
-              </Button>
-              <Button
-                onClick={handleUploadExcel}
-                disabled={!excelFile || uploading}
-                variant="contained"
-              >
-                {uploading ? "Đang upload..." : "Upload"}
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-      {/* Preview Excel Dialog */}
-      <Dialog
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        maxWidth="lg"
-        fullWidth
-        scroll="paper"
-        sx={{ "& .MuiDialog-paper": { width: "90vw", maxWidth: "none" } }}
-      >
-        {previewOpen && (
-          <>
-            <DialogTitle>Xác nhận sản phẩm từ Excel</DialogTitle>
-            <DialogContent
-              dividers
-              sx={{ bgcolor: "#bbe5f2ff", minHeight: "70vh", overflow: "auto" }}
-            >
-              <Table size="small">
-                <TableHead sx={{ background: "#f0f0f0" }}>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Tên sản phẩm</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell>ĐVT</TableCell>
-                    <TableCell>Đơn giá</TableCell>
-                    <TableCell>Thuế</TableCell>
-                    <TableCell>Số lượng</TableCell>
-                    <TableCell>Gợi ý</TableCell>
-                    <TableCell>Tối thiểu</TableCell>
-                    <TableCell>Hiện tại</TableCell>
-                    <TableCell>Tối đa</TableCell>
-                    <TableCell>Hạn sử dụng</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {uploadedProducts.map((p, i) => (
-                    <TableRow key={p.productID}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell sx={{ maxWidth: 280, whiteSpace: "normal" }}>
-                        {p.productName}
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 350, whiteSpace: "normal" }}>
-                        {p.description}
-                      </TableCell>
-                      <TableCell>{p.dvt}</TableCell>
-                      <TableCell sx={{ width: 100 }}>
-                        {p.unitPrice.toLocaleString()} ₫
-                      </TableCell>
-                      <TableCell>{p.tax * 100} %</TableCell>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={p.quantity === 0 ? "" : p.quantity}
-                        error={p.quantity > p.suggestedQuantity}
-                        helperText={
-                          p.quantity > p.suggestedQuantity
-                            ? "Vượt quá số lượng gợi ý"
-                            : ""
-                        }
-                        onChange={(e) => {
-                          let val = e.target.value;
-                          let newQuantity = val === "" ? "" : Number(val);
-                          if (newQuantity < 1 && newQuantity !== "")
-                            newQuantity = 1;
-
-                          setUploadedProducts((prev) =>
-                            prev.map((item, idx) =>
-                              idx === i
-                                ? { ...item, quantity: newQuantity }
-                                : item
-                            )
-                          );
-
-                          // Snackbar thông báo
-                          if (newQuantity > p.suggestedQuantity) {
-                            setSnackbar({
-                              open: true,
-                              message: `Số lượng "${p.productName}" vượt quá số lượng gợi ý (${p.suggestedQuantity})`,
-                              severity: "warning",
-                            });
-                          }
-                        }}
-                        onBlur={() => {
-                          setUploadedProducts((prev) =>
-                            prev.map((item, idx) =>
-                              idx === i
-                                ? {
-                                    ...item,
-                                    quantity:
-                                      item.quantity === "" || item.quantity < 1
-                                        ? 1
-                                        : item.quantity,
-                                  }
-                                : item
-                            )
-                          );
-                        }}
-                      />
-
-                      <TableCell sx={{ width: 110 }}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={p.suggestedQuantity}
-                          disabled
-                          sx={{
-                            width: "100%",
-                            "& input": { textAlign: "center", fontWeight: 500 },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: 110 }}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={p.minQuantity}
-                          disabled
-                          sx={{
-                            width: "100%",
-                            "& input": { textAlign: "center" },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: 110 }}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={p.currentQuantity}
-                          disabled
-                          sx={{
-                            width: "100%",
-                            "& input": { textAlign: "center" },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: 110 }}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={p.maxQuantity}
-                          disabled
-                          sx={{
-                            width: "100%",
-                            "& input": { textAlign: "center" },
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ minWidth: 120 }}>
-                        {p.expiredDateDisplay
-                          ? parseDDMMYYYY(
-                              p.expiredDateDisplay
-                            ).toLocaleDateString("vi-VN")
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          color="error"
-                          onClick={() =>
-                            setUploadedProducts((prev) =>
-                              prev.filter((_, index) => index !== i)
-                            )
-                          }
-                        >
-                          <CloseIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </DialogContent>
-            <DialogActions
-              sx={{
-                justifyContent: "space-between",
-                px: 3,
-                py: 2,
-                background: "#fff",
-                borderTop: "1px solid #ddd",
-              }}
-            >
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => setPreviewOpen(false)}
-                sx={{ px: 3, py: 1 }}
-                disabled={sending}
-              >
-                {sending ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  "Đóng"
-                )}
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleConvertExcel}
-                disabled={sending}
-              >
-                {sending ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  "Gửi yêu cầu"
-                )}
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
+      <PODialogs
+        openUpload={openUpload}
+        openPreview={previewOpen}
+        handleCloseUpload={handleCloseUpload}
+        excelFile={excelFile}
+        setExcelFile={setExcelFile}
+        handleUploadExcel={handleUploadExcel}
+        uploading={uploading}
+        uploadedProducts={uploadedProducts}
+        setUploadedProducts={setUploadedProducts}
+        setPreviewOpen={setPreviewOpen}
+        handleConvertExcel={handleConvertExcel}
+        sending={sending}
+        parseDDMMYYYY={parseDDMMYYYY}
+        snackbar={snackbar}
+        setSnackbar={setSnackbar}
+      />
 
       {/* Detail PO Dialog */}
       <Dialog
