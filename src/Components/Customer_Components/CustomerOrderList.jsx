@@ -86,14 +86,93 @@ const CustomerOrderList = () => {
       if (response.data && response.data.data && Array.isArray(response.data.data)) {
         // Map dữ liệu từ API response sang format component
         // Backend trả về PascalCase (SalesOrderId, SalesOrderCode, etc.)
-        const mappedOrders = response.data.data.map((order) => ({
+        const mappedOrders = response.data.data.map((order) => {
+          // Lấy SalesOrderStatus từ backend (enum hoặc số)
+          // Backend trả về SalesOrderStatus (enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6)
+          const orderStatusRaw = 
+            order.SalesOrderStatus ?? 
+            order.salesOrderStatus ?? 
+            order.Status ?? 
+            order.status ?? 
+            null;
+          
+          // Convert enum string thành số nếu cần
+          let orderStatus = orderStatusRaw;
+          if (typeof orderStatusRaw === 'string') {
+            const statusMap = {
+              'Draft': 0,
+              'Send': 1,
+              'Approved': 2,
+              'Rejected': 3,
+              'Delivered': 4,
+              'Complete': 5,
+              'NotComplete': 6
+            };
+            orderStatus = statusMap[orderStatusRaw] ?? orderStatusRaw;
+          }
+          if (typeof orderStatus === 'number') {
+            orderStatus = Number(orderStatus);
+          }
+
+          // Lấy PaymentStatus từ backend (enum hoặc số)
+          // Backend trả về PaymentStatus (enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5)
+          const paymentStatusRaw = 
+            order.PaymentStatus ?? 
+            order.paymentStatus ?? 
+            order.PaymentStatusValue ?? 
+            order.paymentStatusValue ??
+            (order.PaymentStatusName ? (() => {
+              const nameMap = {
+                'Pending': 0,
+                'Deposited': 1,
+                'Paid': 2,
+                'Success': 3,
+                'Failed': 4,
+                'Refunded': 5
+              };
+              return nameMap[order.PaymentStatusName] ?? null;
+            })() : null) ??
+            (order.paymentStatusName ? (() => {
+              const nameMap = {
+                'Pending': 0,
+                'Deposited': 1,
+                'Paid': 2,
+                'Success': 3,
+                'Failed': 4,
+                'Refunded': 5
+              };
+              return nameMap[order.paymentStatusName] ?? null;
+            })() : null) ??
+            null;
+          
+          // Convert enum string thành số nếu cần
+          let paymentStatus = paymentStatusRaw;
+          if (typeof paymentStatusRaw === 'string') {
+            const paymentMap = {
+              'Pending': 0,
+              'Deposited': 1,
+              'Paid': 2,
+              'Success': 3,
+              'Failed': 4,
+              'Refunded': 5
+            };
+            paymentStatus = paymentMap[paymentStatusRaw] ?? paymentStatusRaw;
+          }
+          if (typeof paymentStatus === 'number') {
+            paymentStatus = Number(paymentStatus);
+          }
+
+          return {
           id: order.SalesOrderId || order.salesOrderId,
           quotationCode: order.SalesOrderCode || order.salesOrderCode,
-          status: order.Status !== undefined ? order.Status : order.status, // 0=Draft, 1=Send, 2=Approved, 3=Rejected, 4=Deposited, 5=Paid, 6=Complete
+            orderStatus, // Trạng thái đơn hàng
+            paymentStatus, // Trạng thái thanh toán
+            status: orderStatus, // Giữ lại để tương thích với filter cũ
           createdAt: order.CreateAt || order.createAt,
           totalAmount: order.TotalPrice || order.totalPrice,
-          paidAmount: order.PaidAmount ?? order.paidAmount ?? 0, // Tiền đã trả
-        }));
+            paidAmount: order.PaidAmount ?? order.paidAmount ?? 0,
+          };
+        });
         setAllOrders(mappedOrders);
         setOrders(applyStatusFilter(mappedOrders));
       } else {
@@ -156,9 +235,12 @@ const CustomerOrderList = () => {
       } else if (sortConfig.key === 'createdAt') {
         aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      } else if (sortConfig.key === 'status') {
-        aValue = a.status !== undefined && a.status !== null ? a.status : -1;
-        bValue = b.status !== undefined && b.status !== null ? b.status : -1;
+      } else if (sortConfig.key === 'status' || sortConfig.key === 'orderStatus') {
+        aValue = a.orderStatus !== undefined && a.orderStatus !== null ? a.orderStatus : (a.status !== undefined && a.status !== null ? a.status : -1);
+        bValue = b.orderStatus !== undefined && b.orderStatus !== null ? b.orderStatus : (b.status !== undefined && b.status !== null ? b.status : -1);
+      } else if (sortConfig.key === 'paymentStatus') {
+        aValue = a.paymentStatus !== undefined && a.paymentStatus !== null ? a.paymentStatus : -1;
+        bValue = b.paymentStatus !== undefined && b.paymentStatus !== null ? b.paymentStatus : -1;
       } else if (sortConfig.key === 'paidAmount') {
         aValue = a.paidAmount || 0;
         bValue = b.paidAmount || 0;
@@ -192,46 +274,110 @@ const CustomerOrderList = () => {
     }
   }, [page, totalPages]);
 
-  const getStatusLabel = (status) => {
+  // Hàm lấy label cho trạng thái đơn hàng
+  const getOrderStatusLabel = (status) => {
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
     switch (status) {
-      case 0: // Draft
-        return 'Nháp';
-      case 1: // Send
-        return 'Đã Gửi';
-      case 2: // Approved
-        return 'Đã Chấp Thuận';
-      case 3: // Rejected
-        return 'Đã Từ Chối';
-      case 4: // Deposited
-        return 'Đã Cọc';
-      case 5: // Paid
-        return 'Đã Thanh Toán';
-      case 6: // Complete
-        return 'Đã Hoàn Thành';
+      case 0:
+        return 'Nháp'; // Draft
+      case 1:
+        return 'Đã gửi'; // Send
+      case 2:
+        return 'Chấp thuận'; // Approved
+      case 3:
+        return 'Từ chối'; // Rejected
+      case 4:
+        return 'Đã giao hàng'; // Delivered
+      case 5:
+        return 'Hoàn thành'; // Complete
+      case 6:
+        return 'Chưa hoàn thành'; // NotComplete
       default:
         return 'Không xác định';
     }
   };
 
-  const getStatusColor = (status) => {
+  // Hàm lấy màu cho trạng thái đơn hàng
+  const getOrderStatusColor = (status) => {
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
     switch (status) {
-      case 0: // Draft
-        return 'default';
-      case 1: // Send
-        return 'info';
-      case 2: // Approved
-        return 'warning';
-      case 3: // Rejected
-        return 'error';
-      case 4: // Deposited
-        return 'secondary';
-      case 5: // Paid
-        return 'success';
-      case 6: // Complete
-        return 'primary';
+      case 0: // Nháp (Draft)
+        return { backgroundColor: '#fff3cd', color: '#856404' };
+      case 1: // Đã gửi (Send)
+        return { backgroundColor: '#e3f2fd', color: '#1a4a57' };
+      case 2: // Chấp thuận (Approved)
+        return { backgroundColor: '#ffe082', color: '#8c6d1f' };
+      case 3: // Từ chối (Rejected)
+        return { backgroundColor: '#f8d7da', color: '#721c24' };
+      case 4: // Đã giao hàng (Delivered)
+        return { backgroundColor: '#cce5ff', color: '#004085' };
+      case 5: // Hoàn thành (Complete)
+        return { backgroundColor: '#d4edda', color: '#155724' };
+      case 6: // Chưa hoàn thành (NotComplete)
+        return { backgroundColor: '#ffe0b2', color: '#e65100' };
       default:
-        return 'default';
+        return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
+  };
+
+  // Hàm lấy label cho trạng thái thanh toán
+  const getPaymentStatusLabel = (status) => {
+    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
+    switch (status) {
+      case 0:
+        return 'Chờ thanh toán'; // Pending
+      case 1:
+        return 'Đã cọc'; // Deposited
+      case 2:
+        return 'Đã thanh toán'; // Paid
+      case 3:
+        return 'Thành công'; // Success
+      case 4:
+        return 'Thất bại'; // Failed
+      case 5:
+        return 'Trả lại tiền'; // Refunded
+      default:
+        return 'Không xác định';
+    }
+  };
+
+  // Hàm lấy màu cho trạng thái thanh toán
+  const getPaymentStatusColor = (status) => {
+    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
+    switch (status) {
+      case 0: // Chờ thanh toán (Pending)
+        return { backgroundColor: '#fff3cd', color: '#856404' };
+      case 1: // Đã cọc (Deposited)
+        return { backgroundColor: '#e1bee7', color: '#4a148c' };
+      case 2: // Đã thanh toán (Paid)
+        return { backgroundColor: '#d4edda', color: '#155724' };
+      case 3: // Thành công (Success)
+        return { backgroundColor: '#c8e6c9', color: '#1b5e20' };
+      case 4: // Thất bại (Failed)
+        return { backgroundColor: '#ffcdd2', color: '#b71c1c' };
+      case 5: // Trả lại tiền (Refunded)
+        return { backgroundColor: '#f8bbd0', color: '#880e4f' };
+      default:
+        return { backgroundColor: '#e3f2fd', color: '#1976d2' };
+    }
+  };
+
+  // Giữ lại hàm cũ để tương thích với filter
+  const getStatusLabel = (status) => {
+    return getOrderStatusLabel(status);
+  };
+
+  // Giữ lại hàm cũ để tương thích với filter
+  const getStatusColor = (status) => {
+    // Convert to MUI color name if possible, otherwise return object
+    if (status === 0) return 'default';
+    if (status === 1) return 'info';
+    if (status === 2) return 'warning';
+    if (status === 3) return 'error';
+    if (status === 4) return 'primary';
+    if (status === 5) return 'success';
+    if (status === 6) return 'warning';
+    return 'default';
   };
 
   const handleEdit = (orderId) => {
@@ -449,7 +595,8 @@ const CustomerOrderList = () => {
   };
 
   const renderActions = (order) => {
-    const { status, id } = order;
+    const status = order.orderStatus ?? order.status;
+    const { id } = order;
     
     return (
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
@@ -595,7 +742,13 @@ const CustomerOrderList = () => {
 
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '-';
-    return new Intl.NumberFormat('vi-VN').format(amount);
+    const formatted = new Intl.NumberFormat('vi-VN').format(amount);
+    return (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
+        <Box component="span">{formatted}</Box>
+        <Box component="span" sx={{ textDecoration: 'underline' }}>đ</Box>
+      </Box>
+    );
   };
 
   return (
@@ -700,12 +853,28 @@ const CustomerOrderList = () => {
                 </TableCell>
                 <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
                   <TableSortLabel
-                    active={sortConfig.key === 'status'}
-                    direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
-                    onClick={() => handleSort('status')}
+                    active={sortConfig.key === 'orderStatus'}
+                    direction={sortConfig.key === 'orderStatus' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('orderStatus')}
                     sx={headerTextSx}
                   >
-                    Trạng thái
+                    <Box component="span" sx={{ display: 'block', lineHeight: 1.2 }}>
+                      <Box component="span" sx={{ display: 'block' }}>Trạng thái</Box>
+                      <Box component="span" sx={{ display: 'block' }}>đơn hàng</Box>
+                    </Box>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'paymentStatus'}
+                    direction={sortConfig.key === 'paymentStatus' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('paymentStatus')}
+                    sx={headerTextSx}
+                  >
+                    <Box component="span" sx={{ display: 'block', lineHeight: 1.2 }}>
+                      <Box component="span" sx={{ display: 'block' }}>Trạng thái</Box>
+                      <Box component="span" sx={{ display: 'block' }}>thanh toán</Box>
+                    </Box>
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6 }}>
@@ -718,7 +887,7 @@ const CustomerOrderList = () => {
                     Tiền đã trả
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, pl: 5 }}>
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2, whiteSpace: 'nowrap' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'totalAmount'}
                     direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
@@ -740,7 +909,7 @@ const CustomerOrderList = () => {
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} sx={{ textAlign: 'center', py: 3 }}>
+                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 3 }}>
                     <Typography variant="body2" color="text.secondary">
                       Chưa có đơn hàng nào.
                     </Typography>
@@ -768,11 +937,26 @@ const CustomerOrderList = () => {
                     <TableCell sx={{ fontWeight: 500 }}>{order.quotationCode || order.quotationId || '-'}</TableCell>
                     <TableCell>{formatDate(order.createdAt || order.createAt || order.createdDate)}</TableCell>
                     <TableCell>
+                      {order.orderStatus !== undefined && order.orderStatus !== null ? (
                       <Chip
-                        label={getStatusLabel(order.status)}
-                        color={getStatusColor(order.status)}
+                          label={getOrderStatusLabel(order.orderStatus)}
                         size="small"
-                      />
+                          sx={getOrderStatusColor(order.orderStatus)}
+                        />
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {order.paymentStatus !== undefined && order.paymentStatus !== null ? (
+                        <Chip
+                          label={getPaymentStatusLabel(order.paymentStatus)}
+                          size="small"
+                          sx={getPaymentStatusColor(order.paymentStatus)}
+                        />
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.paidAmount)}</TableCell>
                     <TableCell sx={{ textAlign: 'right', pl: 7 }}>{formatCurrency(order.totalAmount || order.grandTotal)}</TableCell>

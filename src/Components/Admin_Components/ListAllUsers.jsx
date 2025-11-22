@@ -24,7 +24,31 @@ const ListAllUsers = ({ roleGroup }) => {
             const response = await adminAPI.getAccountList();
             console.log("API response:", response);
             console.log("Response data:", response.data || response);
-            setUsers(response.data || response);
+            const usersData = response.data || response;
+            setUsers(usersData);
+            
+            // Debug: Check for accountant staff
+            if (Array.isArray(usersData)) {
+                console.log('fetchUsers - Total users:', usersData.length);
+                // Log all users with their Role field
+                usersData.forEach((u, index) => {
+                    console.log(`User ${index}:`, {
+                        email: u?.Email || u?.email,
+                        role: u?.Role || u?.role,
+                        roleType: typeof (u?.Role || u?.role),
+                        employeeCode: u?.EmployeeCode || u?.employeeCode
+                    });
+                });
+                
+                const accountantUsers = usersData.filter(u => {
+                    const role = u?.Role || u?.role;
+                    if (typeof role === 'string' && role.toLowerCase().includes('accountant')) return true;
+                    if (role === 3) return true;
+                    return false;
+                });
+                console.log('fetchUsers - Accountant users found:', accountantUsers);
+                console.log('fetchUsers - Accountant users count:', accountantUsers.length);
+            }
         } catch (error) {
             console.error("Error fetching users:", error);
             setError("Không thể tải dữ liệu danh sách các người dùng.");
@@ -42,42 +66,63 @@ const ListAllUsers = ({ roleGroup }) => {
                 const response = await adminAPI.suspendAccount(id);
                 console.log("suspendAccount response:", response);
                 
-                if (response?.data?.success || response?.success) {
-                    alert("Đã ban tài khoản thành công!");
-                    // Cập nhật ngay trạng thái trên UI
-                    setUsers(prev => prev.map(u => {
-                        const uid = u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
-                        if (String(uid) === String(id)) {
-                            return { ...u, userStatus: 0, status: 'banned' };
-                        }
-                        return u;
-                    }));
+                // Kiểm tra response - có thể thành công ngay cả khi không có success flag
+                const message = response?.data?.message || response?.message || "";
+                const isSuccess = response?.data?.success || 
+                                 response?.success || 
+                                 response?.status === 200 ||
+                                 message.includes("thành công") ||
+                                 message.includes("success");
+                
+                if (isSuccess || response?.status === 200 || response?.statusText === "OK") {
+                    alert("Ngừng hoạt động tài khoản thành công");
+                    // Refresh trang
+                    window.location.reload();
+                } else if (message.includes("thành công") || message.includes("success")) {
+                    // Nếu message chứa "thành công" thì coi như thành công
+                    alert("Ngừng hoạt động tài khoản thành công");
+                    // Refresh trang
+                    window.location.reload();
                 } else {
-                    alert("Có lỗi xảy ra khi ban tài khoản: " + (response?.data?.message || response?.message || "Unknown error"));
+                    alert("Có lỗi xảy ra khi ban tài khoản: " + message);
                 }
             } else if (newStatus === "active") {
                 console.log("Calling activeAccount API with userId:", id);
                 const response = await adminAPI.activeAccount(id);
                 console.log("activeAccount response:", response);
                 
-                if (response?.data?.success || response?.success) {
-                    alert("Đã bỏ ban tài khoản thành công!");
-                    // Cập nhật ngay trạng thái trên UI
-                    setUsers(prev => prev.map(u => {
-                        const uid = u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
-                        if (String(uid) === String(id)) {
-                            return { ...u, userStatus: 2, status: 'active' };
-                        }
-                        return u;
-                    }));
+                // Kiểm tra response - có thể thành công ngay cả khi không có success flag
+                const message = response?.data?.message || response?.message || "";
+                const isSuccess = response?.data?.success || 
+                                 response?.success || 
+                                 response?.status === 200 ||
+                                 message.includes("thành công") ||
+                                 message.includes("success");
+                
+                if (isSuccess || response?.status === 200 || response?.statusText === "OK") {
+                    alert("Kích hoạt tài khoản thành công");
+                    // Refresh trang
+                    window.location.reload();
+                } else if (message.includes("thành công") || message.includes("success")) {
+                    // Nếu message chứa "thành công" thì coi như thành công
+                    alert("Kích hoạt tài khoản thành công");
+                    // Refresh trang
+                    window.location.reload();
                 } else {
-                    alert("Có lỗi xảy ra khi bỏ ban tài khoản: " + (response?.data?.message || response?.message || "Unknown error"));
+                    alert("Có lỗi xảy ra khi bỏ ban tài khoản: " + message);
                 }
             }
         } catch (error) {
             console.error("Error in handleUpdateStatus:", error);
             console.log("Error details:", error.response?.data);
-            alert("Có lỗi xảy ra khi cập nhật trạng thái người dùng: " + (error.response?.data?.message || error.message));
+            // Kiểm tra xem error message có chứa "thành công" không (có thể backend trả về success nhưng bị catch)
+            const errorMessage = error?.response?.data?.message || error?.message || "";
+            if (errorMessage.includes("thành công") || errorMessage.includes("success")) {
+                alert("Ngừng hoạt động tài khoản thành công");
+                window.location.reload();
+            } else {
+                alert("Có lỗi xảy ra khi cập nhật trạng thái người dùng: " + errorMessage);
+            }
         }
     };
     const handleFilterChange = (e) => {
@@ -171,6 +216,16 @@ const ListAllUsers = ({ roleGroup }) => {
         const normalizedRoles = normalizeUserRoles(user);
         const staffRoles = new Set(['sales_staff','purchases_staff','warehouse_staff','accountant_staff']);
         
+        // Debug log for accountant staff
+        const isAccountantUser = user?.Role && (typeof user.Role === 'string' && user.Role.toLowerCase().includes('accountant'));
+        if (isAccountantUser || user?.email === 'pmsaccountant@gmail.com') {
+            console.log('isActualStaff - Found accountant user:', user);
+            console.log('isActualStaff - user.Role:', user.Role);
+            console.log('isActualStaff - user.Role type:', typeof user.Role);
+            console.log('isActualStaff - normalizedRoles:', normalizedRoles);
+            console.log('isActualStaff - staffRoles set:', Array.from(staffRoles));
+        }
+        
         // Check if user has customer role - safely handle different data types
         const isCustomerRole = normalizedRoles.includes('customer') || 
                               (user?.RoleName && typeof user.RoleName === 'string' && user.RoleName.toLowerCase() === 'customer') ||
@@ -184,14 +239,39 @@ const ListAllUsers = ({ roleGroup }) => {
                              (user?.role && typeof user.role === 'string' && user.role.toLowerCase() === 'manager') ||
                              (user?.role && typeof user.role === 'string' && user.role.toLowerCase() === 'admin');
         
-        // Check if user has staff role ID
-        const hasStaffRoleId = user?.Role !== null && user?.Role !== undefined && 
-                              (user.Role === 0 || user.Role === 1 || user.Role === 2 || user.Role === 3);
+        // Check if user has staff role ID (can be number or string)
+        const hasStaffRoleId = user?.Role !== null && user?.Role !== undefined && (
+            (typeof user.Role === 'number' && (user.Role === 0 || user.Role === 1 || user.Role === 2 || user.Role === 3)) ||
+            (typeof user.Role === 'string' && (
+                user.Role.toLowerCase() === 'accountant' || 
+                user.Role.toLowerCase() === 'salesstaff' || 
+                user.Role.toLowerCase() === 'purchasesstaff' || 
+                user.Role.toLowerCase() === 'warehousestaff' ||
+                user.Role.toLowerCase() === 'sales_staff' ||
+                user.Role.toLowerCase() === 'purchases_staff' ||
+                user.Role.toLowerCase() === 'warehouse_staff' ||
+                user.Role.toLowerCase() === 'accountant_staff' ||
+                user.Role.toLowerCase().includes('accountant') ||
+                user.Role.toLowerCase().includes('sales') ||
+                user.Role.toLowerCase().includes('purchase') ||
+                user.Role.toLowerCase().includes('warehouse')
+            ))
+        );
+        
+        const hasStaffRole = normalizedRoles.some(r => staffRoles.has(r)) || hasStaffRoleId;
+        const isStaff = hasStaffRole && !isCustomerRole && !isManagerRole;
+        
+        // Debug log for accountant staff
+        if (isAccountantUser || user?.email === 'pmsaccountant@gmail.com') {
+            console.log('isActualStaff - hasStaffRoleId:', hasStaffRoleId);
+            console.log('isActualStaff - hasStaffRole:', hasStaffRole);
+            console.log('isActualStaff - isCustomerRole:', isCustomerRole);
+            console.log('isActualStaff - isManagerRole:', isManagerRole);
+            console.log('isActualStaff - final isStaff:', isStaff);
+        }
         
         // User is staff if: has staff roles AND not customer AND not manager/admin
-        return (normalizedRoles.some(r => staffRoles.has(r)) || hasStaffRoleId) && 
-               !isCustomerRole && 
-               !isManagerRole;
+        return isStaff;
     };
 
     // Helper function to map role ID to Vietnamese role name
@@ -226,9 +306,18 @@ const ListAllUsers = ({ roleGroup }) => {
             if (roleLower.includes('account')) return "Nhân viên Kế Toán";
         }
         
-        // Check for Role field (from backend AccountList DTO) - only for staff roles
+        // Check for Role field (from backend AccountList DTO) - can be number or string
         if (user?.Role !== null && user?.Role !== undefined) {
             console.log("Role field:", user.Role);
+            // Handle string role from backend (e.g., "ACCOUNTANT", "SalesStaff")
+            if (typeof user.Role === 'string') {
+                const roleStr = user.Role.toLowerCase();
+                if (roleStr === 'accountant' || roleStr.includes('accountant')) return "Nhân viên Kế Toán";
+                if (roleStr === 'salesstaff' || roleStr.includes('sales')) return "Nhân viên Bán Hàng";
+                if (roleStr === 'purchasesstaff' || roleStr.includes('purchase')) return "Nhân viên Mua Hàng";
+                if (roleStr === 'warehousestaff' || roleStr.includes('warehouse')) return "Nhân viên Kho";
+            }
+            // Handle numeric role ID
             switch (Number(user.Role)) {
                 case 0: return "Nhân viên Bán Hàng";
                 case 1: return "Nhân viên Mua Hàng";
@@ -420,28 +509,97 @@ const ListAllUsers = ({ roleGroup }) => {
         return false;
     };
 
+    // Helper function to map role string to normalized staff role key
+    const mapRoleToStaffRole = (roleStr) => {
+        if (!roleStr || typeof roleStr !== 'string') return null;
+        const lowerRole = roleStr.toLowerCase();
+        if (lowerRole === 'accountant' || lowerRole.includes('accountant')) return 'accountant_staff';
+        if (lowerRole === 'sales_staff' || lowerRole === 'salesstaff' || (lowerRole.includes('sales') && !lowerRole.includes('accountant'))) return 'sales_staff';
+        if (lowerRole === 'purchases_staff' || lowerRole === 'purchasesstaff' || (lowerRole.includes('purchase') && !lowerRole.includes('accountant'))) return 'purchases_staff';
+        if (lowerRole === 'warehouse_staff' || lowerRole === 'warehousestaff' || (lowerRole.includes('warehouse') && !lowerRole.includes('accountant'))) return 'warehouse_staff';
+        return null;
+    };
+
     // Normalize roles coming from different backend shapes to lowercase keywords
     const normalizeUserRoles = (u) => {
         const collected = [];
         // roles as array: strings or objects with name
         if (Array.isArray(u?.roles)) {
             for (const r of u.roles) {
-                if (typeof r === 'string') collected.push(r.toLowerCase());
-                else if (r && typeof r === 'object') {
-                    if (typeof r.name === 'string') collected.push(r.name.toLowerCase());
-                    if (typeof r.roleName === 'string') collected.push(r.roleName.toLowerCase());
+                if (typeof r === 'string') {
+                    const mapped = mapRoleToStaffRole(r);
+                    if (mapped) collected.push(mapped);
+                    else collected.push(r.toLowerCase());
+                } else if (r && typeof r === 'object') {
+                    if (typeof r.name === 'string') {
+                        const mapped = mapRoleToStaffRole(r.name);
+                        if (mapped) collected.push(mapped);
+                        else collected.push(r.name.toLowerCase());
+                    }
+                    if (typeof r.roleName === 'string') {
+                        const mapped = mapRoleToStaffRole(r.roleName);
+                        if (mapped) collected.push(mapped);
+                        else collected.push(r.roleName.toLowerCase());
+                    }
                 }
             }
         }
         // single role as string
-        if (typeof u?.role === 'string') collected.push(u.role.toLowerCase());
-        if (typeof u?.roleName === 'string') collected.push(u.roleName.toLowerCase());
-        if (typeof u?.account?.role === 'string') collected.push(u.account.role.toLowerCase());
-        if (typeof u?.account?.roleName === 'string') collected.push(u.account.roleName.toLowerCase());
+        if (typeof u?.role === 'string') {
+            const mapped = mapRoleToStaffRole(u.role);
+            if (mapped) collected.push(mapped);
+            else collected.push(u.role.toLowerCase());
+        }
+        if (typeof u?.roleName === 'string') {
+            const mapped = mapRoleToStaffRole(u.roleName);
+            if (mapped) collected.push(mapped);
+            else collected.push(u.roleName.toLowerCase());
+        }
+        if (typeof u?.account?.role === 'string') {
+            const mapped = mapRoleToStaffRole(u.account.role);
+            if (mapped) collected.push(mapped);
+            else collected.push(u.account.role.toLowerCase());
+        }
+        if (typeof u?.account?.roleName === 'string') {
+            const mapped = mapRoleToStaffRole(u.account.roleName);
+            if (mapped) collected.push(mapped);
+            else collected.push(u.account.roleName.toLowerCase());
+        }
+        
+        // Handle Role field from backend (can be string like "ACCOUNTANT", "Accountant", "SalesStaff", etc.)
+        if (typeof u?.Role === 'string') {
+            const roleStr = u.Role.toLowerCase();
+            // Debug log for accountant
+            if (roleStr.includes('accountant')) {
+                console.log('normalizeUserRoles - Found accountant role string:', u.Role, '-> normalized to:', roleStr);
+            }
+            // Map backend role strings to frontend role keys
+            // Backend returns "ACCOUNTANT" (uppercase) from UserRoles.ACCOUNTANT
+            const mapped = mapRoleToStaffRole(u.Role);
+            if (mapped) {
+                collected.push(mapped);
+                if (roleStr.includes('accountant')) {
+                    console.log('normalizeUserRoles - Mapped accountant role to accountant_staff');
+                }
+            } else {
+                collected.push(roleStr); // Keep original if no match
+            }
+        }
+        
         // Staff role id mapping aligned with BE enum StaffRole: byte
         // SalesStaff=0, PurchasesStaff=1, WarehouseStaff=2, AccountantStaff=3
-        const staffRoleId = u?.staffRole ?? u?.StaffRole ?? u?.profile?.staffRole ?? u?.staff?.roleId ?? u?.staffProfile?.roleId;
+        const staffRoleId = u?.staffRole ?? u?.StaffRole ?? u?.profile?.staffRole ?? u?.staff?.roleId ?? u?.staffProfile?.roleId ?? u?.Role;
         const mapStaffRoleId = (id) => {
+            // Handle string role names from backend
+            if (typeof id === 'string') {
+                const roleStr = id.toLowerCase();
+                if (roleStr === 'accountant' || roleStr.includes('accountant')) return 'accountant_staff';
+                if (roleStr === 'salesstaff' || roleStr.includes('sales')) return 'sales_staff';
+                if (roleStr === 'purchasesstaff' || roleStr.includes('purchase')) return 'purchases_staff';
+                if (roleStr === 'warehousestaff' || roleStr.includes('warehouse')) return 'warehouse_staff';
+                return null;
+            }
+            // Handle numeric role IDs
             switch (Number(id)) {
                 case 0: return 'sales_staff';
                 case 1: return 'purchases_staff';
@@ -530,6 +688,19 @@ const ListAllUsers = ({ roleGroup }) => {
         } else if (roleGroup === 'staff') {
             // Sử dụng hàm isActualStaff để kiểm tra chính xác
             matchesRoleGroup = isActualStaff(user);
+            
+            // Debug log for accountant user
+            if (user?.email === 'pmsaccountant@gmail.com' || (user?.Role && typeof user.Role === 'string' && user.Role.toLowerCase().includes('accountant'))) {
+                console.log('filteredUsers - Accountant user filter check:', {
+                    email: user?.email,
+                    role: user?.Role,
+                    matchesSearch,
+                    matchesStatus,
+                    matchesRoleQuery,
+                    matchesRoleGroup,
+                    finalResult: matchesSearch && matchesStatus && matchesRoleQuery && matchesRoleGroup
+                });
+            }
         } else if (roleGroup === 'manager') {
             const mgmtRoles = new Set(['manager','admin']);
             const roleMatch = normalizedRoles.some(r => mgmtRoles.has(r));
@@ -800,11 +971,22 @@ const ListAllUsers = ({ roleGroup }) => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={
-                                            isStaffView ? "5" : 
-                                            (isManagerView ? "5" : 
-                                            (roleGroup === 'customer' ? "6" : "8"))
-                                        } className="text-center">Không tìm thấy người dùng nào</td>
+                                        <td 
+                                            colSpan={
+                                                isStaffView ? "6" : 
+                                                (isManagerView ? "6" : 
+                                                (roleGroup === 'customer' ? "6" : "10"))
+                                            } 
+                                            className="text-center"
+                                            style={{
+                                                backgroundColor: "#f5f5f5",
+                                                color: "#666",
+                                                padding: "20px",
+                                                fontSize: "1rem"
+                                            }}
+                                        >
+                                            Không tìm thấy người dùng nào
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>

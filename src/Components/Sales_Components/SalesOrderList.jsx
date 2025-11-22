@@ -129,34 +129,107 @@ const SalesOrderList = () => {
       const response = await salesOrderAPI.listSalesOrder();
 
       if (response.data && Array.isArray(response.data.data)) {
+        // Debug: Log first order to see structure
+        if (response.data.data.length > 0) {
+          console.log('SalesOrderList - First order from backend:', response.data.data[0]);
+          console.log('SalesOrderList - PaymentStatus fields:', {
+            PaymentStatus: response.data.data[0].PaymentStatus,
+            paymentStatus: response.data.data[0].paymentStatus,
+            PaymentStatusValue: response.data.data[0].PaymentStatusValue,
+            paymentStatusValue: response.data.data[0].paymentStatusValue,
+            PaymentStatusName: response.data.data[0].PaymentStatusName,
+            paymentStatusName: response.data.data[0].paymentStatusName,
+          });
+        }
 
         const mappedOrders = response.data.data
 
           .map((order) => {
 
-            const orderStatus =
-
-              order.SalesOrderStatus ??
-
-              order.salesOrderStatus ??
-
-              order.Status ??
-
-              order.status ??
-
+            // Lấy SalesOrderStatus từ backend (enum hoặc số)
+            // Backend trả về SalesOrderStatus (enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6)
+            const orderStatusRaw = 
+              order.SalesOrderStatus ?? 
+              order.salesOrderStatus ?? 
+              order.Status ?? 
+              order.status ?? 
               null;
+            
+            // Convert enum string thành số nếu cần
+            let orderStatus = orderStatusRaw;
+            if (typeof orderStatusRaw === 'string') {
+              const statusMap = {
+                'Draft': 0,
+                'Send': 1,
+                'Approved': 2,
+                'Rejected': 3,
+                'Delivered': 4,
+                'Complete': 5,
+                'NotComplete': 6
+              };
+              orderStatus = statusMap[orderStatusRaw] ?? orderStatusRaw;
+            }
+            // Nếu là số, giữ nguyên
+            if (typeof orderStatus === 'number') {
+              orderStatus = Number(orderStatus);
+            }
 
-            const paymentStatus =
-
-              order.PaymentStatus ??
-
-              order.paymentStatus ??
-
-              order.PaymentStatusValue ??
-
+            // Lấy PaymentStatus từ backend (enum hoặc số)
+            // Backend trả về PaymentStatus (enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5)
+            // Có thể backend trả về PaymentStatusName (string) thay vì PaymentStatus (enum)
+            const paymentStatusRaw = 
+              order.PaymentStatus ?? 
+              order.paymentStatus ?? 
+              order.PaymentStatusValue ?? 
               order.paymentStatusValue ??
-
+              (order.PaymentStatusName ? (() => {
+                // Map PaymentStatusName string to number
+                const nameMap = {
+                  'Pending': 0,
+                  'Deposited': 1,
+                  'Paid': 2,
+                  'Success': 3,
+                  'Failed': 4,
+                  'Refunded': 5
+                };
+                return nameMap[order.PaymentStatusName] ?? null;
+              })() : null) ??
+              (order.paymentStatusName ? (() => {
+                // Map paymentStatusName string to number
+                const nameMap = {
+                  'Pending': 0,
+                  'Deposited': 1,
+                  'Paid': 2,
+                  'Success': 3,
+                  'Failed': 4,
+                  'Refunded': 5
+                };
+                return nameMap[order.paymentStatusName] ?? null;
+              })() : null) ??
               null;
+            
+            // Convert enum string thành số nếu cần
+            let paymentStatus = paymentStatusRaw;
+            if (typeof paymentStatusRaw === 'string') {
+              const paymentMap = {
+                'Pending': 0,
+                'Deposited': 1,
+                'Paid': 2,
+                'Success': 3,
+                'Failed': 4,
+                'Refunded': 5
+              };
+              paymentStatus = paymentMap[paymentStatusRaw] ?? paymentStatusRaw;
+            }
+            // Nếu là số, giữ nguyên
+            if (typeof paymentStatus === 'number') {
+              paymentStatus = Number(paymentStatus);
+            }
+            
+            // Debug log for first order
+            if (order === response.data.data[0]) {
+              console.log('SalesOrderList - Mapped paymentStatus:', paymentStatus, 'from raw:', paymentStatusRaw);
+            }
 
             return {
 
@@ -241,123 +314,71 @@ const SalesOrderList = () => {
 
 
   const getOrderStatusLabel = (status) => {
-
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
     switch (status) {
-
       case 0:
-
-        return 'Nháp';
-
+        return 'Nháp'; // Draft
       case 1:
-
-        return 'Chờ xử lý';
-
+        return 'Đã gửi'; // Send
       case 2:
-
-        return 'Đã duyệt';
-
+        return 'Chấp thuận'; // Approved
       case 3:
-
-        return 'Đã từ chối';
-
+        return 'Từ chối'; // Rejected
       case 4:
-
-        return 'Đã cọc';
-
+        return 'Đã giao hàng'; // Delivered
       case 5:
-
-        return 'Đã thanh toán';
-
+        return 'Hoàn thành'; // Complete
       case 6:
-
-        return 'Hoàn thành';
-
+        return 'Chưa hoàn thành'; // NotComplete
       default:
-
         return 'Không xác định';
-
     }
-
   };
 
 
 
   const getOrderStatusColor = (status) => {
-
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
     switch (status) {
-
-      case 0:
-
+      case 0: // Nháp (Draft)
         return { backgroundColor: '#fff3cd', color: '#856404' };
-
-      case 1:
-
+      case 1: // Đã gửi (Send)
         return { backgroundColor: '#e3f2fd', color: '#1a4a57' };
-
-      case 2:
-
+      case 2: // Chấp thuận (Approved)
         return { backgroundColor: '#ffe082', color: '#8c6d1f' };
-
-      case 3:
-
+      case 3: // Từ chối (Rejected)
         return { backgroundColor: '#f8d7da', color: '#721c24' };
-
-      case 4:
-
-        return { backgroundColor: '#e1bee7', color: '#4a148c' };
-
-      case 5:
-
-        return { backgroundColor: '#d4edda', color: '#155724' };
-
-      case 6:
-
+      case 4: // Đã giao hàng (Delivered)
         return { backgroundColor: '#cce5ff', color: '#004085' };
-
+      case 5: // Hoàn thành (Complete)
+        return { backgroundColor: '#d4edda', color: '#155724' };
+      case 6: // Chưa hoàn thành (NotComplete)
+        return { backgroundColor: '#ffe0b2', color: '#e65100' };
       default:
-
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
-
     }
-
   };
 
 
 
   const getPaymentStatusLabel = (status) => {
-
+    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
     switch (status) {
-
       case 0:
-
-        return 'Chờ thanh toán';
-
+        return 'Chờ thanh toán'; // Pending
       case 1:
-
-        return 'Đã cọc';
-
+        return 'Đã cọc'; // Deposited
       case 2:
-
-        return 'Đã thanh toán';
-
+        return 'Đã thanh toán'; // Paid
       case 3:
-
-        return 'Thành công';
-
+        return 'Thành công'; // Success
       case 4:
-
-        return 'Thất bại';
-
+        return 'Thất bại'; // Failed
       case 5:
-
-        return 'Hoàn tiền';
-
+        return 'Trả lại tiền'; // Refunded
       default:
-
         return 'Không xác định';
-
     }
-
   };
 
 
@@ -888,7 +909,7 @@ const SalesOrderList = () => {
         }
 
         
-
+        
         // Process details with tax information from backend
 
         const rawDetails = data.details ?? data.Details ?? data.orderDetails ?? data.OrderDetails ?? data.salesOrderDetails ?? data.SalesOrderDetails ?? [];
@@ -913,7 +934,7 @@ const SalesOrderList = () => {
             detail.UnitPriceAfterTax ??
 
             0;
-
+          
           
 
           // Get expired date from Lot
@@ -964,7 +985,7 @@ const SalesOrderList = () => {
           const taxData = quotationTaxMap.get(taxKey);
 
           
-
+          
           // Get tax information from backend response
 
           let taxText = detail.taxText ?? detail.TaxText ?? taxData?.taxText ?? '-';
@@ -1080,7 +1101,7 @@ const SalesOrderList = () => {
               ? Math.max(0, Number(taxRate))
 
               : 0;
-
+          
           
 
           return {
@@ -1110,7 +1131,7 @@ const SalesOrderList = () => {
         });
 
         
-
+        
         setOrderDetails({
 
           id: data.id ?? data.salesOrderId ?? data.SalesOrderId ?? orderId,
@@ -2136,7 +2157,7 @@ const SalesOrderList = () => {
                 </Box>
 
                 
-
+                
                 {/* Phần 2 - Ở giữa: Ngày hết hạn đơn hàng, Cọc, Thời hạn hết hạn cọc */}
 
                 <Box sx={{ flex: 1 }}>
@@ -2192,7 +2213,7 @@ const SalesOrderList = () => {
                 </Box>
 
                 
-
+                
                 {/* Phần 3 - Bên phải: Số tiền đã cọc, Số tiền cần cọc, Tổng tiền đơn hàng */}
 
                 <Box sx={{ flex: 1 }}>
@@ -2250,7 +2271,7 @@ const SalesOrderList = () => {
               </Box>
 
               
-
+              
               {/* Danh sách sản phẩm */}
 
               <Box sx={{ mb: 2 }}>
@@ -2320,7 +2341,7 @@ const SalesOrderList = () => {
                           const expiredDate = detail.expiredDate ?? '-';
 
                           
-
+                          
                           return (
 
                             <TableRow key={detail.id ?? detail.productId ?? index}>
@@ -2384,7 +2405,7 @@ const SalesOrderList = () => {
               </Box>
 
               
-
+              
               {/* Tổng tiền */}
 
               {orderDetails.details && orderDetails.details.length > 0 && (

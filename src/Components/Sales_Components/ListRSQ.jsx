@@ -901,7 +901,7 @@ const handleDepositPercentChange = (value) => {
                     Khách hàng
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '17%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '20%', py: 1.5, px: 2, whiteSpace: 'nowrap' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'sentDate'}
                     direction={sortConfig.key === 'sentDate' ? sortConfig.direction : 'asc'}
@@ -961,7 +961,7 @@ const handleDepositPercentChange = (value) => {
                   </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{request.code}</TableCell>
                 <TableCell>{request.customerName || '-'}</TableCell>
-                <TableCell>{formatDate(request.sentDate)}</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(request.sentDate)}</TableCell>
                 <TableCell>{formatDate(request.quotationDate)}</TableCell>
                 <TableCell>
                   {request.status !== undefined && request.status !== null ? (

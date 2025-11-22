@@ -114,6 +114,7 @@ const SalesQuotationList = () => {
     if (!source) return '-';
 
     const candidates = [
+      source.ReceiverName ?? source.receiverName,
       source.CustomerName ?? source.customerName,
       source.CustomerProfile?.User?.FullName ?? source.CustomerProfile?.User?.fullName,
       source.customerProfile?.user?.FullName ?? source.customerProfile?.user?.fullName,
@@ -121,6 +122,10 @@ const SalesQuotationList = () => {
         source.RequestSalesQuotation?.CustomerProfile?.User?.fullName,
       source.requestSalesQuotation?.customerProfile?.user?.FullName ??
         source.requestSalesQuotation?.customerProfile?.user?.fullName,
+      source.RequestSalesQuotation?.CustomerProfile?.User?.UserName ??
+        source.RequestSalesQuotation?.CustomerProfile?.User?.userName,
+      source.requestSalesQuotation?.customerProfile?.user?.UserName ??
+        source.requestSalesQuotation?.customerProfile?.user?.userName,
       source.CreatedByUserName ?? source.createdByUserName,
       source.CreatedBy ?? source.createdBy,
     ];
@@ -719,6 +724,11 @@ const SalesQuotationList = () => {
       if (response.data && response.data.data) {
         console.log('Quotation details response:', response.data.data);
         console.log('Details array:', response.data.data.Details || response.data.data.details);
+        console.log('Customer info:', {
+          ReceiverName: response.data.data.ReceiverName || response.data.data.receiverName,
+          CustomerName: response.data.data.CustomerName || response.data.data.customerName,
+          RequestSalesQuotation: response.data.data.RequestSalesQuotation || response.data.data.requestSalesQuotation,
+        });
         setSelectedQuotationDetails(response.data.data);
         setDetailDialogOpen(true);
       }
@@ -917,7 +927,7 @@ const SalesQuotationList = () => {
                     letterSpacing: '0.03em',
                   }}
                 >
-                  Khách hàng
+                  Mã yêu cầu báo giá
                 </TableCell>
                 <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
@@ -978,10 +988,8 @@ const SalesQuotationList = () => {
                     {(page - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{quotation.quotationCode}</TableCell>
-                <TableCell>
-                  {quotation.customerName && quotation.customerName !== '-'
-                    ? quotation.customerName
-                    : resolveCustomerUsername(quotation.rawItem)}
+                <TableCell sx={{ fontWeight: 500 }}>
+                  {quotation.requestCode || '-'}
                 </TableCell>
                   <TableCell>{formatDate(quotation.quotationDate)}</TableCell>
                   <TableCell>{formatDate(quotation.expiredDate)}</TableCell>
@@ -1185,13 +1193,7 @@ const SalesQuotationList = () => {
                       Khách hàng:
                     </Typography>
                     <Typography variant="body1">
-                      {selectedQuotationDetails.CustomerName ||
-                        selectedQuotationDetails.customerName ||
-                        selectedQuotationDetails.CustomerProfile?.User?.FullName ||
-                        selectedQuotationDetails.customerProfile?.user?.fullName ||
-                        selectedQuotationDetails.RequestSalesQuotation?.CustomerProfile?.User?.FullName ||
-                        selectedQuotationDetails.requestSalesQuotation?.customerProfile?.user?.fullName ||
-                        '-'}
+                      {resolveCustomerName(selectedQuotationDetails)}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
