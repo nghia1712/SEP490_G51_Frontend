@@ -14,19 +14,22 @@ import {
 
 const PaymentRemainDetail = ({ open, onClose, data }) => {
   if (!data) return null;
-  console.log("PaymentRemainDetail data:", data);
-  console.log("Tổng đơn hàng:", data.salesOrderTotalPrice);
-  console.log("Đã thanh toán:", data.salesOrderPaidAmount);
   const renderStatus = (s) => {
     switch (s) {
       case 0:
-        return <Chip color="warning" label="Chờ xử lý" size="small" />;
+        return <Chip color="warning" label="Chờ xử lý" />;
       case 1:
-        return <Chip color="success" label="Đã thanh toán" size="small" />;
+        return <Chip color="info" label="Đã đặt cọc" />;
       case 2:
-        return <Chip color="error" label="Từ chối" size="small" />;
+        return <Chip color="primary" label="Đã thanh toán" />;
+      case 3:
+        return <Chip color="success" label="Thành công" />;
+      case 4:
+        return <Chip color="error" label="Thất bại" />;
+      case 5:
+        return <Chip color="default" label="Đã hoàn tiền" />;
       default:
-        return <Chip label="Không xác định" size="small" />;
+        return <Chip color="default" label="Không xác định" />;
     }
   };
 
