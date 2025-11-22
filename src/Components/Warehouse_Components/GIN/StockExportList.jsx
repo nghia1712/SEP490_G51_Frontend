@@ -210,6 +210,7 @@ const handleCreateGIN = async (item) => {
                 <TableRow>
                   <TableCell>STT</TableCell>
                   <TableCell align="center">Yêu cầu xuất kho</TableCell>
+                  <TableCell>Mã đơn hàng</TableCell>
                   <TableCell>Ngày gửi yêu cầu</TableCell>
                   <TableCell>Ngày giao hàng</TableCell>
                   <TableCell align="center">Trạng thái</TableCell>
@@ -229,6 +230,7 @@ const handleCreateGIN = async (item) => {
                     <TableRow key={item.id}>
                       <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                       <TableCell align="center">{item.stockExportOrderCode}</TableCell>
+                      <TableCell>{item.salesOrderCode}</TableCell>
                       <TableCell>
                         {item.requestDate
                           ? new Date(item.requestDate).toLocaleDateString(
@@ -350,7 +352,7 @@ const handleCreateGIN = async (item) => {
           ) : detailData ? (
             <Box>
               <Typography>
-                <b>Mã yêu cầu:</b> {detailData.salesOrderCode}
+                <b>Mã đơn hàng:</b> {detailData.salesOrderCode}
               </Typography>
               <Typography>
                 <b>Người tạo:</b> {detailData.createBy}
@@ -396,7 +398,7 @@ const handleCreateGIN = async (item) => {
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{d.productName}</TableCell>
                       <TableCell>
-                        {new Date(d.expiredDate).toLocaleDateString()}
+                        {new Date(d.expiredDate).toLocaleDateString("vi-EN")}
                       </TableCell>
                       <TableCell>{d.quantity}</TableCell>
                       <TableCell>{d.warehouseName}</TableCell>

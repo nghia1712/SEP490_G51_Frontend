@@ -31,6 +31,7 @@ export default function StockExportForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [originalDetails, setOriginalDetails] = useState([]);
 
   const {
     data: stockDetail,
@@ -88,12 +89,14 @@ export default function StockExportForm() {
             lotId: lot.lotId,
             productName: lot.productName,
             expiredDate: lot.expiredDate,
+            unit: lot.unit,
             available: lot.avaiable,
             quantity: existed ? existed.quantity : lot.avaiable,
           };
         });
 
       setForm((prev) => ({ ...prev, details }));
+      setOriginalDetails(details);
     } catch (err) {
       console.error(err);
       setForm((prev) => ({ ...prev, details: [] }));
@@ -118,6 +121,7 @@ export default function StockExportForm() {
           lotId: d.lotId,
           productName: d.productName,
           expiredDate: d.expiredDate,
+          unit: d.unit || "",
           available: d.available,
           quantity: d.quantity,
         }));
@@ -127,6 +131,7 @@ export default function StockExportForm() {
           dueDate: stockDetail.dueDate?.split("T")[0] || "",
           details,
         });
+        setOriginalDetails(details);
       } catch (err) {
         console.error(err);
         setForm((prev) => ({ ...prev, details: [] }));
@@ -310,6 +315,7 @@ export default function StockExportForm() {
                   <TableRow>
                     <TableCell>STT</TableCell>
                     <TableCell>Sản phẩm</TableCell>
+                    <TableCell>Đơn vị</TableCell>
                     <TableCell>Lô</TableCell>
                     <TableCell>Hạn dùng</TableCell>
                     <TableCell>Số lượng</TableCell>
@@ -322,6 +328,8 @@ export default function StockExportForm() {
                     <TableRow key={d.lotId || i}>
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{d.productName}</TableCell>
+                      <TableCell>{d.unit}</TableCell>
+
                       <TableCell>{d.lotId}</TableCell>
                       <TableCell>
                         {d.expiredDate
@@ -370,6 +378,16 @@ export default function StockExportForm() {
               <Button variant="contained" onClick={() => handleSubmit("Draft")}>
                 Lưu nháp
               </Button>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() =>
+                  setForm((prev) => ({ ...prev, details: originalDetails }))
+                }
+              >
+                Khôi phục
+              </Button>
+
               <Button
                 variant="contained"
                 color="success"
