@@ -202,8 +202,14 @@ const SalesQuotationList = () => {
 
   // Format currency
   const formatCurrency = (value) => {
-    const number = Number(value) || 0;
-    return new Intl.NumberFormat('vi-VN').format(number);
+    if (value === null || value === undefined) return '-';
+    // Convert to number
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (isNaN(numValue)) return '-';
+    // Round to integer (Vietnamese currency doesn't use decimals)
+    const intValue = Math.round(numValue);
+    // Format with comma as thousand separator
+    return intValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
   const renderCurrency = (value) => {
@@ -1226,10 +1232,9 @@ const SalesQuotationList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
@@ -1241,6 +1246,7 @@ const SalesQuotationList = () => {
                         if (details.length > 0) {
                           return details.map((detail, index) => {
                             const productName = detail.ProductName || detail.productName || '-';
+                            const productUnit = detail.Unit || detail.unit || detail.ProductUnit || detail.productUnit || '-';
                             const taxText = detail.TaxText || detail.taxText || null;
                             const minQuantity = detail.minQuantity !== undefined && detail.minQuantity !== null 
                               ? detail.minQuantity 
@@ -1274,12 +1280,9 @@ const SalesQuotationList = () => {
                               <TableRow key={detail.Id || detail.id || index}>
                                 <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
                                 <TableCell>{productName}</TableCell>
+                                <TableCell>{productUnit}</TableCell>
                                 <TableCell>{expiredDisplay}</TableCell>
                                 <TableCell>{taxText || '-'}</TableCell>
-                                <TableCell sx={{ textAlign: 'right' }}>{minQuantity}</TableCell>
-                                <TableCell sx={{ textAlign: 'right' }}>
-                                {salesPrice !== null ? renderCurrency(salesPrice) : '-'}
-                                </TableCell>
                                 <TableCell sx={{ textAlign: 'right' }}>
                                   {totalBeforeTax > 0 ? renderCurrency(totalBeforeTax) : '-'}
                                 </TableCell>
