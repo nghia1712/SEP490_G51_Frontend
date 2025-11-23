@@ -388,6 +388,7 @@ const handleCreateGIN = async (item) => {
                     <TableCell>Tên SP</TableCell>
                     <TableCell>Hạn dùng</TableCell>
                     <TableCell>Số lượng</TableCell>
+                    <TableCell>Đơn vị</TableCell>
                     <TableCell>Kho</TableCell>
                     <TableCell>Vị trí</TableCell>
                   </TableRow>
@@ -401,6 +402,7 @@ const handleCreateGIN = async (item) => {
                         {new Date(d.expiredDate).toLocaleDateString("vi-EN")}
                       </TableCell>
                       <TableCell>{d.quantity}</TableCell>
+                      <TableCell>{d.unit}</TableCell>
                       <TableCell>{d.warehouseName}</TableCell>
                       <TableCell>{d.locationName}</TableCell>
                     </TableRow>

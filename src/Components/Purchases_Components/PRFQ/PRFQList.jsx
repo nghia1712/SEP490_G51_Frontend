@@ -32,7 +32,7 @@ import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
-  PlayCircle as PlayCircleIcon,
+  Edit as EditIcon,
   Download as DownloadIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -236,7 +236,7 @@ export default function PRFQList() {
                               color="success"
                               onClick={() => handleContinue(row.prfqid)}
                             >
-                              <PlayCircleIcon />
+                              <EditIcon />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Xóa yêu cầu báo giá">

@@ -56,16 +56,26 @@ export default function StockExportForm() {
     severity: "success",
   });
 
-  useEffect(() => {
-    console.log("StockExport ID nhận được:", id);
-    console.log("SalesOrderId từ state:", location.state?.salesOrderId);
-  }, [id, location]);
+  useEffect(() => {}, [id, location]);
 
   const fetchSalesOrders = async () => {
     try {
       const res = await salesOrderAPI.listNotDelivered();
       const allOrders = res.data?.data || [];
-      const filteredOrders = allOrders.filter((o) => o.isDeposited === true);
+
+      const filteredOrders = [];
+
+      for (const order of allOrders) {
+        if (!order.isDeposited) continue;
+
+        const detailRes = await getOrderInfor(order.salesOrderId);
+        const details = detailRes.data?.data?.details || [];
+
+        if (details.some((lot) => lot.avaiable > 0)) {
+          filteredOrders.push(order);
+        }
+      }
+
       setSalesOrderList(filteredOrders);
     } catch (err) {
       console.error(err);
@@ -79,7 +89,11 @@ export default function StockExportForm() {
   const loadOrderLots = async (salesOrderId, existedDetails = []) => {
     try {
       const res = await getOrderInfor(salesOrderId);
-      const lots = Array.isArray(res.data?.data) ? res.data.data : [];
+
+      const result = res.data?.data || {};
+      const lots = Array.isArray(result.details) ? result.details : [];
+
+      console.log("LOTS NHẬN:", lots);
 
       const details = lots
         .filter((lot) => lot.avaiable > 0)
@@ -91,11 +105,17 @@ export default function StockExportForm() {
             expiredDate: lot.expiredDate,
             unit: lot.unit,
             available: lot.avaiable,
+            warehouse: lot.warehouseName,
             quantity: existed ? existed.quantity : lot.avaiable,
           };
         });
 
-      setForm((prev) => ({ ...prev, details }));
+      setForm((prev) => ({
+        ...prev,
+        details,
+        apiDueDate: result.dueDate ? result.dueDate.split("T")[0] : "",
+      }));
+
       setOriginalDetails(details);
     } catch (err) {
       console.error(err);
@@ -157,66 +177,86 @@ export default function StockExportForm() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!form.salesOrderId) newErrors.salesOrderId = "Vui lòng chọn đơn hàng";
-    if (!form.dueDate) newErrors.dueDate = "Vui lòng chọn Ngày giao hàng";
+    const newErrors = [];
+
+    if (!form.salesOrderId) newErrors.push("Vui lòng chọn đơn hàng");
+    if (!form.dueDate) newErrors.push("Vui lòng chọn Ngày xuất");
+
+    if (form.dueDate && form.apiDueDate) {
+      const selected = new Date(form.dueDate);
+      const maxDate = new Date(form.apiDueDate);
+
+      if (selected > maxDate) {
+        newErrors.push(
+          `Ngày xuất không được vượt quá ngày giao hàng dự kiến ${maxDate.toLocaleDateString(
+            "vi-VN"
+          )}`
+        );
+      }
+    }
 
     form.details.forEach((d, index) => {
       if (!d.quantity || d.quantity <= 0)
-        newErrors[`q_${index}`] = "Số lượng phải lớn hơn 0";
+        newErrors.push(`Số lượng "${d.productName}" phải lớn hơn 0`);
       if (d.quantity > d.available)
-        newErrors[`q_${index}`] = "Không được vượt quá số lượng hiện có";
+        newErrors.push(
+          `Số lượng "${d.productName}" không được vượt quá ${d.available}`
+        );
     });
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { isValid: newErrors.length === 0, errors: newErrors };
+  };
+
+  const groupDetailsByWarehouse = (details) => {
+    const grouped = {};
+    details.forEach((d) => {
+      if (!grouped[d.warehouse]) grouped[d.warehouse] = [];
+      grouped[d.warehouse].push(d);
+    });
+    return grouped;
   };
 
   const handleSubmit = async (action) => {
-    if (!validateForm()) {
-      setSnack({ open: true, severity: "error", message: "Form chưa hợp lệ!" });
+    const { isValid, errors } = validateForm();
+
+    if (!isValid) {
+      setSnack({
+        open: true,
+        severity: "error",
+        message: errors.join(" | "),
+      });
       return;
     }
 
     setLoading(true);
     try {
       if (!id) {
+        const warehouseGroups = groupDetailsByWarehouse(form.details);
+
+        for (const [warehouse, details] of Object.entries(warehouseGroups)) {
+          const payload = {
+            ...form,
+            status: action === "Send" ? 1 : 0,
+            details: details.map((d) => ({
+              lotId: d.lotId,
+              quantity: d.quantity,
+            })),
+          };
+          console.log(`CREATE PAYLOAD for ${warehouse}:`, payload);
+          await createOrder(payload);
+        }
+      } else {
         const payload = {
-          ...form,
+          stockExportOrderId: id,
+          dueDate: form.dueDate,
           status: action === "Send" ? 1 : 0,
           details: form.details.map((d) => ({
             lotId: d.lotId,
             quantity: d.quantity,
           })),
         };
-        console.log("CREATE PAYLOAD:", JSON.stringify(payload, null, 2));
-        await createOrder(payload);
-      } else {
-        if (action === "Send") {
-          const payload = {
-            stockExportOrderId: id,
-            dueDate: form.dueDate,
-            status: 1,
-            details: form.details.map((d) => ({
-              lotId: d.lotId,
-              quantity: d.quantity,
-            })),
-          };
-          console.log("PAYLOAD UPDATE =", payload);
-          await updateOrder(payload);
-        } else {
-          const payload = {
-            stockExportOrderId: id,
-            dueDate: form.dueDate,
-            staus: 0,
-            details: form.details.map((d) => ({
-              lotId: d.lotId,
-              quantity: d.quantity,
-            })),
-          };
-          console.log("PAYLOAD UPDATE =", payload);
-          await updateOrder(payload);
-        }
+        console.log("PAYLOAD UPDATE =", payload);
+        await updateOrder(payload);
       }
 
       setSnack({
@@ -287,24 +327,37 @@ export default function StockExportForm() {
                 )}
               </FormControl>
 
-              <FormControl
-                size="small"
-                sx={{ width: 200 }}
-                error={!!errors.dueDate}
-              >
-                <TextField
-                  label="Ngày giao hàng"
-                  type="date"
-                  value={form.dueDate}
-                  InputLabelProps={{ shrink: true }}
-                  onChange={(e) =>
-                    setForm({ ...form, dueDate: e.target.value })
+              <TextField
+                label="Ngày xuất"
+                type="date"
+                value={form.dueDate}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm({ ...form, dueDate: value });
+
+                  if (form.salesOrderId && form.apiDueDate) {
+                    const selected = new Date(value);
+                    const maxDate = new Date(form.apiDueDate);
+                    if (selected > maxDate) {
+                      setSnack({
+                        open: true,
+                        severity: "error",
+                        message: `Ngày xuất không được vượt quá ngày giao hàng dự kiến ${maxDate.toLocaleDateString(
+                          "vi-VN"
+                        )}`,
+                      });
+                    }
+                  } else if (!form.salesOrderId) {
+                    setSnack({
+                      open: true,
+                      severity: "error",
+                      message:
+                        "Vui lòng chọn đơn hàng trước khi chọn ngày xuất",
+                    });
                   }
-                />
-                {errors.dueDate && (
-                  <FormHelperText>{errors.dueDate}</FormHelperText>
-                )}
-              </FormControl>
+                }}
+              />
             </Stack>
 
             {/* Chi tiết lô */}
@@ -317,6 +370,7 @@ export default function StockExportForm() {
                     <TableCell>Sản phẩm</TableCell>
                     <TableCell>Đơn vị</TableCell>
                     <TableCell>Lô</TableCell>
+                    <TableCell>Kho</TableCell>
                     <TableCell>Hạn dùng</TableCell>
                     <TableCell>Số lượng</TableCell>
                     <TableCell align="center">Số lượng có thể xuất</TableCell>
@@ -331,12 +385,13 @@ export default function StockExportForm() {
                       <TableCell>{d.unit}</TableCell>
 
                       <TableCell>{d.lotId}</TableCell>
+                      <TableCell>{d.warehouse}</TableCell>
                       <TableCell>
                         {d.expiredDate
                           ? new Date(d.expiredDate).toLocaleDateString("vi-VN")
                           : ""}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: 110, minWidth: 110 }}>
                         <FormControl
                           error={!!errors[`q_${i}`]}
                           fullWidth
@@ -346,14 +401,22 @@ export default function StockExportForm() {
                             type="number"
                             size="small"
                             value={d.quantity}
-                            onChange={(e) =>
-                              handleChangeQuantity(i, e.target.value)
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const newValue =
+                                value === "" ? "" : Number(value);
+                              handleChangeQuantity(i, newValue);
+
+                              if (newValue > d.available) {
+                                setSnack({
+                                  open: true,
+                                  severity: "warning",
+                                  message: `Số lượng "${d.productName}" vượt quá số lượng có thể xuất (${d.available})`,
+                                });
+                              }
+                            }}
                             variant="outlined"
                           />
-                          {errors[`q_${i}`] && (
-                            <FormHelperText>{errors[`q_${i}`]}</FormHelperText>
-                          )}
                         </FormControl>
                       </TableCell>
 
@@ -385,7 +448,7 @@ export default function StockExportForm() {
                   setForm((prev) => ({ ...prev, details: originalDetails }))
                 }
               >
-                Khôi phục
+                Tải lại
               </Button>
 
               <Button

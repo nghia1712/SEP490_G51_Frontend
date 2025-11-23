@@ -515,7 +515,7 @@ export default function PRFQCreate() {
             {loading ? (
               <CircularProgress size={20} sx={{ color: "white" }} />
             ) : (
-              "Lưu bản nháp"
+              "Lưu nháp"
             )}
           </Button>
 
