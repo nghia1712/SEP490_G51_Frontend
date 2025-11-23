@@ -438,7 +438,7 @@ const handleCreateGIN = async (item) => {
         open={snack.open}
         autoHideDuration={2500}
         onClose={() => setSnack({ ...snack, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity={snack.severity} variant="filled">
           {snack.message}

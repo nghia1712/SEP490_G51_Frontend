@@ -11,7 +11,6 @@ import {
   CircularProgress,
   IconButton,
   TextField,
-  Button,
   Snackbar,
   Alert,
   Portal,
@@ -20,6 +19,25 @@ import CloseIcon from "@mui/icons-material/Close";
 import warehouseAPI from "../../API/warehouseAPI";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+
+/* ----------------- HÀM XỬ LÝ NGÀY ------------------ */
+/* Hỗ trợ cả dd/MM/yyyy và yyyy-MM-dd */
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+
+  // Nếu format yyyy-MM-dd → JS parse được
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+
+  // Nếu format dd/MM/yyyy → chuyển sang yyyy-MM-dd
+  if (dateStr.includes("/")) {
+    const [day, month, year] = dateStr.split("/");
+    return new Date(`${year}-${month}-${day}`);
+  }
+
+  return new Date(dateStr);
+};
 
 const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
   const [localLots, setLocalLots] = useState([]);
@@ -45,13 +63,11 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
   };
 
   const handleUpdateClick = async (lot) => {
-    // Bật chế độ edit nếu chưa edit
     if (editingLotId !== lot.lotID) {
       setEditingLotId(lot.lotID);
       return;
     }
 
-    // Kiểm tra giá hợp lệ
     if (isNaN(lot.salePrice) || lot.salePrice <= 0) {
       setSnack({
         open: true,
@@ -73,9 +89,13 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
         message: "Cập nhật giá bán thành công",
         severity: "success",
       });
-      setEditingLotId(null); // tắt chế độ edit sau khi lưu
+      setEditingLotId(null);
     } catch (err) {
-      setSnack({ open: true, message: "Cập nhật thất bại", severity: "error" });
+      setSnack({
+        open: true,
+        message: "Cập nhật thất bại",
+        severity: "error",
+      });
     } finally {
       setUpdatingLotId(null);
     }
@@ -130,66 +150,86 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
               </TableHead>
 
               <TableBody>
-                {localLots.map((lot) => (
-                  <TableRow key={lot.lotID}>
-                    <TableCell>{lot.lotID}</TableCell>
-                    <TableCell>
-                      {new Date(lot.inputDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {lot.inputPrice?.toLocaleString("vi-VN")} ₫
-                    </TableCell>
+                {localLots.map((lot) => {
+                  const inputDate = parseDate(lot.inputDate);
+                  const expiredDate = parseDate(lot.expiredDate);
+                  const lastChecked = parseDate(lot.lastCheckedDate);
 
-                    <TableCell>
-                      {editingLotId === lot.lotID ? (
-                        <TextField
-                          size="small"
-                          value={lot.salePrice}
-                          onChange={(e) =>
-                            handleSalePriceChange(lot.lotID, e.target.value)
-                          }
-                          disabled={updatingLotId === lot.lotID}
-                          variant="outlined"
-                          style={{ width: 80 }}
-                        />
-                      ) : (
-                        <span>{lot.salePrice?.toLocaleString("vi-VN")} ₫</span>
-                      )}
-                    </TableCell>
+                  return (
+                    <TableRow key={lot.lotID}>
+                      <TableCell>{lot.lotID}</TableCell>
 
-                    <TableCell>{lot.lotQuantity}</TableCell>
-                    <TableCell>
-                      {new Date(lot.expiredDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{lot.warehouselocationID}</TableCell>
-                    <TableCell>{lot.supplierID}</TableCell>
-                    <TableCell>{lot.productID}</TableCell>
-                    <TableCell>
-                      {lot.lastCheckedDate &&
-                      new Date(lot.lastCheckedDate).getFullYear() !== 1
-                        ? new Date(lot.lastCheckedDate).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
+                      <TableCell>
+                        {inputDate
+                          ? inputDate.toLocaleDateString("vi-VN")
+                          : "-"}
+                      </TableCell>
 
-                    <TableCell>
-                      <IconButton
-                        color="primary"
-                        size="small"
-                        onClick={() => handleUpdateClick(lot)}
-                        disabled={updatingLotId === lot.lotID}
-                      >
+                      <TableCell>
+                        {lot.inputPrice?.toLocaleString("vi-VN")} ₫
+                      </TableCell>
+
+                      <TableCell>
                         {editingLotId === lot.lotID ? (
-                          <SaveIcon />
+                          <TextField
+                            size="small"
+                            value={lot.salePrice}
+                            onChange={(e) =>
+                              handleSalePriceChange(
+                                lot.lotID,
+                                e.target.value
+                              )
+                            }
+                            disabled={updatingLotId === lot.lotID}
+                            variant="outlined"
+                            style={{ width: 80 }}
+                          />
                         ) : (
-                          <EditIcon />
+                          <span>
+                            {lot.salePrice?.toLocaleString("vi-VN")} ₫
+                          </span>
                         )}
-                      </IconButton>
-                      {updatingLotId === lot.lotID && (
-                        <CircularProgress size={20} sx={{ ml: 1 }} />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+
+                      <TableCell>{lot.lotQuantity}</TableCell>
+
+                      <TableCell>
+                        {expiredDate
+                          ? expiredDate.toLocaleDateString("vi-VN")
+                          : "-"}
+                      </TableCell>
+
+                      <TableCell>{lot.warehouselocationID}</TableCell>
+                      <TableCell>{lot.supplierID}</TableCell>
+                      <TableCell>{lot.productID}</TableCell>
+
+                      <TableCell>
+                        {lastChecked && lastChecked.getFullYear() !== 1
+                          ? lastChecked.toLocaleDateString("vi-VN")
+                          : "-"}
+                      </TableCell>
+
+                      <TableCell>
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleUpdateClick(lot)}
+                          disabled={updatingLotId === lot.lotID}
+                        >
+                          {editingLotId === lot.lotID ? (
+                            <SaveIcon />
+                          ) : (
+                            <EditIcon />
+                          )}
+                        </IconButton>
+
+                        {updatingLotId === lot.lotID && (
+                          <CircularProgress size={20} sx={{ ml: 1 }} />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

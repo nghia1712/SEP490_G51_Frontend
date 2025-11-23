@@ -207,14 +207,14 @@ export default function StockExportForm() {
     return { isValid: newErrors.length === 0, errors: newErrors };
   };
 
-  const groupDetailsByWarehouse = (details) => {
-    const grouped = {};
-    details.forEach((d) => {
-      if (!grouped[d.warehouse]) grouped[d.warehouse] = [];
-      grouped[d.warehouse].push(d);
-    });
-    return grouped;
-  };
+  // const groupDetailsByWarehouse = (details) => {
+  //   const grouped = {};
+  //   details.forEach((d) => {
+  //     if (!grouped[d.warehouse]) grouped[d.warehouse] = [];
+  //     grouped[d.warehouse].push(d);
+  //   });
+  //   return grouped;
+  // };
 
   const handleSubmit = async (action) => {
     const { isValid, errors } = validateForm();
@@ -231,20 +231,17 @@ export default function StockExportForm() {
     setLoading(true);
     try {
       if (!id) {
-        const warehouseGroups = groupDetailsByWarehouse(form.details);
+        const payload = {
+          ...form,
+          status: action === "Send" ? 1 : 0,
+          details: form.details.map((d) => ({
+            lotId: d.lotId,
+            quantity: d.quantity,
+          })),
+        };
 
-        for (const [warehouse, details] of Object.entries(warehouseGroups)) {
-          const payload = {
-            ...form,
-            status: action === "Send" ? 1 : 0,
-            details: details.map((d) => ({
-              lotId: d.lotId,
-              quantity: d.quantity,
-            })),
-          };
-          console.log(`CREATE PAYLOAD for ${warehouse}:`, payload);
-          await createOrder(payload);
-        }
+        // console.log("CREATE PAYLOAD =", payload);
+        await createOrder(payload);
       } else {
         const payload = {
           stockExportOrderId: id,
@@ -255,7 +252,7 @@ export default function StockExportForm() {
             quantity: d.quantity,
           })),
         };
-        console.log("PAYLOAD UPDATE =", payload);
+        // console.log("PAYLOAD UPDATE =", payload);
         await updateOrder(payload);
       }
 
