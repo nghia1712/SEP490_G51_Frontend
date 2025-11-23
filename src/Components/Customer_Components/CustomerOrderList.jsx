@@ -764,8 +764,7 @@ const CustomerOrderList = () => {
             mb: 2,
           }}
         >
-          Đơn hàng của tôi
-        </Typography>
+          Danh sách đơn hàng        </Typography>
       </Box>
 
       {/* Error Alert */}
@@ -820,7 +819,7 @@ const CustomerOrderList = () => {
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell
                   sx={{
-                    width: '8%',
+                    width: '7%',
                     py: 1.5,
                     px: 2,
                     textAlign: 'left',
@@ -831,7 +830,7 @@ const CustomerOrderList = () => {
                 >
                   STT
                 </TableCell>
-                <TableCell sx={{ width: '20%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '25%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'quotationCode'}
                     direction={sortConfig.key === 'quotationCode' ? sortConfig.direction : 'asc'}
@@ -841,7 +840,7 @@ const CustomerOrderList = () => {
                     Mã đơn hàng
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'createdAt'}
                     direction={sortConfig.key === 'createdAt' ? sortConfig.direction : 'asc'}
@@ -877,7 +876,7 @@ const CustomerOrderList = () => {
                     </Box>
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 1, pl: 6 }}>
+                <TableCell sx={{ width: '15%', py: 1, px: 0, textAlign: 'right' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'paidAmount'}
                     direction={sortConfig.key === 'paidAmount' ? sortConfig.direction : 'asc'}
@@ -887,7 +886,7 @@ const CustomerOrderList = () => {
                     Tiền đã trả
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '18%', py: 1.5, px: 2, whiteSpace: 'nowrap' }}>
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2, whiteSpace: 'nowrap', textAlign: 'right' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'totalAmount'}
                     direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
@@ -897,7 +896,7 @@ const CustomerOrderList = () => {
                     Tổng tiền đơn hàng
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '20%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                     <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
                       Hành động
@@ -948,7 +947,10 @@ const CustomerOrderList = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {order.paymentStatus !== undefined && order.paymentStatus !== null ? (
+                      {/* Hiển thị "-" nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) */}
+                      {order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3 ? (
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>-</Typography>
+                      ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (
                         <Chip
                           label={getPaymentStatusLabel(order.paymentStatus)}
                           size="small"
@@ -958,8 +960,8 @@ const CustomerOrderList = () => {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.paidAmount)}</TableCell>
-                    <TableCell sx={{ textAlign: 'right', pl: 7 }}>{formatCurrency(order.totalAmount || order.grandTotal)}</TableCell>
+                    <TableCell sx={{ width: '15%', textAlign: 'right', pr: 4 }}>{formatCurrency(order.paidAmount)}</TableCell>
+                    <TableCell sx={{ textAlign: 'right', pr: 4 }}>{formatCurrency(order.totalAmount || order.grandTotal)}</TableCell>
                     <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
                       {renderActions(order)}
                     </TableCell>

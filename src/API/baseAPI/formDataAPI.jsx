@@ -5,10 +5,20 @@ import authAPI from '../authAPI';
 // Create Axios instance
 const formDataApi = axios.create({
     baseURL: '/api',
-    headers: {
-        "Content-Type": "multipart/form-data"
-    },
-    withCredentials: true
+    // KHÔNG set Content-Type ở đây, để axios tự động set với boundary khi gửi FormData
+    withCredentials: true,
+    // Đảm bảo axios xử lý FormData đúng cách
+    transformRequest: [(data, headers) => {
+        // Nếu data là FormData, để axios tự động xử lý
+        if (data instanceof FormData) {
+            // Xóa Content-Type để axios tự động set với boundary
+            delete headers['Content-Type'];
+            delete headers['content-type'];
+            // Return FormData để axios tự động detect và set Content-Type đúng
+            return data;
+        }
+        return data;
+    }]
 });
 
 // Request Interceptor
@@ -17,6 +27,20 @@ formDataApi.interceptors.request.use(config => {
     const token = localStorage.getItem('authToken');
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Để axios tự động set Content-Type với boundary cho multipart/form-data
+    // Xóa Content-Type nếu là FormData để axios tự động thêm boundary
+    if (config.data instanceof FormData) {
+        // Xóa Content-Type để axios tự động thêm boundary
+        // Phải xóa cả trong headers object và trong config.headers
+        if (config.headers) {
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+        }
+        // Đảm bảo axios xử lý FormData đúng cách
+        // Với PUT request, axios có thể không tự động detect FormData
+        // Nên cần đảm bảo config được set đúng
+        // Không cần set lại data vì transformRequest đã xử lý
     }
     return config;
 }, (error) => {

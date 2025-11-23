@@ -32,9 +32,11 @@ import {
   Person,
   Email,
   Phone,
-  PendingActions
+  PendingActions,
+  Cancel
 } from '@mui/icons-material';
 import userAPI from '../../API/userAPI';
+import adminAPI from '../../API/adminAPI';
 
 const CustomerApprovalList = () => {
   const [customers, setCustomers] = useState([]);
@@ -52,11 +54,53 @@ const CustomerApprovalList = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await userAPI.getAllCustomerWithInactiveStatus();
+      // Lấy tất cả account từ Admin API
+      const response = await adminAPI.getAccountList();
       console.log('API Response:', response);
       
-      if (response.data && response.data.data) {
-        setCustomers(response.data.data);
+      if (response.data && Array.isArray(response.data)) {
+        // Filter: chỉ lấy customer có status Inactive
+        const inactiveCustomers = response.data.filter(
+          account => account.isCustomer === true && account.userStatus === 'Inactive'
+        );
+        
+        // Lấy thông tin chi tiết cho mỗi customer (mst, mshkd, imageCnkd, imageByt)
+        const customersWithDetails = await Promise.all(
+          inactiveCustomers.map(async (account) => {
+            try {
+              const detailResponse = await adminAPI.getAccountDetails(account.userId);
+              const details = detailResponse.data?.data || detailResponse.data;
+              
+              return {
+                id: account.userId,
+                userName: account.fullName || account.email || '',
+                email: account.email || '',
+                phoneNumber: account.phoneNumber || '',
+                mst: details?.mst || null,
+                mshkd: details?.mshkd || null,
+                imageCnkd: details?.imageCnkd || null,
+                imageByt: details?.imageByt || null,
+                userStatus: account.userStatus
+              };
+            } catch (error) {
+              console.error(`Error fetching details for ${account.userId}:`, error);
+              // Trả về thông tin cơ bản nếu không lấy được chi tiết
+              return {
+                id: account.userId,
+                userName: account.fullName || account.email || '',
+                email: account.email || '',
+                phoneNumber: account.phoneNumber || '',
+                mst: null,
+                mshkd: null,
+                imageCnkd: null,
+                imageByt: null,
+                userStatus: account.userStatus
+              };
+            }
+          })
+        );
+        
+        setCustomers(customersWithDetails);
       } else {
         setCustomers([]);
       }

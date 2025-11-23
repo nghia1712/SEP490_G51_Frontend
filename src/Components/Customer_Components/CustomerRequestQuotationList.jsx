@@ -993,10 +993,14 @@ const CustomerRequestQuotationList = () => {
             ? formatDate(expiredDate) 
             : (quotationDetail?.ExpiredDate ?? quotationDetail?.expiredDate ?? '-');
 
+          // Get product unit - API getQuotationInfo trả về LotUnit trong detail
+          const productUnit = detail.LotUnit ?? detail.lotUnit ?? detail.ProductUnit ?? detail.productUnit ?? detail.Unit ?? detail.unit ?? quotationDetail?.Unit ?? quotationDetail?.unit ?? '-';
+
           return {
             id: index + 1,
             productId: parsedProductId,
             productName: detail.ProductName ?? detail.productName ?? '-',
+            productUnit: productUnit,
             lotId: parsedLotId,
             quantity,
             unitPrice,
@@ -1150,7 +1154,7 @@ const CustomerRequestQuotationList = () => {
         navigate('/customer/orders');
       }
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'Không thể tạo đơn hàng từ báo giá.';
+      const message = err.response?.data?.message || err.message || 'Không thể Tạo đơn hàng.';
       setSnackbarMessage(message);
       setSnackbarOpen(true);
     } finally {
@@ -2469,7 +2473,7 @@ const CustomerRequestQuotationList = () => {
       >
         <DialogTitle>
           <Typography variant="h6" component="div">
-            Tạo đơn hàng từ báo giá
+            Tạo đơn hàng
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -2487,14 +2491,6 @@ const CustomerRequestQuotationList = () => {
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {selectedQuotationDetails?.QuotationCode || selectedQuotationDetails?.quotationCode || '-'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Mã yêu cầu báo giá:
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {selectedQuotationDetails?.RequestCode || selectedQuotationDetails?.requestCode || '-'}
                     </Typography>
                   </Box>
                   <Box>
@@ -2529,6 +2525,7 @@ const CustomerRequestQuotationList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                       <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
+                      <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                       <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Số lượng</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn Giá</TableCell>
@@ -2547,6 +2544,9 @@ const CustomerRequestQuotationList = () => {
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {row.productName}
                             </Typography>
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            {row.productUnit || '-'}
                           </TableCell>
                           <TableCell sx={{ textAlign: 'center' }}>
                             {row.expiredDate || '-'}

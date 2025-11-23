@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -23,7 +23,6 @@ const CustomerStatusCheck = ({ children }) => {
   const [customerStatus, setCustomerStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     checkCustomerStatus();
@@ -103,37 +102,18 @@ const CustomerStatusCheck = ({ children }) => {
     return children; // Fallback to children if no status
   }
 
-  // Nếu customer cần bổ sung thông tin, redirect đến form
+  // Lấy userStatus một lần để dùng cho tất cả các kiểm tra
+  // Kiểm tra cả string và số vì backend có thể trả về enum dạng số
+  const userStatus = customerStatus.userStatus;
+
+  // Nếu customer cần bổ sung thông tin, redirect đến route customer-unauthenticated
   if (customerStatus.needsAdditionalInfo) {
-    return (
-      <Box maxWidth="800px" mx="auto" p={3}>
-        <Card>
-          <CardContent>
-            <Box textAlign="center" mb={3}>
-              <Info color="info" sx={{ fontSize: 64, mb: 2 }} />
-              <Typography variant="h5" gutterBottom>
-                Cần Bổ Sung Thông Tin
-              </Typography>
-              <Typography variant="body1" color="text.secondary" mb={3}>
-                Để sử dụng đầy đủ các tính năng của hệ thống, bạn cần bổ sung thông tin mã số thuế và mã số kinh doanh
-              </Typography>
-              
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/customer/additional-info')}
-              >
-                Bổ Sung Thông Tin Ngay
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-    );
+    // Sử dụng Navigate component để redirect ngay lập tức, tránh "nháy" trang
+    return <Navigate to="/customer-unauthenticated" replace />;
   }
 
   // Nếu customer đã submit nhưng chưa được duyệt - NGĂN CHẶN TRUY CẬP LANDING PAGE
-  if (customerStatus.userStatus === 'Inactive' && customerStatus.hasAdditionalInfo) {
+  if ((userStatus === 'Inactive' || userStatus === 1 || userStatus === '1') && customerStatus.hasAdditionalInfo) {
     return (
       <Box maxWidth="800px" mx="auto" p={3}>
         <Card>
@@ -144,7 +124,7 @@ const CustomerStatusCheck = ({ children }) => {
                 Đang Chờ Duyệt
               </Typography>
               <Typography variant="body1" color="text.secondary" mb={3}>
-                Thông tin của bạn đã được gửi và đang chờ manager duyệt. 
+                Thông tin của bạn đã được gửi và đang chờ admin duyệt. 
                 <strong> Bạn chưa thể truy cập vào hệ thống cho đến khi được duyệt.</strong>
               </Typography>
               
@@ -159,7 +139,7 @@ const CustomerStatusCheck = ({ children }) => {
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   <strong>Lưu ý:</strong> Tài khoản của bạn đang ở trạng thái chờ duyệt. 
-                  Manager sẽ xem xét thông tin MST và MSHKD cùng hình ảnh đính kèm của bạn. 
+                  Admin sẽ xem xét thông tin MST và MSHKD cùng hình ảnh đính kèm của bạn. 
                   Sau khi được duyệt, bạn mới có thể sử dụng đầy đủ các tính năng của hệ thống.
                 </Typography>
               </Alert>
@@ -177,7 +157,8 @@ const CustomerStatusCheck = ({ children }) => {
   }
 
   // Nếu customer bị khóa
-  if (customerStatus.userStatus === 'Block') {
+  // Kiểm tra cả string và số vì backend có thể trả về enum dạng số
+  if (userStatus === 'Block' || userStatus === 0 || userStatus === '0') {
     return (
       <Box maxWidth="800px" mx="auto" p={3}>
         <Card>
@@ -206,7 +187,8 @@ const CustomerStatusCheck = ({ children }) => {
   }
 
   // Nếu customer đã được kích hoạt, hiển thị children (dashboard bình thường)
-  if (customerStatus.userStatus === 'Active') {
+  // Kiểm tra cả string và số vì backend có thể trả về enum dạng số
+  if (userStatus === 'Active' || userStatus === 2 || userStatus === '2') {
     return children;
   }
 

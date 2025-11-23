@@ -6,7 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import Header from "./Components/Utils/Header";
 import Footer from "./Components/Utils/Footer";
 import Landing from "./Components/Utils/Landing";
@@ -54,6 +54,8 @@ import Stocktaking from "./Components/Inventory_Components/Stocktaking";
 import sessionManager from "./Utils/sessionManager";
 import CustomerAdditionalInfoForm from "./Components/Customer_Components/CustomerAdditionalInfoForm";
 import CustomerStatusCheck from "./Components/Customer_Components/CustomerStatusCheck";
+import CustomerUnauthenticatedPage from "./Components/Customer_Components/CustomerUnauthenticatedPage";
+import userAPI from "./API/userAPI";
 import CustomerApprovalList from "./Components/Manager_Components/CustomerApprovalList";
 import CustomerRequestQuotationList from "./Components/Customer_Components/CustomerRequestQuotationList";
 import PRFQList from "./Components/Purchases_Components/PRFQ/PRFQList";
@@ -98,6 +100,57 @@ export const useAuthContext = () => {
   return context;
 };
 
+// Component để kiểm tra customer status và redirect
+const CustomerHomeRedirect = () => {
+  const [loading, setLoading] = React.useState(true);
+  const [redirectTo, setRedirectTo] = React.useState(null);
+
+  React.useEffect(() => {
+    const checkAndRedirect = async () => {
+      try {
+        const response = await userAPI.getCustomerStatus();
+        const status = response.data.data;
+        
+        console.log('Customer status:', status);
+        console.log('UserStatus value:', status?.userStatus, 'Type:', typeof status?.userStatus);
+        
+        // UserStatus = 2 (Active) → redirect đến /customer
+        // UserStatus = 1 (Inactive) → redirect đến /customer-unauthenticated
+        // Kiểm tra cả string và số vì backend có thể trả về enum dạng số
+        const userStatus = status?.userStatus;
+        if (status && (userStatus === 'Active' || userStatus === 2 || userStatus === '2')) {
+          setRedirectTo('/customer');
+        } else {
+          setRedirectTo('/customer-unauthenticated');
+        }
+      } catch (error) {
+        console.error('Error checking customer status:', error);
+        // Nếu có lỗi, mặc định redirect đến customer-unauthenticated
+        setRedirectTo('/customer-unauthenticated');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAndRedirect();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Redirect sau khi đã kiểm tra status
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return null;
+};
+
 // Component để hiển thị trang chủ phù hợp với từng loại user
 const ConditionalHome = () => {
   const currentToken = localStorage.getItem("authToken");
@@ -125,7 +178,8 @@ const ConditionalHome = () => {
     if (roleFromToken === "purchases_staff") {
       return <Navigate to="/purchase-staff" replace />;
     } else if (roleFromToken === "customer") {
-      return <Navigate to="/customer" replace />;
+      // Customer: kiểm tra status và redirect phù hợp
+      return <CustomerHomeRedirect />;
     } else if (roleFromToken === "sales_staff") {
       return <Navigate to="/sales-staff" replace />;
     } else if (roleFromToken === "warehouse_staff") {
@@ -260,6 +314,16 @@ function App() {
             <Route
               path="/confirm-email"
               element={<ConfirmEmailWithSimpleHeader />}
+            />
+
+            {/* Route cho customer chưa bổ sung thông tin */}
+            <Route
+              path="/customer-unauthenticated"
+              element={
+                <ProtectedRoute allowedRoles={["customer"]}>
+                  <CustomerUnauthenticatedPage />
+                </ProtectedRoute>
+              }
             />
 
             {/* Routes với Header và Footer cho authenticated users */}

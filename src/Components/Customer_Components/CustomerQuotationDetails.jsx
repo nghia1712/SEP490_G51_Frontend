@@ -453,7 +453,7 @@ const CustomerQuotationDetails = () => {
         }
       }, 500);
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'Không thể tạo đơn hàng từ báo giá.';
+      const message = err.response?.data?.message || err.message || 'Không thể Tạo đơn hàng.';
       setSnackbarMessage(message);
       setSnackbarOpen(true);
     } finally {

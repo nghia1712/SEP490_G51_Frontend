@@ -1,5 +1,6 @@
 import authorApi from "./baseAPI/authorAPI";
 import formDataApi from "./baseAPI/formDataAPI";
+// Không cần import axios vì đang dùng fetch API cho updateCustomerProfile
 
 const API_URL = "/users";
 
@@ -72,9 +73,46 @@ const userAPI = {
     submitAdditionalInfo: (data) => authorApi.post('/User/submit-additional-info', data),
     getCustomerStatus: () => authorApi.get('/User/customer-status'),
     
-    // Manager APIs
-    getAllCustomerWithInactiveStatus: () => authorApi.get('/Manager/inactive'),
-    updateCustomerStatus: (customerId) => authorApi.put(`/Manager/activate/${customerId}`),
+    // Customer profile update API (multipart/form-data)
+    updateCustomerProfile: async (data) => {
+        const formData = new FormData();
+        
+        // Backend expects: Mst (long?), Mshkd (long?), ImageCnkd (IFormFile), ImageByt (IFormFile)
+        // Append Mst - backend sẽ parse string thành long
+        if (data.mst) {
+            formData.append('Mst', data.mst);
+        }
+        
+        // Append Mshkd
+        if (data.mshkd) {
+            formData.append('Mshkd', data.mshkd);
+        }
+        
+        // Append files - phải là File object
+        if (data.imageCnkd) {
+            formData.append('ImageCnkd', data.imageCnkd);
+        }
+        
+        if (data.imageByt) {
+            formData.append('ImageByt', data.imageByt);
+        }
+        
+        // Debug: log FormData contents
+        console.log('FormData contents:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ', pair[1]);
+        }
+        
+        // Sử dụng formDataApi.put() giống như supplierProductAPI đang dùng
+        // formDataApi đã được cấu hình để xử lý FormData đúng cách với PUT request
+        console.log('Using formDataApi.put() for PUT request with FormData');
+        console.log('FormData entries:', Array.from(formData.entries()).map(([k, v]) => [k, v instanceof File ? `File: ${v.name}` : v]));
+        
+        return formDataApi.put('/User/CustomerProfileUpdate', formData);
+    },
+    
+    // Admin APIs for customer approval
+    updateCustomerStatus: (customerId) => authorApi.put(`/Admin/activate/${customerId}`),
 };
 
 export default userAPI;

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import useUser from "../../Hooks/useUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 import NotificationMenu from "./NotificationMenu";
+import userAPI from "../../API/userAPI";
 // MUI Imports (thêm responsive & drawer)
 import {
   AppBar,
@@ -78,6 +79,7 @@ function Header() {
   }
   // --- STATE MANAGEMENT ---
   const [profile, setProfile] = useState(null);
+  const [customerStatus, setCustomerStatus] = useState(null);
   const [transactionMenuAnchor, setTransactionMenuAnchor] = useState(null);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const [partnerMenuAnchor, setPartnerMenuAnchor] = useState(null);
@@ -99,6 +101,24 @@ function Header() {
         });
     }
   }, [currentToken, getProfile]);
+
+  // Check customer status if user is customer
+  useEffect(() => {
+    if (currentToken && userRole === "customer") {
+      userAPI.getCustomerStatus()
+        .then((response) => {
+          setCustomerStatus(response.data.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching customer status:", error);
+        });
+    }
+  }, [currentToken, userRole]);
+
+  // Ẩn navigation items cho customer khi chưa bổ sung thông tin hoặc ở route customer-unauthenticated
+  const shouldHideCustomerNav = 
+    location.pathname === "/customer-unauthenticated" ||
+    (userRole === "customer" && customerStatus?.needsAdditionalInfo);
 
   // Function to check if nav item is active
   const isActiveNavItem = (path) => {
@@ -295,12 +315,12 @@ function Header() {
       allowedRoles: ["accountant_staff", "customer"],
     },
     {
-      label: "Yêu cầu báo giá của tôi",
+      label: "Yêu cầu báo giá",
       path: "/customer/request-quotation",
       allowedRoles: ["customer"],
     },
     {
-      label: "Đơn hàng của tôi",
+      label: "Đơn hàng",
       path: "/customer/orders",
       allowedRoles: ["customer"],
     },
@@ -343,7 +363,16 @@ function Header() {
   };
 
   const baseVisible = navItems.filter(
-    (item) => userRole && item.allowedRoles.includes(userRole)
+    (item) => {
+      if (!userRole || !item.allowedRoles.includes(userRole)) {
+        return false;
+      }
+      // Ẩn các navigation items cho customer khi chưa bổ sung thông tin
+      if (shouldHideCustomerNav && item.allowedRoles.includes("customer")) {
+        return false;
+      }
+      return true;
+    }
   );
   const roleAccountItem = getRoleAccountItem(userRole);
 
@@ -406,7 +435,8 @@ function Header() {
         )}
 
         {/* Authenticated user navigation */}
-        {currentToken && (
+        {/* Ẩn navigation khi customer chưa bổ sung thông tin */}
+        {currentToken && !shouldHideCustomerNav && (
           <>
             {visibleNavItems.map((item) => (
               <ListItem key={item.path} disablePadding>
@@ -484,9 +514,11 @@ function Header() {
             </Typography>
 
             {/* Desktop nav buttons - admin luôn thấy menu kể cả ở trang chủ */}
+            {/* Ẩn navigation khi customer chưa bổ sung thông tin */}
             {!isMobile &&
               currentToken &&
-              (userRole === "admin" || !isHomePage) && (
+              (userRole === "admin" || !isHomePage) &&
+              !shouldHideCustomerNav && (
                 <Box
                   sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}
                 >
