@@ -133,7 +133,7 @@ export default function PQList() {
               ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    Không có dữ liệu
+                    Không có dữ liệu báo giá
                   </TableCell>
                 </TableRow>
               ) : (

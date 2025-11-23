@@ -21,22 +21,27 @@ export default function usePQ() {
     setLoading(true);
     try {
       const res = await pqApi.getAllBasic();
-      const list = Array.isArray(res.data.data)
+
+      const list = Array.isArray(res?.data?.data)
         ? res.data.data.map((item) => ({
             quotationId: item.qid,
             sentDate: item.sendDate,
             supplierName: item.supplierName,
             status: item.status === 0 ? "InDate" : "OutOfDate",
             expiredDate: item.quotationExpiredDate,
-            items: item.quotationDetailDTOs,
+            items: Array.isArray(item.quotationDetailDTOs)
+              ? item.quotationDetailDTOs
+              : [],
           }))
         : [];
+
       setQuotations(list);
     } catch (err) {
-      console.error("❌ Lỗi khi tải danh sách PQ:", err);
+      const msg = err?.response?.data?.message;
+
       setSnackbar({
         open: true,
-        message: "Tải danh sách PQ thất bại",
+        message: msg,
         severity: "error",
       });
     } finally {
@@ -85,21 +90,21 @@ export default function usePQ() {
       }
 
       // Map lại cho UI PO:
-const itemsWithQty = list.map((item) => ({
-  productID: item.productID,
-  productName: item.productName,
-  productDescription: item.description,
-  productUnit: item.dvt,
-  unitPrice: item.unitPrice,
-  expiredDate: item.expiredDateDisplay,
-  productDate: item.expiredDateDisplay,
-  currentQty: item.currentQuantity,
-  minQty: item.minQuantity,
-  tax: item.tax,
-  maxQty: item.maxQuantity,
-  suggestedQty: item.suggestedQuantity,
-  quantity: item.suggestedQuantity ?? 1,
-}));
+      const itemsWithQty = list.map((item) => ({
+        productID: item.productID,
+        productName: item.productName,
+        productDescription: item.description,
+        productUnit: item.dvt,
+        unitPrice: item.unitPrice,
+        expiredDate: item.expiredDateDisplay,
+        productDate: item.expiredDateDisplay,
+        currentQty: item.currentQuantity,
+        minQty: item.minQuantity,
+        tax: item.tax,
+        maxQty: item.maxQuantity,
+        suggestedQty: item.suggestedQuantity,
+        quantity: item.suggestedQuantity ?? 1,
+      }));
 
       setQuotationToCreatePo({
         quotationId: qid,
