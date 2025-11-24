@@ -54,6 +54,10 @@ const poAPI = {
   // 🔹 Lấy chi tiết công nợ theo dbid
   getDetailDebtReport: (dbid) =>
     authorApi.get(`${API_URL}/GetDetailDebtReport/${dbid}`),
+
+  // 🔹 Lấy thông tin kinh doanh (Pharmacy Secret Info)
+  getPharmacySecretInfo: () =>
+    authorApi.get(`${API_URL}/GetPharmacySecretInfor`),
 };
 
 export default poAPI;

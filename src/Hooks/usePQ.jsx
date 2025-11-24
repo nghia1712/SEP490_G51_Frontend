@@ -103,7 +103,7 @@ export default function usePQ() {
         tax: item.tax,
         maxQty: item.maxQuantity,
         suggestedQty: item.suggestedQuantity,
-        quantity: item.suggestedQuantity ?? 1,
+        quantity: item.suggestedQuantity || 1,
       }));
 
       setQuotationToCreatePo({
@@ -122,21 +122,38 @@ export default function usePQ() {
     }
   };
 
-  // 🔹 Tạo PO
   const createPO = async (status) => {
     if (!quotationToCreatePo || sending) return;
 
     setSending(true);
 
+    // Convert date sang ISO 8601
     const payload = {
       qid: Number(quotationToCreatePo.quotationId),
-      details: quotationToCreatePo.items.map((item) => ({
-        productID: Number(item.productID),
-        date: item.productDate || null,
-        quantity: Number(item.quantity),
-      })),
+      details: quotationToCreatePo.items.map((item) => {
+        let dateISO = null;
+        if (item.productDate) {
+          // Nếu productDate ở dạng dd/MM/yyyy
+          const parts = item.productDate.split("/");
+          if (parts.length === 3) {
+            const [day, month, year] = parts;
+            dateISO = new Date(`${year}-${month}-${day}`).toISOString();
+          } else {
+            // Nếu đã là Date object hoặc ISO string
+            dateISO = new Date(item.productDate).toISOString();
+          }
+        }
+
+        return {
+          productID: Number(item.productID),
+          date: dateISO,
+          quantity: Number(item.quantity),
+        };
+      }),
       status: Number(status),
     };
+
+    console.log("Payload trước khi gửi:", payload);
 
     try {
       await prfqApi.createFromQuotation(payload);

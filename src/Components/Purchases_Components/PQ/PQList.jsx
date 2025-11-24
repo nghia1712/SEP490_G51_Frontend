@@ -398,7 +398,7 @@ export default function PQList() {
             onClick={() => handleCreatePO(7)}
             disabled={processing}
           >
-            {processing ? <CircularProgress size={20} /> : "Tạo bản nháp"}
+            {processing ? <CircularProgress size={20} /> : "Tạo nháp"}
           </Button>
           <Button
             variant="outlined"

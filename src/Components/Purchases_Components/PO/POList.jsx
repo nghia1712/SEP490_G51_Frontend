@@ -132,7 +132,7 @@ export default function POList() {
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Ngày đặt</TableCell>
                   <TableCell align="center">Trạng thái nhận hàng</TableCell>
-                  <TableCell align="center">Trạng thái thanh toán</TableCell>
+                  <TableCell align="center">Trạng thái đơn hàng</TableCell>
                   <TableCell>Tổng tiền</TableCell>
                   <TableCell>Đã trả</TableCell>
                   <TableCell>Còn nợ</TableCell>

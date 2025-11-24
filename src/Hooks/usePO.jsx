@@ -55,12 +55,40 @@ export default function usePO() {
   const [userRole, setUserRole] = useState(null);
   const [deletePOId, setDeletePOId] = useState(null);
 
+  // ================== SECRET BUSINESS INFO ==================
+  const [secretInfo, setSecretInfo] = useState(null);
+  const [secretLoading, setSecretLoading] = useState(false);
+
   // ================== EFFECTS ==================
   useEffect(() => {
     fetchPOs();
   }, []);
 
   // ================== API FUNCTIONS ==================
+
+  const fetchPharmacySecretInfo = async () => {
+    setSecretLoading(true);
+    try {
+      const res = await poApi.getPharmacySecretInfo();
+      setSecretInfo(res?.data?.data?.[0] || null);
+    } catch (err) {
+      console.error("❌ Lỗi lấy thông tin kinh doanh:", err);
+
+      const apiMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Lấy thông tin kinh doanh thất bại";
+
+      setSnackbar({
+        open: true,
+        message: apiMsg,
+        severity: "error",
+      });
+    } finally {
+      setSecretLoading(false);
+    }
+  };
+
   const fetchPOs = async () => {
     setLoading(true);
     try {
@@ -302,9 +330,11 @@ export default function usePO() {
       });
       if (selectedPO?.poid === id) handleOpenDetail(id);
     } catch (err) {
+      const apiMsg =
+        err?.response?.data?.message || "Cập nhật trạng thái thất bại";
       setSnackbar({
         open: true,
-        message: "Cập nhật trạng thái thất bại",
+        message: apiMsg,
         severity: "error",
       });
     } finally {
@@ -501,5 +531,8 @@ export default function usePO() {
     fetchDebtReport,
     fetchDebtDetail,
     fetchPOs,
+    secretInfo,
+    secretLoading,
+    fetchPharmacySecretInfo,
   };
 }
