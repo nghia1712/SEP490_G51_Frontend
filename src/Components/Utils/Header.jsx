@@ -324,6 +324,11 @@ function Header() {
       path: "/customer/orders",
       allowedRoles: ["customer"],
     },
+    {
+      label: "Hóa đơn",
+      path: "/customer/invoices",
+      allowedRoles: ["customer"],
+    },
   ];
 
   const partnerMenuItems = [

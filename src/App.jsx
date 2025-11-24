@@ -41,9 +41,11 @@ import SalesQuotationList from "./Components/Sales_Components/SalesQuotationList
 import SalesOrderList from "./Components/Sales_Components/SalesOrderList";
 import AccountantOrderList from "./Components/Accountant_Components/AccountantOrderList";
 import AccountantTaxPolicy from "./Components/Accountant_Components/AccountantTaxPolicy";
+import InvoiceList from "./Components/Invoice_Components/InvoiceList";
 import RequestQuotationDetails from "./Components/Sales_Components/RequestQuotationDetails";
 import CreateSalesQuotation from "./Components/Sales_Components/CreateSalesQuotation";
 import CustomerOrderList from "./Components/Customer_Components/CustomerOrderList";
+import CustomerInvoiceList from "./Components/Customer_Components/CustomerInvoiceList";
 import PurchasesDashboard from "./Components/Purchases_Components/PurchasesDashboard";
 import WarehouseList from "./Components/Warehouse_Components/WarehouseList";
 import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDetails.jsx";
@@ -383,6 +385,40 @@ function App() {
                               >
                                 <Box sx={{ position: "relative", zIndex: 2 }}>
                                   <CustomerOrderList />
+                                </Box>
+                              </Box>
+                            </CustomerStatusCheck>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/customer/invoices"
+                        element={
+                          <ProtectedRoute allowedRoles={["customer"]}>
+                            <CustomerStatusCheck>
+                              <Box
+                                sx={{
+                                  minHeight: "100vh",
+                                  backgroundImage:
+                                    "url('/images/backgroundMedical2.jpg')",
+                                  backgroundSize: "cover",
+                                  backgroundPosition: "center",
+                                  backgroundRepeat: "no-repeat",
+                                  position: "relative",
+                                  "&::before": {
+                                    content: '""',
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                                    zIndex: 1,
+                                  },
+                                }}
+                              >
+                                <Box sx={{ position: "relative", zIndex: 2 }}>
+                                  <CustomerInvoiceList />
                                 </Box>
                               </Box>
                             </CustomerStatusCheck>
@@ -960,6 +996,16 @@ function App() {
                             allowedRoles={["manager", "accountant_staff"]}
                           >
                             <AccountantOrderList />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/accountant/invoices"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={["manager", "accountant_staff"]}
+                          >
+                            <InvoiceList />
                           </ProtectedRoute>
                         }
                       />

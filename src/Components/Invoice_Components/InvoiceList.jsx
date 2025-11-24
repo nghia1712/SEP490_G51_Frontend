@@ -16,24 +16,27 @@ import {
   Alert,
   Snackbar,
   IconButton,
-  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Tooltip,
+  TableSortLabel,
+  Pagination,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TableSortLabel,
-  Pagination,
+  TextField,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import PaidIcon from '@mui/icons-material/Paid';
 import invoiceAPI from '../../API/invoiceAPI';
+import paymentRemainAPI from '../../API/paymentRemainAPI';
 
 const headerTextSx = {
   textTransform: 'uppercase',
@@ -53,9 +56,11 @@ const InvoiceList = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('3');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [creatingPaymentRemain, setCreatingPaymentRemain] = useState(false);
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -218,42 +223,9 @@ const InvoiceList = () => {
     navigate(`/accountant/invoices/${invoiceId}/edit`);
   };
 
-  const handleDelete = (invoice) => {
-    // Backend không có API delete, chỉ có thể cancel invoice
-    // Hoặc chỉ cho phép xóa khi status = Draft
-    if (invoice.status !== 0) {
-      setSnackbarMessage('Chỉ có thể xóa hóa đơn ở trạng thái Nháp');
-      setSnackbarOpen(true);
-      return;
-    }
-    setInvoiceToDelete(invoice);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!invoiceToDelete) return;
-    
-    // Note: Backend không có API delete invoice
-    // Có thể cần implement hoặc chỉ cho phép cancel
-    setDeleting(true);
-    try {
-      // Tạm thời không có API delete, chỉ thông báo
-      setSnackbarMessage('Chức năng xóa hóa đơn chưa được hỗ trợ. Vui lòng liên hệ admin.');
-      setSnackbarOpen(true);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể xóa hóa đơn';
-      setSnackbarMessage(errorMessage);
-      setSnackbarOpen(true);
-    } finally {
-      setDeleting(false);
-      setDeleteDialogOpen(false);
-      setInvoiceToDelete(null);
-    }
-  };
-
   const handleSend = async (invoiceId) => {
     try {
-      await invoiceAPI.sendInvoice(invoiceId);
+      await invoiceAPI.sendInvoiceEmail(invoiceId);
       setSnackbarMessage('Gửi hóa đơn thành công');
       setSnackbarOpen(true);
       fetchInvoices();
@@ -268,21 +240,49 @@ const InvoiceList = () => {
     navigate('/accountant/invoices/create');
   };
 
+  const handleOpenPaymentRemainDialog = (invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentMethod('3');
+    setPaymentAmount('');
+    setPaymentDialogOpen(true);
+  };
+
+  const handleClosePaymentRemainDialog = () => {
+    if (creatingPaymentRemain) return;
+    setPaymentDialogOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleCreatePaymentRemain = async () => {
+    if (!selectedInvoice) return;
+    setCreatingPaymentRemain(true);
+    try {
+      const payload = {
+        invoiceId: selectedInvoice.id,
+        paymentMethod: Number(paymentMethod),
+        paymentType: 1,
+      };
+      if (paymentAmount !== '') {
+        payload.amount = Number(paymentAmount);
+      }
+      await paymentRemainAPI.createPaymentRemainRequest(payload);
+      setSnackbarMessage('Đã tạo yêu cầu thanh toán phần còn lại');
+      setSnackbarOpen(true);
+      setPaymentDialogOpen(false);
+      setSelectedInvoice(null);
+      fetchInvoices();
+      navigate('/payment-remain');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể tạo yêu cầu thanh toán';
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setCreatingPaymentRemain(false);
+    }
+  };
+
   const renderActions = (invoice) => {
     const actions = [];
-    
-    // Always show View
-    actions.push(
-      <Tooltip key="view" title="Xem">
-        <IconButton
-          size="small"
-          onClick={() => handleView(invoice.id)}
-          sx={{ color: '#1976d2' }}
-        >
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    );
     
     // Show Edit/Delete/Send based on status
     if (invoice.status === 0) {
@@ -321,52 +321,63 @@ const InvoiceList = () => {
         </Tooltip>
       );
     } else if (invoice.status === 1) {
-      // Sent - can view only
-      // Already added above
+      actions.push(
+        <Tooltip key="payment-remain" title="Tạo yêu cầu thanh toán">
+          <IconButton
+            size="small"
+            onClick={() => handleOpenPaymentRemainDialog(invoice)}
+            sx={{ color: '#0288d1' }}
+          >
+            <PaidIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      );
     }
+
+    actions.push(
+      <Tooltip key="view" title="Xem">
+        <IconButton
+          size="small"
+          onClick={() => handleView(invoice.id)}
+          sx={{ color: '#1976d2' }}
+        >
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
     
     return <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>{actions}</Box>;
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 600,
-            color: '#2c3e50',
-            textTransform: 'capitalize',
-          }}
-        >
-          Danh Sách Hóa Đơn
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Trạng Thái</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Trạng Thái"
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="all">Tất cả</MenuItem>
-              <MenuItem value="0">Nháp</MenuItem>
-              <MenuItem value="1">Đã Gửi</MenuItem>
-              <MenuItem value="2">Đã Hủy</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCreateInvoice}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
+      <Typography
+        variant="h4"
+        sx={{
+          textAlign: 'center',
+          fontWeight: 600,
+          color: '#2c3e50',
+          textTransform: 'uppercase',
+          mb: 2,
+        }}
+      >
+        Danh sách hóa đơn
+      </Typography>
+
+      <Box sx={{ mb: 3, maxWidth: 220 }}>
+        <FormControl size="small" fullWidth>
+          <InputLabel>Trạng Thái</InputLabel>
+          <Select
+            value={statusFilter}
+            label="Trạng Thái"
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            Tạo hóa đơn mới
-          </Button>
-        </Box>
+            <MenuItem value="all">Tất cả</MenuItem>
+            <MenuItem value="0">Nháp</MenuItem>
+            <MenuItem value="1">Đã Gửi</MenuItem>
+            <MenuItem value="2">Đã Hủy</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       {error && (
@@ -394,7 +405,7 @@ const InvoiceList = () => {
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell
                   sx={{
-                    width: '5%',
+                    width: '6%',
                     py: 1.5,
                     px: 2,
                     textAlign: 'left',
@@ -403,69 +414,89 @@ const InvoiceList = () => {
                     letterSpacing: '0.03em',
                   }}
                 >
-                  <TableSortLabel
-                    active={sortConfig.key === 'id'}
-                    direction={sortConfig.key === 'id' ? sortConfig.direction : 'asc'}
-                    onClick={() => handleSort('id')}
-                  >
-                    #
-                  </TableSortLabel>
+                  STT
                 </TableCell>
-                <TableCell sx={{ width: '18%', py: 1.5, px: 2, ...headerTextSx }}>
+                <TableCell sx={{ width: '22%', py: 1.5, px: 2, textTransform: 'none', fontWeight: 500 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'invoiceCode'}
-                    direction={sortConfig.key === 'invoiceCode' ? sortConfig.direction : 'asc'}
+                    direction={
+                      sortConfig.key === 'invoiceCode'
+                        ? sortConfig.direction
+                        : 'asc'
+                    }
                     onClick={() => handleSort('invoiceCode')}
+                    sx={headerTextSx}
                   >
-                    Mã Hóa Đơn
+                    Mã hóa đơn
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                  <TableSortLabel
-                    active={sortConfig.key === 'customerCode'}
-                    direction={sortConfig.key === 'customerCode' ? sortConfig.direction : 'asc'}
-                    onClick={() => handleSort('customerCode')}
-                  >
-                    Mã Khách Hàng
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
+                <TableCell sx={{ width: '22%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'orderCode'}
-                    direction={sortConfig.key === 'orderCode' ? sortConfig.direction : 'asc'}
+                    direction={
+                      sortConfig.key === 'orderCode'
+                        ? sortConfig.direction
+                        : 'asc'
+                    }
                     onClick={() => handleSort('orderCode')}
+                    sx={headerTextSx}
                   >
-                    Mã Đơn Hàng
+                    Mã đơn hàng
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                  <TableSortLabel
-                    active={sortConfig.key === 'status'}
-                    direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
-                    onClick={() => handleSort('status')}
-                  >
-                    Trạng Thái
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'createdAt'}
-                    direction={sortConfig.key === 'createdAt' ? sortConfig.direction : 'asc'}
+                    direction={
+                      sortConfig.key === 'createdAt'
+                        ? sortConfig.direction
+                        : 'asc'
+                    }
                     onClick={() => handleSort('createdAt')}
+                    sx={headerTextSx}
                   >
-                    Thời gian tạo
+                    Ngày tạo
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
+                <TableCell sx={{ width: '14%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'status'}
+                    direction={
+                      sortConfig.key === 'status'
+                        ? sortConfig.direction
+                        : 'asc'
+                    }
+                    onClick={() => handleSort('status')}
+                    sx={headerTextSx}
+                  >
+                    Trạng thái
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell
+                  sx={{ width: '18%', py: 1.5, px: 2, textAlign: 'right' }}
+                >
                   <TableSortLabel
                     active={sortConfig.key === 'totalAmount'}
-                    direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
+                    direction={
+                      sortConfig.key === 'totalAmount'
+                        ? sortConfig.direction
+                        : 'asc'
+                    }
                     onClick={() => handleSort('totalAmount')}
+                    sx={headerTextSx}
                   >
-                    Tổng tiền hóa đơn
+                    Tổng tiền
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '11%', textAlign: 'right', py: 1.5, px: 2, ...headerTextSx }}>
+                <TableCell
+                  sx={{
+                    width: '18%',
+                    py: 1.5,
+                    px: 2,
+                    textAlign: 'right',
+                    ...headerTextSx,
+                  }}
+                >
                   Hành động
                 </TableCell>
               </TableRow>
@@ -473,7 +504,7 @@ const InvoiceList = () => {
             <TableBody>
               {paginatedInvoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
                       Không có hóa đơn nào
                     </Typography>
@@ -495,12 +526,14 @@ const InvoiceList = () => {
                       },
                     }}
                   >
-                    <TableCell sx={{ fontWeight: 500, textAlign: 'left' }}>
+                    <TableCell sx={{ fontWeight: 500 }}>
                       {(page - 1) * pageSize + index + 1}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{invoice.invoiceCode}</TableCell>
-                    <TableCell>{invoice.customerCode}</TableCell>
+                    <TableCell sx={{ fontWeight: 500, textTransform: 'none' }}>
+                      {invoice.invoiceCode}
+                    </TableCell>
                     <TableCell>{invoice.orderCode}</TableCell>
+                    <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                     <TableCell>
                       <Chip
                         label={getStatusLabel(invoice.status)}
@@ -508,11 +541,10 @@ const InvoiceList = () => {
                         sx={getStatusColor(invoice.status)}
                       />
                     </TableCell>
-                    <TableCell>{formatDate(invoice.createdAt)}</TableCell>
-                    <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(invoice.totalAmount)}</TableCell>
-                    <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
-                      {renderActions(invoice)}
+                    <TableCell sx={{ textAlign: 'right', fontWeight: 500, textTransform: 'none' }}>
+                      {formatCurrency(invoice.totalAmount)}
                     </TableCell>
+                    <TableCell align="right">{renderActions(invoice)}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -540,20 +572,53 @@ const InvoiceList = () => {
         </TableContainer>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Bạn có chắc chắn muốn xóa hóa đơn <strong>{invoiceToDelete?.invoiceCode}</strong>?
+      <Dialog
+        open={paymentDialogOpen}
+        onClose={handleClosePaymentRemainDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Tạo yêu cầu thanh toán phần còn lại</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
+            Hóa đơn: <strong>{selectedInvoice?.invoiceCode}</strong>
           </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Tổng tiền: {selectedInvoice ? formatCurrency(selectedInvoice.totalAmount) : '-'}
+          </Typography>
+          <FormControl fullWidth margin="dense">
+            <InputLabel id="payment-method-label">Phương thức thanh toán</InputLabel>
+            <Select
+              labelId="payment-method-label"
+              value={paymentMethod}
+              label="Phương thức thanh toán"
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <MenuItem value="1">VNPAY</MenuItem>
+              <MenuItem value="2">Tiền mặt</MenuItem>
+              <MenuItem value="3">Chuyển khoản</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            margin="dense"
+            label="Số tiền yêu cầu (để trống nếu thu hết phần còn lại)"
+            type="number"
+            fullWidth
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
+            inputProps={{ min: 0 }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+          <Button onClick={handleClosePaymentRemainDialog} disabled={creatingPaymentRemain}>
             Hủy
           </Button>
-          <Button onClick={confirmDelete} color="error" disabled={deleting}>
-            {deleting ? 'Đang xóa...' : 'Xóa'}
+          <Button
+            onClick={handleCreatePaymentRemain}
+            variant="contained"
+            disabled={creatingPaymentRemain}
+          >
+            {creatingPaymentRemain ? 'Đang tạo...' : 'Tạo yêu cầu'}
           </Button>
         </DialogActions>
       </Dialog>

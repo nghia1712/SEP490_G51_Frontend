@@ -36,6 +36,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import salesOrderAPI from '../../API/salesOrderAPI';
+import salesQuotationAPI from '../../API/salesQuotationAPI';
 import paymentAPI from '../../API/paymentAPI';
 
 const headerTextSx = {
@@ -162,17 +163,16 @@ const CustomerOrderList = () => {
         }
       }
 
-      if (depositAmount === null && depositPercent !== null) {
-        depositAmount = totalAmount * (depositPercent / 100);
+      if (depositPercent !== null && totalAmount > 0) {
+        const calculatedDepositAmount = totalAmount * (depositPercent / 100);
+        depositAmount = Math.round(calculatedDepositAmount);
       }
 
       if (depositPercent === null && depositAmount !== null && totalAmount > 0) {
         depositPercent = Number(((depositAmount / totalAmount) * 100).toFixed(2));
       }
 
-      if (remainingDeposit === null) {
-        remainingDeposit = depositAmount !== null ? Math.max(0, depositAmount - paidAmount) : 0;
-      }
+      remainingDeposit = depositAmount !== null ? Math.max(0, depositAmount - paidAmount) : 0;
 
       if (!depositExpiredDate && createdAtValue && depositDueDays !== null) {
         const createdDate = new Date(createdAtValue);
@@ -318,6 +318,10 @@ const CustomerOrderList = () => {
             paymentStatus = 2;
           }
 
+          const paidAmountValue =
+            toNumberOrNull(order.PaidAmount ?? order.paidAmount ?? order.depositPaidAmount ?? order.DepositPaidAmount ?? null) ??
+            0;
+
           return {
           id: order.SalesOrderId || order.salesOrderId,
           quotationCode: order.SalesOrderCode || order.salesOrderCode,
@@ -326,7 +330,7 @@ const CustomerOrderList = () => {
             status: orderStatus, // Giữ lại để tương thích với filter cũ
           createdAt: order.CreateAt || order.createAt,
           totalAmount: order.TotalPrice || order.totalPrice,
-            paidAmount: order.PaidAmount ?? order.paidAmount ?? 0,
+            paidAmount: paidAmountValue,
           };
         });
         setAllOrders(mappedOrders);
@@ -640,6 +644,7 @@ const CustomerOrderList = () => {
           null;
         const {
           depositPercent,
+          depositAmount,
           remainingDeposit,
           paidAmount,
           depositDueDays,
@@ -704,6 +709,7 @@ const CustomerOrderList = () => {
           totalAmount: totalAmount,
           remainingDeposit: normalizedRemainingDeposit,
           paidAmount: paidAmount ?? 0,
+          depositAmount: depositAmount ?? null,
           createBy: data.createBy ?? data.CreateBy,
           depositExpiredDate,
           depositDueDays,
@@ -790,43 +796,213 @@ const CustomerOrderList = () => {
         } = await buildDepositInfo(data, totalAmount);
         
         // Process details with tax information from backend
-        const rawDetails = data.details ?? data.Details ?? data.orderDetails ?? data.OrderDetails ?? data.salesOrderDetails ?? data.SalesOrderDetails ?? [];
+        const rawDetails =
+          data.details ??
+          data.Details ??
+          data.orderDetails ??
+          data.OrderDetails ??
+          data.salesOrderDetails ??
+          data.SalesOrderDetails ??
+          [];
         const processedDetails = rawDetails.map((detail) => {
           const quantity = detail.quantity ?? detail.Quantity ?? 0;
-          const unitPrice = detail.unitPrice ?? detail.UnitPrice ?? detail.UnitPriceBeforeTax ?? 0;
-          const unitPriceAfterTax = detail.unitPriceAfterTax ?? detail.UnitPriceAfterTax ?? unitPrice * (1 + (detail.taxRate ?? detail.TaxRate ?? 0));
-          const subtotal = detail.subtotal ?? detail.Subtotal ?? detail.subTotalPrice ?? detail.SubTotalPrice ?? quantity * unitPrice;
-          const subtotalAfterTax = detail.subtotalAfterTax ?? detail.SubtotalAfterTax ?? quantity * unitPriceAfterTax;
-          const taxText = detail.taxText ?? detail.TaxText ?? '-';
-          const taxRate = detail.taxRate ?? detail.TaxRate ?? (taxText !== '-' ? getTaxRateFromText(taxText) : 0);
+          const unitPriceBeforeTax =
+            detail.unitPrice ??
+            detail.UnitPrice ??
+            detail.unitPriceBeforeTax ??
+            detail.UnitPriceBeforeTax ??
+            detail.priceBeforeTax ??
+            detail.PriceBeforeTax ??
+            0;
+          const rawTaxRate = detail.taxRate ?? detail.TaxRate ?? null;
+          const taxText =
+            detail.taxText ??
+            detail.TaxText ??
+            detail.taxPolicyName ??
+            detail.TaxPolicyName ??
+            detail.taxName ??
+            detail.TaxName ??
+            '-';
+          const taxRate =
+            rawTaxRate !== null && rawTaxRate !== undefined
+              ? rawTaxRate
+              : taxText !== '-' ? getTaxRateFromText(taxText) : 0;
+          const unitPriceAfterTax =
+            detail.unitPriceAfterTax ??
+            detail.UnitPriceAfterTax ??
+            detail.priceAfterTax ??
+            detail.PriceAfterTax ??
+            unitPriceBeforeTax * (1 + (taxRate || 0));
+          const subtotalBeforeTax =
+            detail.subtotal ??
+            detail.Subtotal ??
+            detail.subTotalPrice ??
+            detail.SubTotalPrice ??
+            detail.totalBeforeTax ??
+            detail.TotalBeforeTax ??
+            quantity * unitPriceBeforeTax;
+          const subtotalAfterTax =
+            detail.subtotalAfterTax ??
+            detail.SubtotalAfterTax ??
+            detail.totalAfterTax ??
+            detail.TotalAfterTax ??
+            quantity * unitPriceAfterTax;
           const expiredDate =
             detail.expiredDate ??
             detail.ExpiredDate ??
             detail.expiredDateText ??
-            detail.Lot?.ExpiredDate ??
+            detail.ExpiredDateText ??
             detail.lot?.ExpiredDate ??
+            detail.Lot?.ExpiredDate ??
+            detail.lot?.expiredDate ??
+            detail.Lot?.expiredDate ??
             null;
           const productName = detail.productName ?? detail.ProductName ?? '-';
           const expiredDisplay = expiredDate ? formatDate(expiredDate) : '-';
+          const unitName =
+            detail.unitName ??
+            detail.UnitName ??
+            detail.uomName ??
+            detail.UomName ??
+            detail.unit ??
+            detail.Unit ??
+            detail.unitMeasure ??
+            detail.UnitMeasure ??
+            detail.lot?.UnitName ??
+            detail.Lot?.UnitName ??
+            detail.lot?.unitName ??
+            detail.Lot?.unitName ??
+            '-';
+
           return {
             ...detail,
             productName,
             quantity,
-            unitPrice,
+            unitPriceBeforeTax,
             unitPriceAfterTax,
-            subtotal,
+            subtotalBeforeTax,
             subtotalAfterTax,
             taxText: taxText || '-',
             taxRate,
             expiredDate,
             expiredDisplay,
+            unitName,
           };
         });
         
+        let quotationDetailsList = [];
+        if (data.salesQuotationId) {
+          try {
+            const quotationDetailResponse = await salesQuotationAPI.viewDetails(data.salesQuotationId);
+            quotationDetailsList =
+              quotationDetailResponse.data?.data?.Details ??
+              quotationDetailResponse.data?.data?.details ??
+              [];
+          } catch (quotationErr) {
+            console.warn('Không thể lấy chi tiết báo giá để bổ sung dữ liệu đơn hàng', quotationErr);
+          }
+        }
+
+        const mergedDetails = processedDetails.map((detail, index) => {
+          const matchedQuotationDetail = quotationDetailsList[index] ?? null;
+          const parsedQuantity = Number(detail.quantity ?? 0);
+          const quantityValue = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+
+          let unitName = detail.unitName;
+          let taxText = detail.taxText;
+          let taxRate = detail.taxRate ?? null;
+          let unitPriceBeforeTax = detail.unitPriceBeforeTax;
+          let unitPriceAfterTax = detail.unitPriceAfterTax;
+          let subtotalBeforeTax = detail.subtotalBeforeTax;
+          let subtotalAfterTax = detail.subtotalAfterTax;
+          let expiredDisplay = detail.expiredDisplay;
+
+          if (matchedQuotationDetail) {
+            const quotationUnit =
+              matchedQuotationDetail.Unit ??
+              matchedQuotationDetail.unit ??
+              matchedQuotationDetail.ProductUnit ??
+              matchedQuotationDetail.productUnit ??
+              null;
+            const quotationTaxText =
+              matchedQuotationDetail.TaxText ??
+              matchedQuotationDetail.taxText ??
+              matchedQuotationDetail.TaxPolicyName ??
+              matchedQuotationDetail.taxPolicyName ??
+              null;
+            const quotationSalesPrice =
+              matchedQuotationDetail.SalesPrice ??
+              matchedQuotationDetail.salesPrice ??
+              matchedQuotationDetail.UnitPrice ??
+              matchedQuotationDetail.unitPrice ??
+              null;
+            const quotationExpired =
+              matchedQuotationDetail.ExpiredDate ??
+              matchedQuotationDetail.expiredDate ??
+              null;
+
+            if (quotationUnit) {
+              unitName = quotationUnit;
+            }
+
+            if (quotationTaxText) {
+              taxText = quotationTaxText;
+              const parsedRate = getTaxRateFromText(quotationTaxText);
+              if (parsedRate !== null && !Number.isNaN(parsedRate)) {
+                taxRate = parsedRate;
+              }
+            }
+
+            if (quotationSalesPrice !== null && quotationSalesPrice !== undefined) {
+              const parsedSalesPrice = Number(quotationSalesPrice);
+              if (!Number.isNaN(parsedSalesPrice)) {
+                unitPriceBeforeTax = parsedSalesPrice;
+                subtotalBeforeTax = quantityValue * parsedSalesPrice;
+              }
+            }
+
+            if (taxRate !== null && taxRate !== undefined && unitPriceBeforeTax !== null) {
+              unitPriceAfterTax = unitPriceBeforeTax * (1 + taxRate);
+              subtotalAfterTax = quantityValue * unitPriceAfterTax;
+            } else if (unitPriceAfterTax === null || unitPriceAfterTax === undefined) {
+              unitPriceAfterTax = detail.unitPriceAfterTax ?? unitPriceBeforeTax;
+              subtotalAfterTax =
+                subtotalAfterTax ??
+                quantityValue * (unitPriceAfterTax !== null && unitPriceAfterTax !== undefined ? unitPriceAfterTax : 0);
+            }
+
+            if (quotationExpired && quotationExpired !== '-') {
+              expiredDisplay = quotationExpired;
+            }
+          }
+
+          return {
+            ...detail,
+            unitName,
+            taxText,
+            taxRate,
+            unitPriceBeforeTax,
+            unitPriceAfterTax,
+            subtotalBeforeTax,
+            subtotalAfterTax,
+            expiredDisplay,
+          };
+        });
+
+        const rawStatus =
+          data.status ??
+          data.Status ??
+          data.salesOrderStatus ??
+          data.SalesOrderStatus ??
+          data.salesOrderStatusValue ??
+          data.SalesOrderStatusValue ??
+          null;
+        const normalizedStatus = normalizeOrderStatus(rawStatus);
+
         setOrderDetails({
           id: data.id ?? data.salesOrderId ?? data.SalesOrderId ?? orderId,
           code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? '',
-          status: data.status ?? data.Status ?? data.SalesOrderStatus,
+          status: normalizedStatus,
           statusName: data.statusName ?? data.StatusName ?? data.salesOrderStatusName ?? null,
           createdAt: data.CreateAt ?? data.createAt ?? data.CreatedAt ?? data.createdAt ?? data.createdDate ?? data.CreatedDate ?? null,
           expiredDate: data.orderExpiredDate ?? data.OrderExpiredDate ?? data.salesOrderExpiredDate ?? data.SalesOrderExpiredDate ?? data.expiredDate ?? data.ExpiredDate ?? null,
@@ -837,7 +1013,7 @@ const CustomerOrderList = () => {
           paidAmount: paidAmount,
           depositAmount: depositAmount,
           remainingDeposit: remainingDeposit,
-          details: processedDetails,
+          details: mergedDetails,
         });
       } else {
         setOrderDetails(null);
@@ -1013,6 +1189,53 @@ const CustomerOrderList = () => {
         <Box component="span" sx={{ textDecoration: 'underline' }}>đ</Box>
       </Box>
     );
+  };
+
+  const normalizeOrderStatus = (statusValue) => {
+    if (statusValue === null || statusValue === undefined) return null;
+    if (typeof statusValue === 'number') return Number(statusValue);
+    if (typeof statusValue === 'string') {
+      const statusMap = {
+        Draft: 0,
+        Send: 1,
+        Approved: 2,
+        Rejected: 3,
+        Delivered: 4,
+        Complete: 5,
+        NotComplete: 6,
+      };
+      if (statusValue in statusMap) {
+        return statusMap[statusValue];
+      }
+      const parsed = Number(statusValue);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  };
+
+  const getDepositAmountValue = (data) => {
+    if (!data) return null;
+    const totalAmountValue = toNumberOrNull(data.totalAmount ?? data.TotalAmount ?? null);
+    const depositPercentValue = toNumberOrNull(data.depositPercent ?? data.DepositPercent ?? null);
+
+    if (
+      totalAmountValue !== null &&
+      depositPercentValue !== null &&
+      !Number.isNaN(totalAmountValue) &&
+      !Number.isNaN(depositPercentValue)
+    ) {
+      return Math.round(totalAmountValue * (depositPercentValue / 100));
+    }
+
+    if (data.depositAmount !== undefined && data.depositAmount !== null) {
+      return data.depositAmount;
+    }
+
+    if (data.remainingDeposit !== undefined && data.remainingDeposit !== null) {
+      return data.remainingDeposit;
+    }
+
+    return null;
   };
 
   return (
@@ -1310,7 +1533,7 @@ const CustomerOrderList = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Trạng thái:
+                      Trạng thái đơn hàng:
                     </Typography>
                     <Chip
                       label={orderDetails.statusName || getStatusLabel(orderDetails.status)}
@@ -1365,7 +1588,7 @@ const CustomerOrderList = () => {
                       Số tiền đã cọc:
                     </Typography>
                     <Typography variant="body1">
-                      {formatCurrency(orderDetails.paidAmount)} đ
+                      {formatCurrency(orderDetails.paidAmount)}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1373,7 +1596,7 @@ const CustomerOrderList = () => {
                       Số tiền cần cọc:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(orderDetails.remainingDeposit)} đ
+                      {formatCurrency(getDepositAmountValue(orderDetails))}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1381,7 +1604,7 @@ const CustomerOrderList = () => {
                       Tổng tiền đơn hàng:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(orderDetails.totalAmount)} đ
+                      {formatCurrency(orderDetails.totalAmount)}
                     </Typography>
                   </Box>
                 </Box>
@@ -1398,15 +1621,16 @@ const CustomerOrderList = () => {
                       <TableRow>
                         <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5', whiteSpace: 'nowrap' }}>STT</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5', minWidth: '180px', whiteSpace: 'nowrap' }}>Tên Sản Phẩm</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '90px', whiteSpace: 'nowrap' }}>Đơn vị</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '80px', whiteSpace: 'nowrap' }}>Số lượng</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '100px', whiteSpace: 'nowrap' }}>Đơn Giá</TableCell>
-                        <TableCell sx={{ textAlign: 'left', backgroundColor: '#f5f5f5', pl: 2, minWidth: '120px', whiteSpace: 'nowrap' }}>Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Đơn giá trước thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Thuế</TableCell>
                         <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Đơn giá sau thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Ngày hết hạn</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '100px', whiteSpace: 'nowrap' }}>Tạm tính</TableCell>
-                        <TableCell align="right" sx={{ backgroundColor: '#f5f5f5', minWidth: '150px', whiteSpace: 'nowrap', pr: 2, textAlign: 'right' }}>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '140px', whiteSpace: 'nowrap' }}>Thành tiền trước thuế</TableCell>
+                        <TableCell align="right" sx={{ backgroundColor: '#f5f5f5', minWidth: '160px', whiteSpace: 'nowrap', pr: 2, textAlign: 'right' }}>
                           <Box component="div" sx={{ textAlign: 'right', width: '100%', display: 'block' }}>
-                            Tạm Tính Sau Thuế
+                            Thành tiền sau thuế
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -1414,26 +1638,48 @@ const CustomerOrderList = () => {
                     <TableBody>
                       {Array.isArray(orderDetails.details) && orderDetails.details.length > 0 ? (
                         orderDetails.details.map((detail, index) => {
-                          const quantity = detail.quantity ?? detail.Quantity ?? 0;
-                          const unitPrice = detail.unitPrice ?? detail.UnitPrice ?? 0;
-                          const unitPriceAfterTax = detail.unitPriceAfterTax ?? unitPrice;
-                          const subtotal = detail.subtotal ?? quantity * unitPrice;
-                          const subtotalAfterTax = detail.subtotalAfterTax ?? quantity * unitPriceAfterTax;
-                          const taxText = detail.taxText ?? detail.TaxText ?? '-';
-                          const expiredDate = detail.expiredDate ?? '-';
+                          const quantity = detail.quantity ?? 0;
+                          const unitName = detail.unitName ?? '-';
+                          const expiredDisplay =
+                            detail.expiredDisplay ??
+                            (detail.expiredDate ? formatDate(detail.expiredDate) : '-');
+                          const unitPriceBeforeTax =
+                            detail.unitPriceBeforeTax ??
+                            detail.unitPrice ??
+                            detail.UnitPrice ??
+                            detail.UnitPriceBeforeTax ??
+                            0;
+                          const unitPriceAfterTax =
+                            detail.unitPriceAfterTax ??
+                            detail.UnitPriceAfterTax ??
+                            unitPriceBeforeTax;
+                          const subtotalBeforeTax =
+                            detail.subtotalBeforeTax ??
+                            detail.subtotal ??
+                            detail.Subtotal ??
+                            quantity * unitPriceBeforeTax;
+                          const subtotalAfterTax =
+                            detail.subtotalAfterTax ??
+                            detail.SubtotalAfterTax ??
+                            quantity * unitPriceAfterTax;
+                          const taxText =
+                            detail.taxText ??
+                            detail.TaxText ??
+                            detail.taxPolicyName ??
+                            detail.TaxPolicyName ??
+                            '-';
                           
                           return (
                             <TableRow key={detail.id ?? detail.productId ?? index}>
                               <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
-                                  <TableCell>{detail.productName ?? detail.ProductName ?? '-'}</TableCell>
+                              <TableCell>{detail.productName ?? detail.ProductName ?? '-'}</TableCell>
+                              <TableCell sx={{ textAlign: 'center' }}>{unitName}</TableCell>
+                              <TableCell sx={{ textAlign: 'center' }}>{expiredDisplay}</TableCell>
                               <TableCell sx={{ textAlign: 'center' }}>{quantity}</TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPrice)}</TableCell>
-                                  <TableCell sx={{ textAlign: 'left', pl: 3 }}>{taxText}</TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPriceBeforeTax)}</TableCell>
+                              <TableCell sx={{ textAlign: 'center' }}>{taxText}</TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPriceAfterTax)}</TableCell>
-                                  <TableCell sx={{ textAlign: 'right' }}>
-                                    {detail.expiredDisplay ?? (expiredDate ? formatDate(expiredDate) : '-')}
-                                  </TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(subtotal)}</TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(subtotalBeforeTax)}</TableCell>
                               <TableCell align="right" sx={{ whiteSpace: 'nowrap', pr: 2 }}>
                                 <Box component="div" sx={{ textAlign: 'right', width: '100%', display: 'block' }}>
                                   {formatCurrency(subtotalAfterTax)}
@@ -1444,7 +1690,7 @@ const CustomerOrderList = () => {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={10} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               Không có sản phẩm
                             </Typography>
@@ -1459,20 +1705,38 @@ const CustomerOrderList = () => {
               {/* Tổng tiền */}
               {orderDetails.details && orderDetails.details.length > 0 && (
                 <Box sx={{ mb: 2, textAlign: 'right' }}>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    Tạm tính: {formatCurrency(
-                      orderDetails.details.reduce((sum, detail) => {
-                        return sum + (detail.subtotal ?? 0);
-                      }, 0)
-                    )} đ
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Tổng tiền sau thuế: {formatCurrency(
-                      orderDetails.details.reduce((sum, detail) => {
-                        return sum + (detail.subtotalAfterTax ?? 0);
-                      }, 0)
-                    )} đ
-                  </Typography>
+                  {(() => {
+                    const totalBeforeTax = orderDetails.details.reduce((sum, detail) => {
+                      const subtotalBeforeTax =
+                        detail.subtotalBeforeTax ??
+                        detail.subtotal ??
+                        detail.Subtotal ??
+                        0;
+                      return sum + subtotalBeforeTax;
+                    }, 0);
+                    const totalAfterTax = orderDetails.details.reduce((sum, detail) => {
+                      const subtotalAfterTax =
+                        detail.subtotalAfterTax ??
+                        detail.SubtotalAfterTax ??
+                        0;
+                      return sum + subtotalAfterTax;
+                    }, 0);
+                    const totalTax = totalAfterTax - totalBeforeTax;
+
+                    return (
+                      <>
+                        <Typography variant="body1" sx={{ mb: 0.5 }}>
+                          Tổng tiền trước thuế: {formatCurrency(totalBeforeTax)}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 0.5 }}>
+                          Thuế: {formatCurrency(totalTax)}
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                          Tổng tiền sau thuế: {formatCurrency(totalAfterTax)}
+                        </Typography>
+                      </>
+                    );
+                  })()}
                 </Box>
               )}
             </Box>
@@ -1533,7 +1797,7 @@ const CustomerOrderList = () => {
                       Tổng Trị Giá Đơn Hàng:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(paymentOrderDetails.totalAmount)} đ
+                      {formatCurrency(paymentOrderDetails.totalAmount)}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1569,7 +1833,7 @@ const CustomerOrderList = () => {
                       Số Tiền Cần Cọc:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(paymentOrderDetails.remainingDeposit)} đ
+                      {formatCurrency(getDepositAmountValue(paymentOrderDetails))}
                     </Typography>
                   </Box>
                 </Box>
@@ -1599,7 +1863,7 @@ const CustomerOrderList = () => {
                       <>
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {formatCurrency(vnPayInitData?.amount ?? paymentOrderDetails.remainingDeposit)} đ
+                            {formatCurrency(vnPayInitData?.amount ?? paymentOrderDetails.remainingDeposit)}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'center' }}>

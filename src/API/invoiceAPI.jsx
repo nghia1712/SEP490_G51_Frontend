@@ -3,25 +3,31 @@ import authorApi from "./baseAPI/authorAPI";
 const API_URL = "/Invoice";
 
 const invoiceAPI = {
-  generateFromPaymentRemains: (payload) =>
-    authorApi.post(`${API_URL}/generate-from-payment-remains`, payload),
+  generateFromGoodsIssueNotes: (payload) =>
+    authorApi.post(`${API_URL}/generate-from-goods-issue-note`, payload),
 
   getInvoicePdf: (id) =>
     authorApi.get(`${API_URL}/${id}/pdf`, { responseType: "blob" }),
 
   sendInvoiceEmail: (id) => authorApi.post(`${API_URL}/${id}/send-email`),
-  
-  // Get list of invoices
+
   getInvoiceList: () => authorApi.get(`${API_URL}/get-all/invoices`),
-  
-  // Get invoice by id
+
   getInvoiceById: (id) => authorApi.get(`${API_URL}/${id}/invoice/details`),
-  
-  // Update draft invoice (add/remove payment remains)
-  updateDraftInvoice: (id, data) => authorApi.put(`${API_URL}/${id}/update/draft-invoice`, data),
-  
-  // Send invoice (via email)
-  sendInvoice: (id) => authorApi.post(`${API_URL}/${id}/send-email`),
+
+  updateDraftInvoice: (id, data) =>
+    authorApi.put(`${API_URL}/${id}/update/draft-invoice`, data),
+
+  getSalesOrderCodes: () => authorApi.get(`${API_URL}/sales-order-codes`),
+
+  getGoodsIssueNoteCodesBySalesOrder: (salesOrderCode) =>
+    authorApi.get(
+      `${API_URL}/${encodeURIComponent(
+        salesOrderCode,
+      )}/goods-issue-note-codes`,
+    ),
+
+  getMyInvoices: () => authorApi.get(`${API_URL}/my-invoices`),
 };
 
 export default invoiceAPI;

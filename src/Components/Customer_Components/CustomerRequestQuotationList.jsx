@@ -197,8 +197,9 @@ const CustomerRequestQuotationList = () => {
     return intValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  const renderCurrency = (value) => {
+  const renderCurrency = (value, options = {}) => {
     if (value === null || value === undefined) return '-';
+    const { fontWeight } = options;
     return (
       <Box
         component="span"
@@ -208,20 +209,21 @@ const CustomerRequestQuotationList = () => {
           gap: 0.35,
         }}
       >
-        <Typography component="span" sx={{ fontWeight: 500 }}>
+        <Typography component="span" sx={{ fontWeight: fontWeight ?? 500 }}>
           {formatCurrency(value)}
         </Typography>
-        <Box
-        component="span"
-        sx={{
-          fontSize: '0.8em',
-          lineHeight: 1,
-          borderBottom: '1px solid currentColor',
-          paddingBottom: '1px',
-        }}
-      >
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '0.8em',
+            lineHeight: 1,
+            borderBottom: '1px solid currentColor',
+            paddingBottom: '1px',
+            fontWeight: fontWeight ?? 500,
+          }}
+        >
           đ
-        </Box>
+        </Typography>
       </Box>
     );
   };
@@ -2615,7 +2617,9 @@ const CustomerRequestQuotationList = () => {
                   <Typography component="span" sx={{ fontWeight: 'bold' }}>
                     Tổng tiền sau thuế:
                   </Typography>
-                  <Box component="span">{renderCurrency(orderTotals.after)}</Box>
+                  <Box component="span">
+                    {renderCurrency(orderTotals.after, { fontWeight: 'bold' })}
+                  </Box>
                 </Box>
               </Box>
             </Box>

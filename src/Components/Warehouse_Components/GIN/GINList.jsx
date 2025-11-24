@@ -24,8 +24,8 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
-import { Visibility, Search, Paid } from "@mui/icons-material";
-import paymentRemainAPI from "../../../API/paymentRemainAPI";
+import { Visibility, Search, ReceiptLong } from "@mui/icons-material";
+import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialog";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function GRNList() {
@@ -75,43 +75,31 @@ export default function GRNList() {
     );
   }, [search, data]);
 
-const handleCreatePaymentRemain = async (ginId) => {
-  if (role !== "accountant_staff") {
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
+
+  const handleOpenInvoiceDialog = (row) => {
+    setInvoiceDialogContext({
+      goodsIssueNoteCode: row.goodsIssueNoteCode,
+      salesOrderCode: row.salesOrderCode || row.stockExportOrderCode || "",
+    });
+    setInvoiceDialogOpen(true);
+  };
+
+  const handleCloseInvoiceDialog = () => {
+    setInvoiceDialogOpen(false);
+    setInvoiceDialogContext(null);
+  };
+
+  const handleInvoiceSuccess = (message) => {
     setSnack({
       open: true,
-      severity: "error",
-      message: "Bạn không có quyền tạo yêu cầu thanh toán!",
+      severity: "success",
+      message: message || "Tạo hóa đơn từ phiếu xuất kho thành công",
     });
-    return;
-  }
-
-  try {
-    const res = await paymentRemainAPI.createPaymentRemainRequest(ginId);
-
-    const isOk = !!res.data?.message;
-
-    setSnack({
-      open: true,
-      severity: isOk ? "success" : "error",
-      message: res.data?.message || "Không thể tạo yêu cầu thanh toán",
-    });
-
-    if (res.data?.success) {
-      refetch();
-    }
-  } catch (err) {
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      "Lỗi không xác định khi tạo yêu cầu thanh toán";
-
-    setSnack({
-      open: true,
-      severity: "error",
-      message: errorMessage,
-    });
-  }
-};
+    refetch();
+    handleCloseInvoiceDialog();
+  };
 
 
   return (
@@ -207,13 +195,13 @@ const handleCreatePaymentRemain = async (ginId) => {
 
                         {/* ⬅️ Chỉ hiện nút thanh toán cho accountant_staff */}
                         {role === "accountant_staff" && (
-                          <Tooltip title="Tạo yêu cầu thanh toán phần còn lại">
+                          <Tooltip title="Tạo hóa đơn từ phiếu xuất kho">
                             <IconButton
                               color="success"
                               size="small"
-                              onClick={() => handleCreatePaymentRemain(row.id)}
+                              onClick={() => handleOpenInvoiceDialog(row)}
                             >
-                              <Paid />
+                              <ReceiptLong />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -336,6 +324,16 @@ const handleCreatePaymentRemain = async (ginId) => {
           {snack.message}
         </Alert>
       </Snackbar>
+
+      <InvoiceCreationDialog
+        open={invoiceDialogOpen}
+        onClose={handleCloseInvoiceDialog}
+        defaultSalesOrderCode={invoiceDialogContext?.salesOrderCode || ""}
+        defaultGoodsIssueNoteCode={
+          invoiceDialogContext?.goodsIssueNoteCode || ""
+        }
+        onSuccess={handleInvoiceSuccess}
+      />
     </Box>
   );
 }
