@@ -32,6 +32,17 @@ const debtStatusMap = {
   6: { label: "Quá hạn", color: "secondary" },
 };
 
+const entityTypeLabel = (type) => {
+  switch (type) {
+    case 1:
+      return "Nhà cung cấp";
+    case 2:
+      return "Khách hàng";
+    default:
+      return "Không xác định";
+  }
+};
+
 export default function DebtList() {
   const {
     debtList,
@@ -111,13 +122,13 @@ export default function DebtList() {
               <TableHead>
                 <TableRow>
                   <TableCell align="center">#</TableCell>
-                  <TableCell align="center">Nợ phải trả</TableCell>
                   <TableCell align="center">Thể loại nợ</TableCell>
                   <TableCell align="center">Thuộc về</TableCell>
-                  <TableCell align="center">Ngày trả gần nhất</TableCell>
+                  <TableCell align="center">Phải trả</TableCell>
                   <TableCell align="center">Trạng thái</TableCell>
                   <TableCell align="center">Dư nợ</TableCell>
                   <TableCell align="center">Ngày tạo</TableCell>
+                  <TableCell align="center">Ngày trả</TableCell>
                   <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -137,10 +148,6 @@ export default function DebtList() {
                       </TableCell>
 
                       <TableCell align="center">
-                        {(item.payables + item.currentDebt)?.toLocaleString()} đ
-                      </TableCell>
-
-                      <TableCell align="center">
                         {item.entityType === 1
                           ? "Nhà cung cấp"
                           : item.entityType === 2
@@ -150,11 +157,7 @@ export default function DebtList() {
 
                       <TableCell align="center">{item.debtName}</TableCell>
 
-                      <TableCell align="center">
-                        {item.payday
-                          ? new Date(item.payday).toLocaleDateString("vi-VN")
-                          : "-"}
-                      </TableCell>
+                      <TableCell>{item.payables.toLocaleString()} đ</TableCell>
 
                       <TableCell align="center">
                         <Chip
@@ -174,7 +177,11 @@ export default function DebtList() {
                       <TableCell align="center">
                         {new Date(item.createdDate).toLocaleDateString("vi-VN")}
                       </TableCell>
-
+                      <TableCell align="center">
+                        {item.payday
+                          ? new Date(item.payday).toLocaleDateString("vi-VN")
+                          : "-"}
+                      </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Chi tiết">
                           <IconButton
@@ -202,71 +209,131 @@ export default function DebtList() {
         </Paper>
       )}
 
-      {/* DETAIL DIALOG */}
-      <Dialog open={openDetail} onClose={handleClose} maxWidth="sm" fullWidth>
+      {/* Detail Dialog */}
+      <Dialog open={openDetail} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>Chi tiết công nợ</DialogTitle>
         <DialogContent dividers>
-          {!selectedDebt ? (
-            <Stack alignItems="center" mt={2}>
-              <CircularProgress />
-            </Stack>
-          ) : (
-            <>
-              {/* CÁC TRƯỜNG GIỮ NGUYÊN TỪ CODE CŨ */}
-              <Table size="small">
-                <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <b>Mã công nợ:</b>
-                    </TableCell>
-                    <TableCell align="right">{`DB-${selectedDebt.reportID}`}</TableCell>
-                  </TableRow>
+          {selectedDebt ? (
+            <Stack spacing={3}>
+              {/* Thông tin cơ bản */}
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Thông tin công nợ
+                </Typography>
 
-                  <TableRow>
-                    <TableCell>
-                      <b>Thể loại nợ:</b>
-                    </TableCell>
-                    <TableCell align="right">
-                      {selectedDebt.entityType === 1
-                        ? "Nhà cung cấp"
-                        : "Khách hàng"}
-                    </TableCell>
-                  </TableRow>
+                <Stack spacing={1}>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Mã công nợ:</Typography>
+                    <Typography fontWeight="bold">{`DB-${selectedDebt.reportID}`}</Typography>
+                  </Stack>
 
-                  <TableRow>
-                    <TableCell>
-                      <b>Thuộc về:</b>
-                    </TableCell>
-                    <TableCell align="right">{selectedDebt.debtName}</TableCell>
-                  </TableRow>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Loại thực thể:</Typography>
+                    <Typography>
+                      {entityTypeLabel(selectedDebt.entityType)}
+                    </Typography>
+                  </Stack>
 
-                  <TableRow>
-                    <TableCell>
-                      <b>Dư nợ:</b>
-                    </TableCell>
-                    <TableCell align="right" style={{ color: "red" }}>
-                      {selectedDebt.currentDebt.toLocaleString()} đ
-                    </TableCell>
-                  </TableRow>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Thuộc về:</Typography>
+                    <Typography>{selectedDebt.debtName}</Typography>
+                  </Stack>
 
-                  <TableRow>
-                    <TableCell>
-                      <b>Ngày tạo:</b>
-                    </TableCell>
-                    <TableCell align="right">
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Phải trả:</Typography>
+                    <Typography>
+                      {selectedDebt.payables?.toLocaleString()} đ
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Dư nợ:</Typography>
+                    <Typography>
+                      {selectedDebt.currentDebt?.toLocaleString()} đ
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Ngày tạo:</Typography>
+                    <Typography>
                       {new Date(selectedDebt.createdDate).toLocaleDateString(
                         "vi-VN"
                       )}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </>
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography>Ngày thanh toán:</Typography>
+                    <Typography>
+                      {selectedDebt.payday
+                        ? new Date(selectedDebt.payday).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : "-"}
+                    </Typography>
+                  </Stack>
+
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Typography>Trạng thái:</Typography>
+                    <Chip
+                      label={
+                        debtStatusMap[selectedDebt.status]?.label ||
+                        "Không xác định"
+                      }
+                      color={
+                        debtStatusMap[selectedDebt.status]?.color || "default"
+                      }
+                      size="small"
+                    />
+                  </Stack>
+                </Stack>
+              </Paper>
+
+              {/* Danh sách PO */}
+              {selectedDebt.viewDebtPODTOs?.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Danh sách đơn hàng liên quan
+                  </Typography>
+
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell align="center">Đơn hàng</TableCell>
+                        <TableCell align="right">Tổng tiền</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedDebt.viewDebtPODTOs.map((po) => (
+                        <TableRow key={po.poid}>
+                          <TableCell align="center">{`PO-${po.poid}`}</TableCell>
+                          <TableCell align="right">
+                            {po.toatlPo?.toLocaleString()} đ
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
+              )}
+            </Stack>
+          ) : (
+            <Stack alignItems="center" mt={2}>
+              <CircularProgress />
+            </Stack>
           )}
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={handleClose}>Đóng</Button>
+          <Button onClick={handleClose} variant="contained" color="primary">
+            Đóng
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
