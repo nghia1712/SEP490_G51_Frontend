@@ -156,8 +156,8 @@ const handleCreateGIN = async (item) => {
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h4" fontWeight="bold">
-          Danh sách yêu cầu xuất kho
+        <Typography variant="h5" fontWeight="bold">
+          Yêu cầu xuất kho
         </Typography>
       </Stack>
 

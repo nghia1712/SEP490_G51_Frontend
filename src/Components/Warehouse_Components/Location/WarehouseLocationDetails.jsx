@@ -125,6 +125,17 @@ export default function WarehouseLocationDetailPage() {
     }
   };
 
+  const formatVNDate = (dateStr) => {
+  if (!dateStr) return "-";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "-";
+
+  // Loại bỏ 0001-01-01 (giá trị mặc định C#)
+  if (date.getFullYear() === 1) return "-";
+
+  return date.toLocaleDateString("vi-VN"); // luôn trả về dd/MM/yyyy
+};
+
   const submitInventory = async () => {
     if (!location || !inventorySessionId) return;
     try {
@@ -296,10 +307,10 @@ export default function WarehouseLocationDetailPage() {
                             {lot.inputPrice.toLocaleString()} đ
                           </TableCell>
                           <TableCell>
-                            {new Date(lot.inputDate).toLocaleDateString()}
+                            {formatVNDate(lot.inputDate)}
                           </TableCell>
                           <TableCell>
-                            {new Date(lot.expiredDate).toLocaleDateString()}
+                            {formatVNDate(lot.inputDate)}
                           </TableCell>
                           {inventoryMode && (
                             <TableCell>

@@ -80,7 +80,7 @@ export default function POList() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Danh sách đơn nhập hàng (PO)
+        Đơn nhập hàng (PO)
       </Typography>
 
       {/* Search + Upload */}
