@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -26,8 +26,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  Autocomplete,
   Pagination,
   TableSortLabel,
 } from '@mui/material';
@@ -38,6 +36,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import salesOrderAPI from '../../API/salesOrderAPI';
+import paymentAPI from '../../API/paymentAPI';
 
 const headerTextSx = {
   textTransform: 'uppercase',
@@ -54,7 +53,8 @@ const CustomerOrderList = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -63,18 +63,164 @@ const CustomerOrderList = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentOrderDetails, setPaymentOrderDetails] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('VietQR');
-  const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [vnPayInitData, setVnPayInitData] = useState(null);
+  const [vnPayInitError, setVnPayInitError] = useState('');
+  const [vnPayInitLoading, setVnPayInitLoading] = useState(false);
+  const [redirectingPayment, setRedirectingPayment] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 5;
+  const quotationInfoCache = useRef(new Map());
+  const remainingDepositAmount = paymentOrderDetails?.remainingDeposit ?? 0;
+  const paymentButtonDisabled =
+    redirectingPayment ||
+    vnPayInitLoading ||
+    !paymentOrderDetails ||
+    !vnPayInitData?.paymentUrl ||
+    remainingDepositAmount <= 0;
+
+  const toNumberOrNull = useCallback((value) => {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+
+  const fetchQuotationInfo = useCallback(
+    async (quotationId) => {
+      if (!quotationId) return null;
+      const cacheKey = String(quotationId);
+      if (quotationInfoCache.current.has(cacheKey)) {
+        return quotationInfoCache.current.get(cacheKey);
+      }
+      try {
+        const res = await salesOrderAPI.getQuotationInfo(quotationId);
+        const info = res.data?.data ?? null;
+        if (info) {
+          quotationInfoCache.current.set(cacheKey, info);
+        }
+        return info;
+      } catch (error) {
+        console.warn('Không thể lấy thông tin báo giá cho đơn hàng:', quotationId, error);
+        return null;
+      }
+    },
+    [],
+  );
+
+  const buildDepositInfo = useCallback(
+    async (orderData, totalAmountHint) => {
+      if (!orderData) {
+        return {
+          depositPercent: null,
+          depositAmount: null,
+          remainingDeposit: 0,
+          paidAmount: 0,
+          depositDueDays: null,
+          depositExpiredDate: null,
+        };
+      }
+
+      const totalAmount =
+        totalAmountHint ??
+        orderData.totalAmount ??
+        orderData.TotalAmount ??
+        orderData.totalPrice ??
+        orderData.TotalPrice ??
+        orderData.grandTotal ??
+        0;
+
+      let depositPercent = toNumberOrNull(
+        orderData.depositPercent ??
+          orderData.DepositPercent ??
+          orderData.depositPercentage ??
+          orderData.DepositPercentage ??
+          null,
+      );
+
+      let depositAmount = toNumberOrNull(orderData.depositAmount ?? orderData.DepositAmount ?? null);
+      const paidAmount = toNumberOrNull(
+        orderData.paidAmount ?? orderData.PaidAmount ?? orderData.depositPaidAmount ?? orderData.DepositPaidAmount ?? 0,
+      ) ?? 0;
+      let remainingDeposit = toNumberOrNull(orderData.remainingDeposit ?? orderData.RemainingDeposit ?? null);
+      let depositDueDays = toNumberOrNull(orderData.depositDueDays ?? orderData.DepositDueDays ?? null);
+      let depositExpiredDate = orderData.depositExpiredDate ?? orderData.DepositExpiredDate ?? null;
+      const createdAtValue =
+        orderData.createAt ?? orderData.CreateAt ?? orderData.createdAt ?? orderData.CreatedAt ?? orderData.createdDate ?? orderData.CreatedDate ?? null;
+      const salesQuotationId =
+        orderData.salesQuotationId ?? orderData.SalesQuotationId ?? orderData.salesQuotationID ?? orderData.SalesQuotationID ?? null;
+
+      if ((depositPercent === null || depositDueDays === null || !depositExpiredDate) && salesQuotationId) {
+        const quotationInfo = await fetchQuotationInfo(salesQuotationId);
+        if (quotationInfo) {
+          depositPercent ??= toNumberOrNull(quotationInfo.depositPercent ?? quotationInfo.DepositPercent ?? null);
+          depositDueDays ??= toNumberOrNull(quotationInfo.depositDueDays ?? quotationInfo.DepositDueDays ?? null);
+          if (!depositExpiredDate) {
+            depositExpiredDate =
+              quotationInfo.depositExpiredDate ?? quotationInfo.DepositExpiredDate ?? null;
+          }
+        }
+      }
+
+      if (depositAmount === null && depositPercent !== null) {
+        depositAmount = totalAmount * (depositPercent / 100);
+      }
+
+      if (depositPercent === null && depositAmount !== null && totalAmount > 0) {
+        depositPercent = Number(((depositAmount / totalAmount) * 100).toFixed(2));
+      }
+
+      if (remainingDeposit === null) {
+        remainingDeposit = depositAmount !== null ? Math.max(0, depositAmount - paidAmount) : 0;
+      }
+
+      if (!depositExpiredDate && createdAtValue && depositDueDays !== null) {
+        const createdDate = new Date(createdAtValue);
+        if (!Number.isNaN(createdDate.getTime())) {
+          const dueDate = new Date(createdDate);
+          dueDate.setDate(dueDate.getDate() + depositDueDays);
+          depositExpiredDate = dueDate.toISOString();
+        }
+      }
+
+      return {
+        depositPercent,
+        depositAmount,
+        remainingDeposit,
+        paidAmount,
+        depositDueDays,
+        depositExpiredDate,
+      };
+    },
+    [fetchQuotationInfo, toNumberOrNull],
+  );
 
   const applyStatusFilter = useCallback(
     (data) => {
-      if (statusFilter === 'all') return data;
-      const filterStatus = Number(statusFilter);
-      return data.filter((order) => order.status === filterStatus);
+      let filtered = data;
+      
+      // Lọc theo trạng thái đơn hàng
+      if (orderStatusFilter !== 'all') {
+        const filterOrderStatus = Number(orderStatusFilter);
+        filtered = filtered.filter((order) => order.orderStatus === filterOrderStatus);
+      }
+      
+      // Lọc theo trạng thái thanh toán
+      if (paymentStatusFilter !== 'all') {
+        const filterPaymentStatus = Number(paymentStatusFilter);
+        filtered = filtered.filter((order) => {
+          // Nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) thì không có trạng thái thanh toán
+          // Các đơn hàng này sẽ không khớp với bất kỳ filter thanh toán cụ thể nào
+          if (order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3) {
+            return false;
+          }
+          return order.paymentStatus === filterPaymentStatus;
+        });
+      }
+      
+      return filtered;
     },
-    [statusFilter],
+    [orderStatusFilter, paymentStatusFilter],
   );
 
   const fetchOrders = useCallback(async () => {
@@ -162,6 +308,16 @@ const CustomerOrderList = () => {
             paymentStatus = Number(paymentStatus);
           }
 
+          // Đảm bảo trạng thái thanh toán phù hợp với trạng thái đơn hàng
+          // Khi trạng thái đơn hàng là Chấp thuận (2) thì trạng thái thanh toán phải là Chờ thanh toán (0)
+          if (orderStatus === 2 && paymentStatus !== 0) {
+            paymentStatus = 0;
+          }
+          // Khi trạng thái đơn hàng là Hoàn thành (5) thì trạng thái thanh toán phải là Đã thanh toán (2)
+          if (orderStatus === 5 && paymentStatus !== 2) {
+            paymentStatus = 2;
+          }
+
           return {
           id: order.SalesOrderId || order.salesOrderId,
           quotationCode: order.SalesOrderCode || order.salesOrderCode,
@@ -215,7 +371,7 @@ const CustomerOrderList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, sortConfig]);
+  }, [orderStatusFilter, paymentStatusFilter, sortConfig]);
 
   const handleSort = (key) => {
     const isAsc = sortConfig.key === key && sortConfig.direction === 'asc';
@@ -415,33 +571,153 @@ const CustomerOrderList = () => {
     }
   };
 
+  const initVnPayDeposit = useCallback(
+    async (salesOrderId) => {
+      if (!salesOrderId) {
+        setVnPayInitData(null);
+        setVnPayInitError('Không tìm thấy mã đơn hàng để khởi tạo thanh toán.');
+        return;
+      }
+      setVnPayInitLoading(true);
+      setVnPayInitError('');
+      setVnPayInitData(null);
+      try {
+        const payload = {
+          salesOrderId,
+          paymentType: 'deposit',
+          locale: 'vn',
+        };
+        const response = await paymentAPI.init(payload);
+        const data = response.data?.data ?? {};
+        const normalized = {
+          paymentUrl: data.paymentUrl ?? data.PaymentUrl ?? '',
+          qrBase64: data.qrBase64 ?? data.QrBase64 ?? '',
+          amount: data.amount ?? data.Amount ?? null,
+          txnRef: data.txnRef ?? data.TxnRef ?? '',
+        };
+        setVnPayInitData(normalized);
+        if (!normalized.paymentUrl) {
+          setVnPayInitError('Không nhận được link thanh toán từ VNPay.');
+        }
+      } catch (error) {
+        const message = error.response?.data?.message || 'Không thể khởi tạo thanh toán VNPay.';
+        setVnPayInitError(message);
+        setSnackbarMessage(message);
+        setSnackbarOpen(true);
+      } finally {
+        setVnPayInitLoading(false);
+      }
+    },
+    [setSnackbarMessage, setSnackbarOpen],
+  );
+
   const handlePayment = async (orderId) => {
     setPaymentDialogOpen(true);
     setPaymentLoading(true);
     setPaymentOrderDetails(null);
-    setPaymentMethod('VietQR');
+    setVnPayInitData(null);
+    setVnPayInitError('');
+    setVnPayInitLoading(false);
+    setRedirectingPayment(false);
     try {
       const response = await salesOrderAPI.viewDetails(orderId);
       if (response.data && response.data.data) {
         const data = response.data.data;
-        const totalAmount = data.totalAmount ?? data.TotalAmount ?? data.totalPrice ?? data.TotalPrice ?? data.grandTotal ?? 0;
-        const depositPercent = data.depositPercent ?? data.DepositPercent ?? 0;
-        const paidAmount = data.paidAmount ?? data.PaidAmount ?? 0;
-        const depositAmount = totalAmount * (depositPercent / 100);
-        const remainingDeposit = Math.max(0, depositAmount - paidAmount);
+        const totalAmount =
+          data.totalAmount ??
+          data.TotalAmount ??
+          data.totalPrice ??
+          data.TotalPrice ??
+          data.grandTotal ??
+          0;
+        const orderExpiredDate =
+          data.orderExpiredDate ??
+          data.OrderExpiredDate ??
+          data.salesOrderExpiredDate ??
+          data.SalesOrderExpiredDate ??
+          data.expiredDate ??
+          data.ExpiredDate ??
+          null;
+        const {
+          depositPercent,
+          remainingDeposit,
+          paidAmount,
+          depositDueDays,
+          depositExpiredDate,
+        } = await buildDepositInfo(data, totalAmount);
+        const normalizedRemainingDeposit = remainingDeposit ?? 0;
+
+        const paymentStatusRaw =
+          data.paymentStatus ??
+          data.PaymentStatus ??
+          data.paymentStatusValue ??
+          data.PaymentStatusValue ??
+          data.paymentStatusName ??
+          data.PaymentStatusName ??
+          null;
+        let paymentStatus = paymentStatusRaw;
+        if (typeof paymentStatusRaw === 'string') {
+          const paymentMap = {
+            Pending: 0,
+            Deposited: 1,
+            Paid: 2,
+            Success: 3,
+            Failed: 4,
+            Refunded: 5,
+          };
+          paymentStatus = paymentMap[paymentStatusRaw] ?? null;
+        }
+        if (typeof paymentStatus === 'number') {
+          paymentStatus = Number(paymentStatus);
+        }
+        const orderStatusRaw = data.status ?? data.Status ?? data.salesOrderStatus ?? data.SalesOrderStatus ?? null;
+        let orderStatus = orderStatusRaw;
+        if (typeof orderStatusRaw === 'string') {
+          const statusMap = {
+            Draft: 0,
+            Send: 1,
+            Approved: 2,
+            Rejected: 3,
+            Delivered: 4,
+            Complete: 5,
+            NotComplete: 6,
+          };
+          orderStatus = statusMap[orderStatusRaw] ?? null;
+        }
+        if (typeof orderStatus === 'number') {
+          orderStatus = Number(orderStatus);
+        }
+        if (orderStatus === 2 && (paymentStatus === null || paymentStatus === undefined)) {
+          paymentStatus = 0;
+        }
         
+        const salesOrderId = data.salesOrderId ?? data.SalesOrderId;
+
         setPaymentOrderDetails({
-          id: data.salesOrderId ?? data.SalesOrderId,
+          id: salesOrderId,
           code: data.salesOrderCode ?? data.SalesOrderCode,
-          status: data.status ?? data.Status,
+          status: orderStatus,
+          paymentStatus,
           createdAt: data.createAt ?? data.CreateAt,
-          expiredDate: data.orderExpiredDate ?? data.OrderExpiredDate,
-          depositPercent: depositPercent,
+          expiredDate: orderExpiredDate,
+          depositPercent,
           totalAmount: totalAmount,
-          remainingDeposit: remainingDeposit,
-          paidAmount: paidAmount,
+          remainingDeposit: normalizedRemainingDeposit,
+          paidAmount: paidAmount ?? 0,
           createBy: data.createBy ?? data.CreateBy,
+          depositExpiredDate,
+          depositDueDays,
         });
+
+        if (normalizedRemainingDeposit > 0) {
+          if (salesOrderId) {
+            initVnPayDeposit(salesOrderId);
+          } else {
+            setVnPayInitError('Không tìm thấy mã đơn hàng để khởi tạo thanh toán.');
+          }
+        } else {
+          setVnPayInitError('Đơn hàng này không còn số tiền cần cọc.');
+        }
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Không thể tải thông tin đơn hàng';
@@ -452,33 +728,18 @@ const CustomerOrderList = () => {
     }
   };
 
-  const handleSubmitPayment = async () => {
-    if (!paymentOrderDetails) return;
-    
-    setSubmittingPayment(true);
-    try {
-      // Status 4 = Deposited
-      await salesOrderAPI.confirmPayment(paymentOrderDetails.id, 4);
-      setSnackbarMessage('Thanh toán cọc thành công!');
-      setSnackbarOpen(true);
-      setPaymentDialogOpen(false);
-      fetchOrders();
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Không thể xác nhận thanh toán';
-      setSnackbarMessage(errorMessage);
-      setSnackbarOpen(true);
-    } finally {
-      setSubmittingPayment(false);
+  const handleVnPayCheckout = () => {
+    if (redirectingPayment || vnPayInitLoading) {
+      return;
     }
-  };
-
-  const generateVietQRUrl = (amount) => {
-    // VietQR URL format: https://img.vietqr.io/image/{bankCode}-{accountNumber}-{template}.png?amount={amount}&addInfo={addInfo}
-    const bankCode = 'mbbank';
-    const accountNumber = '0377708126';
-    const template = 'compact2';
-    const addInfo = paymentOrderDetails?.code || 'THANH TOAN COC';
-    return `https://img.vietqr.io/image/${bankCode}-${accountNumber}-${template}.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}`;
+    if (!vnPayInitData?.paymentUrl) {
+      const message = vnPayInitError || 'Không tìm thấy link thanh toán VNPay.';
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+    setRedirectingPayment(true);
+    window.location.href = vnPayInitData.paymentUrl;
   };
 
   const handleComplete = async (orderId) => {
@@ -517,13 +778,16 @@ const CustomerOrderList = () => {
       if (response.data && response.data.data) {
         const data = response.data.data;
         console.log('Order details response:', data);
-        const totalAmount = data.totalAmount ?? data.TotalAmount ?? data.totalPrice ?? data.TotalPrice ?? data.grandTotal ?? 0;
-        const depositPercent = data.depositPercent ?? data.DepositPercent ?? 0;
-        const depositDueDays = data.depositDueDays ?? data.DepositDueDays ?? null;
-        const depositExpiredDate = data.depositExpiredDate ?? data.DepositExpiredDate ?? null;
-        const paidAmount = data.paidAmount ?? data.PaidAmount ?? 0;
-        const depositAmount = totalAmount * (depositPercent / 100);
-        const remainingDeposit = data.remainingDeposit ?? data.RemainingDeposit ?? Math.max(0, depositAmount - paidAmount);
+        const totalAmount =
+          data.totalAmount ?? data.TotalAmount ?? data.totalPrice ?? data.TotalPrice ?? data.grandTotal ?? 0;
+        const {
+          depositPercent,
+          depositAmount,
+          remainingDeposit,
+          paidAmount,
+          depositDueDays,
+          depositExpiredDate,
+        } = await buildDepositInfo(data, totalAmount);
         
         // Process details with tax information from backend
         const rawDetails = data.details ?? data.Details ?? data.orderDetails ?? data.OrderDetails ?? data.salesOrderDetails ?? data.SalesOrderDetails ?? [];
@@ -742,7 +1006,7 @@ const CustomerOrderList = () => {
 
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '-';
-    const formatted = new Intl.NumberFormat('vi-VN').format(amount);
+    const formatted = new Intl.NumberFormat('vi-VN').format(amount).replace(/\./g, ',');
     return (
       <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
         <Box component="span">{formatted}</Box>
@@ -777,21 +1041,38 @@ const CustomerOrderList = () => {
       {/* Filter */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
+          <InputLabel id="order-status-filter-label">Lọc theo trạng thái đơn hàng</InputLabel>
           <Select
-            labelId="status-filter-label"
-            value={statusFilter}
-            label="Lọc theo trạng thái"
-            onChange={(e) => setStatusFilter(e.target.value)}
+            labelId="order-status-filter-label"
+            value={orderStatusFilter}
+            label="Lọc theo trạng thái đơn hàng"
+            onChange={(e) => setOrderStatusFilter(e.target.value)}
           >
             <MenuItem value="all">Tất cả</MenuItem>
             <MenuItem value="0">Nháp</MenuItem>
             <MenuItem value="1">Đã Gửi</MenuItem>
-            <MenuItem value="2">Đã Chấp Thuận</MenuItem>
-            <MenuItem value="3">Đã Từ Chối</MenuItem>
-            <MenuItem value="4">Đã Cọc</MenuItem>
-            <MenuItem value="5">Đã Thanh Toán</MenuItem>
-            <MenuItem value="6">Hoàn Thành</MenuItem>
+            <MenuItem value="2">Chấp Thuận</MenuItem>
+            <MenuItem value="3">Từ Chối</MenuItem>
+            <MenuItem value="4">Đã Giao Hàng</MenuItem>
+            <MenuItem value="5">Hoàn Thành</MenuItem>
+            <MenuItem value="6">Chưa Hoàn Thành</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel id="payment-status-filter-label">Lọc theo trạng thái thanh toán</InputLabel>
+          <Select
+            labelId="payment-status-filter-label"
+            value={paymentStatusFilter}
+            label="Lọc theo trạng thái thanh toán"
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
+          >
+            <MenuItem value="all">Tất cả</MenuItem>
+            <MenuItem value="0">Chờ Thanh Toán</MenuItem>
+            <MenuItem value="1">Đã Cọc</MenuItem>
+            <MenuItem value="2">Đã Thanh Toán</MenuItem>
+            <MenuItem value="3">Thành Công</MenuItem>
+            <MenuItem value="4">Thất Bại</MenuItem>
+            <MenuItem value="5">Trả Lại Tiền</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -1084,7 +1365,7 @@ const CustomerOrderList = () => {
                       Số tiền đã cọc:
                     </Typography>
                     <Typography variant="body1">
-                      {formatCurrency(orderDetails.paidAmount)} VNĐ
+                      {formatCurrency(orderDetails.paidAmount)} đ
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1092,7 +1373,7 @@ const CustomerOrderList = () => {
                       Số tiền cần cọc:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(orderDetails.remainingDeposit)} VNĐ
+                      {formatCurrency(orderDetails.remainingDeposit)} đ
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1100,7 +1381,7 @@ const CustomerOrderList = () => {
                       Tổng tiền đơn hàng:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(orderDetails.totalAmount)} VNĐ
+                      {formatCurrency(orderDetails.totalAmount)} đ
                     </Typography>
                   </Box>
                 </Box>
@@ -1183,14 +1464,14 @@ const CustomerOrderList = () => {
                       orderDetails.details.reduce((sum, detail) => {
                         return sum + (detail.subtotal ?? 0);
                       }, 0)
-                    )} VNĐ
+                    )} đ
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                     Tổng tiền sau thuế: {formatCurrency(
                       orderDetails.details.reduce((sum, detail) => {
                         return sum + (detail.subtotalAfterTax ?? 0);
                       }, 0)
-                    )} VNĐ
+                    )} đ
                   </Typography>
                 </Box>
               )}
@@ -1212,7 +1493,7 @@ const CustomerOrderList = () => {
         fullWidth
       >
         <DialogTitle sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
-          Thanh Toán Tiền Cọc Đơn Mua
+          Thanh Toán Tiền Cọc Đơn Hàng
         </DialogTitle>
         <DialogContent>
           {paymentLoading ? (
@@ -1235,20 +1516,24 @@ const CustomerOrderList = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Trạng thái:
+                      Trạng thái thanh toán:
                     </Typography>
-                    <Chip
-                      label={getStatusLabel(paymentOrderDetails.status)}
-                      color={getStatusColor(paymentOrderDetails.status)}
-                      size="small"
-                    />
+                    {paymentOrderDetails.paymentStatus !== undefined && paymentOrderDetails.paymentStatus !== null ? (
+                      <Chip
+                        label={getPaymentStatusLabel(paymentOrderDetails.paymentStatus)}
+                        size="small"
+                        sx={{ ...getPaymentStatusColor(paymentOrderDetails.paymentStatus), fontWeight: 500 }}
+                      />
+                    ) : (
+                      <Typography variant="body1">-</Typography>
+                    )}
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Tổng Trị Giá Đơn Hàng:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(paymentOrderDetails.totalAmount)} VND
+                      {formatCurrency(paymentOrderDetails.totalAmount)} đ
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1261,10 +1546,22 @@ const CustomerOrderList = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
+                      Ngày hết hạn cọc:
+                    </Typography>
+                    <Typography variant="body1">
+                      {paymentOrderDetails.depositExpiredDate
+                        ? formatDate(paymentOrderDetails.depositExpiredDate)
+                        : '-'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
                       Cọc (% đơn hàng):
                     </Typography>
                     <Typography variant="body1">
-                      {paymentOrderDetails.depositPercent ? `${paymentOrderDetails.depositPercent}%` : '-'}
+                      {paymentOrderDetails.depositPercent !== undefined && paymentOrderDetails.depositPercent !== null
+                        ? `${paymentOrderDetails.depositPercent}%`
+                        : '-'}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 2 }}>
@@ -1272,70 +1569,74 @@ const CustomerOrderList = () => {
                       Số Tiền Cần Cọc:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(paymentOrderDetails.remainingDeposit)} VND
+                      {formatCurrency(paymentOrderDetails.remainingDeposit)} đ
                     </Typography>
                   </Box>
                 </Box>
                 
                 {/* Cột phải */}
                 <Box sx={{ flex: 1 }}>
-                  {/* Phương thức thanh toán */}
                   <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                      Phương Thức Thanh Toán:
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Phương thức thanh toán:
                     </Typography>
-                    <Autocomplete
-                      value={paymentMethod}
-                      onChange={(event, newValue) => {
-                        setPaymentMethod(newValue);
-                      }}
-                      options={['VietQR']}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Chọn phương thức thanh toán"
-                          variant="outlined"
-                          fullWidth
-                        />
-                      )}
-                    />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      VNPay
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Khởi tạo mã VNPay để khách quét QR hoặc chuyển hướng tới cổng VNPay.
+                    </Typography>
                   </Box>
 
-                  {/* QR Code */}
-                  {paymentMethod === 'VietQR' && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                      <Box
-                        sx={{
-                          width: 300,
-                          height: 300,
-                          border: '1px solid #e0e0e0',
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: '#f5f5f5',
-                          position: 'relative',
-                        }}
-                      >
-                        <img
-                          src={generateVietQRUrl(paymentOrderDetails.remainingDeposit)}
-                          alt="VietQR Code"
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            objectFit: 'contain',
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            const errorDiv = document.createElement('div');
-                            errorDiv.style.cssText = 'color: #999; text-align: center; padding: 20px;';
-                            errorDiv.textContent = 'Không thể tải QR Code';
-                            e.target.parentElement.appendChild(errorDiv);
-                          }}
-                        />
+                  <Box sx={{ minHeight: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {vnPayInitLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+                        <CircularProgress />
                       </Box>
-                    </Box>
-                  )}
+                    ) : vnPayInitError ? (
+                      <Alert severity="warning">{vnPayInitError}</Alert>
+                    ) : (
+                      <>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {formatCurrency(vnPayInitData?.amount ?? paymentOrderDetails.remainingDeposit)} đ
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 280,
+                              height: 280,
+                              border: '1px solid #e0e0e0',
+                              borderRadius: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#f5f5f5',
+                              p: 1,
+                            }}
+                          >
+                            {vnPayInitData?.qrBase64 ? (
+                              <img
+                                src={`data:image/png;base64,${vnPayInitData.qrBase64}`}
+                                alt="VNPay QR"
+                                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                              />
+                            ) : (
+                              <Typography variant="body2" color="text.secondary" textAlign="center">
+                                Chưa có mã QR VNPay khả dụng
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        {vnPayInitData?.txnRef && (
+                          <Typography variant="body2" color="text.secondary" textAlign="center">
+                            Mã giao dịch: {vnPayInitData.txnRef}
+                          </Typography>
+                        )}
+                      </>
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -1344,17 +1645,17 @@ const CustomerOrderList = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPaymentDialogOpen(false)} disabled={submittingPayment}>
+          <Button onClick={() => setPaymentDialogOpen(false)} disabled={redirectingPayment}>
             Hủy
           </Button>
           <Button
-            onClick={handleSubmitPayment}
+            onClick={handleVnPayCheckout}
             variant="contained"
             color="primary"
-            disabled={submittingPayment || !paymentOrderDetails}
-            startIcon={submittingPayment ? <CircularProgress size={20} /> : <PaymentIcon />}
+            disabled={paymentButtonDisabled}
+            startIcon={redirectingPayment ? <CircularProgress size={20} /> : <PaymentIcon />}
           >
-            {submittingPayment ? 'Đang xử lý...' : 'Thanh toán cọc'}
+            {redirectingPayment ? 'Đang chuyển hướng...' : 'Thanh toán VNPay'}
           </Button>
         </DialogActions>
       </Dialog>

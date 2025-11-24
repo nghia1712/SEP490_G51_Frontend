@@ -76,7 +76,6 @@ const AccountantTaxPolicy = () => {
 
   const handleOpenCreateDialog = () => {
     setEditingTax(null);
-    setEditingOriginalStatus(false);
     setDialogLoading(false);
     setFormData({
       name: '',
