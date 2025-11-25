@@ -23,6 +23,10 @@ import {
   FormHelperText,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import viLocale from "date-fns/locale/vi";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
 import salesOrderAPI from "../../../API/salesOrderAPI";
@@ -324,37 +328,28 @@ export default function StockExportForm() {
                 )}
               </FormControl>
 
-              <TextField
-                label="Ngày xuất"
-                type="date"
-                value={form.dueDate}
-                InputLabelProps={{ shrink: true }}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm({ ...form, dueDate: value });
-
-                  if (form.salesOrderId && form.apiDueDate) {
-                    const selected = new Date(value);
-                    const maxDate = new Date(form.apiDueDate);
-                    if (selected > maxDate) {
-                      setSnack({
-                        open: true,
-                        severity: "error",
-                        message: `Ngày xuất không được vượt quá ngày giao hàng dự kiến ${maxDate.toLocaleDateString(
-                          "vi-VN"
-                        )}`,
-                      });
-                    }
-                  } else if (!form.salesOrderId) {
-                    setSnack({
-                      open: true,
-                      severity: "error",
-                      message:
-                        "Vui lòng chọn đơn hàng trước khi chọn ngày xuất",
-                    });
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                locale={viLocale}
+              >
+                <DatePicker
+                  label="Ngày xuất"
+                  value={form.dueDate ? new Date(form.dueDate) : null}
+                  onChange={(newValue) => {
+                    if (!newValue) return;
+                    const value = newValue.toISOString().split("T")[0];
+                    setForm((prev) => ({ ...prev, dueDate: value }));
+                  }}
+                  minDate={new Date()}
+                  maxDate={
+                    form.apiDueDate ? new Date(form.apiDueDate) : undefined
                   }
-                }}
-              />
+                  format="dd/MM/yyyy"
+                  slotProps={{
+                    textField: { size: "small", fullWidth: false },
+                  }}
+                />
+              </LocalizationProvider>
             </Stack>
 
             {/* Chi tiết lô */}

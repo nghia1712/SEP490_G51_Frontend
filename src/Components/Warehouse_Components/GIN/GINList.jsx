@@ -32,7 +32,7 @@ export default function GRNList() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const role = getUserRoleFromToken(); // ⬅️ Lấy role
+  const role = getUserRoleFromToken();
 
   const {
     data,
@@ -263,9 +263,7 @@ export default function GRNList() {
                 <Typography>
                   <b>Ngày tạo:</b>{" "}
                   {selectedExport.createAt
-                    ? new Date(selectedExport.createAt).toLocaleDateString(
-                        "vi-VN"
-                      )
+                    ? new Date(selectedExport.createAt)
                     : "-"}
                 </Typography>
 
