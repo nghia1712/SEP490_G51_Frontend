@@ -6,7 +6,7 @@ export const mapStockExportStatus = (status) => {
     case 0:
       return "Nháp";
     case 1:
-      return "Đã gửi";
+      return "Chờ xử lý";
     case 2:
       return "Đã xuất kho";
     case 3:

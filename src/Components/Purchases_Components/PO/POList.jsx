@@ -123,8 +123,8 @@ export default function POList() {
         </Stack>
       ) : (
         <Paper>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>#</TableCell>
@@ -213,6 +213,7 @@ export default function POList() {
               </TableBody>
             </Table>
           </TableContainer>
+
           {filteredPOs.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
               <Pagination

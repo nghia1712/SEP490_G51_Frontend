@@ -55,6 +55,12 @@ export default function GRNList() {
     renderGINStatus,
   } = useGIN();
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedData = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   const [filtered, setFiltered] = useState([]);
 
   // =========================
@@ -101,7 +107,6 @@ export default function GRNList() {
     handleCloseInvoiceDialog();
   };
 
-
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -141,77 +146,94 @@ export default function GRNList() {
         </Stack>
       ) : (
         <Paper>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Phiếu xuất kho</TableCell>
-                <TableCell>Kho</TableCell>
-                <TableCell>Ngày tạo</TableCell>
-                <TableCell>Mô tả</TableCell>
-                <TableCell>Người phụ trách</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Mã yêu cầu</TableCell>
-                <TableCell align="center">Thao tác</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.length === 0 ? (
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    Không có dữ liệu
-                  </TableCell>
+                  <TableCell>#</TableCell>
+                  <TableCell>Phiếu xuất kho</TableCell>
+                  <TableCell>Kho</TableCell>
+                  <TableCell>Ngày tạo</TableCell>
+                  <TableCell>Mô tả</TableCell>
+                  <TableCell>Người tạo</TableCell>
+                  <TableCell>Trạng thái</TableCell>
+                  <TableCell>Mã yêu cầu</TableCell>
+                  <TableCell align="center">Thao tác</TableCell>
                 </TableRow>
-              ) : (
-                filtered.map((row, idx) => (
-                  <TableRow key={row.id + "_" + idx}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{row.goodsIssueNoteCode}</TableCell>
-                    <TableCell>{row.warehouseName}</TableCell>
-                    <TableCell>
-                      {row.createAt
-                        ? new Date(row.createAt).toLocaleDateString("vi-VN")
-                        : "-"}
-                    </TableCell>
-                    <TableCell>{row.note}</TableCell>
-                    <TableCell>{row.createBy}</TableCell>
-                    <TableCell>{renderGINStatus(row.status)}</TableCell>
-                    <TableCell>{row.stockExportOrderCode}</TableCell>
-                    <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                      >
-                        <Tooltip title="Xem chi tiết">
-                          <IconButton
-                            color="primary"
-                            size="small"
-                            onClick={() => handleViewDetail(row)}
-                          >
-                            <Visibility />
-                          </IconButton>
-                        </Tooltip>
+              </TableHead>
 
-                        {/* ⬅️ Chỉ hiện nút thanh toán cho accountant_staff */}
-                        {role === "accountant_staff" && (
-                          <Tooltip title="Tạo hóa đơn từ phiếu xuất kho">
-                            <IconButton
-                              color="success"
-                              size="small"
-                              onClick={() => handleOpenInvoiceDialog(row)}
-                            >
-                              <ReceiptLong />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
+              <TableBody>
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center">
+                      Không có dữ liệu
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  paginatedData.map((row, idx) => (
+                    <TableRow key={row.id + "_" + idx}>
+                      <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
+                      <TableCell>{row.goodsIssueNoteCode}</TableCell>
+                      <TableCell>{row.warehouseName}</TableCell>
+                      <TableCell>
+                        {row.createAt
+                          ? new Date(row.createAt).toLocaleDateString("vi-VN")
+                          : "-"}
+                      </TableCell>
+                      <TableCell>{row.note}</TableCell>
+                      <TableCell>{row.createBy}</TableCell>
+                      <TableCell>
+                        {row.status === 1 && role !== "warehouse_staff"
+                          ? "Chờ xử lý"
+                          : renderGINStatus(row.status)}
+                      </TableCell>
+                      <TableCell>{row.stockExportOrderCode}</TableCell>
+                      <TableCell align="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
+                        >
+                          <Tooltip title="Xem chi tiết">
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              onClick={() => handleViewDetail(row)}
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+
+                          {role === "accountant_staff" && (
+                            <Tooltip title="Tạo hóa đơn từ phiếu xuất kho">
+                              <IconButton
+                                color="success"
+                                size="small"
+                                onClick={() => handleOpenInvoiceDialog(row)}
+                              >
+                                <ReceiptLong />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {/* Pagination */}
+            {filtered.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </TableContainer>
         </Paper>
       )}
 

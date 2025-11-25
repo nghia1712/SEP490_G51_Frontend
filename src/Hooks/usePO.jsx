@@ -4,12 +4,12 @@ import poApi from "../API/poAPI";
 import prfqApi from "../API/prfqAPI";
 
 export const statusMap = {
-  0: { label: "Đã duyệt", color: "success" },
+  0: { label: "Chấp thuận", color: "success" },
   1: { label: "Từ chối", color: "error" },
   3: { label: "Đã đặt cọc", color: "info" },
   4: { label: "Thanh toán một phần", color: "primary" },
   5: { label: "Hoàn thành", color: "secondary" },
-  6: { label: "Đã gửi", color: "warning" },
+  6: { label: "Chờ xử lý", color: "warning" },
   7: { label: "Nháp", color: "default" },
 };
 

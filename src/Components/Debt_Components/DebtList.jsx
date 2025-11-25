@@ -110,15 +110,14 @@ export default function DebtList() {
         )}
       </Paper>
 
-      {/* TABLE */}
       {debtLoading ? (
         <Stack alignItems="center" mt={4}>
           <CircularProgress />
         </Stack>
       ) : (
         <Paper>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell align="center">#</TableCell>
@@ -146,7 +145,6 @@ export default function DebtList() {
                       <TableCell align="center">
                         {(page - 1) * rowsPerPage + idx + 1}
                       </TableCell>
-
                       <TableCell align="center">
                         {item.entityType === 1
                           ? "Nhà cung cấp"
@@ -154,11 +152,8 @@ export default function DebtList() {
                           ? "Khách hàng"
                           : "Không xác định"}
                       </TableCell>
-
                       <TableCell align="center">{item.debtName}</TableCell>
-
                       <TableCell>{item.payables.toLocaleString()} đ</TableCell>
-
                       <TableCell align="center">
                         <Chip
                           label={
@@ -169,11 +164,9 @@ export default function DebtList() {
                           size="small"
                         />
                       </TableCell>
-
                       <TableCell align="center">
                         {item.currentDebt.toLocaleString()} đ
                       </TableCell>
-
                       <TableCell align="center">
                         {new Date(item.createdDate).toLocaleDateString("vi-VN")}
                       </TableCell>

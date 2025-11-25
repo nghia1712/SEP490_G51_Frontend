@@ -366,8 +366,8 @@ export default function StockExportForm() {
                     <TableCell>STT</TableCell>
                     <TableCell>Sản phẩm</TableCell>
                     <TableCell>Đơn vị</TableCell>
-                    <TableCell>Lô</TableCell>
-                    <TableCell>Kho</TableCell>
+                    {/* <TableCell>Lô</TableCell>
+                    <TableCell>Kho</TableCell> */}
                     <TableCell>Hạn dùng</TableCell>
                     <TableCell>Số lượng</TableCell>
                     <TableCell align="center">Số lượng có thể xuất</TableCell>
@@ -380,9 +380,8 @@ export default function StockExportForm() {
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{d.productName}</TableCell>
                       <TableCell>{d.unit}</TableCell>
-
-                      <TableCell>{d.lotId}</TableCell>
-                      <TableCell>{d.warehouse}</TableCell>
+                      {/* <TableCell>{d.lotId}</TableCell>
+                      <TableCell>{d.warehouse}</TableCell> */}
                       <TableCell>
                         {d.expiredDate
                           ? new Date(d.expiredDate).toLocaleDateString("vi-VN")

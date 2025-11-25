@@ -128,9 +128,9 @@ export default function GRNListPage() {
         </Stack>
       ) : (
         <Paper>
-          <TableContainer>
-            <Table>
-              <TableHead>
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader>
+              <TableHead sx={{ background: "#eee", fontWeight: "bold" }}>
                 <TableRow>
                   <TableCell>#</TableCell>
                   <TableCell align="center">Phiếu nhập kho</TableCell>
@@ -166,7 +166,11 @@ export default function GRNListPage() {
                       </TableCell>
                       <TableCell>{row.createBy}</TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
+                        >
                           <Tooltip title="Xem chi tiết">
                             <IconButton
                               color="primary"
@@ -199,7 +203,7 @@ export default function GRNListPage() {
         </Paper>
       )}
 
-   {/* Create GRN Dialog */}
+      {/* Create GRN Dialog */}
       <Dialog
         open={openCreate}
         onClose={() => setOpenCreate(false)}
@@ -402,7 +406,9 @@ export default function GRNListPage() {
                           <TableCell>{idx + 1}</TableCell>
                           <TableCell>{item.productName}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.unitPrice?.toLocaleString()}</TableCell>
+                          <TableCell>
+                            {item.unitPrice?.toLocaleString()}
+                          </TableCell>
                           <TableCell>
                             {(item.quantity * item.unitPrice)?.toLocaleString()}
                           </TableCell>

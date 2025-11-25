@@ -86,7 +86,7 @@ export default function PQList() {
         variant="h5"
         sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
       >
-        💼 Quản lý báo giá NCC
+        Báo giá nhập
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
@@ -108,11 +108,11 @@ export default function PQList() {
           />
         </Stack>
       </Paper>
-
+      
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+        <TableContainer sx={{ maxHeight: 500 }}>
+          <Table stickyHeader>
+            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Mã báo giá</TableCell>
@@ -123,6 +123,7 @@ export default function PQList() {
                 <TableCell align="center">Hành động</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {loading ? (
                 <TableRow>
@@ -189,6 +190,7 @@ export default function PQList() {
             </TableBody>
           </Table>
         </TableContainer>
+
         {filtered.length > 0 && (
           <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
             <Pagination

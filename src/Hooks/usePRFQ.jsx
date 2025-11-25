@@ -5,8 +5,8 @@ import supplierAPI from "../API/supplierAPI";
 import productAPI from "../API/productAPI";
 
 export const statusMap = {
-  1: { label: "Đã gửi", color: "info" },
-  2: { label: "Đã duyệt", color: "success" },
+  1: { label: "Chờ xử lý", color: "info" },
+  2: { label: "Chấp thuận", color: "success" },
   3: { label: "Từ chối", color: "error" },
   4: { label: "Nháp", color: "default" },
 };

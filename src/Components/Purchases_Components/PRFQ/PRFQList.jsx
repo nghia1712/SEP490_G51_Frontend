@@ -169,9 +169,9 @@ export default function PRFQList() {
 
       {/* ===== Table ===== */}
       <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+        <TableContainer sx={{ maxHeight: 500 }}>
+          <Table stickyHeader>
+            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Mã yêu cầu</TableCell>
@@ -185,6 +185,7 @@ export default function PRFQList() {
                 <TableCell align="center">Hành động</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {loading ? (
                 <TableRow>
@@ -215,7 +216,9 @@ export default function PRFQList() {
                     <TableCell align="center">
                       {(() => {
                         const { label, color } = getStatus(row.status);
-                        return <Chip label={label} color={color} size="small" />;
+                        return (
+                          <Chip label={label} color={color} size="small" />
+                        );
                       })()}
                     </TableCell>
                     <TableCell align="center">{row.createdBy || "—"}</TableCell>
