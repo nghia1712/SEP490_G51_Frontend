@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Row, Col, Form, Button, Alert, InputGroup } from "react-bootstrap";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import adminAPI from "../../API/adminAPI";
+import userAPI from "../../API/userAPI";
 
 function CreateStaff({ onClose, onCreated }) {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ function CreateStaff({ onClose, onCreated }) {
     userName: "", // Add UserName field
     phoneNumber: "",
     password: "",
-    avatar: "", // Add avatar field back
     address: "",
     gender: true, // true=Nam, false=Nữ
     employeeCode: null, // Backend sẽ tự động generate
@@ -28,11 +28,66 @@ function CreateStaff({ onClose, onCreated }) {
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [countdown, setCountdown] = useState(0);
   const [closeAfterCountdown, setCloseAfterCountdown] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...data, [name]: value });
   };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setStatusMessage("Vui lòng chọn file hình ảnh hợp lệ (jpg, jpeg, png)");
+      setIsError(true);
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setStatusMessage("Kích thước file không được vượt quá 5MB");
+      setIsError(true);
+      e.target.value = "";
+      return;
+    }
+
+    // Set preview
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarFile(file);
+    setIsError(false);
+    setStatusMessage("");
+  };
+
+  const handleRemoveAvatar = () => {
+    // Clear file and preview
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+    setAvatarPreview(null);
+    setAvatarFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Cleanup preview URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   // Countdown effect: after success, wait N seconds then refresh + close
   useEffect(() => {
@@ -179,18 +234,30 @@ function CreateStaff({ onClose, onCreated }) {
       }
     }
     
-    // Validate avatar URL if provided
-    if (data.avatar && data.avatar.trim() !== '') {
-      try {
-        new URL(data.avatar);
-      } catch (e) {
-        setStatusMessage('URL avatar không hợp lệ. Vui lòng nhập URL đúng định dạng.');
-        setIsError(true);
-        return;
-      }
-    }
-
     try {
+      let avatarPathToCreate = null;
+
+      // Upload avatar file if selected
+      if (avatarFile) {
+        try {
+          console.log("Uploading avatar file:", avatarFile.name);
+          const uploadResponse = await userAPI.uploadAvatar(avatarFile);
+          console.log("Upload response:", uploadResponse);
+          
+          if (uploadResponse?.data?.data) {
+            avatarPathToCreate = uploadResponse.data.data;
+            console.log("Avatar uploaded successfully:", avatarPathToCreate);
+          } else {
+            throw new Error("Upload response không có data");
+          }
+        } catch (error) {
+          console.error("Upload avatar error:", error);
+          setStatusMessage("Không thể upload ảnh đại diện: " + (error.response?.data?.message || error.message));
+          setIsError(true);
+          return;
+        }
+      }
+
       const payload = {
         Email: data.email,
         UserName: data.userName && data.userName.trim() !== '' ? data.userName : data.email, // Use email as UserName if not provided
@@ -202,7 +269,7 @@ function CreateStaff({ onClose, onCreated }) {
         EmployeeCode: null, // Backend sẽ tự động generate
         Notes: data.notes && data.notes.trim() !== '' ? data.notes : null,
         StaffRole: Number(data.staffRole),
-        Avatar: data.avatar && data.avatar.trim() !== '' ? data.avatar : null
+        Avatar: avatarPathToCreate
       };
       const response = await adminAPI.createStaffAccount(payload);
       setStatusMessage(response.data?.message || 'Tạo thành công');
@@ -247,12 +314,44 @@ function CreateStaff({ onClose, onCreated }) {
                 boxShadow: '0 6px 20px rgba(123, 209, 194, 0.3)',
                 minHeight: '250px'
               }}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/jpeg,image/jpg,image/png"
+                  style={{ display: 'none' }}
+                />
                 {(() => {
-                  if (data.avatar && data.avatar.trim() !== '') {
-                    return (
-                      <div style={{ textAlign: 'center' }}>
+                  // Priority: avatarPreview > default
+                  let avatarUrl = null;
+                  
+                  if (avatarPreview) {
+                    avatarUrl = avatarPreview;
+                  } else {
+                    avatarUrl = '/images/avatar/image1.png';
+                  }
+                  
+                  const showRemoveButton = avatarFile || avatarPreview;
+                  
+                  return (
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div 
+                        style={{ 
+                          display: 'inline-block',
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s',
+                          marginBottom: showRemoveButton ? '15px' : '0'
+                        }}
+                        onClick={handleAvatarClick}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      >
                         <img 
-                          src={data.avatar} 
+                          src={avatarUrl} 
                           alt="Avatar" 
                           style={{ 
                             width: '100px', 
@@ -260,47 +359,35 @@ function CreateStaff({ onClose, onCreated }) {
                             borderRadius: '50%',
                             objectFit: 'cover',
                             border: '3px solid #fff',
-                            boxShadow: '0 6px 15px rgba(0,0,0,0.15)'
+                            boxShadow: '0 6px 15px rgba(0,0,0,0.15)',
+                            pointerEvents: 'none'
                           }}
                           onError={(e) => {
-                            e.target.src = 'https://res.cloudinary.com/ds9p5t0mx/image/upload/v1740308752/avatar-default-icon-1975x2048-2mpk4u9k_fjciku.png';
+                            e.target.src = '/images/avatar/image1.png';
                           }}
                         />
-                        <div style={{ 
-                          marginTop: '10px', 
-                          color: '#2c3e50', 
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          Avatar Preview
-                        </div>
                       </div>
-                    );
-                  } else {
-                    return (
-                      <div style={{ textAlign: 'center' }}>
-                        <img 
-                          src="https://res.cloudinary.com/ds9p5t0mx/image/upload/v1740308752/avatar-default-icon-1975x2048-2mpk4u9k_fjciku.png" 
-                          alt="avatar" 
-                          style={{ 
-                            width: '100px', 
-                            height: '100px',
-                            borderRadius: '50%',
-                            border: '3px solid #fff',
-                            boxShadow: '0 6px 15px rgba(0,0,0,0.15)'
-                          }} 
-                        />
-                        <div style={{ 
-                          marginTop: '10px', 
-                          color: '#2c3e50', 
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          Default Avatar
-                        </div>
-                      </div>
-                    );
-                  }
+                      {showRemoveButton && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveAvatar();
+                          }}
+                          style={{
+                            padding: '4px 16px',
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            width: 'auto',
+                            minWidth: '100px'
+                          }}
+                        >
+                          Xóa ảnh
+                        </Button>
+                      )}
+                    </div>
+                  );
                 })()}
               </div>
             </Col>
@@ -373,12 +460,15 @@ function CreateStaff({ onClose, onCreated }) {
                 <Row className="mb-1">
                   <Col md={6}>
                     <Form.Group controlId="formAddress">
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Địa chỉ</Form.Label>
+                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Địa chỉ <span style={{ color: "red" }}>*</span></Form.Label>
                       <Form.Control
                         type="text"
                         name="address"
                         value={data.address}
                         onChange={handleChange}
+                        required
+                        onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                        onInput={(e) => e.target.setCustomValidity("")}
                         style={{ 
                           borderColor: '#48C1A6',
                           borderRadius: '6px',
@@ -390,7 +480,7 @@ function CreateStaff({ onClose, onCreated }) {
                   </Col>
                   <Col md={6}>
                     <Form.Group controlId="formPhoneNumber">
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Số điện thoại</Form.Label>
+                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Số điện thoại <span style={{ color: "red" }}>*</span></Form.Label>
                       <Form.Control
                         type="tel"
                         name="phoneNumber"
@@ -399,7 +489,13 @@ function CreateStaff({ onClose, onCreated }) {
                         pattern="^0\d{9}$"
                         required
                         placeholder="0123456789"
-                        onInvalid={(e) => e.target.setCustomValidity("Số điện thoại phải bắt đầu bằng 0 và có đúng 10 số")}
+                        onInvalid={(e) => {
+                          if (!e.target.value || e.target.value.trim() === '') {
+                            e.target.setCustomValidity("Vui lòng không để trống");
+                          } else {
+                            e.target.setCustomValidity("Số điện thoại phải bắt đầu bằng 0 và có đúng 10 số");
+                          }
+                        }}
                         onInput={(e) => e.target.setCustomValidity("")}
                         style={{ 
                           borderColor: '#48C1A6',
@@ -502,29 +598,6 @@ function CreateStaff({ onClose, onCreated }) {
                   </Col>
                   <Col md={6}>
                     {/* Empty column for balance */}
-                  </Col>
-                </Row>
-                <Row className="mb-2">
-                  <Col md={12}>
-                    <Form.Group>
-                      <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Avatar URL</Form.Label>
-                      <Form.Control 
-                        type="url" 
-                        name="avatar" 
-                        value={data.avatar} 
-                        onChange={handleChange} 
-                        placeholder="Nhập URL avatar (tùy chọn)"
-                        style={{ 
-                          borderColor: '#48C1A6',
-                          borderRadius: '6px',
-                          padding: '8px 12px',
-                          fontSize: '13px'
-                        }}
-                      />
-                      <Form.Text className="text-muted" style={{ fontSize: '11px' }}>
-                        Nhập URL hình ảnh để cập nhật avatar. Avatar sẽ hiển thị ở bên trái.
-                      </Form.Text>
-                    </Form.Group>
                   </Col>
                 </Row>
                 <Row className="mb-2">

@@ -2,22 +2,63 @@
 import React, { useEffect, useState } from "react";
 import { Table, Container, Alert, Card, Button, Form, Modal } from "react-bootstrap";
 import adminAPI from "../../API/adminAPI";
+import userAPI from "../../API/userAPI";
 import CreateStaff from "./CreateStaff";
 import { FaEdit, FaBan, FaEye, FaEyeSlash } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import EditUser from "./EditUser";
+
+const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || "http://localhost:5137";
+
+const resolveMediaUrl = (path) => {
+    if (!path || typeof path !== "string") return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    const base = MEDIA_BASE_URL.replace(/\/$/, "");
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return `${base}${normalized}`;
+};
+
+const getCustomerProfileField = (user, field) => {
+    if (!user) return null;
+    const sources = [
+        user,
+        user?.CustomerProfile,
+        user?.customerProfile,
+        user?.customer_profile,
+        user?.profile,
+    ];
+    const candidateKeys = [
+        field,
+        field?.toLowerCase(),
+        field ? field.charAt(0).toLowerCase() + field.slice(1) : null,
+    ].filter(Boolean);
+
+    for (const source of sources) {
+        if (!source) continue;
+        for (const key of candidateKeys) {
+            const value = source[key];
+            if (value !== undefined && value !== null && String(value).trim() !== "") {
+                return value;
+            }
+        }
+    }
+    return null;
+};
 
 const ListAllUsers = ({ roleGroup }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [users, setUsers] = useState([]);
     const [error, setError] = useState(null);
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState({ "Hoạt động": false, "Không hoạt động": false });
     const [roleFilter, setRoleFilter] = useState("all");
+    const [customerStatusFilter, setCustomerStatusFilter] = useState("all");
     const [editingUser, setEditingUser] = useState(null);
     const [detailUser, setDetailUser] = useState(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [approvingCustomerId, setApprovingCustomerId] = useState(null);
 
     const fetchUsers = async () => {
         try {
@@ -25,7 +66,38 @@ const ListAllUsers = ({ roleGroup }) => {
             console.log("API response:", response);
             console.log("Response data:", response.data || response);
             const usersData = response.data || response;
-            setUsers(usersData);
+            
+            // Process users data to ensure avatar fields are handled correctly
+            const processedUsers = Array.isArray(usersData) ? usersData.map(user => {
+                // If avatar is null/empty, ensure it's not in the object
+                const processedUser = { ...user };
+                
+                // Check if avatar should be null/empty (including empty string from backend)
+                const avatar = processedUser.avatar ?? processedUser.Avatar;
+                if (avatar === null || avatar === '' || avatar === undefined || 
+                    (typeof avatar === 'string' && avatar.trim() === '')) {
+                    // Remove avatar fields if null/empty
+                    delete processedUser.avatar;
+                    delete processedUser.Avatar;
+                    delete processedUser.imageUrl;
+                    delete processedUser.ImageUrl;
+                    delete processedUser.profileImage;
+                    delete processedUser.ProfileImage;
+                    
+                    if (processedUser.profile) {
+                        delete processedUser.profile.avatar;
+                        delete processedUser.profile.Avatar;
+                        delete processedUser.profile.imageUrl;
+                        delete processedUser.profile.ImageUrl;
+                        delete processedUser.profile.profileImage;
+                        delete processedUser.profile.ProfileImage;
+                    }
+                }
+                
+                return processedUser;
+            }) : usersData;
+            
+            setUsers(processedUsers);
             
             // Debug: Check for accountant staff
             if (Array.isArray(usersData)) {
@@ -58,6 +130,17 @@ const ListAllUsers = ({ roleGroup }) => {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    useEffect(() => {
+        const openUserId = location.state?.openUserId;
+        if (openUserId && users.length > 0) {
+            const targetUser = users.find((u) => getUserIdFromAny(u) === openUserId);
+            if (targetUser) {
+                openDetail(targetUser);
+                navigate(location.pathname, { replace: true, state: {} });
+            }
+        }
+    }, [location.state, users, navigate, location.pathname]);
     const handleUpdateStatus = async (id, newStatus) => {
         console.log("handleUpdateStatus called:", { id, newStatus, idType: typeof id });
         try {
@@ -129,6 +212,37 @@ const ListAllUsers = ({ roleGroup }) => {
         setFilterStatus({ ...filterStatus, [e.target.name]: e.target.checked });
     };
 
+    const getUserIdFromAny = (user) =>
+        user?.userId || user?.UserId || user?._id || user?.id || user?.accountId;
+
+    const handleApproveCustomer = async (user) => {
+        const userId = getUserIdFromAny(user);
+        if (!userId) {
+            alert("Không xác định được khách hàng cần duyệt.");
+            return;
+        }
+        setApprovingCustomerId(userId);
+        try {
+            const response = await userAPI.updateCustomerStatus(userId);
+            const message =
+                response?.data?.message ||
+                response?.message ||
+                "Đã duyệt hồ sơ khách hàng thành công.";
+            alert(message);
+            setIsDetailOpen(false);
+            await fetchUsers();
+        } catch (error) {
+            console.error("Error approving customer:", error);
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Không thể duyệt hồ sơ khách hàng.";
+            alert(message);
+        } finally {
+            setApprovingCustomerId(null);
+        }
+    };
+
     const handleResetPassword = async (userId) => {
         const defaultPassword = "Pms@123456";
         if (window.confirm(`Bạn có chắc chắn muốn reset mật khẩu của nhân viên này về mặc định không?\n\nMật khẩu mới sẽ là: ${defaultPassword}`)) {
@@ -189,12 +303,158 @@ const ListAllUsers = ({ roleGroup }) => {
       const data = (response?.data && (response.data.data ?? response.data)) || response;
       console.log("Account details data:", data);
       console.log("Account details data.avatar:", data?.avatar);
+      console.log("Account details data.Avatar:", data?.Avatar);
+      console.log("Account details data.staffProfileId:", data?.staffProfileId);
+      console.log("Account details data.StaffProfileId:", data?.StaffProfileId);
+      console.log("Account details data.staffRole:", data?.staffRole);
+      console.log("Account details data.StaffRole:", data?.StaffRole);
       
-      // Merge: keep fields from list row (like role), override with detail fields when present
-      const merged = (data && typeof data === 'object') ? { ...(user || {}), ...data } : (user || data);
+      // Determine isStaff from backend data (StaffProfileId or StaffRole indicates staff)
+      const isStaffFromApi = !!(data?.staffProfileId || data?.StaffProfileId || 
+                                data?.staffRole || data?.StaffRole);
+      console.log("Is staff from API:", isStaffFromApi);
+      
+      // Check if avatar is null/empty in API response
+      const apiAvatar = data?.avatar ?? data?.Avatar ?? data?.profile?.avatar ?? data?.profile?.Avatar;
+      const isAvatarDeleted = apiAvatar === null || apiAvatar === '' || apiAvatar === undefined;
+      const hasAvatarInApi = data?.avatar !== undefined || data?.Avatar !== undefined || 
+                            data?.profile?.avatar !== undefined || data?.profile?.Avatar !== undefined;
+      console.log("Is avatar deleted:", isAvatarDeleted, "apiAvatar:", apiAvatar, "hasAvatarInApi:", hasAvatarInApi);
+      
+      // Merge: start with user data, but exclude avatar fields if API has avatar data
+      // This prevents old avatar values from user object being merged in
+      const userWithoutAvatar = user ? (() => {
+        // Create a copy of user without avatar fields
+        const { avatar, Avatar, imageUrl, ImageUrl, profileImage, ProfileImage, ...userRest } = user;
+        const cleanedUser = { ...userRest };
+        
+        // Clean profile if exists
+        if (user.profile) {
+          const { avatar: pAvatar, Avatar: pAvatar2, imageUrl: pImg, ImageUrl: pImg2, 
+                  profileImage: pProfImg, ProfileImage: pProfImg2, ...profileRest } = user.profile;
+          cleanedUser.profile = { ...profileRest };
+        }
+        
+        // Clean account if exists
+        if (user.account) {
+          const { avatar: aAvatar, Avatar: aAvatar2, imageUrl: aImg, ImageUrl: aImg2,
+                  profileImage: aProfImg, ProfileImage: aProfImg2, ...accountRest } = user.account;
+          cleanedUser.account = { ...accountRest };
+        }
+        
+        return cleanedUser;
+      })() : {};
+      
+      // Now merge: user data (without avatar) + API data
+      const merged = (data && typeof data === 'object') ? { 
+        ...userWithoutAvatar, 
+        ...data,
+        // Set isStaff based on API data
+        isStaff: isStaffFromApi,
+        IsStaff: isStaffFromApi,
+      } : (userWithoutAvatar || data);
+      
+      // CRITICAL: If API says avatar is deleted, remove ALL avatar-related fields completely
+      // Also handle case where API explicitly returns null (even if hasAvatarInApi is false)
+      if (isAvatarDeleted && (hasAvatarInApi || data?.avatar === null || data?.Avatar === null)) {
+        console.log("Clearing all avatar fields because API returned null/empty");
+        // Delete all avatar-related properties from top level
+        delete merged.avatar;
+        delete merged.Avatar;
+        delete merged.imageUrl;
+        delete merged.ImageUrl;
+        delete merged.profileImage;
+        delete merged.ProfileImage;
+        
+        // Clear nested objects - delete properties instead of setting to null
+        if (merged.profile) {
+          delete merged.profile.avatar;
+          delete merged.profile.Avatar;
+          delete merged.profile.imageUrl;
+          delete merged.profile.ImageUrl;
+          delete merged.profile.profileImage;
+          delete merged.profile.ProfileImage;
+        }
+        if (merged.account) {
+          delete merged.account.avatar;
+          delete merged.account.Avatar;
+          delete merged.account.imageUrl;
+          delete merged.account.ImageUrl;
+          delete merged.account.profileImage;
+          delete merged.account.ProfileImage;
+        }
+        
+        // Also ensure no other avatar-related fields exist
+        Object.keys(merged).forEach(key => {
+          if (key.toLowerCase().includes('avatar') || key.toLowerCase().includes('image')) {
+            if (key !== 'imageCnkd' && key !== 'imageByt' && key !== 'ImageCnkd' && key !== 'ImageByt') {
+              delete merged[key];
+            }
+          }
+        });
+      } else if (data && hasAvatarInApi && !isAvatarDeleted) {
+        // API returned a valid avatar, use it and clear other avatar fields
+        merged.avatar = data.avatar ?? data.Avatar ?? null;
+        merged.Avatar = data.Avatar ?? data.avatar ?? null;
+        // Clear other avatar fields to avoid confusion
+        delete merged.imageUrl;
+        delete merged.ImageUrl;
+        delete merged.profileImage;
+        delete merged.ProfileImage;
+        
+        if (merged.profile && (data.profile?.avatar !== undefined || data.profile?.Avatar !== undefined)) {
+          merged.profile.avatar = data.profile.avatar ?? data.profile.Avatar ?? null;
+          merged.profile.Avatar = data.profile.Avatar ?? data.profile.avatar ?? null;
+          delete merged.profile.imageUrl;
+          delete merged.profile.ImageUrl;
+          delete merged.profile.profileImage;
+          delete merged.profile.ProfileImage;
+        }
+      }
       console.log("Merged user data:", merged);
       console.log("Merged user data.avatar:", merged?.avatar);
+      console.log("Merged user data.Avatar:", merged?.Avatar);
+      console.log("Merged user data.profile?.avatar:", merged?.profile?.avatar);
       console.log("Avatar is null/empty:", !merged?.avatar || merged?.avatar === '');
+      
+      // Final check: if getAvatarFromAny returns null, avatar should be cleared
+      const finalAvatarCheck = getAvatarFromAny(merged);
+      console.log("Final avatar check from getAvatarFromAny:", finalAvatarCheck);
+      console.log("Merged object keys:", Object.keys(merged));
+      console.log("Merged.avatar:", merged.avatar);
+      console.log("Merged.Avatar:", merged.Avatar);
+      console.log("'avatar' in merged:", 'avatar' in merged);
+      console.log("'Avatar' in merged:", 'Avatar' in merged);
+      
+      // If API returned null avatar, ensure getAvatarFromAny returns null
+      if (isAvatarDeleted && (hasAvatarInApi || data?.avatar === null || data?.Avatar === null)) {
+        // Double-check: if getAvatarFromAny still finds something, force clear it
+        if (finalAvatarCheck !== null) {
+          console.warn("WARNING: getAvatarFromAny still found avatar after deletion, forcing clear");
+          // Force delete all possible avatar fields
+          const avatarFields = ['avatar', 'Avatar', 'imageUrl', 'ImageUrl', 'profileImage', 'ProfileImage'];
+          avatarFields.forEach(field => {
+            if (merged[field] !== undefined) {
+              delete merged[field];
+            }
+          });
+          // Also check nested objects
+          if (merged.profile) {
+            avatarFields.forEach(field => {
+              if (merged.profile[field] !== undefined) {
+                delete merged.profile[field];
+              }
+            });
+          }
+          if (merged.account) {
+            avatarFields.forEach(field => {
+              if (merged.account[field] !== undefined) {
+                delete merged.account[field];
+              }
+            });
+          }
+        }
+      }
       
       setDetailUser(merged);
       setIsDetailOpen(true);
@@ -448,12 +708,32 @@ const ListAllUsers = ({ roleGroup }) => {
 
     // Helper function to get avatar URL from user data
     const getAvatarFromAny = (u) => {
+        if (!u) return null;
+        
         // Check various possible avatar field locations
-        const avatar = u?.avatar || u?.Avatar || 
-                      u?.profile?.avatar || u?.profile?.Avatar ||
-                      u?.account?.avatar || u?.account?.Avatar ||
-                      u?.imageUrl || u?.ImageUrl ||
-                      u?.profileImage || u?.ProfileImage;
+        // Use explicit checks to avoid getting old values when avatar is null
+        // Check each field individually to see if it's explicitly null
+        let avatar = null;
+        
+        // Check top-level fields first
+        if (u.avatar !== undefined) avatar = u.avatar;
+        else if (u.Avatar !== undefined) avatar = u.Avatar;
+        // Check nested profile
+        else if (u.profile?.avatar !== undefined) avatar = u.profile.avatar;
+        else if (u.profile?.Avatar !== undefined) avatar = u.profile.Avatar;
+        // Check nested account
+        else if (u.account?.avatar !== undefined) avatar = u.account.avatar;
+        else if (u.account?.Avatar !== undefined) avatar = u.account.Avatar;
+        // Check other possible fields
+        else if (u.imageUrl !== undefined) avatar = u.imageUrl;
+        else if (u.ImageUrl !== undefined) avatar = u.ImageUrl;
+        else if (u.profileImage !== undefined) avatar = u.profileImage;
+        else if (u.ProfileImage !== undefined) avatar = u.ProfileImage;
+        
+        // Return null if avatar is null, undefined, or empty string
+        if (avatar === null || avatar === undefined || (typeof avatar === 'string' && avatar.trim() === '')) {
+            return null;
+        }
         
         if (avatar && avatar.trim() !== '') {
             // If it's already a full URL, return as is
@@ -685,6 +965,10 @@ const ListAllUsers = ({ roleGroup }) => {
         if (roleGroup === 'customer') {
             // Khách hàng: ưu tiên cờ BE, fallback theo role string
             matchesRoleGroup = isCustomerFlag || normalizedRoles.includes('customer');
+            if (customerStatusFilter !== 'all') {
+                const isActive = getIsActive(user);
+                matchesStatus = customerStatusFilter === 'active' ? isActive : !isActive;
+            }
         } else if (roleGroup === 'staff') {
             // Sử dụng hàm isActualStaff để kiểm tra chính xác
             matchesRoleGroup = isActualStaff(user);
@@ -758,24 +1042,24 @@ const ListAllUsers = ({ roleGroup }) => {
         );
     };
 
-    // Render email verification status badge
-    const renderEmailVerificationBadge = (user) => {
-        const isEmailVerified = getEmailVerificationStatus(user);
-        
+    // Render activation badge for customer accounts based on userStatus
+    const renderCustomerActivationBadge = (user) => {
+        const isActivated = getIsActive(user);
         return (
             <span
                 style={{
-                    color: 'white',
-                    backgroundColor: isEmailVerified ? '#4caf50' : '#f44336',
+                    color: '#fff',
+                    backgroundColor: isActivated ? '#4caf50' : '#f44336',
                     padding: '4px 10px',
                     borderRadius: '16px',
                     display: 'inline-block',
                     fontSize: '0.75rem',
                     fontWeight: 'bold',
                     textAlign: 'center',
+                    minWidth: '110px',
                 }}
             >
-                {isEmailVerified ? 'Kích hoạt' : 'Chưa kích hoạt'}
+                {isActivated ? 'Kích hoạt' : 'Chưa kích hoạt'}
             </span>
         );
     };
@@ -827,13 +1111,26 @@ const ListAllUsers = ({ roleGroup }) => {
                                         </div>
                                     </>
                                 ) : (
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Tìm kiếm theo email"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        style={{ width: "300px", height: "38px", fontSize: "1rem" }}
-                                    />
+                                    <div className="d-flex gap-2 align-items-center flex-wrap" style={{ width: '100%' }}>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Tìm kiếm theo email"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            style={{ width: "300px", height: "38px", fontSize: "1rem" }}
+                                        />
+                                        {isCustomerView && (
+                                            <Form.Select
+                                                value={customerStatusFilter}
+                                                onChange={(e) => setCustomerStatusFilter(e.target.value)}
+                                                style={{ width: "220px", height: "38px", fontSize: "1rem" }}
+                                            >
+                                                <option value="all">Tất cả</option>
+                                                <option value="active">Kích hoạt</option>
+                                                <option value="inactive">Chưa kích hoạt</option>
+                                            </Form.Select>
+                                        )}
+                                    </div>
                                 )}
                             </Form>
                             {isStaffView && (
@@ -917,7 +1214,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                         <td style={customerPhoneColStyle}>{user?.profile?.phoneNumber || user?.phoneNumber || '-'}</td>
                                                         <td style={customerAddressColStyle} className="text-center">{user?.profile?.address || user?.address || '-'}</td>
                                                         <td style={customerRoleColStyle}>{getRoleDisplayName(user)}</td>
-                                                        <td style={customerStatusColStyle}>{renderEmailVerificationBadge(user)}</td>
+                                                        <td style={customerStatusColStyle}>{renderCustomerActivationBadge(user)}</td>
                                                     </>
                                                 )}
                                                 {!isStaffView && !isManagerView && roleGroup !== 'customer' && (
@@ -1074,6 +1371,80 @@ const ListAllUsers = ({ roleGroup }) => {
                                         <div className="col-sm-4 fw-bold">Địa chỉ</div>
                                         <div className="col-sm-8">{getAddressFromAny(detailUser)}</div>
                                     </div>
+                                    {roleGroup === 'customer' && (
+                                        <>
+                                            <div className="row mb-2">
+                                                <div className="col-sm-4 fw-bold">Mã số thuế</div>
+                                                <div className="col-sm-8">
+                                                    {getCustomerProfileField(detailUser, 'Mst') || 'Chưa cập nhật'}
+                                                </div>
+                                            </div>
+                                            <div className="row mb-2">
+                                                <div className="col-sm-4 fw-bold">Mã số hộ kinh doanh</div>
+                                                <div className="col-sm-8">
+                                                    {getCustomerProfileField(detailUser, 'Mshkd') || 'Chưa cập nhật'}
+                                                </div>
+                                            </div>
+                                            {(getCustomerProfileField(detailUser, 'ImageCnkd') ||
+                                                getCustomerProfileField(detailUser, 'ImageByt')) && (
+                                                <div className="mt-3">
+                                                    <div className="fw-bold mb-2">Tài liệu đính kèm</div>
+                                                    <div className="d-flex gap-3 flex-wrap">
+                                                        {(() => {
+                                                            const imageCnkdUrl = resolveMediaUrl(
+                                                                getCustomerProfileField(detailUser, 'ImageCnkd'),
+                                                            );
+                                                            if (!imageCnkdUrl) return null;
+                                                            return (
+                                                                <div style={{ maxWidth: '200px' }}>
+                                                                    <div className="text-center fw-semibold mb-1">
+                                                                        Ảnh CNKD
+                                                                    </div>
+                                                                    <img
+                                                                        src={imageCnkdUrl}
+                                                                        alt="Ảnh CNKD"
+                                                                        style={{
+                                                                            width: '200px',
+                                                                            height: '150px',
+                                                                            objectFit: 'contain',
+                                                                            border: '1px solid #e0e0e0',
+                                                                            borderRadius: '8px',
+                                                                            backgroundColor: '#fafafa',
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        {(() => {
+                                                            const imageBytUrl = resolveMediaUrl(
+                                                                getCustomerProfileField(detailUser, 'ImageByt'),
+                                                            );
+                                                            if (!imageBytUrl) return null;
+                                                            return (
+                                                                <div style={{ maxWidth: '200px' }}>
+                                                                    <div className="text-center fw-semibold mb-1">
+                                                                        Ảnh BYT
+                                                                    </div>
+                                                                    <img
+                                                                        src={imageBytUrl}
+                                                                        alt="Ảnh BYT"
+                                                                        style={{
+                                                                            width: '200px',
+                                                                            height: '150px',
+                                                                            objectFit: 'contain',
+                                                                            border: '1px solid #e0e0e0',
+                                                                            borderRadius: '8px',
+                                                                            backgroundColor: '#fafafa',
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                     {/* Only show employee code and notes for staff accounts */}
                                     {!isCustomerView && (
                                         <>
@@ -1106,6 +1477,34 @@ const ListAllUsers = ({ roleGroup }) => {
                     )}
                 </Modal.Body>
                 <Modal.Footer>
+                    {(() => {
+                        const hasMst = !!getCustomerProfileField(detailUser, 'Mst');
+                        const hasMshkd = !!getCustomerProfileField(detailUser, 'Mshkd');
+                        const hasImageCnkd = !!getCustomerProfileField(detailUser, 'ImageCnkd');
+                        const hasImageByt = !!getCustomerProfileField(detailUser, 'ImageByt');
+                        const userId = getUserIdFromAny(detailUser);
+                        const isProcessing = approvingCustomerId === userId;
+                        const isActivated = getIsActive(detailUser);
+                        if (
+                            roleGroup !== 'customer' ||
+                            !hasMst ||
+                            !hasMshkd ||
+                            !hasImageCnkd ||
+                            !hasImageByt ||
+                            isActivated
+                        ) {
+                            return null;
+                        }
+                        return (
+                            <Button
+                                variant="success"
+                                onClick={() => handleApproveCustomer(detailUser)}
+                                disabled={isProcessing}
+                            >
+                                {isProcessing ? 'Đang duyệt...' : 'Duyệt hồ sơ'}
+                            </Button>
+                        );
+                    })()}
                     <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
                 </Modal.Footer>
             </Modal>
@@ -1127,6 +1526,35 @@ const ListAllUsers = ({ roleGroup }) => {
                 closeModal={() => setEditingUser(null)}
                 users={users}
                 setUsers={setUsers}
+                onUpdateSuccess={async () => {
+                    // Close detail modal if open to force refresh on next open
+                    if (isDetailOpen) {
+                        setIsDetailOpen(false);
+                        setDetailUser(null);
+                    }
+                    // Refresh user list after successful update
+                    await fetchUsers();
+                    // If editingUser is still set, refresh its data too
+                    if (editingUser) {
+                        const userId = editingUser?.userId || editingUser?.UserId || editingUser?._id || editingUser?.accountId || editingUser?.AccountId;
+                        if (userId) {
+                            try {
+                                const response = await adminAPI.getAccountDetails(userId);
+                                const data = (response?.data && (response.data.data ?? response.data)) || response;
+                                // Update editingUser with fresh data
+                                setUsers(prev => prev.map(u => {
+                                    const uId = u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
+                                    if (uId === userId) {
+                                        return { ...u, ...data };
+                                    }
+                                    return u;
+                                }));
+                            } catch (error) {
+                                console.error("Error refreshing user data:", error);
+                            }
+                        }
+                    }
+                }}
             />
         </Container>
     );

@@ -77,6 +77,17 @@ export default function NotificationMenu() {
       }
     }
 
+    const customerProfileMatch = n.message?.match(/Khách hàng.*id\s+([a-f0-9-]+)/i);
+    if (
+      customerProfileMatch &&
+      (userRole === "admin" || userRole === "manager")
+    ) {
+      const userId = customerProfileMatch[1];
+      handleClose();
+      navigate("/admin/users/customer", { state: { openUserId: userId } });
+      return;
+    }
+
     let poId = null;
     let state = {};
 

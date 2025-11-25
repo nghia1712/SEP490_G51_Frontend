@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button, Modal, Form, Alert, Row, Col } from "react-bootstrap";
 import adminAPI from "../../API/adminAPI";
+import userAPI from "../../API/userAPI";
 
-const EditUser = ({ user, closeModal, users, setUsers }) => {
+const EditUser = ({ user, closeModal, users, setUsers, onUpdateSuccess }) => {
     console.log("=== EditUser Component Rendered ===");
     console.log("user prop:", user);
     console.log("user exists:", !!user);
@@ -14,13 +15,15 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         gender: true,
         employeeCode: "", // Không sử dụng - chỉ để tương thích
         notes: "",
-        avatar: "",
     });
     const [originalForm, setOriginalForm] = useState(null); // Store original data
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
-    const [avatarError, setAvatarError] = useState("");
     const [userAvatarFromAPI, setUserAvatarFromAPI] = useState(null);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    const [removeAvatar, setRemoveAvatar] = useState(false);
+    const fileInputRef = useRef(null);
 
     const getUserId = (u) => u?.userId || u?.UserId || u?._id || u?.accountId || u?.AccountId;
 
@@ -84,11 +87,15 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                     console.log("API response data:", response.data);
                     console.log("API response data.data:", response.data?.data);
                     
-                    const avatarFromAPI = response.data?.data?.avatar || response.data?.avatar;
+                    const avatarFromAPI = response.data?.data?.avatar ?? response.data?.avatar;
                     console.log("Avatar from API:", avatarFromAPI);
                     
-                    // Save avatar from API to state
-                    if (avatarFromAPI) {
+                    // Save avatar from API to state (including null to indicate deletion)
+                    // Explicitly set to null if API returns null/empty, otherwise set the value
+                    if (avatarFromAPI === null || avatarFromAPI === '' || avatarFromAPI === undefined) {
+                        setUserAvatarFromAPI(null);
+                        console.log("Avatar is null/empty in API - cleared from state");
+                    } else {
                         setUserAvatarFromAPI(avatarFromAPI);
                         console.log("Avatar saved to state:", avatarFromAPI);
                     }
@@ -107,7 +114,6 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
             gender: (user?.gender ?? user?.profile?.gender) ?? true,
             employeeCode: "", // Không sử dụng - chỉ để tương thích
             notes: user?.notes || user?.profile?.notes || "",
-            avatar: "", // Always start with empty avatar field
         };
         
         console.log("Initial form:", initialForm);
@@ -116,48 +122,58 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         setOriginalForm(initialForm);
     }, [user]);
 
+    // Cleanup preview URL to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (avatarPreview) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+        };
+    }, [avatarPreview]);
+
     const setField = (name, value) => {
         setForm(prev => ({ ...prev, [name]: value }));
-        
-        // Validate avatar URL when changed
-        if (name === 'avatar') {
-            validateAvatarUrl(value);
-        }
     };
 
-    const validateAvatarUrl = (url) => {
-        if (!url || url.trim() === '') {
-            setAvatarError("");
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setErrorMessage("Vui lòng chọn file hình ảnh hợp lệ (jpg, jpeg, png)");
+            e.target.value = "";
             return;
         }
-        
-        // Check for base64 data URL first
-        if (url.startsWith('data:image/')) {
-            setAvatarError("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
-            console.log("Base64 data URL blocked:", url.substring(0, 50) + "...");
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setErrorMessage("Kích thước file không được vượt quá 5MB");
+            e.target.value = "";
             return;
         }
-        
-        // Validate regular URL format
-        try {
-            const urlObj = new URL(url);
-            
-            // Check if it's a valid image URL
-            const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-            const pathname = urlObj.pathname.toLowerCase();
-            const hasValidExtension = validImageExtensions.some(ext => pathname.endsWith(ext));
-            
-            // Also allow URLs without extension (might be dynamic image URLs)
-            if (hasValidExtension || url.includes('image') || url.includes('avatar') || url.includes('photo') || url.includes('img')) {
-                setAvatarError("");
-                console.log("Valid image URL entered:", url);
-            } else {
-                setAvatarError("⚠️ URL không phải là hình ảnh hợp lệ. Vui lòng nhập URL hình ảnh (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh.");
-                console.log("URL is not an image:", url);
-            }
-        } catch (error) {
-            setAvatarError("URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
-            console.log("Invalid URL format:", url);
+
+        // Set preview
+        setAvatarPreview(URL.createObjectURL(file));
+        setAvatarFile(file);
+        setRemoveAvatar(false); // Reset remove flag when new file is selected
+        setErrorMessage("");
+    };
+
+    const handleRemoveAvatar = () => {
+        // Clear file and preview
+        if (avatarPreview) {
+            URL.revokeObjectURL(avatarPreview);
+        }
+        setAvatarPreview(null);
+        setAvatarFile(null);
+        setRemoveAvatar(true);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
         }
     };
 
@@ -168,8 +184,16 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         // Clear all messages when closing modal
         setSuccessMessage("");
         setErrorMessage("");
-        setAvatarError("");
         setUserAvatarFromAPI(null);
+        setAvatarFile(null);
+        if (avatarPreview) {
+            URL.revokeObjectURL(avatarPreview);
+        }
+        setAvatarPreview(null);
+        setRemoveAvatar(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
         
         // Reset form to original state if user didn't save
         if (originalForm) {
@@ -188,15 +212,6 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         
         // Basic validation - chỉ validate các trường bắt buộc khác nếu có
         
-        // Validate avatar URL if provided
-        if (form.avatar && form.avatar.trim() !== '') {
-            validateAvatarUrl(form.avatar);
-            if (avatarError) {
-                setErrorMessage("Vui lòng sửa lỗi URL avatar trước khi lưu.");
-                return;
-            }
-        }
-        
         // Validate số điện thoại VN nếu có nhập
         if (form.phoneNumber && form.phoneNumber.trim() !== '') {
             const phoneRegex = /^0\d{9}$/;
@@ -207,44 +222,39 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
         }
         
         try {
-            // Process avatar data - handle only regular URLs, block base64
-            let processedAvatar = null;
-            if (form.avatar && form.avatar.trim() !== '') {
-                const avatarData = form.avatar.trim();
-                
-                // Check if it's base64 data
-                if (avatarData.startsWith('data:image/')) {
-                    console.error("Base64 data URL detected in handleSubmit - blocking submission");
-                    setErrorMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
-                    return;
-                }
-                
-                // Validate URL format
+            let avatarPathToUpdate = null;
+
+            // If removeAvatar is true, set to empty string to remove avatar
+            // Backend only updates if Avatar != null, so we need to send empty string to delete
+            if (removeAvatar) {
+                avatarPathToUpdate = ""; // Send empty string to delete avatar (backend will handle it)
+            } 
+            // Upload avatar file if selected
+            else if (avatarFile) {
                 try {
-                    const urlObj = new URL(avatarData);
-                    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-                    const pathname = urlObj.pathname.toLowerCase();
-                    const hasValidExtension = validImageExtensions.some(ext => pathname.endsWith(ext));
+                    console.log("Uploading avatar file:", avatarFile.name);
+                    const uploadResponse = await userAPI.uploadAvatar(avatarFile);
+                    console.log("Upload response:", uploadResponse);
                     
-                    if (!hasValidExtension && !avatarData.includes('image') && !avatarData.includes('avatar') && !avatarData.includes('photo') && !avatarData.includes('img')) {
-                        setErrorMessage("⚠️ URL không phải là hình ảnh hợp lệ. Vui lòng nhập URL hình ảnh hoặc chọn file hình ảnh.");
-                        return;
+                    if (uploadResponse?.data?.data) {
+                        avatarPathToUpdate = uploadResponse.data.data;
+                        console.log("Avatar uploaded successfully:", avatarPathToUpdate);
+                    } else {
+                        throw new Error("Upload response không có data");
                     }
                 } catch (error) {
-                    setErrorMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
+                    console.error("Upload avatar error:", error);
+                    setErrorMessage("Không thể upload ảnh đại diện: " + (error.response?.data?.message || error.message));
                     return;
                 }
-                
-                // Regular URL
-                console.log("Detected regular URL:", avatarData);
-                processedAvatar = avatarData;
             }
-            
+
             const payload = {
                 UserId: getUserId(user),
                 PhoneNumber: form.phoneNumber && form.phoneNumber.trim() !== '' ? form.phoneNumber : null,
                 FullName: form.fullName && form.fullName.trim() !== '' ? form.fullName : null,
-                Avatar: processedAvatar,
+                // Send empty string to delete avatar, null to skip update, or path to update
+                Avatar: removeAvatar ? "" : avatarPathToUpdate,
                 Gender: !!form.gender,
                 Address: form.address && form.address.trim() !== '' ? form.address : null,
                 EmployeeCode: null, // Không sử dụng - backend tự quản lý
@@ -252,26 +262,76 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
             };
 
             console.log("Update payload:", payload);
-            console.log("Avatar in payload:", payload.Avatar);
             const res = await adminAPI.updateStaffAccount(payload);
             console.log("Update response:", res);
 
             // Update local list
             if (setUsers && users) {
-                setUsers(prev => prev.map(u => (getUserId(u) === getUserId(user)) ? {
-                    ...u,
-                    fullName: payload.FullName ?? u.fullName,
-                    phoneNumber: payload.PhoneNumber ?? u.phoneNumber,
-                    address: payload.Address ?? u.address,
-                    gender: payload.Gender,
-                    employeeCode: u.employeeCode, // Giữ nguyên - không cập nhật
-                    notes: payload.Notes ?? u.notes,
-                    avatar: payload.Avatar, // Cập nhật avatar
-                } : u));
+                setUsers(prev => prev.map(u => {
+                    if (getUserId(u) === getUserId(user)) {
+                        // Create updated user without avatar fields first
+                        const { avatar, Avatar, imageUrl, ImageUrl, profileImage, ProfileImage, ...userRest } = u;
+                        const updatedUser = {
+                            ...userRest,
+                            fullName: payload.FullName ?? u.fullName,
+                            phoneNumber: payload.PhoneNumber ?? u.phoneNumber,
+                            address: payload.Address ?? u.address,
+                            gender: payload.Gender,
+                            employeeCode: u.employeeCode, // Giữ nguyên - không cập nhật
+                            notes: payload.Notes ?? u.notes,
+                        };
+                        
+                        // Handle profile separately
+                        if (u.profile) {
+                            const { avatar: pAvatar, Avatar: pAvatar2, imageUrl: pImg, ImageUrl: pImg2,
+                                    profileImage: pProfImg, ProfileImage: pProfImg2, ...profileRest } = u.profile;
+                            updatedUser.profile = { ...profileRest };
+                        }
+                        
+                        // Handle avatar update: if payload.Avatar is explicitly set (including null), use it
+                        // If removeAvatar is true or payload.Avatar is null, DELETE the avatar fields
+                        if (removeAvatar || payload.Avatar === null) {
+                            // Don't add avatar fields at all - they're already removed by destructuring
+                            // But ensure they're not accidentally added back
+                            delete updatedUser.avatar;
+                            delete updatedUser.Avatar;
+                            delete updatedUser.imageUrl;
+                            delete updatedUser.ImageUrl;
+                            delete updatedUser.profileImage;
+                            delete updatedUser.ProfileImage;
+                            if (updatedUser.profile) {
+                                delete updatedUser.profile.avatar;
+                                delete updatedUser.profile.Avatar;
+                                delete updatedUser.profile.imageUrl;
+                                delete updatedUser.profile.ImageUrl;
+                                delete updatedUser.profile.profileImage;
+                                delete updatedUser.profile.ProfileImage;
+                            }
+                        } else if (payload.Avatar !== null && payload.Avatar !== undefined) {
+                            // Add new avatar
+                            updatedUser.avatar = payload.Avatar;
+                            updatedUser.Avatar = payload.Avatar;
+                            // Also update in nested objects
+                            if (updatedUser.profile) {
+                                updatedUser.profile.avatar = payload.Avatar;
+                                updatedUser.profile.Avatar = payload.Avatar;
+                            }
+                        }
+                        
+                        return updatedUser;
+                    }
+                    return u;
+                }));
             }
 
             setSuccessMessage(res?.data?.message || "Cập nhật thông tin thành công!");
             setErrorMessage("");
+            
+            // Call callback to refresh user list
+            if (onUpdateSuccess) {
+                await onUpdateSuccess();
+            }
+            
             setTimeout(() => {
                 setSuccessMessage("");
                 closeModal();
@@ -326,176 +386,109 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                                 boxShadow: '0 6px 20px rgba(123, 209, 194, 0.3)',
                                 minHeight: '250px'
                             }}>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    accept="image/jpeg,image/jpg,image/png"
+                                    style={{ display: 'none' }}
+                                />
                                 {(() => {
-                                    console.log("=== Avatar Display Logic ===");
-                                    console.log("form.avatar:", form.avatar);
-                                    console.log("user data:", user);
-                                    
-                                    // If no user data, show default
-                                    if (!user) {
-                                        console.log("No user data, showing default");
-                                        return (
-                                            <div style={{ textAlign: 'center' }}>
-                                                <img 
-                                                    src="/images/avatar/image1.png" 
-                                                    alt="Default Avatar" 
-                                                    style={{ 
-                                                        width: '100px', 
-                                                        height: '100px',
-                                                        borderRadius: '50%',
-                                                        objectFit: 'cover',
-                                                        border: '3px solid #fff',
-                                                        boxShadow: '0 6px 15px rgba(0,0,0,0.15)'
-                                                    }}
-                                                />
-                                                <div style={{ 
-                                                    marginTop: '10px', 
-                                                    color: '#2c3e50', 
-                                                    fontSize: '12px',
-                                                    fontWeight: '500'
-                                                }}>
-                                                    Default Avatar
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-
-                                    // Get avatar URL - prioritize form input, then user data
+                                    // Priority: removeAvatar > avatarPreview > userAvatarFromAPI > user data > default
                                     let avatarUrl = null;
                                     
-                                    // First check if user entered a new avatar URL
-                                    if (form.avatar && form.avatar.trim() !== '') {
-                                        const avatarInput = form.avatar.trim();
-                                        
-                                        // Validate URL before using it
-                                        if (avatarInput.startsWith('data:image/')) {
-                                            // Block base64 - don't display
-                                            console.log("Base64 data URL blocked from display");
-                                            avatarUrl = null;
-                                        } else if (avatarInput.startsWith('http://') || avatarInput.startsWith('https://')) {
-                                            // Check if it's a valid image URL
-                                            const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-                                            const hasValidExtension = validImageExtensions.some(ext => avatarInput.toLowerCase().includes(ext));
-                                            
-                                            if (hasValidExtension || avatarInput.includes('image') || avatarInput.includes('avatar') || avatarInput.includes('photo') || avatarInput.includes('img')) {
-                                                avatarUrl = avatarInput;
-                                                console.log("Using form avatar URL:", avatarUrl);
-                                            } else {
-                                                console.log("URL is not an image URL:", avatarInput);
-                                                avatarUrl = null;
-                                            }
-                                        } else if (avatarInput.startsWith('/images/')) {
-                                            // Local path
-                                            avatarUrl = `http://localhost:5137${avatarInput}`;
-                                            console.log("Using form avatar local path:", avatarUrl);
+                                    if (removeAvatar) {
+                                        // User clicked remove, show default
+                                        avatarUrl = '/images/avatar/image1.png';
+                                    } else if (avatarPreview) {
+                                        // New file selected, show preview
+                                        avatarUrl = avatarPreview;
+                                    } else if (userAvatarFromAPI !== null && userAvatarFromAPI !== undefined) {
+                                        // Avatar from API (explicitly check for null/undefined to handle deleted avatars)
+                                        if (userAvatarFromAPI.startsWith('/images/')) {
+                                            avatarUrl = `http://localhost:5137${userAvatarFromAPI}`;
+                                        } else if (userAvatarFromAPI.startsWith('http://') || userAvatarFromAPI.startsWith('https://')) {
+                                            avatarUrl = userAvatarFromAPI;
                                         } else {
-                                            // Invalid URL - don't display
-                                            console.log("Invalid avatar URL format:", avatarInput);
-                                            avatarUrl = null;
+                                            avatarUrl = `http://localhost:5137/images/${userAvatarFromAPI}`;
                                         }
-                                    } else {
-                                        // First try to get avatar from API response
-                                        if (userAvatarFromAPI) {
-                                            // Construct full URL for avatar from API
-                                            if (userAvatarFromAPI.startsWith('/images/')) {
-                                                avatarUrl = `http://localhost:5137${userAvatarFromAPI}`;
-                                            } else if (userAvatarFromAPI.startsWith('http://') || userAvatarFromAPI.startsWith('https://')) {
-                                                avatarUrl = userAvatarFromAPI;
-                                            } else {
-                                                avatarUrl = `http://localhost:5137/images/${userAvatarFromAPI}`;
-                                            }
-                                            console.log("Using avatar from API:", avatarUrl);
-                                        } else {
-                                            // Fallback: Get avatar from user data
-                                            avatarUrl = getAvatarFromAny(user);
-                                            console.log("Using user avatar:", avatarUrl);
-                                            
-                                            // If no avatar found in user data, check if user has avatar in database
-                                            if (!avatarUrl) {
-                                                console.log("No avatar found in user data, checking if user has avatar in database...");
-                                                // This means the user might have an avatar but it's not being returned by the API
-                                                // For now, we'll show default avatar
-                                                console.log("User might have avatar in database but API not returning it");
-                                            }
-                                        }
+                                    } else if (userAvatarFromAPI === null) {
+                                        // API explicitly returned null (avatar deleted), show default
+                                        avatarUrl = '/images/avatar/image1.png';
+                                    } else if (user) {
+                                        // Fallback to user data if API hasn't been called yet
+                                        avatarUrl = getAvatarFromAny(user);
                                     }
                                     
-                                    if (avatarUrl) {
-                                        console.log("Displaying avatar:", avatarUrl);
-                                        console.log("Avatar URL type:", typeof avatarUrl);
-                                        console.log("Avatar URL length:", avatarUrl.length);
-                                        
-                                        // Additional validation for image URLs
-                                        const isValidImageUrl = avatarUrl.startsWith('http://') || 
-                                                               avatarUrl.startsWith('https://') ||
-                                                               avatarUrl.includes('/images/');
-                                        
-                                        if (!isValidImageUrl) {
-                                            console.log("Invalid image URL, showing default");
-                                            avatarUrl = null;
-                                        }
+                                    // Final fallback to default
+                                    if (!avatarUrl) {
+                                        avatarUrl = '/images/avatar/image1.png';
                                     }
                                     
-                                    if (avatarUrl) {
-                                        return (
-                                            <div style={{ textAlign: 'center' }}>
+                                    // Show remove button if:
+                                    // 1. User has uploaded a new file (avatarFile || avatarPreview)
+                                    // 2. OR user has an existing avatar (not default)
+                                    const isDefaultAvatar = avatarUrl === '/images/avatar/image1.png' || 
+                                                          avatarUrl.includes('/images/avatar/image1.png');
+                                    const hasExistingAvatar = !isDefaultAvatar && !removeAvatar && 
+                                                             (userAvatarFromAPI || getAvatarFromAny(user));
+                                    const showRemoveButton = (avatarFile || avatarPreview) || hasExistingAvatar;
+                                    
+                                    return (
+                                        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <div 
+                                                style={{ 
+                                                    display: 'inline-block',
+                                                    cursor: 'pointer',
+                                                    transition: 'transform 0.2s',
+                                                    marginBottom: showRemoveButton ? '15px' : '0'
+                                                }}
+                                                onClick={handleAvatarClick}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                            >
                                                 <img 
                                                     src={avatarUrl} 
-                                                    alt="User Avatar" 
+                                                    alt="Avatar" 
                                                     style={{ 
                                                         width: '100px', 
                                                         height: '100px',
                                                         borderRadius: '50%',
                                                         objectFit: 'cover',
                                                         border: '3px solid #fff',
-                                                        boxShadow: '0 6px 15px rgba(0,0,0,0.15)'
+                                                        boxShadow: '0 6px 15px rgba(0,0,0,0.15)',
+                                                        pointerEvents: 'none'
                                                     }}
                                                     onError={(e) => {
-                                                        console.log("Avatar load error:", e.target.src);
-                                                        console.log("Falling back to default avatar");
                                                         e.target.src = '/images/avatar/image1.png';
                                                     }}
-                                                    onLoad={() => {
-                                                        console.log("Avatar loaded successfully:", avatarUrl);
+                                                />
+                                            </div>
+                                            {showRemoveButton && (
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveAvatar();
                                                     }}
-                                                />
-                                                <div style={{ 
-                                                    marginTop: '10px', 
-                                                    color: '#2c3e50', 
-                                                    fontSize: '12px',
-                                                    fontWeight: '500'
-                                                }}>
-                                                    {form.avatar && form.avatar.trim() !== '' ? 'Avatar Preview' : 'User Avatar'}
-                                                </div>
-                                            </div>
-                                        );
-                                    } else {
-                                        console.log("No valid avatar found, showing default");
-                                        return (
-                                            <div style={{ textAlign: 'center' }}>
-                                                <img 
-                                                    src="/images/avatar/image1.png" 
-                                                    alt="Default Avatar" 
-                                                    style={{ 
-                                                        width: '100px', 
-                                                        height: '100px',
-                                                        borderRadius: '50%',
-                                                        objectFit: 'cover',
-                                                        border: '3px solid #fff',
-                                                        boxShadow: '0 6px 15px rgba(0,0,0,0.15)'
-                                                    }} 
-                                                />
-                                                <div style={{ 
-                                                    marginTop: '10px', 
-                                                    color: '#2c3e50', 
-                                                    fontSize: '12px',
-                                                    fontWeight: '500'
-                                                }}>
-                                                    Default Avatar
-                                                </div>
-                                            </div>
-                                        );
-                                    }
+                                                    style={{
+                                                        padding: '4px 16px',
+                                                        fontSize: '12px',
+                                                        borderRadius: '6px',
+                                                        width: 'auto',
+                                                        minWidth: '100px'
+                                                    }}
+                                                >
+                                                    Xóa ảnh
+                                                </Button>
+                                            )}
+                                        </div>
+                                    );
                                 })()}
                             </div>
                         </Col>
@@ -592,34 +585,6 @@ const EditUser = ({ user, closeModal, users, setUsers }) => {
                                     Thông tin bổ sung
                                 </h5>
                                 
-                                <Row className="mb-2">
-                                    <Col md={12}>
-                                        <Form.Group>
-                                            <Form.Label style={{ fontWeight: '600', color: '#34495e', fontSize: '13px' }}>Avatar URL</Form.Label>
-                                            <Form.Control 
-                                                type="url" 
-                                                value={form.avatar} 
-                                                onChange={e=>setField('avatar', e.target.value)} 
-                                                placeholder="Nhập URL hình ảnh (ví dụ: https://example.com/image.jpg)"
-                                                isInvalid={!!avatarError}
-                                                style={{ 
-                                                    borderColor: avatarError ? '#dc3545' : '#48C1A6',
-                                                    borderRadius: '6px',
-                                                    padding: '8px 12px',
-                                                    fontSize: '13px'
-                                                }}
-                                            />
-                                            {avatarError && (
-                                                <Form.Control.Feedback type="invalid" style={{ fontSize: '11px' }}>
-                                                    {avatarError}
-                                                </Form.Control.Feedback>
-                                            )}
-                                            <Form.Text className="text-muted" style={{ fontSize: '11px' }}>
-                                                ✅ Chỉ chấp nhận URL hình ảnh hợp lệ. ❌ Không hỗ trợ base64 data URL.
-                                            </Form.Text>
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
                                 <Row className="mb-2">
                                     <Col md={12}>
                                         <Form.Group>
