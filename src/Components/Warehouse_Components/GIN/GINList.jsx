@@ -21,6 +21,8 @@ import {
   DialogActions,
   Snackbar,
   Alert,
+  Pagination,
+  TableContainer,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
@@ -54,14 +56,12 @@ export default function GRNList() {
     handleSnackClose,
     renderGINStatus,
   } = useGIN();
-
+  const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedData = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const [filtered, setFiltered] = useState([]);
 
   // =========================
   // Filter search
@@ -263,7 +263,9 @@ export default function GRNList() {
                 <Typography>
                   <b>Ngày tạo:</b>{" "}
                   {selectedExport.createAt
-                    ? new Date(selectedExport.createAt)
+                    ? new Date(selectedExport.createAt).toLocaleDateString(
+                        "vi-VN"
+                      )
                     : "-"}
                 </Typography>
 

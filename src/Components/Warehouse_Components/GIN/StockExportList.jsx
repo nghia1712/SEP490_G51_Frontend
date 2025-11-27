@@ -217,7 +217,107 @@ export default function StockExportList() {
                   <TableCell align="center">Thao tác</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>{/* giữ nguyên body hiện tại */}</TableBody>
+              <TableBody>
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      Không có dữ liệu
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((item, index) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
+                      <TableCell align="center">{item.stockExportOrderCode}</TableCell>
+                      <TableCell>{item.salesOrderCode}</TableCell>
+                      <TableCell>
+                        {item.requestDate
+                          ? new Date(item.requestDate).toLocaleDateString(
+                              "vi-EN"
+                            )
+                          : ""}
+                      </TableCell>
+                      <TableCell>
+                        {item.dueDate
+                          ? new Date(item.dueDate).toLocaleDateString("vi-EN")
+                          : ""}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={getStatus(item.status).label}
+                          color={getStatus(item.status).color}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{item.createBy}</TableCell>
+                      <TableCell align="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
+                        >
+                          <Tooltip title="Xem chi tiết">
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleViewDetail(item)}
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+
+                          {/* Chỉ show tạo GIN với warehouse_staff */}
+                          {userRole === "warehouse_staff" &&
+                            item.status === 1 && (
+                              <Tooltip title="Tạo GIN từ lệnh này">
+                                <IconButton
+                                  color="secondary"
+                                  onClick={() => handleCreateGIN(item)}
+                                >
+                                  <NoteAdd />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                          {item.status === 0 && (
+                            <>
+                              <Tooltip title="Sửa">
+                                <IconButton
+                                  color="info"
+                                  onClick={() =>
+                                    navigate(`/stock-export/edit/${item.id}`, {
+                                      state: { salesOrderId: item.soId },
+                                    })
+                                  }
+                                >
+                                  <Edit />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Xóa">
+                                <IconButton
+                                  color="error"
+                                  onClick={() => openConfirm(item.id)}
+                                >
+                                  <Delete />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Gửi">
+                                <IconButton
+                                  color="success"
+                                  onClick={() =>
+                                    handleSend(item.id, item.status)
+                                  }
+                                >
+                                  <Send />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
             </Table>
           </TableContainer>
         )}

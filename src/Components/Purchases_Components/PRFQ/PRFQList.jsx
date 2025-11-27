@@ -196,7 +196,7 @@ export default function PRFQList() {
               ) : paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    Không có sản phẩm tương ứng
+                    Không có dữ liệu
                   </TableCell>
                 </TableRow>
               ) : (

@@ -377,7 +377,7 @@ export default function InventoryReportPage() {
                 ) : paginated.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      Không tìm thấy phiên nào
+                      Không có dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : (
