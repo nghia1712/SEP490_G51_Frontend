@@ -108,6 +108,20 @@ const useUser = () => {
     }
   };
 
+  const editCustomerProfile = async (formData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await userAPI.editCustomerProfile(formData);
+      setLoading(false);
+      return response;
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Edit profile failed');
+      setLoading(false);
+      throw err;
+    }
+  };
+
   const uploadAvatar = async (file) => {
     setLoading(true);
     setError(null);
@@ -189,6 +203,7 @@ const useUser = () => {
     error,
     getProfile,
     editProfile,
+    editCustomerProfile,
     uploadAvatar,
     getAllUsers,
     changePassword,

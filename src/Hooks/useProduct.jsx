@@ -85,6 +85,12 @@ const useProduct = () => {
         totalCurrentQuantity:
           p?.TotalCurrentQuantity ?? p?.totalCurrentQuantity ?? p?.totalStock,
         status: p?.Status ?? p?.status,
+        categoryName:
+          p?.CategoryName ??
+          p?.categoryName ??
+          p?.Category?.Name ??
+          p?.category?.name ??
+          null,
       }));
       console.log("Loaded products sample for shape check:", withPid?.[0]);
       setProducts(withPid);

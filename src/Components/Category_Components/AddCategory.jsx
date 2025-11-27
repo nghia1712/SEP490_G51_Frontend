@@ -8,7 +8,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
+const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd, categories = [] }) => {
   const [categoryName, setCategoryName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -44,7 +44,22 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
     
     if (categoryName.trim().length < 6) {
       setError("Thêm thất bại, tên danh mục phải có 6 ký tự trở lên");
-      return; // Giữ nguyên màn hình với thông báo lỗi
+      return;
+    }
+    
+    // Kiểm tra trùng tên danh mục (không phân biệt hoa thường)
+    const trimmedName = categoryName.trim();
+    const normalizedNewName = trimmedName.toLowerCase().trim();
+    
+    const isDuplicate = categories.some(cat => {
+      const existingName = cat?.categoryName || cat?.name || cat?.CategoryName || cat?.Name || '';
+      const normalizedExistingName = existingName.toLowerCase().trim();
+      return normalizedExistingName === normalizedNewName;
+    });
+    
+    if (isDuplicate) {
+      setError("Tên danh mục đã tồn tại. Vui lòng chọn tên khác.");
+      return;
     }
     
     setLoading(true);
@@ -73,15 +88,28 @@ const AddCategoryDialog = ({ open, onClose, onCategoryAdded, onAdd }) => {
         <Stack spacing={3} sx={{ pt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
           {success && <Alert severity="success">Thêm danh mục thành công!</Alert>}
+          {(() => {
+            const duplicateError = Boolean(error && error.includes("đã tồn tại"));
+            return (
           <TextField
             autoFocus
             label="Tên"
             fullWidth
             required
             value={categoryName}
-            onChange={(e) => setCategoryName(e.target.value)}
+            onChange={(e) => {
+              setCategoryName(e.target.value);
+              // Clear error khi người dùng bắt đầu nhập lại
+              if (duplicateError) {
+                setError('');
+              }
+            }}
             placeholder="Nhập tên danh mục (tối thiểu 6 ký tự)"
+            error={duplicateError}
+            helperText={duplicateError ? error : ''}
           />
+            );
+          })()}
           <TextField
             label="Mô tả"
             fullWidth

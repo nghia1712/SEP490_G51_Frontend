@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Container, Form, Button, Alert, Row, Col, Card } from "react-bootstrap";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import useUser from "../../Hooks/useUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
@@ -32,7 +31,8 @@ const EditProfile = () => {
 	// Flag để đánh dấu xóa avatar (về mặc định)
 	const [shouldDeleteAvatar, setShouldDeleteAvatar] = useState(false);
 
-	const { getProfile, editProfile, uploadAvatar } = useUser(); // Giả sử bạn có hook này để lấy thông tin người dùng
+	const { getProfile, editProfile, editCustomerProfile, uploadAvatar } = useUser(); // Giả sử bạn có hook này để lấy thông tin người dùng
+	const DEFAULT_AVATAR_PATH = "/images/avatar/image1.png";
 
 	const testAvatarUrlWithExtensions = async (basePath) => {
 		const extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -211,7 +211,7 @@ const EditProfile = () => {
 
 	// Xóa avatar (về mặc định)
 	const handleDeleteAvatar = () => {
-		const defaultAvatar = "/images/avatar/image1.png";
+		const defaultAvatar = DEFAULT_AVATAR_PATH;
 		setAvatarPreview(defaultAvatar);
 		setNewAvatarFile(null);
 		setShouldDeleteAvatar(true);
@@ -224,7 +224,26 @@ const EditProfile = () => {
 	const isDefaultAvatar = (avatarPath) => {
 		if (!avatarPath) return true;
 		const path = typeof avatarPath === 'string' ? avatarPath.toLowerCase() : '';
-		return path.includes('image1.png') || path === '/images/avatar/image1.png';
+		return path.includes('image1.png') || path === DEFAULT_AVATAR_PATH.toLowerCase();
+	};
+
+	const setCustomInvalidMessage = (event, message) => {
+		event.target.setCustomValidity(message);
+	};
+
+	const clearCustomInvalidMessage = (event) => {
+		event.target.setCustomValidity("");
+	};
+
+	const buildDefaultAvatarFile = async () => {
+		const defaultUrl = new URL(DEFAULT_AVATAR_PATH, window.location.origin).href;
+		const response = await fetch(defaultUrl);
+		if (!response.ok) {
+			throw new Error("Không thể tải avatar mặc định");
+		}
+		const blob = await response.blob();
+		const extension = blob.type && blob.type.includes("png") ? ".png" : ".jpg";
+		return new File([blob], `default-avatar${extension}`, { type: blob.type || "image/png" });
 	};
 
 
@@ -240,7 +259,6 @@ const EditProfile = () => {
 		setIsError(false);
 		setStatusMessage("");
 
-		// If avatar is not valid then no submit form 
 		if (!isAvatarValid) {
 			console.log("Avatar validation failed");
 			setIsError(true);
@@ -248,65 +266,75 @@ const EditProfile = () => {
 			return;
 		}
 		
-		// Prepare data object according to UpdateAccountRequest
-		const updateData = {
-			fullName: profile.fullName,
-			phoneNumber: profile.phoneNumber,
-			address: profile.address,
-			gender: profile.gender === "true" ? true : profile.gender === "false" ? false : profile.gender
-		};
-
-		// Thêm thông tin dựa trên role
 		const userRole = getUserRoleFromToken();
-		if (userRole === 'customer') {
-			updateData.mst = profile.mst;
-			updateData.mshkd = profile.mshkd;
-		}
-
-		// Handle avatar upload first if there's a file
-		if (newAvatarFile) {
-			try {
-				console.log("Uploading avatar file:", newAvatarFile.name);
-				console.log("File type:", newAvatarFile.type);
-				console.log("File size:", newAvatarFile.size);
-				
-				// Validate file before upload
-				if (!newAvatarFile.type.startsWith('image/')) {
-					throw new Error("File không phải là hình ảnh");
-				}
-				
-				const uploadResponse = await uploadAvatar(newAvatarFile);
-				console.log("Upload response:", uploadResponse);
-				
-				if (uploadResponse?.data?.data) {
-					updateData.avatar = uploadResponse.data.data;
-					console.log("Avatar uploaded successfully:", uploadResponse.data.data);
-					// Update preview immediately with the uploaded avatar
-					setAvatarPreview(getAvatarUrl(uploadResponse.data.data));
-				} else {
-					throw new Error("Upload response không có data");
-				}
-			} catch (error) {
-				console.error("Upload avatar error:", error);
-				setIsError(true);
-				setStatusMessage("Không thể upload ảnh đại diện: " + (error.response?.data?.message || error.message));
-				return;
-			}
-		} else if (shouldDeleteAvatar) {
-			// Nếu xóa avatar, set về mặc định
-			updateData.avatar = "/images/avatar/image1.png";
-			console.log("Avatar will be set to default");
-		} else {
-			console.log("No avatar changes");
-		}
 
 		try {
-			const response = await editProfile(updateData);
+			let response;
+			if (userRole === 'customer') {
+				const formData = new FormData();
+				formData.append("FullName", profile.fullName.trim());
+				formData.append("Address", profile.address.trim());
+
+				let avatarToUpload = newAvatarFile;
+				if (!avatarToUpload && shouldDeleteAvatar) {
+					try {
+						avatarToUpload = await buildDefaultAvatarFile();
+					} catch (error) {
+						console.error("Không thể chuẩn bị avatar mặc định:", error);
+					}
+				}
+				if (avatarToUpload) {
+					formData.append("avatarFile", avatarToUpload);
+				}
+				response = await editCustomerProfile(formData);
+			} else {
+				const updateData = {
+					fullName: profile.fullName,
+					phoneNumber: profile.phoneNumber,
+					address: profile.address,
+					gender: profile.gender === "true" ? true : profile.gender === "false" ? false : profile.gender
+				};
+
+				if (newAvatarFile) {
+					try {
+						console.log("Uploading avatar file:", newAvatarFile.name);
+						console.log("File type:", newAvatarFile.type);
+						console.log("File size:", newAvatarFile.size);
+						
+						if (!newAvatarFile.type.startsWith('image/')) {
+							throw new Error("File không phải là hình ảnh");
+						}
+						
+						const uploadResponse = await uploadAvatar(newAvatarFile);
+						console.log("Upload response:", uploadResponse);
+						
+						if (uploadResponse?.data?.data) {
+							updateData.avatar = uploadResponse.data.data;
+							console.log("Avatar uploaded successfully:", uploadResponse.data.data);
+							setAvatarPreview(getAvatarUrl(uploadResponse.data.data));
+						} else {
+							throw new Error("Upload response không có data");
+						}
+					} catch (error) {
+						console.error("Upload avatar error:", error);
+						setIsError(true);
+						setStatusMessage("Không thể upload ảnh đại diện: " + (error.response?.data?.message || error.message));
+						return;
+					}
+				} else if (shouldDeleteAvatar) {
+					updateData.avatar = DEFAULT_AVATAR_PATH;
+					console.log("Avatar will be set to default");
+				} else {
+					console.log("No avatar changes");
+				}
+
+				response = await editProfile(updateData);
+				console.log("Update data sent:", updateData);
+			}
+
 			console.log("Edit profile response:", response);
-			console.log("Update data sent:", updateData);
 			setStatusMessage(response?.data?.message || response?.message || "Cập nhật thông tin thành công!");
 			
-			// Refresh profile data after successful update
 			const refreshResponse = await getProfile();
 			const userData = refreshResponse?.data?.data || refreshResponse?.data || refreshResponse;
 			console.log("Refreshed profile data:", userData);
@@ -322,12 +350,10 @@ const EditProfile = () => {
 				mshkd: userData.mshkd || ""
 			});
 			
-			// Update avatar preview with new data - only if we didn't already update it from upload
 			if (!newAvatarFile) {
 				setAvatarPreview(getAvatarUrl(userData.avatar));
 			}
 			
-			// Clear the new avatar file and delete flag after successful update
 			setNewAvatarFile(null);
 			setShouldDeleteAvatar(false);
 			
@@ -346,8 +372,8 @@ const EditProfile = () => {
 				errorMessage = "Lỗi server (500). Vui lòng kiểm tra lại thông tin hoặc thử lại sau.";
 			} else if (error.response?.data?.message) {
 				errorMessage = error.response.data.message;
-			} else if (error.message) {
-				errorMessage = error.message;
+			} else {
+				errorMessage = "Có lỗi xảy ra. Vui lòng thử lại sau.";
 			}
 			
 			setStatusMessage(errorMessage);
@@ -453,11 +479,19 @@ const EditProfile = () => {
 							<Card.Body>
 								<h3 className="mb-3">Chỉnh sửa thông tin cá nhân</h3>
 								<hr />
-								<Form onSubmit={handleSubmit}>
+								<Form onSubmit={handleSubmit} encType="multipart/form-data">
 									<Row className="mb-3">
 										<Col md={6}>
 											<Form.Label><strong>Tên đầy đủ</strong></Form.Label>
-											<Form.Control type="text" name="fullName" value={profile.fullName} onChange={handleChange} required />
+											<Form.Control
+												type="text"
+												name="fullName"
+												value={profile.fullName}
+												onChange={handleChange}
+												onInvalid={(e) => setCustomInvalidMessage(e, "Vui lòng nhập tên đầy đủ.")}
+												onInput={clearCustomInvalidMessage}
+												required
+											/>
 										</Col>
 										<Col md={6}>
 											<Form.Label><strong>Email</strong></Form.Label>
@@ -481,7 +515,15 @@ const EditProfile = () => {
 									<Row className="mb-3">
 										<Col md={6}>
 											<Form.Label><strong>Địa chỉ</strong></Form.Label>
-											<Form.Control type="text" name="address" value={profile.address} onChange={handleChange} />
+											<Form.Control
+												type="text"
+												name="address"
+												value={profile.address}
+												onChange={handleChange}
+												onInvalid={(e) => setCustomInvalidMessage(e, "Vui lòng nhập địa chỉ.")}
+												onInput={clearCustomInvalidMessage}
+												required
+											/>
 										</Col>
 										{getUserRoleFromToken() !== 'customer' && (
 											<Col md={6}>
@@ -495,34 +537,6 @@ const EditProfile = () => {
 											</Col>
 										)}
 									</Row>
-									
-									
-									{getUserRoleFromToken() === 'customer' && (
-										<>
-											<hr />
-											<h5>Thông tin khách hàng</h5>
-											<Row className="mb-3">
-												<Col md={6}>
-													<Form.Label><strong>Mã số thuế</strong></Form.Label>
-													<Form.Control 
-														type="text" 
-														name="mst" 
-														value={profile.mst} 
-														onChange={handleChange}
-													/>
-												</Col>
-												<Col md={6}>
-													<Form.Label><strong>Mã số HKD</strong></Form.Label>
-													<Form.Control 
-														type="text" 
-														name="mshkd" 
-														value={profile.mshkd} 
-														onChange={handleChange}
-													/>
-												</Col>
-											</Row>
-										</>
-									)}
 									<hr />
 									<Button variant="warning" className="float-end mt-4 m-3" onClick={() => navigate("/change-password")}>Đổi mật khẩu</Button>
 									<Button variant="success" type="submit" className="float-end mt-4">Lưu thay đổi</Button>

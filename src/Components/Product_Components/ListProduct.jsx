@@ -3,7 +3,6 @@ import React, {
   useState,
   useMemo,
   useCallback,
-  useRef,
 } from "react";
 import {
   Container,
@@ -17,62 +16,33 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Paper,
   TableSortLabel,
   CircularProgress,
   Alert,
-  Stack,
   Avatar,
-  ButtonGroup,
-  useMediaQuery,
-  useTheme,
-  Card,
-  CardContent,
-  CardActions,
-  Grid,
-  TableFooter,
   Pagination,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import InventoryIcon from "@mui/icons-material/Inventory";
+import EditIcon from "@mui/icons-material/Edit";
 import { visuallyHidden } from "@mui/utils";
-import Tooltip from "@mui/material/Tooltip";
-import { motion, AnimatePresence } from "framer-motion";
 import AddProduct from "./AddProduct";
 import EditProduct from "./EditProduct";
 import ProductDetails from "./ProductDetails";
 import useProduct from "../../Hooks/useProduct";
 import ProductLotsModal from "./ProductLotsModal";
+import categoryAPI from "../../API/categoryAPI";
 
 const PAGE_SIZE = 5;
-
-// --- BƯỚC 2: ĐỊNH NGHĨA CÁC VARIANTS CHO ANIMATION ---
-const listContainerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05, // Thời gian trễ giữa các item con
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-    },
-  },
-  exit: {
-    y: -20,
-    opacity: 0,
-  },
-};
 
 const ListProduct = () => {
     const [snack, setSnack] = useState({
@@ -80,6 +50,10 @@ const ListProduct = () => {
     message: "",
     severity: "info",
   });
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
   // Use custom hook for product logic
   const {
     products,
@@ -120,18 +94,40 @@ const ListProduct = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showProductDetailsModal, setShowProductDetailsModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [categoryMap, setCategoryMap] = useState({});
 
-  // --- Responsive Design & Unified State for Infinite Scroll ---
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [page, setPage] = useState(1);
-  const [itemsToShow, setItemsToShow] = useState(PAGE_SIZE);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await categoryAPI.getAll();
+        const data = response?.data?.data || response?.data || [];
+        const map = {};
+        data.forEach((cat) => {
+          const id =
+            cat?.CategoryID ?? cat?.categoryID ?? cat?.id ?? cat?.Id;
+          if (id !== undefined && id !== null) {
+            map[id] =
+              cat?.Name || cat?.name || cat?.CategoryName || cat?.categoryName || "";
+          }
+        });
+        setCategoryMap(map);
+      } catch (error) {
+        console.error("Không tải được danh mục:", error);
+        setCategoryMap({});
+      }
+    };
+
+    loadCategories();
+  }, []);
+
 
   const filteredProducts = useMemo(() => {
     let updatedProducts = [...products];
@@ -175,9 +171,8 @@ const ListProduct = () => {
   }, [products, filterText, sortBy, sortDirection, statusFilter]);
 
   useEffect(() => {
-    setItemsToShow(PAGE_SIZE);
     setPage(1);
-  }, [filterText, statusFilter, isMobile]);
+  }, [filterText, statusFilter]);
 
   // Refetch from BE when toggling status filter to active-only
   useEffect(() => {
@@ -202,7 +197,14 @@ const ListProduct = () => {
   };
 
   const handleOpenProductDetailsModal = (product) => {
+    const productId = getProductIdValue(product);
+    if (!productId) {
+      setSnackbarMessage('Không tìm thấy ID sản phẩm để xem chi tiết.');
+      setSnackbarOpen(true);
+      return;
+    }
     setSelectedProduct(product);
+    setSelectedProductId(productId);
     setShowProductDetailsModal(true);
   };
 
@@ -229,38 +231,12 @@ const ListProduct = () => {
     }
   };
 
-  const observer = useRef();
-  const hasMore = false;
   const totalPages = Math.max(
     1,
     Math.ceil(filteredProducts.length / PAGE_SIZE)
   );
   const pageStart = (page - 1) * PAGE_SIZE;
   const pageEnd = page * PAGE_SIZE;
-
-  const handleLoadMore = useCallback(() => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setItemsToShow(
-        (prev) => prev + (isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE)
-      );
-      setIsLoadingMore(false);
-    }, 500);
-  }, [isMobile]);
-
-  const lastItemElementRef = useCallback(
-    (node) => {
-      if (isLoadingMore || loading) return;
-      if (observer.current) observer.current.disconnect();
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          handleLoadMore();
-        }
-      });
-      if (node) observer.current.observe(node);
-    },
-    [isLoadingMore, loading, hasMore, handleLoadMore]
-  );
 
   // Ensure each rendered row/card has a stable unique key
   const getProductKey = useCallback((p, idx) => {
@@ -304,375 +280,185 @@ const ListProduct = () => {
   );
 
   const headCells = [
-    { id: "productId", label: "#", sortable: true, align: "center" },
-    { id: "productImage", label: "Hình Ảnh", sortable: false },
-    { id: "productName", label: "Tên Thuốc", sortable: true },
-    {
-      id: "minQuantity",
-      label: "SL Tối thiểu",
-      sortable: true,
-      align: "center",
-    },
-    { id: "maxQuantity", label: "SL Tối đa", sortable: true, align: "center" },
-    {
-      id: "totalCurrentQuantity",
-      label: "Tổng SL hiện tại",
-      sortable: true,
-      align: "center",
-    },
-    { id: "unit", label: "Đơn Vị", sortable: true },
-    { id: "status", label: "Trạng Thái", sortable: true },
-    { id: "actions", label: "Hành Động", sortable: false, align: "center" },
+    { id: "productId", label: "#", sortable: true, align: "left", width: '3%' },
+    { id: "productImage", label: "Hình Ảnh", sortable: false, width: '6%', align: "left" },
+    { id: "productName", label: "Tên Thuốc", sortable: true, width: '15%' },
+    { id: "category", label: "Danh Mục", sortable: false, width: '12%' },
+    { id: "unit", label: "Đơn Vị", sortable: true, width: '10%' },
+    { id: "status", label: "Trạng Thái", sortable: true, width: '12%' },
+    { id: "actions", label: "Hành Động", sortable: false, align: "center", width: '25%' },
   ];
 
+  // Loading
   if (loading && products.length === 0) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
         <CircularProgress />
       </Box>
+      </Container>
     );
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundImage: "url('/images/backgroundMedical2.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.10)",
-          backdropFilter: "blur(0.5px)",
-          pointerEvents: "none",
-          zIndex: 0,
-        },
-      }}
-    >
-      <Container
-        maxWidth={false}
-        disableGutters
-        sx={{
-          p: { xs: 1, sm: 2, md: 3 },
-          position: "relative",
-          zIndex: 1,
-          pt: 4,
-        }}
-      >
-        <Box sx={{ textAlign: "center", mb: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Title */}
+      <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography
-            variant="h3"
+          variant="h4"
             component="h1"
-            color="white"
-            fontWeight="bold"
             sx={{
-              textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+            fontWeight: 'bold',
+            color: '#155E64',
               mb: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
             }}
           >
-            <InventoryIcon sx={{ fontSize: "2.5rem" }} />
             Quản Lý Thuốc
           </Typography>
         </Box>
 
-        {/* --- BƯỚC 3: CẢI TIẾN THANH LỌC --- */}
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems={{ xs: "stretch", md: "center" }} // Stretch trên mobile, center trên desktop
-          justifyContent="space-between"
-          sx={{ mb: 3 }}
+      {/* Filter */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <FormControl
+          size="small"
+          sx={{
+            minWidth: 200,
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: 'transparent',
+              '& fieldset': {
+                borderColor: '#1976d2',
+                borderWidth: '1.5px',
+              },
+              '&:hover fieldset': {
+                borderColor: '#1565c0',
+                borderWidth: '1.5px',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#1976d2',
+                borderWidth: '2px',
+              },
+            },
+          }}
         >
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowAddProduct(true)}
+          <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
+          <Select
+            labelId="status-filter-label"
+            value={statusFilter === null ? 'all' : statusFilter === true ? 'active' : 'inactive'}
+            label="Lọc theo trạng thái"
+            onChange={(e) => {
+              const value = e.target.value;
+              setStatusFilter(value === 'all' ? null : value === 'active' ? true : false);
+            }}
             sx={{
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
-              color: "white",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.3)",
+              backgroundColor: '#fff',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1976d2',
+                borderWidth: '1.5px',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1565c0',
+                borderWidth: '1.5px',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#1976d2',
+                borderWidth: '2px',
               },
             }}
           >
-            Thêm Thuốc
-          </Button>
-
-          {/* Nhóm các control tìm kiếm và lọc vào một Stack */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            alignItems="center"
-            sx={{ width: { xs: "100%", md: "auto" } }}
-          >
+            <MenuItem value="all">Tất cả</MenuItem>
+            <MenuItem value="active">Đang bán</MenuItem>
+            <MenuItem value="inactive">Ngừng bán</MenuItem>
+          </Select>
+        </FormControl>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <TextField
-              placeholder={filterText ? "" : "Tìm kiếm thuốc..."}
+            placeholder="Tìm kiếm thuốc..."
               variant="outlined"
               size="small"
-              fullWidth
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
               sx={{
-                minWidth: { sm: 250, md: 300 },
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "rgba(255, 255, 255, 0.9)",
-                  "& fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.3)",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "white",
-                  },
+              minWidth: 250,
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: '#fff',
+                '& fieldset': {
+                  borderColor: '#1976d2',
+                  borderWidth: '1.5px',
                 },
-                "& input::placeholder": {
-                  color: "rgba(0, 0, 0, 0.6)",
+                '&:hover fieldset': {
+                  borderColor: '#1565c0',
+                  borderWidth: '1.5px',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#1976d2',
+                  borderWidth: '2px',
+                },
+              },
+              '& input': {
+                color: '#000',
+                fontWeight: 500,
+              },
+              '& input::placeholder': {
+                color: '#666',
                   opacity: 1,
+                fontWeight: 400,
                 },
               }}
             />
-            <ButtonGroup variant="outlined" fullWidth>
+          
               <Button
-                onClick={() => setStatusFilter(true)}
-                variant={statusFilter === true ? "contained" : "outlined"}
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setShowAddProduct(true)}
                 sx={{
-                  backgroundColor:
-                    statusFilter === true
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "transparent",
-                  color: "white",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                }}
-              >
-                Đang Bán
-              </Button>
-              <Button
-                onClick={() => setStatusFilter(false)}
-                variant={statusFilter === false ? "contained" : "outlined"}
-                sx={{
-                  backgroundColor:
-                    statusFilter === false
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "transparent",
-                  color: "white",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                }}
-              >
-                Ngừng Bán
-              </Button>
-              <Button
-                onClick={() => setStatusFilter(null)}
-                variant={statusFilter === null ? "contained" : "outlined"}
-                sx={{
-                  backgroundColor:
-                    statusFilter === null
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "transparent",
-                  color: "white",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                }}
-              >
-                Tất Cả
-              </Button>
-            </ButtonGroup>
-          </Stack>
-        </Stack>
-
-        {isMobile ? (
-          // --- BƯỚC 4: ÁP DỤNG MOTION CHO MOBILE VIEW ---
-          <>
-            <Box
-              component={motion.div}
-              variants={listContainerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <AnimatePresence>
-                {filteredProducts
-                  .slice(pageStart, pageEnd)
-                  .map((product, index, arr) => (
-                    <Box
-                      component={motion.div}
-                      key={getProductKey(product, index)}
-                      variants={itemVariants}
-                      exit="exit"
-                    >
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <Card
-                          elevation={2}
-                          onClick={() => handleOpenProductDetailsModal(product)}
-                          sx={{ mb: 2 }} // Thêm margin bottom cho mỗi card
-                          ref={
-                            index === arr.length - 1 ? lastItemElementRef : null
-                          }
-                        >
-                          <CardContent>
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid item xs={3}>
-                                <Avatar
-                                  variant="rounded"
-                                  src={
-                                    product.image
-                                      ? `http://localhost:5137${product.image}`
-                                      : null
-                                  }
-                                  alt={product.productName}
-                                  sx={{
-                                    width: "100%",
-                                    height: "auto",
-                                    backgroundColor: product.image
-                                      ? "transparent"
-                                      : "#1976d2",
-                                    fontSize: "1.2rem",
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {!product.image && product.productName
-                                    ? product.productName
-                                        .charAt(0)
-                                        .toUpperCase()
-                                    : null}
-                                </Avatar>
-                              </Grid>
-                              <Grid item xs={9}>
-                                <Button
-                                  variant="text"
-                                  color="primary"
-                                  sx={{
-                                    textTransform: "none",
-                                    fontWeight: "bold",
-                                    fontSize: "1.1rem",
-                                    p: 0,
-                                    minWidth: 0,
-                                    "&:hover": { textDecoration: "underline" },
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenProductDetailsModal(product);
-                                  }}
-                                >
-                                  {product.productName}
-                                </Button>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  Tồn kho: <strong>{product.totalStock}</strong>{" "}
-                                  {product.unit}
-                                </Typography>
-                                <Typography
-                                  variant="body1"
-                                  color="primary.main"
-                                  fontWeight="bold"
-                                >
-                                  {product.importPrice?.toLocaleString("vi-VN")}{" "}
-                                  VND
-                                </Typography>
-                                {renderStatusChip(product.status)}
-                              </Grid>
-                            </Grid>
-                          </CardContent>
-                          <CardActions
-                            sx={{ justifyContent: "flex-end", p: 2, pt: 0 }}
-                          >
-                            <Button
-                              size="small"
-                              color="warning"
-                              variant="outlined"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditModal(product);
-                              }}
-                            >
-                              Sửa
-                            </Button>
-                            <Button
-                              size="small"
-                              color={
-                                product.status === "active"
-                                  ? "error"
-                                  : "success"
-                              }
-                              variant="outlined"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleChangeStatus(product._id, product.status);
-                              }}
-                            >
-                              {product.status === "active"
-                                ? "Vô hiệu"
-                                : "Kích hoạt"}
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="info"
-                              size="small"
-                              onClick={() => handleViewLots(product)}
-                            >
-                              Xem Lô
-                            </Button>
-                          </CardActions>
-                        </Card>
-                      </motion.div>
-                    </Box>
-                  ))}
-              </AnimatePresence>
-            </Box>
-            <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, v) => setPage(v)}
-                color="primary"
-              />
-            </Box>
-          </>
-        ) : (
-          // --- BƯỚC 5: ÁP DỤNG MOTION CHO DESKTOP VIEW ---
-          <Paper
-            sx={{
-              width: "100%",
-              overflow: "hidden",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(10px)",
+              backgroundColor: '#155E64',
+              '&:hover': {
+                backgroundColor: '#0D4F52',
+              },
+              borderRadius: '8px',
+              px: 3,
+              py: 1.5,
             }}
           >
-            <TableContainer sx={{ maxHeight: "calc(100vh - 280px)" }}>
-              <Table stickyHeader aria-label="sticky table">
+            THÊM THUỐC
+                            </Button>
+                    </Box>
+            </Box>
+
+      {/* Loading */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+            </Box>
+      )}
+
+      {/* Table */}
+      {!loading && (
+        <TableContainer 
+          component={Paper} 
+            sx={{
+            boxShadow: 2,
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <Table sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
-                  <TableRow>
+              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                     {headCells.map((headCell) => (
                       <TableCell
                         key={headCell.id}
                         align={headCell.align || "left"}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      textAlign: headCell.align || 'left',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em',
+                    }}
                         sortDirection={
                           sortBy === headCell.id ? sortDirection : false
                         }
@@ -680,65 +466,64 @@ const ListProduct = () => {
                         {headCell.sortable ? (
                           <TableSortLabel
                             active={sortBy === headCell.id}
-                            hideSortIcon
                             direction={(() => {
                               if (sortBy !== headCell.id) return "asc";
-                              // For productId, show up-arrow for desc (5->1), down-arrow for asc (1->5)
                               if (headCell.id === "productId") {
                                 return sortDirection === "asc" ? "desc" : "asc";
                               }
                               return sortDirection;
                             })()}
                             onClick={() => handleSort(headCell.id)}
+                        sx={{
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          letterSpacing: '0.03em',
+                        }}
                           >
                             {headCell.label}
-                            {sortBy === headCell.id ? (
-                              <Box component="span" sx={visuallyHidden}>
-                                {sortDirection === "desc"
-                                  ? "sorted descending"
-                                  : "sorted ascending"}
-                              </Box>
-                            ) : null}
                           </TableSortLabel>
                         ) : (
-                          headCell.label
+                      <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                        {headCell.label}
+                      </span>
                         )}
                       </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
-                <Box
-                  component={motion.tbody}
-                  variants={listContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <AnimatePresence>
-                    {filteredProducts
+            <TableBody>
+        {filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={headCells.length} sx={{ textAlign: 'center', py: 3 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Chưa có thuốc nào.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+            filteredProducts
                       .slice(pageStart, pageEnd)
-                      .map((product, index, arr) => (
+              .map((product, index) => (
                         <TableRow
-                          component={motion.tr}
                           key={getProductKey(product, index)}
-                          variants={itemVariants}
-                          exit="exit"
-                          layout // Prop quan trọng giúp animation mượt mà khi lọc/sắp xếp
                           hover
                           onClick={() => handleOpenProductDetailsModal(product)}
-                          sx={{ cursor: "pointer" }}
-                          ref={
-                            index === arr.length - 1 ? lastItemElementRef : null
-                          }
-                        >
-                          <TableCell align="center">
-                            {product._pid ??
-                              product.ProductID ??
-                              product.productID ??
-                              product.ProductId ??
-                              product.productId ??
-                              index + 1}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:nth-of-type(even)': {
+                      backgroundColor: '#f9f9f9',
+                    },
+                    '& td': {
+                      py: 1.5,
+                      px: 2,
+                      verticalAlign: 'middle',
+                    },
+                  }}
+                >
+                  <TableCell sx={{ fontWeight: 400, textAlign: 'left', width: '3%', px: 1 }}>
+                    {pageStart + index + 1}
                           </TableCell>
-                          <TableCell>
+                  <TableCell sx={{ textAlign: 'left', width: '6%', pl: 0.5, pr: 1 }}>
                             <Avatar
                               variant="rounded"
                               src={
@@ -760,117 +545,133 @@ const ListProduct = () => {
                                 : null}
                             </Avatar>
                           </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="text"
-                              color="primary"
+                  <TableCell sx={{ fontWeight: 500, textAlign: 'left', pl: 1, width: '18%' }}>
+                        {product.productName || product.ProductName || 'Tên không xác định'}
+                          </TableCell>
+                  <TableCell sx={{ textAlign: 'left', width: '15%' }}>
+                    {(() => {
+                      const categoryId =
+                        product.categoryID ??
+                        product.CategoryID ??
+                        product.categoryId ??
+                        product.CategoryId ??
+                        product.category?.CategoryID ??
+                        product.category?.categoryID ??
+                        product.Category?.CategoryID ??
+                        null;
+                      const fromMap = categoryId ? categoryMap[categoryId] : null;
+                      return (
+                        product.categoryName ||
+                        fromMap ||
+                        product.Category?.Name ||
+                        product.category?.name ||
+                        'Không có'
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell sx={{ textAlign: 'left', width: '10%' }}>
+                    {product.Unit ?? product.unit}
+                  </TableCell>
+                          {/* Xóa cột vị trí theo yêu cầu */}
+                  <TableCell sx={{ width: '12%', textAlign: 'left', pl: 0.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                          <Chip
+                            label={(() => {
+                              const status = product.status ?? product.Status;
+                              return status === true || status === "active" ? 'Đang bán' : 'Ngừng bán';
+                            })()}
+                            size="small"
                               sx={{
-                                textTransform: "none",
-                                fontWeight: "bold",
-                                fontSize: "1rem",
-                                p: 0,
-                                minWidth: 0,
-                                "&:hover": { textDecoration: "underline" },
-                              }}
+                              backgroundColor: (() => {
+                                const status = product.status ?? product.Status;
+                                return status === true || status === "active" ? '#d4edda' : '#f8d7da';
+                              })(),
+                              color: (() => {
+                                const status = product.status ?? product.Status;
+                                return status === true || status === "active" ? '#155724' : '#721c24';
+                              })(),
+                            }}
+                          />
+                        </Box>
+                          </TableCell>
+                  <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle', width: '25%' }} onClick={(e) => e.stopPropagation()}>
+                    <Box sx={{ display: 'flex', gap: 1.2, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          <Tooltip title="Sửa" placement="bottom" arrow>
+                            <IconButton
+                              size="medium"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleOpenProductDetailsModal(product);
+                                handleOpenEditModal(product);
+                              }}
+                              sx={{
+                                color: '#ed6c02',
+                                width: '40px',
+                                height: '40px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(237, 108, 2, 0.1)',
+                                },
                               }}
                             >
-                              {product.productName}
-                            </Button>
-                          </TableCell>
-
-                          <TableCell align="center">
-                            {product.MinQuantity ?? product.minQuantity ?? 0}
-                          </TableCell>
-                          <TableCell align="center">
-                            {product.MaxQuantity ?? product.maxQuantity ?? 0}
-                          </TableCell>
-                          <TableCell align="center">
-                            {product.TotalCurrentQuantity ??
-                              product.totalCurrentQuantity ??
-                              product.totalStock ??
-                              0}
-                          </TableCell>
-                          <TableCell>{product.Unit ?? product.unit}</TableCell>
-                          {/* Xóa cột vị trí theo yêu cầu */}
-                          <TableCell>
-                            {renderStatusChip(
-                              product.status ?? product.Status
-                                ? "active"
-                                : "inactive"
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Button
-                                variant="outlined"
-                                color="warning"
-                                size="small"
-                                onClick={() => handleOpenEditModal(product)}
-                              >
-                                Sửa
-                              </Button>
-                              <Tooltip
-                                title={
-                                  product._pid
-                                    ? ""
-                                    : "Không tìm thấy ProductID từ API - không thể đổi trạng thái"
-                                }
-                              >
-                                <span>
+                              <EditIcon fontSize="medium" />
+                            </IconButton>
+                          </Tooltip>
                                   <Button
                                     variant="contained"
-                                    color={
-                                      product.status ?? product.Status
-                                        ? "error"
-                                        : "success"
-                                    }
+                            color={(() => {
+                              const status = product.status ?? product.Status;
+                              return status === true || status === "active" ? "error" : "success";
+                            })()}
                                     size="small"
-                                    disabled={!product._pid}
-                                    onClick={() =>
+                            onClick={(e) => {
+                              e.stopPropagation();
                                       handleChangeStatus(
                                         product,
-                                        product.status ?? product.Status
-                                          ? "active"
-                                          : "inactive"
-                                      )
-                                    }
-                                  >
-                                    {product.status ?? product.Status
-                                      ? "Ngừng bán"
-                                      : "Kích hoạt"}
+                                product.status ?? product.Status ? "active" : "inactive"
+                              );
+                            }}
+                            sx={{ 
+                            minWidth: 140,
+                            width: 140,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {(() => {
+                              const status = product.status ?? product.Status;
+                              return status === true || status === "active" ? "NGỪNG BÁN" : "KÍCH HOẠT";
+                            })()}
                                   </Button>
-                                </span>
-                              </Tooltip>
-
-                              {/* Thêm button Xem Lô */}
                               <Button
                                 variant="outlined"
                                 color="info"
-                                size="small"
-                                onClick={() => handleViewLots(product)}
+                                size="medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewLots(product);
+                            }}
+                                sx={{
+                                  minWidth: 100,
+                                  height: 32,
+                                  fontWeight: 400,
+                                  borderWidth: 1,
+                                  px: 2,
+                                }}
                               >
-                                Xem Lô
+                            XEM LÔ
                               </Button>
-                            </Stack>
+                        </Box>
                           </TableCell>
                         </TableRow>
-                      ))}
-                  </AnimatePresence>
-                </Box>
+                  ))
+              )}
+            </TableBody>
+            {filteredProducts.length > 0 && (
                 <TableFooter>
                   <TableRow>
                     <TableCell
                       colSpan={headCells.length}
-                      sx={{ borderBottom: "none", p: 1 }}
+                    sx={{ borderBottom: 'none', p: 2 }}
                     >
-                      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <Pagination
                           count={totalPages}
                           page={page}
@@ -881,10 +682,11 @@ const ListProduct = () => {
                     </TableCell>
                   </TableRow>
                 </TableFooter>
+            )}
               </Table>
             </TableContainer>
-          </Paper>
         )}
+
         <ProductLotsModal
           open={showLotsModal}
           onClose={() => setShowLotsModal(false)}
@@ -902,11 +704,13 @@ const ListProduct = () => {
               show={showProductDetailsModal}
               handleClose={() => setShowProductDetailsModal(false)}
               product={selectedProduct}
+        productId={selectedProductId}
             />
             <EditProduct
               open={showEditModal}
               handleClose={() => setShowEditModal(false)}
               product={selectedProduct}
+              existingProducts={products}
               onUpdateSuccess={fetchProducts}
             />
           </>
@@ -917,11 +721,27 @@ const ListProduct = () => {
           open={showAddProduct}
           handleClose={() => setShowAddProduct(false)}
           onSaveSuccess={fetchProducts}
-          createProduct={createProduct} // Truyền hàm vào modal
+        createProduct={createProduct}
           checkProductName={checkProductName}
+          existingProducts={products}
         />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarMessage.includes('thành công') ? 'success' : 'error'}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
       </Container>
-    </Box>
   );
 };
 

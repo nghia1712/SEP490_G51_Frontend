@@ -39,6 +39,11 @@ const userAPI = {
             throw new Error('Không thể parse token: ' + error.message);
         }
     },
+    editCustomerProfile: (formData) => {
+        const token = localStorage.getItem("authToken");
+        if (!token) throw new Error('Chưa đăng nhập');
+        return formDataApi.put('/User/edit-profile', formData);
+    },
     // Upload avatar file
     uploadAvatar: (file) => {
         console.log('Uploading avatar file:', file);

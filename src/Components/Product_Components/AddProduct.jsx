@@ -32,6 +32,7 @@ const AddProduct = ({
   onSaveSuccess,
   createProduct,
   checkProductName,
+  existingProducts = [],
 }) => {
   const [productData, setProductData] = useState({
     productName: "",
@@ -41,7 +42,7 @@ const AddProduct = ({
     minQuantity: 0,
     maxQuantity: 0,
     totalCurrentQuantity: 0,
-    status: false,
+    status: true,
     productImage: null,
     // imageUrl: "", // (commented) reserved for future URL paste feature
   });
@@ -75,7 +76,7 @@ const AddProduct = ({
         minQuantity: 0,
         maxQuantity: 0,
         totalCurrentQuantity: 0,
-        status: false,
+        status: true,
         productImage: null,
         // imageUrl: "", // (commented)
       });
@@ -88,6 +89,9 @@ const AddProduct = ({
       setHasSupplier(false);
     }
   }, [open]);
+
+  const normalizeName = (value = "") =>
+    String(value ?? "").trim().toLowerCase();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -213,6 +217,22 @@ const AddProduct = ({
       tempErrors.productName = "";
     }
 
+    if (!tempErrors.productName && productData.productName) {
+      const normalizedNewName = normalizeName(productData.productName);
+      const isDuplicate = (existingProducts || []).some((prod) => {
+        const existingName =
+          prod?.productName ||
+          prod?.ProductName ||
+          prod?.name ||
+          prod?.Name ||
+          "";
+        return normalizeName(existingName) === normalizedNewName;
+      });
+      if (isDuplicate) {
+        tempErrors.productName = "Tên thuốc đã tồn tại.";
+      }
+    }
+
     // Validate CategoryID (required)
     tempErrors.categoryId = productData.categoryId
       ? ""
@@ -273,30 +293,20 @@ const AddProduct = ({
     if (await validate()) {
       setLoading(true);
       try {
-        let imagePath = ""; // URL paste feature disabled for now
+        const formData = new FormData();
+        formData.append("ProductName", productData.productName.trim());
+        formData.append("CategoryID", Number(productData.categoryId));
+        formData.append("ProductDescription", productData.productDescription || "");
+        formData.append("Unit", productData.unit);
+        formData.append("MinQuantity", Number(productData.minQuantity));
+        formData.append("MaxQuantity", Number(productData.maxQuantity));
+        formData.append("Status", productData.status ? "true" : "false");
         if (productData.productImage) {
-          // upload then take returned path
-          const { default: productAPI } = await import("../../API/productAPI");
-          const uploadRes = await productAPI.uploadImage(
-            productData.productImage
-          );
-          imagePath = uploadRes?.data?.data || "";
+          formData.append("Image", productData.productImage);
         }
 
-        const body = {
-          productName: productData.productName,
-          categoryID: productData.categoryId,
-          productDescription: productData.productDescription || "",
-          unit: productData.unit,
-          minQuantity: productData.minQuantity,
-          maxQuantity: productData.maxQuantity,
-          totalCurrentQuantity: productData.totalCurrentQuantity,
-          status: productData.status,
-          image: imagePath,
-        };
-
         const { default: productAPI2 } = await import("../../API/productAPI");
-        await productAPI2.createJson(body);
+        await productAPI2.create(formData);
         // success flow: show message and close after 3s
         setSuccessMessage("Thêm thuốc thành công!");
         setLoading(false);
@@ -457,7 +467,7 @@ const AddProduct = ({
                   <Select
                     labelId="status-select-label"
                     name="status"
-                    value={productData.status}
+                    value={productData.status ? "true" : "false"}
                     label="Trạng Thái"
                     onChange={(e) =>
                       setProductData((prev) => ({
@@ -466,8 +476,8 @@ const AddProduct = ({
                       }))
                     }
                   >
-                    <MenuItem value={false}>Ngừng bán</MenuItem>
-                    <MenuItem value={true}>Đang bán</MenuItem>
+                    <MenuItem value="true">Đang bán</MenuItem>
+                    <MenuItem value="false">Ngừng bán</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -560,7 +570,7 @@ const AddProduct = ({
           variant="contained"
           disabled={loading || !!successMessage}
         >
-          {loading ? <CircularProgress size={24} /> : "Lưu Thuốc"}
+          {loading ? <CircularProgress size={24} /> : "Thêm Thuốc Mới"}
         </Button>
       </DialogActions>
     </Dialog>

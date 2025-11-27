@@ -6,7 +6,13 @@ import {
   Stack, Alert, CircularProgress,
 } from '@mui/material';
 
-const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
+const EditCategoryDialog = ({
+  open,
+  onClose,
+  category,
+  onCategoryUpdated,
+  categories = [],
+}) => {
   const [formData, setFormData] = useState({ categoryName: '', description: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,15 +53,45 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
       setError("Tên danh mục không được để trống.");
       return;
     }
+
+    const normalizedNewName = formData.categoryName.trim().toLowerCase();
+    const currentCategoryId =
+      category.categoryID ||
+      category.CategoryID ||
+      category.id ||
+      category.Id ||
+      category._id ||
+      0;
+
+    const isDuplicate = categories.some((cat) => {
+      const existingId =
+        cat?.categoryID ||
+        cat?.CategoryID ||
+        cat?.id ||
+        cat?.Id ||
+        cat?._id ||
+        0;
+      if (existingId === currentCategoryId) return false;
+      const existingName =
+        (cat?.name ||
+          cat?.categoryName ||
+          cat?.CategoryName ||
+          cat?.Name ||
+          "") +
+        "";
+      return existingName.trim().toLowerCase() === normalizedNewName;
+    });
+
+    if (isDuplicate) {
+      setError("Tên danh mục đã tồn tại.");
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       // Thử nhiều field name khác nhau cho CategoryID
-      const categoryId = category.categoryID || 
-                        category.CategoryID || 
-                        category.id || 
-                        category.Id || 
-                        category._id || 0;
+      const categoryId = currentCategoryId;
       
       console.log('Using CategoryID:', categoryId);
       
@@ -80,7 +116,7 @@ const EditCategoryDialog = ({ open, onClose, category, onCategoryUpdated }) => {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogTitle>Chỉnh Sửa Danh Mục</DialogTitle>
         <DialogContent dividers>
           {/* Giao diện tương tự AddCategoryDialog */}

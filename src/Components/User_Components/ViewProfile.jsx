@@ -9,6 +9,8 @@ const Profile = () => {
 	const [profile, setProfile] = useState(null);
 	const [error, setError] = useState(null);
 	const { getProfile } = useUser();
+	const roleKey = getUserRoleFromToken();
+	const isCustomer = roleKey === 'customer';
 	
 	const getAvatarUrl = (avatarPath) => {
 		console.log("ViewProfile getAvatarUrl called with:", avatarPath);
@@ -66,12 +68,6 @@ const Profile = () => {
 		if (["male", "nam", "m", "1", "true"].includes(norm)) return "Nam";
 		if (["female", "nu", "nữ", "f", "0", "false"].includes(norm)) return "Nữ";
 		return raw;
-	};
-
-	const getCodeLabel = () => {
-		const roleKey = getUserRoleFromToken();
-		if (roleKey === 'customer') return "Mã số thuế";
-		return "Mã số nhân viên";
 	};
 
 	const getRoleLabel = (userData) => {
@@ -275,11 +271,28 @@ const Profile = () => {
 									<Card.Body>
 										<h3 className="mb-3">Thông tin cá nhân</h3>
 										<hr />
-										<Row>
-											<Col sm={4}><strong>{getCodeLabel()}:</strong></Col>
-											<Col sm={8}>{getValue(profile.employeeCode || profile.mst || profile.Mst)}</Col>
-										</Row>
-										<hr />
+										{isCustomer ? (
+											<>
+												<Row>
+													<Col sm={4}><strong>Mã số thuế:</strong></Col>
+													<Col sm={8}>{getValue(profile.mst || profile.Mst)}</Col>
+												</Row>
+												<hr />
+												<Row>
+													<Col sm={4}><strong>Mã số hộ kinh doanh:</strong></Col>
+													<Col sm={8}>{getValue(profile.mshkd || profile.Mshkd)}</Col>
+												</Row>
+												<hr />
+											</>
+										) : (
+											<>
+												<Row>
+													<Col sm={4}><strong>Mã số nhân viên:</strong></Col>
+													<Col sm={8}>{getValue(profile.employeeCode)}</Col>
+												</Row>
+												<hr />
+											</>
+										)}
 										<Row>
 											<Col sm={4}><strong>Tên đầy đủ:</strong></Col>
 											<Col sm={8}>{getValue(profile.fullName || profile.FullName)}</Col>

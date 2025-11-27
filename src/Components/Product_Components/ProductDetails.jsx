@@ -13,41 +13,12 @@ const fadeIn = {
   exit: { opacity: 0, y: 40, transition: { duration: 0.2 } },
 };
 
-const ProductDetails = ({ show, handleClose, product }) => {
+const ProductDetails = ({ show, handleClose, product, productId }) => {
   const [productDetail, setProductDetail] = useState(null);
   const [categoryName, setCategoryName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [categories, setCategories] = useState([]);
-
-  // Load categories when component mounts
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const categoryResponse = await categoryAPI.getAllPublic();
-        if (categoryResponse.data && categoryResponse.data.success) {
-          setCategories(categoryResponse.data.data);
-          console.log('ProductDetails - Loaded categories:', categoryResponse.data.data);
-        }
-      } catch (err) {
-        console.warn("Could not load categories:", err);
-        // Fallback: Use mock categories based on common category IDs
-        const mockCategories = [
-          { CategoryID: 1, Name: "Thuốc giảm đau" },
-          { CategoryID: 2, Name: "Kháng sinh" },
-          { CategoryID: 3, Name: "Thuốc tiêu hóa" },
-          { CategoryID: 4, Name: "Vitamin" },
-          { CategoryID: 5, Name: "Thuốc cảm cúm" },
-        ];
-        setCategories(mockCategories);
-        console.log('ProductDetails - Using mock categories:', mockCategories);
-      }
-    };
-    
-    if (show) {
-      loadCategories();
-    }
-  }, [show]);
+  const [categoryNameFromApi, setCategoryNameFromApi] = useState("");
 
   // Fetch product details by ID when modal opens
   useEffect(() => {
@@ -56,69 +27,59 @@ const ProductDetails = ({ show, handleClose, product }) => {
       
       setLoading(true);
       setError("");
+      setProductDetail(product);
+      if (product.categoryName) setCategoryName(product.categoryName);
       
       try {
-        // Debug: Log the product object to see its structure
-        console.log('ProductDetails - Received product:', product);
+        const resolvedProductId =
+          productId ||
+          product.ProductID ||
+          product.productID ||
+          product.ProductId ||
+          product.productId ||
+          product._pid;
         
-        // Get product ID from various possible fields
-        const productId = product.ProductID || product.productID || product.ProductId || product.productId || product._pid;
-        
-        console.log('ProductDetails - Extracted productId:', productId);
-        
-        if (!productId) {
+        if (!resolvedProductId) {
           throw new Error("Không tìm thấy ID sản phẩm");
         }
 
-        // Fetch detailed product information
-        console.log('ProductDetails - Calling API with ID:', productId);
-        const response = await productAPI.getById(productId);
-        
-        console.log('ProductDetails - API Response:', response);
+        const response = await productAPI.getById(resolvedProductId);
         
         if (response.data && response.data.success) {
           setProductDetail(response.data.data);
-          console.log('ProductDetails - Set productDetail:', response.data.data);
           
-          // Fetch category name if categoryId exists
           if (response.data.data.categoryID || response.data.data.CategoryID) {
             const categoryId = response.data.data.categoryID || response.data.data.CategoryID;
-            console.log('ProductDetails - Looking for categoryId:', categoryId);
-            console.log('ProductDetails - Available categories:', categories);
-            
-            // Try different ways to find the category
-            const category = categories.find(cat => 
-              cat.CategoryID === categoryId || 
-              cat.categoryID === categoryId ||
-              cat.id === categoryId ||
-              cat.Id === categoryId
-            );
-            
-            if (category) {
-              const categoryName = category.Name || category.name || category.CategoryName || category.categoryName;
-              setCategoryName(categoryName);
-              console.log('ProductDetails - Set categoryName:', categoryName);
-            } else {
-              console.warn('ProductDetails - Category not found for ID:', categoryId);
+            try {
+              const catResp = await categoryAPI.get(categoryId);
+              const catData = catResp?.data?.data || catResp?.data || {};
+              const name =
+                catData?.Name ||
+                catData?.name ||
+                catData?.CategoryName ||
+                catData?.categoryName ||
+                '';
+              setCategoryName(name || "Danh mục không xác định");
+            } catch (error) {
+              console.warn("Không thể load danh mục:", error);
               setCategoryName("Danh mục không xác định");
             }
           } else {
-            console.warn('ProductDetails - No categoryID found in product data');
             setCategoryName("Không có danh mục");
           }
         } else {
           throw new Error(response.data?.message || "Không thể tải thông tin sản phẩm");
         }
       } catch (err) {
-        console.error("Error fetching product detail:", err);
-        setError(err.message || "Có lỗi xảy ra khi tải thông tin sản phẩm");
+        console.warn("Error fetching product detail, dùng dữ liệu có sẵn:", err);
+        setError("");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProductDetail();
-  }, [show, product, categories]);
+  }, [show, product, productId]);
 
   return (
     <AnimatePresence>
@@ -163,42 +124,39 @@ const ProductDetails = ({ show, handleClose, product }) => {
                 </Col>
                 <Col xs={24} md={15}>
                   <Title level={4} style={{ marginBottom: 16 }}>{productDetail.productName || productDetail.ProductName}</Title>
-                  <Descriptions column={1} size="middle" bordered>
-                    <Descriptions.Item label="Mã sản phẩm">
-                      {productDetail.productID || productDetail.ProductID}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tên sản phẩm">
-                      <strong>{productDetail.productName || productDetail.ProductName}</strong>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Danh mục">
-                      {categoryName || "Đang tải..."}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Mô tả">
-                      {productDetail.productDescription || productDetail.ProductDescription || "Không có mô tả"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Đơn vị">
-                      {productDetail.unit || productDetail.Unit}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Số lượng tối thiểu">
-                      <strong>{productDetail.minQuantity || productDetail.MinQuantity}</strong> {productDetail.unit || productDetail.Unit}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Số lượng tối đa">
-                      <strong>{productDetail.maxQuantity || productDetail.MaxQuantity}</strong> {productDetail.unit || productDetail.Unit}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Tổng số lượng hiện tại">
-                      <strong style={{ color: (productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) ? '#ff4d4f' : '#52c41a' }}>
-                        {productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity}
-                      </strong> {productDetail.unit || productDetail.Unit}
-                      {(productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) && (
-                        <Tag color="red" style={{ marginLeft: 8 }}>Cảnh báo: Dưới mức tối thiểu</Tag>
-                      )}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Trạng thái">
-                      <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
-                        {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
-                      </Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
+          <Descriptions column={1} size="middle" bordered>
+            <Descriptions.Item label="Mã sản phẩm">
+              {productDetail.productID || productDetail.ProductID}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tên sản phẩm">
+              <strong>{productDetail.productName || productDetail.ProductName}</strong>
+            </Descriptions.Item>
+            <Descriptions.Item label="Mô tả">
+              {productDetail.productDescription || productDetail.ProductDescription || "Không có mô tả"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Đơn vị">
+              {productDetail.unit || productDetail.Unit}
+            </Descriptions.Item>
+            <Descriptions.Item label="Số lượng tối thiểu">
+              <strong>{productDetail.minQuantity || productDetail.MinQuantity}</strong> {productDetail.unit || productDetail.Unit}
+            </Descriptions.Item>
+            <Descriptions.Item label="Số lượng tối đa">
+              <strong>{productDetail.maxQuantity || productDetail.MaxQuantity}</strong> {productDetail.unit || productDetail.Unit}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tổng số lượng hiện tại">
+              <strong style={{ color: (productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) ? '#ff4d4f' : '#52c41a' }}>
+                {productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity}
+              </strong> {productDetail.unit || productDetail.Unit}
+              {(productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) && (
+                <Tag color="red" style={{ marginLeft: 8 }}>Cảnh báo: Dưới mức tối thiểu</Tag>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
+                {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
+              </Tag>
+            </Descriptions.Item>
+          </Descriptions>
                 </Col>
               </Row>
             ) : null}

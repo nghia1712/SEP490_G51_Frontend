@@ -14,6 +14,7 @@ const EditProduct = ({
   handleClose,
   product,
   onUpdateSuccess,
+  existingProducts = [],
 }) => {
   const [productData, setProductData] = useState({
     productName: "",
@@ -52,8 +53,8 @@ const EditProduct = ({
           unit: product.unit || "",
           minQuantity: product.minQuantity || 0,
           maxQuantity: product.maxQuantity || 0,
-          totalCurrentQuantity: product.totalCurrentQuantity || 0,
-          status: product.status || false,
+      totalCurrentQuantity: product.totalCurrentQuantity || 0,
+      status: product.status || false,
           productImage: null,
         });
         const imageUrl = product.image ? `http://localhost:5137${product.image}` : null;
@@ -151,6 +152,18 @@ const EditProduct = ({
   // };
 
 
+  const normalizeName = (value = "") =>
+    String(value ?? "").trim().toLowerCase();
+
+  const getProductIdValue = (item = {}) =>
+    item?.ProductID ??
+    item?.productID ??
+    item?.ProductId ??
+    item?.productId ??
+    item?.id ??
+    item?._id ??
+    "";
+
   const validate = async () => {
     let tempErrors = {};
     
@@ -165,6 +178,29 @@ const EditProduct = ({
       }
     } else {
       tempErrors.productName = "";
+    }
+
+    if (
+      !tempErrors.productName &&
+      productData.productName &&
+      productData.productName.trim()
+    ) {
+      const normalizedNewName = normalizeName(productData.productName);
+      const currentId = getProductIdValue(product);
+      const isDuplicate = (existingProducts || []).some((prod) => {
+        const existingId = getProductIdValue(prod);
+        if (existingId === currentId) return false;
+        const existingName =
+          prod?.productName ||
+          prod?.ProductName ||
+          prod?.name ||
+          prod?.Name ||
+          "";
+        return normalizeName(existingName) === normalizedNewName;
+      });
+      if (isDuplicate) {
+        tempErrors.productName = "Tên thuốc đã tồn tại.";
+      }
     }
     
     // Validate CategoryID (optional)
@@ -208,12 +244,6 @@ const EditProduct = ({
     }
     
     // Validate TotalCurrentQuantity (optional, but if provided: >= 0)
-    if (productData.totalCurrentQuantity < 0) {
-        tempErrors.totalCurrentQuantity = "Tổng số lượng hiện tại phải không âm.";
-    } else {
-        tempErrors.totalCurrentQuantity = "";
-    }
-    
     // Image is optional for edit, only validate if provided
     if (productData.productImage && typeof productData.productImage === 'object' && !["image/jpeg", "image/png"].includes(productData.productImage.type)) {
         tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
@@ -377,24 +407,7 @@ const EditProduct = ({
                     inputProps={{ min: 0 }}
                   />
                 </Box>
-                <TextField
-                  name="totalCurrentQuantity"
-                  label="Tổng số lượng hiện tại"
-                  type="number"
-                  value={productData.totalCurrentQuantity}
-                  onChange={handleChange}
-                  error={!!errors.totalCurrentQuantity}
-                  helperText={errors.totalCurrentQuantity}
-                  fullWidth
-                  inputProps={{ min: 0 }}
-                />
-                <FormControl fullWidth>
-                  <InputLabel id="status-select-label">Trạng Thái</InputLabel>
-                  <Select labelId="status-select-label" name="status" value={productData.status} label="Trạng Thái" onChange={(e) => setProductData(prev => ({ ...prev, status: e.target.value === 'true' }))}>
-                    <MenuItem value={false}>Ngừng bán</MenuItem>
-                    <MenuItem value={true}>Đang bán</MenuItem>
-                  </Select>
-                </FormControl>
+                {/* Trường tổng số lượng và trạng thái bị ẩn theo yêu cầu */}
               </Stack>
             </Box>
             
@@ -465,8 +478,14 @@ const EditProduct = ({
       </DialogContent>
       <Divider sx={{ opacity: 0.5 }} />
       <DialogActions sx={{ p: '16px 24px' }}>
-        <Button onClick={handleClose} disabled={loading || successMessage} color="secondary">Đóng</Button>
-        <Button onClick={handleUpdate} variant="contained" disabled={loading || successMessage}>{loading ? <CircularProgress size={24} /> : "Cập Nhật Thuốc"}</Button>
+        <Button onClick={handleClose} disabled={loading || Boolean(successMessage)} color="secondary">Đóng</Button>
+        <Button
+          onClick={handleUpdate}
+          variant="contained"
+          disabled={loading || Boolean(successMessage)}
+        >
+          {loading ? <CircularProgress size={24} /> : "Cập Nhật Thuốc"}
+        </Button>
       </DialogActions>
     </Dialog>
   );
