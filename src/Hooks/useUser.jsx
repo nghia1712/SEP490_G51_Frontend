@@ -26,50 +26,38 @@ const useUser = () => {
       console.log("Response data:", response?.data);
       
       if (response && response.data) {
-        // API Admin/get-account-details trả về { success, message, data }
+        // API User/view-profile trả về { message, data } 
+        // data có thể là StaffProfileDTO, CustomerProfileDTO, hoặc CommonProfileDTO
         const apiData = response.data;
         console.log("API Data structure:", apiData);
         
-        // Kiểm tra nếu API trả về success: true
-        if (apiData.success && apiData.data) {
-          const payload = apiData.data;
-          console.log("Payload data:", payload);
-          
-          // Lưu bản chuẩn hóa tối thiểu phục vụ ViewProfile
-          const normalized = {
-            fullName: payload?.fullName ?? payload?.FullName ?? payload?.name ?? "",
-            email: payload?.email ?? payload?.Email ?? "",
-            phoneNumber: payload?.phoneNumber ?? payload?.PhoneNumber ?? "",
-            address: payload?.address ?? payload?.Address ?? "",
-            gender: payload?.gender ?? payload?.Gender ?? "",
-            createAt: payload?.createAt ?? payload?.CreateAt ?? payload?.createdAt ?? null,
-            status: payload?.status ?? payload?.userStatus ?? true,
-            avatar: payload?.avatar ?? payload?.Avatar ?? "",
-            mst: payload?.mst ?? payload?.Mst ?? "",
-          };
-          
-          console.log("Normalized data:", normalized);
-          setProfile({ ...payload, ...normalized });
-          setLoading(false);
-          return { data: { data: { ...payload, ...normalized } } };
-        } else {
-          // Fallback cho API cũ hoặc cấu trúc khác
-          const payload = apiData?.data ?? apiData;
-          const normalized = {
-            fullName: payload?.fullName ?? payload?.FullName ?? payload?.name ?? "",
-            email: payload?.email ?? payload?.Email ?? "",
-            phoneNumber: payload?.phoneNumber ?? payload?.PhoneNumber ?? "",
-            address: payload?.address ?? payload?.Address ?? "",
-            gender: payload?.gender ?? payload?.Gender ?? "",
-            createAt: payload?.createAt ?? payload?.CreateAt ?? payload?.createdAt ?? null,
-            status: payload?.status ?? payload?.userStatus ?? true,
-            avatar: payload?.avatar ?? payload?.Avatar ?? "",
-            mst: payload?.mst ?? payload?.Mst ?? "",
-          };
-          setProfile({ ...payload, ...normalized });
-          setLoading(false);
-          return { data: { data: { ...payload, ...normalized } } };
-        }
+        // Lấy payload từ data field (User/view-profile trả về { message, data })
+        const payload = apiData?.data ?? apiData;
+        console.log("Payload data:", payload);
+        
+        // Chuẩn hóa dữ liệu để đảm bảo frontend có thể truy cập với cả camelCase và PascalCase
+        const normalized = {
+          fullName: payload?.fullName ?? payload?.FullName ?? payload?.name ?? "",
+          email: payload?.email ?? payload?.Email ?? "",
+          phoneNumber: payload?.phoneNumber ?? payload?.PhoneNumber ?? "",
+          address: payload?.address ?? payload?.Address ?? "",
+          gender: payload?.gender ?? payload?.Gender ?? "",
+          createAt: payload?.createAt ?? payload?.CreateAt ?? payload?.createdAt ?? null,
+          status: payload?.status ?? payload?.userStatus ?? true,
+          avatar: payload?.avatar ?? payload?.Avatar ?? "",
+          // Staff fields
+          employeeCode: payload?.employeeCode ?? payload?.EmployeeCode ?? "",
+          // Customer fields
+          mst: payload?.mst ?? payload?.MST ?? payload?.Mst ?? "",
+          mshkd: payload?.mshkd ?? payload?.Mshkd ?? "",
+          imageCnkd: payload?.imageCnkd ?? payload?.ImageCnkd ?? "",
+          imageByt: payload?.imageByt ?? payload?.ImageByt ?? "",
+        };
+        
+        console.log("Normalized data:", normalized);
+        setProfile({ ...payload, ...normalized });
+        setLoading(false);
+        return { data: { data: { ...payload, ...normalized } } };
       } else {
         throw new Error('Không thể lấy thông tin profile');
       }

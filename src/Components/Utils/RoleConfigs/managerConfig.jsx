@@ -51,13 +51,6 @@ export const managerFunctions = [
     description: "Quản lý xuất hàng và bán thuốc",
     category: "operations"
   },
-  {
-    title: "Kiểm kê",
-    icon: <FactCheckIcon />,
-    path: "/stocktaking",
-    description: "Kiểm kê tồn kho và quản lý kho",
-    category: "operations"
-  },
   
   // Dashboards
   {

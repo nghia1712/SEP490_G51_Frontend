@@ -20,6 +20,7 @@ const authAPI = {
   register: (form) => {
     const payload = {
       UserName: form.username,
+      FullName: form.fullName,
       Email: form.email,
       PhoneNumber: form.phoneNumber,
       Password: form.password,

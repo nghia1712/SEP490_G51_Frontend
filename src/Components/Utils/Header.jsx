@@ -15,8 +15,6 @@ import {
   Box,
   Menu,
   MenuItem,
-  Avatar,
-  IconButton,
   Tooltip,
   useTheme,
   useMediaQuery,
@@ -27,10 +25,18 @@ import {
   ListItemText,
   Divider,
   Badge,
+  Chip,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import MenuIcon from "@mui/icons-material/Menu";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import PersonIcon from "@mui/icons-material/Person";
 
 // Bảng màu của bạn
 const palette = {
@@ -65,6 +71,61 @@ const activeNavStyle = {
 // Parser dành cho demo token dạng "demo-token-<id>"
 const getUserRole = () => getUserRoleFromToken();
 
+// Helper function để lấy thông tin role (màu sắc, label, icon component)
+const getRoleInfo = (role) => {
+  const roleMap = {
+    admin: {
+      label: "Admin",
+      color: "#d32f2f", // Đỏ đậm
+      bgColor: "#ffebee",
+      IconComponent: AdminPanelSettingsIcon,
+    },
+    manager: {
+      label: "Quản Lý",
+      color: "#1976d2", // Xanh dương
+      bgColor: "#e3f2fd",
+      IconComponent: SupervisorAccountIcon,
+    },
+    sales_staff: {
+      label: "Bán Hàng",
+      color: "#388e3c", // Xanh lá
+      bgColor: "#e8f5e9",
+      IconComponent: ShoppingCartIcon,
+    },
+    purchases_staff: {
+      label: "Mua Hàng",
+      color: "#f57c00", // Cam
+      bgColor: "#fff3e0",
+      IconComponent: InventoryIcon,
+    },
+    warehouse_staff: {
+      label: "Kho",
+      color: "#7b1fa2", // Tím
+      bgColor: "#f3e5f5",
+      IconComponent: WarehouseIcon,
+    },
+    accountant_staff: {
+      label: "Kế Toán",
+      color: "#0288d1", // Xanh nhạt
+      bgColor: "#e1f5fe",
+      IconComponent: AccountBalanceIcon,
+    },
+    customer: {
+      label: "Khách Hàng",
+      color: "#616161", // Xám
+      bgColor: "#f5f5f5",
+      IconComponent: PersonIcon,
+    },
+  };
+
+  return roleMap[role] || {
+    label: role || "Unknown",
+    color: "#757575",
+    bgColor: "#f5f5f5",
+    IconComponent: PersonIcon,
+  };
+};
+
 function Header() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,11 +133,6 @@ function Header() {
   const userRole = getUserRole();
   // Cả guest và user đều có trang chủ là "/"
   const isHomePage = location.pathname === "/";
-
-  // Ẩn header khi user có vai trò manager, trừ route /manager
-  if (userRole === "manager" && location.pathname !== "/manager") {
-    return null;
-  }
   // --- STATE MANAGEMENT ---
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
@@ -178,9 +234,6 @@ function Header() {
     }, 0);
   };
 
-  const avatarUrl = profile?.profile?.avatar
-    ? `http://localhost:9999${profile.profile.avatar}`
-    : "/images/avatar/default.png";
 
   // --- NAVIGATION ITEMS ---
   const navItems = [
@@ -189,10 +242,7 @@ function Header() {
       path: "/sales-dashboard",
       allowedRoles: [
         "manager",
-        "sales_staff",
-        "purchases_staff",
-        "warehouse_staff",
-        "admin",
+        "sales_staff"
       ],
     },
     {
@@ -204,7 +254,6 @@ function Header() {
       label: "Thuốc",
       path: "/product",
       allowedRoles: [
-        "manager",
         "sales_staff",
         "purchases_staff",
       ],
@@ -217,7 +266,7 @@ function Header() {
     {
       label: "Nhà cung cấp",
       path: "/supplier",
-      allowedRoles: ["manager", "purchases_staff", "admin"],
+      allowedRoles: ["purchases_staff"],
     },
     {
       label: "Yêu cầu báo giá nhập",
@@ -227,13 +276,12 @@ function Header() {
     {
       label: "Báo giá(PQ)",
       path: "/purchase/pq",
-      allowedRoles: [ "purchases_staff", "admin"],
+      allowedRoles: [ "purchases_staff"],
     },
     {
       label: "Đơn hàng nhập",
       path: "/po",
       allowedRoles: [
-        "admin",
         "purchases_staff",
         "warehouse_staff",
         "accountant_staff",
@@ -243,16 +291,13 @@ function Header() {
       label: "Báo cáo kiểm kê",
       path: "/inventory-report",
       allowedRoles: [
-        "manager",
-        "warehouse_staff",
-        "accountant_staff",
-        "admin",
+        "warehouse_staff", "accountant_staff"
       ],
     },
     {
       label: "Kho hàng",
       path: "/warehouse",
-      allowedRoles: ["manager", "warehouse_staff", "admin"],
+      allowedRoles: ["warehouse_staff"],
     },
     {
       label: "Nhập kho",
@@ -270,19 +315,14 @@ function Header() {
       allowedRoles: ["warehouse_staff", "accountant_staff"],
     },
     {
-      label: "Kiểm kê",
-      path: "/stocktaking",
-      allowedRoles: ["manager", "admin"],
-    },
-    {
       label: "Yêu cầu báo giá",
       path: "/request-quotation",
-      allowedRoles: ["manager", "sales_staff", "admin"],
+      allowedRoles: ["manager", "sales_staff"],
     },
     {
       label: "Báo giá",
       path: "/sales-quotation",
-      allowedRoles: ["manager", "sales_staff", "admin"],
+      allowedRoles: ["manager", "sales_staff"],
     },
     {
       label: "Đơn hàng (Sales)",
@@ -302,12 +342,12 @@ function Header() {
     {
       label: "Hóa đơn",
       path: "/accountant/invoices",
-      allowedRoles: ["accountant_staff", "manager"],
+      allowedRoles: ["accountant_staff"],
     },
     {
       label: "Công nợ",
       path: "/debt",
-      allowedRoles: ["accountant_staff", "manager"],
+      allowedRoles: ["accountant_staff"],
     },
     {
       label: "Yêu cầu thanh toán",
@@ -340,18 +380,12 @@ function Header() {
     {
       label: "Khách hàng",
       path: "/listcustomer",
-      allowedRoles: ["manager", "sales_staff"],
+      allowedRoles: ["sales_staff"],
     },
   ];
 
-  const transactionMenuItems = [
-    { label: "Xuất Kho", path: "/export", allowedRoles: ["manager"] },
-    {
-      label: "Danh Sách Giao Dịch",
-      path: "/list-transaction",
-      allowedRoles: ["manager"],
-    },
-  ];
+  // Đã bỏ menu "Giao dịch" cho tất cả role nên mảng này để trống
+  const transactionMenuItems = [];
 
   // Determine visible items based on role.
   // For admin: show three user account categories, hide partner/transaction menus.
@@ -384,6 +418,8 @@ function Header() {
   const visibleNavItems =
     userRole === "admin"
       ? adminNavItems
+      : userRole === "manager"
+      ? [adminNavItems[0]] // Manager chỉ thấy Tài khoản khách hàng
       : roleAccountItem
       ? [roleAccountItem, ...baseVisible]
       : baseVisible;
@@ -401,6 +437,10 @@ function Header() {
       : transactionMenuItems.filter(
           (item) => userRole && item.allowedRoles.includes(userRole)
         );
+
+  // Items thực tế sẽ render trên header/drawer
+  const navItemsForRender = visibleNavItems;
+  const transactionItemsForRender = visibleTransactionItems;
 
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: "center" }}>
@@ -443,7 +483,7 @@ function Header() {
         {/* Ẩn navigation khi customer chưa bổ sung thông tin */}
         {currentToken && !shouldHideCustomerNav && (
           <>
-            {visibleNavItems.map((item) => (
+            {navItemsForRender.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
                   selected={isActiveNavItem(item.path)}
@@ -454,8 +494,8 @@ function Header() {
                 </ListItemButton>
               </ListItem>
             ))}
-            {visibleTransactionItems.length > 0 && <Divider>Giao dịch</Divider>}
-            {visibleTransactionItems.map((item) => (
+            {transactionItemsForRender.length > 0 && <Divider>Giao dịch</Divider>}
+            {transactionItemsForRender.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
                   sx={{ textAlign: "left" }}
@@ -533,7 +573,7 @@ function Header() {
                       color="inherit"
                       onClick={() => handleNavigate(item.path)}
                       sx={{
-                        ...(isActiveNavItem(item.path)
+                                ...(isActiveNavItem(item.path)
                           ? activeNavStyle
                           : navButtonHoverStyle),
                       }}
@@ -604,33 +644,80 @@ function Header() {
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
             {/* Profile/Login */}
-            <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {currentToken ? (
                 <>
                   <NotificationMenu />
-                  <Tooltip title={profile?.fullName || "Tài khoản"}>
-                    <IconButton
-                      onClick={handleProfileMenuOpen}
-                      sx={{ p: 0.5, borderRadius: "8px" }}
-                    >
-                      <Avatar
-                        alt={profile?.fullName}
-                        src={avatarUrl}
-                        sx={{ width: 32, height: 32 }}
-                      />
-                      <ArrowDropDownIcon sx={{ color: palette.white }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Menu
-                    anchorEl={profileMenuAnchor}
-                    open={Boolean(profileMenuAnchor)}
-                    onClose={handleProfileMenuClose}
-                  >
-                    <MenuItem onClick={() => navigate("/profile")}>
-                      Tài khoản
-                    </MenuItem>
-                    <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
-                  </Menu>
+                  {/* Role Badge với dropdown */}
+                  {userRole && (() => {
+                    const roleInfo = getRoleInfo(userRole);
+                    const IconComponent = roleInfo.IconComponent;
+                    return (
+                      <>
+                        <Tooltip title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label}`}>
+                          <Chip
+                            icon={<IconComponent />}
+                            label={roleInfo.label}
+                            onClick={handleProfileMenuOpen}
+                            deleteIcon={<ArrowDropDownIcon />}
+                            onDelete={handleProfileMenuOpen}
+                            size="medium"
+                            sx={{
+                              backgroundColor: roleInfo.bgColor,
+                              color: roleInfo.color,
+                              fontWeight: 600,
+                              fontSize: "0.8rem",
+                              height: "30px",
+                              paddingX: "5px",
+                              border: `1px solid ${roleInfo.color}20`,
+                              cursor: "pointer",
+                              "& .MuiChip-icon": {
+                                color: roleInfo.color,
+                                fontSize: "20px",
+                                marginLeft: "8px",
+                              },
+                              "& .MuiChip-label": {
+                                paddingLeft: "8px",
+                                paddingRight: "4px",
+                              },
+                              "& .MuiChip-deleteIcon": {
+                                color: roleInfo.color,
+                                fontSize: "22px",
+                                marginRight: "4px",
+                                "&:hover": {
+                                  color: roleInfo.color,
+                                },
+                              },
+                              "&:hover": {
+                                backgroundColor: roleInfo.bgColor,
+                                opacity: 0.9,
+                              },
+                            }}
+                          />
+                        </Tooltip>
+                        <Menu
+                          anchorEl={profileMenuAnchor}
+                          open={Boolean(profileMenuAnchor)}
+                          onClose={handleProfileMenuClose}
+                          anchorOrigin={{
+                            vertical: "bottom",
+                            horizontal: "right",
+                          }}
+                          transformOrigin={{
+                            vertical: "top",
+                            horizontal: "right",
+                          }}
+                        >
+                          {userRole !== "admin" && userRole !== "manager" && (
+                            <MenuItem onClick={() => { handleProfileMenuClose(); navigate("/profile"); }}>
+                              Tài khoản
+                            </MenuItem>
+                          )}
+                          <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
+                        </Menu>
+                      </>
+                    );
+                  })()}
                 </>
               ) : (
                 <Box sx={{ display: "flex" }}>

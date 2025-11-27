@@ -48,20 +48,6 @@ const Profile = () => {
 		return fullUrl;
 	};
 	
-	const formatDate = (dateString) => {
-		if (!dateString) return "-";
-		try {
-			const date = new Date(dateString);
-			const day = String(date.getDate()).padStart(2, '0');
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			const year = date.getFullYear();
-			return `${day}/${month}/${year}`;
-		} catch (error) {
-			console.error("Error formatting date:", error);
-			return "-";
-		}
-	};
-
 	const getValue = (value, fallback = "-") => {
 		if (value === null || value === undefined || value === "") return fallback;
 		return value;
@@ -307,11 +293,6 @@ const Profile = () => {
 										<Row className="mt-2">
 											<Col sm={4}><strong>Số điện thoại:</strong></Col>
 											<Col sm={8}>{getValue(profile.phoneNumber || profile.PhoneNumber)}</Col>
-										</Row>
-										<hr />
-										<Row className="mt-2">
-											<Col sm={4}><strong>Ngày tạo tài khoản:</strong></Col>
-											<Col sm={8}>{formatDate(profile.createAt || profile.CreateAt)}</Col>
 										</Row>
 										<hr />
 										<Row className="mt-2">

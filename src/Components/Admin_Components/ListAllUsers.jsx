@@ -7,6 +7,7 @@ import CreateStaff from "./CreateStaff";
 import { FaEdit, FaBan, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import EditUser from "./EditUser";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 
 const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || "http://localhost:5137";
 
@@ -59,6 +60,7 @@ const ListAllUsers = ({ roleGroup }) => {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [approvingCustomerId, setApprovingCustomerId] = useState(null);
+    const [currentUserRole, setCurrentUserRole] = useState(null);
 
     const fetchUsers = async () => {
         try {
@@ -129,6 +131,12 @@ const ListAllUsers = ({ roleGroup }) => {
 
     useEffect(() => {
         fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        // Lấy role hiện tại từ token để phân quyền nút duyệt hồ sơ
+        const role = getUserRoleFromToken();
+        setCurrentUserRole(role);
     }, []);
 
     useEffect(() => {
@@ -1491,7 +1499,8 @@ const ListAllUsers = ({ roleGroup }) => {
                             !hasMshkd ||
                             !hasImageCnkd ||
                             !hasImageByt ||
-                            isActivated
+                            isActivated ||
+                            currentUserRole !== 'manager'
                         ) {
                             return null;
                         }

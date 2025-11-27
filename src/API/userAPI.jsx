@@ -5,22 +5,14 @@ import formDataApi from "./baseAPI/formDataAPI";
 const API_URL = "/users";
 
 const userAPI = {
-    // Align FE with BE endpoint: GET /api/Admin/get-account-details
+    // Use User/view-profile endpoint which automatically gets userId from token and returns role-based DTO
     getProfile: () => {
         const token = localStorage.getItem("authToken");
         if (!token) throw new Error('Chưa đăng nhập');
         
-        try {
-            const [, payload] = token.split('.');
-            const tokenData = JSON.parse(atob(payload));
-            const userId = tokenData.userId || tokenData.id || tokenData.sub;
-            
-            if (!userId) throw new Error('Không tìm thấy userId trong token');
-            
-            return authorApi.get(`/Admin/get-account-details?userId=${userId}`);
-        } catch (error) {
-            throw new Error('Không thể parse token: ' + error.message);
-        }
+        // Use /User/view-profile endpoint which handles userId extraction from token automatically
+        // and returns proper DTO (StaffProfileDTO, CustomerProfileDTO, or CommonProfileDTO) based on role
+        return authorApi.get('/User/view-profile');
     },
     // Update profile using Admin update-staff-account endpoint
     editProfile: (data) => {

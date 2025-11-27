@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import useUser from "../../Hooks/useUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const EditProfile = () => {
 	const navigate = useNavigate();
@@ -28,8 +29,8 @@ const EditProfile = () => {
 	const [isAvatarValid, setIsAvatarValid] = useState(true);
 	//luu anh moimoi
 	const [newAvatarFile, setNewAvatarFile] = useState(null);
-	//luu URL avatar moi
-	const [newAvatarUrl, setNewAvatarUrl] = useState("");
+	// Flag để đánh dấu xóa avatar (về mặc định)
+	const [shouldDeleteAvatar, setShouldDeleteAvatar] = useState(false);
 
 	const { getProfile, editProfile, uploadAvatar } = useUser(); // Giả sử bạn có hook này để lấy thông tin người dùng
 
@@ -204,64 +205,26 @@ const EditProfile = () => {
 		setStatusMessage("");
 		setAvatarPreview(URL.createObjectURL(file));//hien thi anh tam thoithoi
 		setNewAvatarFile(file);//luu file vao state va gui len serverserver
-		setNewAvatarUrl(""); // Clear URL when file is selected
+		setShouldDeleteAvatar(false); // Clear delete flag when file is selected
 		console.log("File upload states set successfully");
 	};
 
-	//avatar URL control
-	const handleAvatarUrlChange = (e) => {
-		const url = e.target.value.trim();
-		setNewAvatarUrl(url);
-		
-		if (url) {
-			// Check for base64 data URL first
-			if (url.startsWith('data:image/')) {
-				setIsAvatarValid(false);
-				setIsError(true);
-				setStatusMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh từ máy tính.");
-				setAvatarPreview(getAvatarUrl(profile.avatar));
-				console.log("Base64 data URL blocked:", url.substring(0, 50) + "...");
-				return;
-			}
-			
-			// Validate regular URL format
-			try {
-				const urlObj = new URL(url);
-				
-				// Check if it's a valid image URL
-				const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-				const pathname = urlObj.pathname.toLowerCase();
-				const hasValidExtension = validImageExtensions.some(ext => pathname.endsWith(ext));
-				
-				// Also allow URLs without extension (might be dynamic image URLs)
-				if (hasValidExtension || url.includes('image') || url.includes('avatar') || url.includes('photo') || url.includes('img')) {
-					setAvatarPreview(url);
-					setNewAvatarFile(null); // Clear file when URL is entered
-					setIsAvatarValid(true);
-					setIsError(false);
-					setStatusMessage("✅ URL hình ảnh hợp lệ!");
-					console.log("Valid image URL entered:", url);
-				} else {
-					setIsAvatarValid(false);
-					setIsError(true);
-					setStatusMessage("⚠️ URL không phải là hình ảnh hợp lệ. Vui lòng nhập URL hình ảnh (ví dụ: https://example.com/image.jpg) hoặc chọn file hình ảnh.");
-					setAvatarPreview(getAvatarUrl(profile.avatar));
-					console.log("URL is not an image:", url);
-				}
-			} catch (error) {
-				setIsAvatarValid(false);
-				setIsError(true);
-				setStatusMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng (ví dụ: https://example.com/image.jpg).");
-				setAvatarPreview(getAvatarUrl(profile.avatar));
-				console.log("Invalid URL format:", url);
-			}
-		} else {
-			// Reset to original avatar if URL is cleared
-			setAvatarPreview(getAvatarUrl(profile.avatar));
-			setIsAvatarValid(true);
-			setIsError(false);
-			setStatusMessage("");
-		}
+	// Xóa avatar (về mặc định)
+	const handleDeleteAvatar = () => {
+		const defaultAvatar = "/images/avatar/image1.png";
+		setAvatarPreview(defaultAvatar);
+		setNewAvatarFile(null);
+		setShouldDeleteAvatar(true);
+		setIsAvatarValid(true);
+		setIsError(false);
+		setStatusMessage("Avatar đã được xóa. Sẽ về mặc định khi lưu.");
+	};
+
+	// Kiểm tra xem avatar có phải mặc định không
+	const isDefaultAvatar = (avatarPath) => {
+		if (!avatarPath) return true;
+		const path = typeof avatarPath === 'string' ? avatarPath.toLowerCase() : '';
+		return path.includes('image1.png') || path === '/images/avatar/image1.png';
 	};
 
 
@@ -272,7 +235,7 @@ const EditProfile = () => {
 		console.log("Form submitted");
 		console.log("isAvatarValid:", isAvatarValid);
 		console.log("newAvatarFile:", newAvatarFile);
-		console.log("newAvatarUrl:", newAvatarUrl);
+		console.log("shouldDeleteAvatar:", shouldDeleteAvatar);
 		
 		setIsError(false);
 		setStatusMessage("");
@@ -329,36 +292,10 @@ const EditProfile = () => {
 				setStatusMessage("Không thể upload ảnh đại diện: " + (error.response?.data?.message || error.message));
 				return;
 			}
-		} else if (newAvatarUrl) {
-			// Check for base64 data URL
-			if (newAvatarUrl.startsWith('data:image/')) {
-				console.error("Base64 data URL detected in newAvatarUrl - blocking submission");
-				setIsError(true);
-				setStatusMessage("Không thể sử dụng base64 data URL. Vui lòng sử dụng URL hình ảnh thông thường hoặc chọn file hình ảnh từ máy tính.");
-				return;
-			}
-			
-			// Validate URL format
-			try {
-				const urlObj = new URL(newAvatarUrl);
-				const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-				const pathname = urlObj.pathname.toLowerCase();
-				const hasValidExtension = validImageExtensions.some(ext => pathname.endsWith(ext));
-				
-				if (!hasValidExtension && !newAvatarUrl.includes('image') && !newAvatarUrl.includes('avatar') && !newAvatarUrl.includes('photo') && !newAvatarUrl.includes('img')) {
-					setIsError(true);
-					setStatusMessage("⚠️ URL không phải là hình ảnh hợp lệ. Vui lòng nhập URL hình ảnh hoặc chọn file hình ảnh.");
-					return;
-				}
-			} catch (error) {
-				setIsError(true);
-				setStatusMessage("URL không hợp lệ. Vui lòng nhập URL đúng định dạng.");
-				return;
-			}
-			
-			updateData.avatar = newAvatarUrl;
-			console.log("Adding valid avatar URL to update data:", newAvatarUrl);
-			console.log("Update data before sending:", updateData);
+		} else if (shouldDeleteAvatar) {
+			// Nếu xóa avatar, set về mặc định
+			updateData.avatar = "/images/avatar/image1.png";
+			console.log("Avatar will be set to default");
 		} else {
 			console.log("No avatar changes");
 		}
@@ -390,9 +327,9 @@ const EditProfile = () => {
 				setAvatarPreview(getAvatarUrl(userData.avatar));
 			}
 			
-			// Clear the new avatar file and URL after successful update
+			// Clear the new avatar file and delete flag after successful update
 			setNewAvatarFile(null);
-			setNewAvatarUrl("");
+			setShouldDeleteAvatar(false);
 			
 			setTimeout(() => {
 				navigate("/profile");
@@ -421,12 +358,35 @@ const EditProfile = () => {
 		<div style={{ background: "url('/images/backgroundMedical2.jpg') no-repeat center center / cover", minHeight: "100vh", padding: "20px" }}>
 			<Container className="mt-4" style={{ backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", padding: "16px" }}>
 				<Button
-					variant="light"
-					className="mb-3"
-					onClick={() => navigate(-1)} // quay lại trang trước
-					style={{ fontWeight: "bold", fontFamily: "Arial, sans-serif" }}
+					variant="outline-secondary"
+					className="mb-3 d-flex align-items-center gap-2"
+					onClick={() => navigate(-1)}
+					style={{
+						fontWeight: 500,
+						fontSize: "0.95rem",
+						padding: "8px 16px",
+						borderRadius: "8px",
+						border: "1px solid #6c757d",
+						color: "#6c757d",
+						backgroundColor: "transparent",
+						transition: "all 0.3s ease",
+						boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.backgroundColor = "#6c757d";
+						e.currentTarget.style.color = "white";
+						e.currentTarget.style.transform = "translateX(-2px)";
+						e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.backgroundColor = "transparent";
+						e.currentTarget.style.color = "#6c757d";
+						e.currentTarget.style.transform = "translateX(0)";
+						e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+					}}
 				>
-					&#60; Back
+					<ArrowBackIcon style={{ fontSize: "18px" }} />
+					Quay lại
 				</Button>
 				{statusMessage && <Alert variant={isError ? "danger" : "success"}>{statusMessage}</Alert>}
 
@@ -451,19 +411,38 @@ const EditProfile = () => {
 							{/* goi  handle de cap nhat previewpreview*/}
 							<Form.Group className="mt-3">
 								<Form.Label><strong>Thay đổi avatar</strong></Form.Label>
+								<Form.Label 
+									htmlFor="avatar-upload"
+									className="btn btn-outline-primary w-100"
+									style={{
+										cursor: "pointer",
+										marginBottom: "8px"
+									}}
+								>
+									Upload File
+								</Form.Label>
 								<Form.Control 
+									id="avatar-upload"
 									type="file" 
 									name="avatar" 
 									onChange={handleAvatarChange} 
 									accept="image/*"
-									className="mb-2"
+									className="d-none"
 								/>
-								<Form.Control 
-									type="url" 
-									placeholder="Hoặc nhập URL ảnh đại diện" 
-									value={newAvatarUrl}
-									onChange={handleAvatarUrlChange}
-								/>
+								{/* Hiển thị nút xóa avatar nếu có avatar (không phải mặc định) */}
+								{avatarPreview && !isDefaultAvatar(avatarPreview) && (
+									<Button
+										variant="danger"
+										size="sm"
+										onClick={handleDeleteAvatar}
+										className="w-100"
+										style={{
+											marginTop: "8px"
+										}}
+									>
+										Xóa avatar
+									</Button>
+								)}
 							</Form.Group>
 						</Card>
 					</Col>

@@ -187,32 +187,8 @@ const CustomerAdditionalInfoForm = () => {
       const response = await userAPI.updateCustomerProfile(submitData);
       
       if (response.data.success || response.data.data || response.status === 200) {
-        // Gửi thông báo chỉ cho ADMIN (không gửi cho MANAGER)
-        try {
-          // Lấy thông tin user từ token để lấy username
-          const token = localStorage.getItem('authToken');
-          let username = 'Khách hàng';
-          if (token) {
-            try {
-              const [, payload] = token.split('.');
-              const tokenData = JSON.parse(atob(payload));
-              username = tokenData.userName || tokenData.name || username;
-            } catch (e) {
-              console.error('Error parsing token:', e);
-            }
-          }
-
-          await notificationAPI.sendNotification({
-            targetRoles: ['ADMIN'], // Chỉ gửi cho ADMIN, không gửi cho MANAGER
-            title: 'Yêu cầu duyệt hồ sơ',
-            message: `Khách hàng ${username} vừa cập nhật hồ sơ và cần duyệt.`,
-            type: 'System'
-          });
-        } catch (notifError) {
-          // Không throw error nếu gửi thông báo thất bại, chỉ log
-          console.error('Error sending notification:', notifError);
-        }
-
+        // Thông báo đã được backend xử lý và gửi qua hệ thống notification,
+        // frontend không tự tạo message nữa để tránh trùng lặp nội dung.
         setSuccess('Cập nhật thông tin thành công! Thông tin của bạn đang chờ admin duyệt.');
         // Refresh customer status
         await checkCustomerStatus();

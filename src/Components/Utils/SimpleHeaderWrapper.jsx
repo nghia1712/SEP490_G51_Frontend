@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Avatar, IconButton, Tooltip, Menu, MenuItem } from "@mui/material";
+import { Box, Avatar, IconButton, Tooltip, Menu, MenuItem, Chip, Typography, Divider } from "@mui/material";
 import {
   AppBar,
   Toolbar,
-  Typography,
+  Typography as MuiTypography,
   Button,
   Container,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import PersonIcon from "@mui/icons-material/Person";
 import useUser from "../../Hooks/useUser";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 import ResetPassword from "../Login_Components/ResetPassword";
 import ForgotPassword from "../Login_Components/ForgotPassword";
 import Login from "../Login_Components/Login";
@@ -26,10 +34,66 @@ const palette = {
   black: "#000000",
 };
 
+// Helper function để lấy thông tin role (màu sắc, label, icon component)
+const getRoleInfo = (role) => {
+  const roleMap = {
+    admin: {
+      label: "Admin",
+      color: "#d32f2f", // Đỏ đậm
+      bgColor: "#ffebee",
+      IconComponent: AdminPanelSettingsIcon,
+    },
+    manager: {
+      label: "Quản Lý",
+      color: "#1976d2", // Xanh dương
+      bgColor: "#e3f2fd",
+      IconComponent: SupervisorAccountIcon,
+    },
+    sales_staff: {
+      label: "Bán Hàng",
+      color: "#388e3c", // Xanh lá
+      bgColor: "#e8f5e9",
+      IconComponent: ShoppingCartIcon,
+    },
+    purchases_staff: {
+      label: "Mua Hàng",
+      color: "#f57c00", // Cam
+      bgColor: "#fff3e0",
+      IconComponent: InventoryIcon,
+    },
+    warehouse_staff: {
+      label: "Kho",
+      color: "#7b1fa2", // Tím
+      bgColor: "#f3e5f5",
+      IconComponent: WarehouseIcon,
+    },
+    accountant_staff: {
+      label: "Kế Toán",
+      color: "#0288d1", // Xanh nhạt
+      bgColor: "#e1f5fe",
+      IconComponent: AccountBalanceIcon,
+    },
+    customer: {
+      label: "Khách Hàng",
+      color: "#616161", // Xám
+      bgColor: "#f5f5f5",
+      IconComponent: PersonIcon,
+    },
+  };
+
+  return roleMap[role] || {
+    label: role || "Unknown",
+    color: "#757575",
+    bgColor: "#f5f5f5",
+    IconComponent: PersonIcon,
+  };
+};
+
 // SimpleHeader component
 const SimpleHeader = () => {
   const navigate = useNavigate();
   const currentToken = localStorage.getItem("authToken");
+  const userRole = getUserRoleFromToken();
   const [profile, setProfile] = useState(null);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const { getProfile } = useUser();
@@ -78,7 +142,7 @@ const SimpleHeader = () => {
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Logo */}
-          <Typography
+          <MuiTypography
             variant="h6"
             onClick={() => navigate("/")}
             sx={{
@@ -90,16 +154,40 @@ const SimpleHeader = () => {
             }}
           >
             Pharmacy
-          </Typography>
+          </MuiTypography>
 
           {/* Spacer to push buttons right */}
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Profile menu nếu đã đăng nhập, Login/Register nếu chưa */}
-          <Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             {currentToken ? (
               <>
-                <Tooltip title={profile?.fullName || "Tài khoản"}>
+                {/* Role Badge */}
+                {userRole && (() => {
+                  const roleInfo = getRoleInfo(userRole);
+                  const IconComponent = roleInfo.IconComponent;
+                  return (
+                    <Chip
+                      icon={<IconComponent />}
+                      label={roleInfo.label}
+                      size="small"
+                      sx={{
+                        backgroundColor: roleInfo.bgColor,
+                        color: roleInfo.color,
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        height: "24px",
+                        border: `1px solid ${roleInfo.color}20`,
+                        "& .MuiChip-icon": {
+                          color: roleInfo.color,
+                          fontSize: "16px",
+                        },
+                      }}
+                    />
+                  );
+                })()}
+                <Tooltip title={`${profile?.fullName || "Tài khoản"} - ${getRoleInfo(userRole).label}`}>
                   <IconButton
                     onClick={handleProfileMenuOpen}
                     sx={{ p: 0.5, borderRadius: "8px" }}
@@ -117,9 +205,27 @@ const SimpleHeader = () => {
                   open={Boolean(profileMenuAnchor)}
                   onClose={handleProfileMenuClose}
                 >
-                  <MenuItem onClick={() => navigate("/profile")}>
-                    Tài khoản
-                  </MenuItem>
+                  {/* Hiển thị role trong menu */}
+                  {(() => {
+                    const roleInfo = getRoleInfo(userRole);
+                    const IconComponent = roleInfo.IconComponent;
+                    return (
+                      <MenuItem disabled sx={{ opacity: 1, cursor: "default" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+                          <IconComponent sx={{ fontSize: 16, color: roleInfo.color }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: roleInfo.color }}>
+                            {roleInfo.label}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })()}
+                  <Divider />
+                  {userRole !== "admin" && userRole !== "manager" && (
+                    <MenuItem onClick={() => navigate("/profile")}>
+                      Tài khoản
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
                 </Menu>
               </>

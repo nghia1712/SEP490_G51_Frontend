@@ -52,7 +52,6 @@ import WarehouseDetailPage from "./Components/Warehouse_Components/WarehouseDeta
 import WarehouseDashboard from "./Components/Warehouse_Components/WarehouseDashboard";
 import ManagerDashboard from "./Components/Utils/RoleDashboards/ManagerDashboard";
 import ProductWarehouse from "./Components/Warehouse_Components/ProductWarehouse";
-import Stocktaking from "./Components/Inventory_Components/Stocktaking";
 import sessionManager from "./Utils/sessionManager";
 import CustomerAdditionalInfoForm from "./Components/Customer_Components/CustomerAdditionalInfoForm";
 import CustomerStatusCheck from "./Components/Customer_Components/CustomerStatusCheck";
@@ -883,21 +882,6 @@ function App() {
                         element={<DevelopmentPage />}
                       />
                       <Route
-                        path="/stocktaking"
-                        element={
-                          <ProtectedRoute
-                            allowedRoles={[
-                              "manager",
-                              "warehouse_staff",
-                              "accountant_staff",
-                              "admin",
-                            ]}
-                          >
-                            <Stocktaking />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
                         path="/receipts"
                         element={<div>Nhập hàng - Đang phát triển</div>}
                       />
@@ -1118,8 +1102,6 @@ function App() {
                               "warehouse_staff",
                               "accountant_staff",
                               "customer",
-                              "manager",
-                              "admin",
                             ]}
                           >
                             <ViewProfile />

@@ -4,6 +4,14 @@ import react from "@vitejs/plugin-react-swc";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: [
+      "@emotion/react",
+      "@emotion/styled",
+      "@mui/material",
+      "@mui/icons-material",
+    ],
+  },
   server: {
     port: 3000, // Port for the development server
     host: 'localhost', // Chỉ hiển thị localhost

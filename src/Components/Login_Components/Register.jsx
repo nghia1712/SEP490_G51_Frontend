@@ -20,6 +20,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,9 +51,10 @@ const Register = () => {
     }
 
     try {
-      console.log('Registering with data:', { username, email, phoneNumber, password, confirmPassword, address });
+      console.log('Registering with data:', { username, fullName, email, phoneNumber, password, confirmPassword, address });
       const response = await register({ 
         username,
+        fullName,
         phoneNumber,
         email, 
         password, 
@@ -192,6 +194,23 @@ const Register = () => {
                             value={username} 
                             onChange={(e) => setUsername(e.target.value)} 
                             required 
+                            onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                            onInput={(e) => e.target.setCustomValidity("")}
+                          />
+                        </InputGroup>
+                      </Form.Group>
+                    </motion.div>
+
+                    <motion.div variants={inputVariants}>
+                      <Form.Group className="mb-2">
+                        <InputGroup>
+                          <InputGroup.Text><FaUser /></InputGroup.Text>
+                          <Form.Control
+                            type="text"
+                            placeholder="Họ và tên"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            required
                             onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
                             onInput={(e) => e.target.setCustomValidity("")}
                           />

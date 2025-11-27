@@ -288,10 +288,7 @@ export default function NotificationMenu() {
           <Typography
             variant="body2"
             sx={{
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              whiteSpace: "normal",
             }}
             title={n.message}
           >

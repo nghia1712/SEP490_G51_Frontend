@@ -139,12 +139,6 @@ const mainFunctions = [
     path: "/export",
     allowedRoles: ["sales_staff", "warehouse_staff", "manager"],
   },
-  {
-    title: "Kiểm kê",
-    icon: <FactCheckIcon />,
-    path: "/stocktaking",
-    allowedRoles: ["warehouse_staff", "manager"],
-  },
   
   // Chức năng cho Customer (cần đăng nhập)
   {
