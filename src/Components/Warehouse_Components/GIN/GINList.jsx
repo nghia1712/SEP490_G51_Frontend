@@ -67,16 +67,16 @@ export default function GRNList() {
   // Filter search
   // =========================
   useEffect(() => {
+    const keyword = search.toLowerCase();
+
     setFiltered(
       data?.filter(
         (item) =>
-          (item.note || "").toLowerCase().includes(search.toLowerCase()) ||
-          (item.goodsIssueNoteCode || "")
-            .toLowerCase()
-            .includes(search.toLowerCase()) ||
-          (item.warehouseName || "")
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          (item.note || "").toLowerCase().includes(keyword) ||
+          (item.goodsIssueNoteCode || "").toLowerCase().includes(keyword) ||
+          (item.warehouseName || "").toLowerCase().includes(keyword) ||
+          (item.createBy || "").toLowerCase().includes(keyword) ||
+          (item.stockExportOrderCode || "").toLowerCase().includes(keyword) 
       ) || []
     );
   }, [search, data]);
@@ -124,7 +124,7 @@ export default function GRNList() {
           <TextField
             variant="outlined"
             size="small"
-            placeholder="Search..."
+            placeholder="Tìm kiếm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{

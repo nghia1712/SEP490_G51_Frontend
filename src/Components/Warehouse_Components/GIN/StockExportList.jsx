@@ -104,9 +104,17 @@ export default function StockExportList() {
     }
   };
 
-  const filteredList = (Array.isArray(data) ? data : []).filter((item) =>
-    (item.createBy || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredList = (Array.isArray(data) ? data : []).filter((item) => {
+    const keyword = search.toLowerCase();
+
+    const statusText = getStatus(item.status).label.toLowerCase();
+
+    return (
+      (item.stockExportOrderCode || "").toLowerCase().includes(keyword) ||
+      (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
+      (item.createBy || "").toLowerCase().includes(keyword)
+    );
+  });
 
   const totalPages = Math.ceil(filteredList.length / pageSize);
   const paginatedData = filteredList.slice(
@@ -170,7 +178,7 @@ export default function StockExportList() {
           <TextField
             variant="outlined"
             size="small"
-            placeholder="Tìm kiếm người tạo..."
+            placeholder="Tìm kiếm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{
@@ -228,7 +236,9 @@ export default function StockExportList() {
                   paginatedData.map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                      <TableCell align="center">{item.stockExportOrderCode}</TableCell>
+                      <TableCell align="center">
+                        {item.stockExportOrderCode}
+                      </TableCell>
                       <TableCell>{item.salesOrderCode}</TableCell>
                       <TableCell>
                         {item.requestDate
