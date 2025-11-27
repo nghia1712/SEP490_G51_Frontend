@@ -177,6 +177,9 @@ export default function POActions({ poId, fetchPOs }) {
   };
 
   const handleCreateGRN = () => {
+    if (!canCreateGRN) {
+      return;
+    }
     navigate("/grn", { state: { poId, create: true } });
   };
 
@@ -353,13 +356,14 @@ export default function POActions({ poId, fetchPOs }) {
               <IconButton
                 color="secondary"
                 onClick={handleCreateGRN}
-                disabled={processing}
+                disabled={processing || !canCreateGRN}
               >
                 <NoteAdd />
               </IconButton>
             </span>
           </Tooltip>
         )}
+
         {canDeleteDraftPO && (
           <>
             <Tooltip title="Tiếp tục chỉnh sửa">
