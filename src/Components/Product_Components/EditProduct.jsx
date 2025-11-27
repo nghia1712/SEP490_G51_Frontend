@@ -41,6 +41,35 @@ const EditProduct = ({
   // const { inventories, fetchInventories } = useInventory(); // Commented out - will be developed later
   const { updateProduct } = useProduct();
 
+  const normalizeStatus = (statusValue) => {
+    if (typeof statusValue === "boolean") return statusValue;
+    if (typeof statusValue === "number") return statusValue === 1;
+    if (typeof statusValue === "string") {
+      const normalized = statusValue.toLowerCase();
+      return ["true", "1", "active", "đang bán"].includes(normalized);
+    }
+    return false;
+  };
+
+  const fetchImageFileFromUrl = async (url) => {
+    if (!url) return null;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      const extension =
+        blob.type && blob.type.includes("/")
+          ? `.${blob.type.split("/")[1]}`
+          : ".jpg";
+      return new File([blob], `current-image${extension}`, {
+        type: blob.type || "image/jpeg",
+      });
+    } catch (error) {
+      console.error("Không thể tải ảnh hiện tại:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (open) {
       getAllCategories();
@@ -54,7 +83,7 @@ const EditProduct = ({
           minQuantity: product.minQuantity || 0,
           maxQuantity: product.maxQuantity || 0,
       totalCurrentQuantity: product.totalCurrentQuantity || 0,
-      status: product.status || false,
+          status: normalizeStatus(product.status),
           productImage: null,
         });
         const imageUrl = product.image ? `http://localhost:5137${product.image}` : null;
@@ -267,40 +296,60 @@ const EditProduct = ({
     }
     
     setLoading(true);
-    
-    // Handle image path
-    let imagePath = product.image;
-    if (productData.productImage && typeof productData.productImage === 'object') {
-      // Nếu có hình ảnh mới, upload nó
-      try {
-        const uploadRes = await productAPI.uploadImage(productData.productImage);
-        imagePath = uploadRes?.data?.data || imagePath;
-      } catch (e) {
-        setErrors((prev) => ({ ...prev, general: "Tải ảnh thất bại. Vui lòng thử lại." }));
-        setLoading(false);
-        return;
+    const formData = new FormData();
+    const resolvedProductName =
+      productData.productName && productData.productName.trim()
+        ? productData.productName.trim()
+        : product.productName;
+    const resolvedDescription =
+      productData.productDescription && productData.productDescription.trim()
+        ? productData.productDescription.trim()
+        : product.productDescription || "";
+    const resolvedUnit =
+      productData.unit && productData.unit.trim()
+        ? productData.unit.trim()
+        : product.unit || "";
+    const resolvedCategoryId =
+      productData.categoryId ||
+      product.categoryID ||
+      product.CategoryID ||
+      product.categoryId ||
+      product.category?.categoryID ||
+      0;
+    const resolvedMin = Number(
+      productData.minQuantity ?? product.minQuantity ?? 0
+    );
+    const resolvedMax = Number(
+      productData.maxQuantity ?? product.maxQuantity ?? 0
+    );
+    const resolvedStatus = normalizeStatus(
+      productData.status ?? product.status ?? false
+    );
+
+    formData.append("ProductName", resolvedProductName || "");
+    formData.append("ProductDescription", resolvedDescription);
+    formData.append("Unit", resolvedUnit);
+    formData.append("CategoryID", Number(resolvedCategoryId));
+    formData.append("MinQuantity", isNaN(resolvedMin) ? 0 : resolvedMin);
+    formData.append("MaxQuantity", isNaN(resolvedMax) ? 0 : resolvedMax);
+    formData.append("Status", resolvedStatus ? "true" : "false");
+
+    if (
+      productData.productImage &&
+      typeof productData.productImage === "object"
+    ) {
+      formData.append("Image", productData.productImage);
+    } else {
+      const existingImageFile = await fetchImageFileFromUrl(currentImageUrl);
+      if (existingImageFile) {
+        formData.append("Image", existingImageFile);
       }
     }
 
-    // Prepare JSON data for backend (include image path)
-    const updateData = {
-      productName: productData.productName && productData.productName.trim() ? productData.productName.trim() : product.productName,
-      productDescription: productData.productDescription && productData.productDescription.trim() ? productData.productDescription.trim() : product.productDescription,
-      unit: productData.unit && productData.unit.trim() ? productData.unit.trim() : product.unit,
-      categoryID: productData.categoryId || product.categoryId || product.categoryId?._id || product.categoryID,
-      minQuantity: productData.minQuantity !== undefined && productData.minQuantity !== null ? productData.minQuantity : product.minQuantity,
-      maxQuantity: productData.maxQuantity !== undefined && productData.maxQuantity !== null ? productData.maxQuantity : product.maxQuantity,
-      totalCurrentQuantity: productData.totalCurrentQuantity !== undefined && productData.totalCurrentQuantity !== null ? productData.totalCurrentQuantity : product.totalCurrentQuantity,
-      status: productData.status,
-      image: imagePath
-    };
-    
-    console.log("Update Data:", updateData);
-
     try {
-      const productId = product._id || product.productID || product.ProductID || product.id;
+      const productId = getProductIdValue(product);
       console.log("Product ID:", productId, "Product:", product);
-      await updateProduct(productId, updateData);
+      await updateProduct(productId, formData);
       
       // Show success message
       setSuccessMessage("Cập nhật thành công!");

@@ -28,6 +28,7 @@ const EditProfile = () => {
 	const [isAvatarValid, setIsAvatarValid] = useState(true);
 	//luu anh moimoi
 	const [newAvatarFile, setNewAvatarFile] = useState(null);
+	const [phoneError, setPhoneError] = useState("");
 	// Flag để đánh dấu xóa avatar (về mặc định)
 	const [shouldDeleteAvatar, setShouldDeleteAvatar] = useState(false);
 
@@ -175,7 +176,18 @@ const EditProfile = () => {
 	}, [avatarPreview]);
 
 	const handleChange = (e) => {
-		setProfile({ ...profile, [e.target.name]: e.target.value });
+		const { name, value } = e.target;
+
+		if (name === "phoneNumber") {
+			const phoneRegex = /^0\d{9}$/;
+			if (!value || phoneRegex.test(value)) {
+				setPhoneError("");
+			} else {
+				setPhoneError("Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số.");
+			}
+		}
+
+		setProfile({ ...profile, [name]: value });
 	};
 	//avatar control 
 	const handleAvatarChange = (e) => {
@@ -246,6 +258,12 @@ const EditProfile = () => {
 		return new File([blob], `default-avatar${extension}`, { type: blob.type || "image/png" });
 	};
 
+	const normalizeGenderForRequest = (value) => {
+		if (value === true || value === "true" || value === 1 || value === "1") return "true";
+		if (value === false || value === "false" || value === 0 || value === "0") return "false";
+		return "";
+	};
+
 
 
 	//submit form 
@@ -265,6 +283,13 @@ const EditProfile = () => {
 			setStatusMessage("File không hợp lệ. Vui lòng chọn file hình ảnh hợp lệ.");
 			return;
 		}
+
+		if (phoneError || !/^0\d{9}$/.test(profile.phoneNumber || "")) {
+			setIsError(true);
+			setStatusMessage("Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số.");
+			setPhoneError("Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số.");
+			return;
+		}
 		
 		const userRole = getUserRoleFromToken();
 
@@ -274,6 +299,17 @@ const EditProfile = () => {
 				const formData = new FormData();
 				formData.append("FullName", profile.fullName.trim());
 				formData.append("Address", profile.address.trim());
+				formData.append("PhoneNumber", profile.phoneNumber ?? "");
+				const normalizedGender = normalizeGenderForRequest(profile.gender);
+				if (normalizedGender) {
+					formData.append("Gender", normalizedGender);
+				}
+				if (profile.mst !== undefined && profile.mst !== null) {
+					formData.append("MST", profile.mst);
+				}
+				if (profile.mshkd !== undefined && profile.mshkd !== null) {
+					formData.append("Mshkd", profile.mshkd);
+				}
 
 				let avatarToUpload = newAvatarFile;
 				if (!avatarToUpload && shouldDeleteAvatar) {
@@ -501,7 +537,21 @@ const EditProfile = () => {
 									<Row className="mb-3">
 										<Col md={6}>
 											<Form.Label><strong>Số điện thoại</strong></Form.Label>
-											<Form.Control type="text" name="phoneNumber" value={profile.phoneNumber} onChange={handleChange} />
+											<Form.Control
+												type="text"
+												name="phoneNumber"
+												value={profile.phoneNumber}
+												onChange={handleChange}
+												isInvalid={!!phoneError}
+												onBlur={() => {
+													if (!profile.phoneNumber) {
+														setPhoneError("Vui lòng nhập số điện thoại.");
+													}
+												}}
+											/>
+											<Form.Control.Feedback type="invalid">
+												{phoneError || "Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số."}
+											</Form.Control.Feedback>
 										</Col>
 										<Col md={6}>
 											<Form.Label><strong>Giới tính</strong></Form.Label>
@@ -537,6 +587,26 @@ const EditProfile = () => {
 											</Col>
 										)}
 									</Row>
+									{getUserRoleFromToken() === 'customer' && (
+										<Row className="mb-3">
+											<Col md={6}>
+												<Form.Label><strong>Mã số thuế</strong></Form.Label>
+												<Form.Control
+													type="text"
+													value={profile.mst || ""}
+													disabled
+												/>
+											</Col>
+											<Col md={6}>
+												<Form.Label><strong>Mã số hộ kinh doanh</strong></Form.Label>
+												<Form.Control
+													type="text"
+													value={profile.mshkd || ""}
+													disabled
+												/>
+											</Col>
+										</Row>
+									)}
 									<hr />
 									<Button variant="warning" className="float-end mt-4 m-3" onClick={() => navigate("/change-password")}>Đổi mật khẩu</Button>
 									<Button variant="success" type="submit" className="float-end mt-4">Lưu thay đổi</Button>
