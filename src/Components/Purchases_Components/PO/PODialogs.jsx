@@ -76,7 +76,7 @@ export default function PODialogs({
 
         <DialogContent dividers sx={{ minHeight: "70vh" }}>
           <Table size="small">
-            <TableHead>
+            <TableHead sx={{ background: "#e0e0e0" }} >
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Tên sản phẩm</TableCell>

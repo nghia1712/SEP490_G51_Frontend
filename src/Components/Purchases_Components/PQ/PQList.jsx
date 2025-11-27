@@ -108,7 +108,7 @@ export default function PQList() {
           />
         </Stack>
       </Paper>
-      
+
       <Paper>
         <TableContainer sx={{ maxHeight: 500 }}>
           <Table stickyHeader>
@@ -249,6 +249,7 @@ export default function PQList() {
                 <TableCell>Mô tả</TableCell>
                 <TableCell>Đơn vị</TableCell>
                 <TableCell>Đơn giá</TableCell>
+                <TableCell>Thuế</TableCell>
                 <TableCell>Hạn dùng</TableCell>
               </TableRow>
             </TableHead>
@@ -260,6 +261,7 @@ export default function PQList() {
                   <TableCell>{item.productDescription}</TableCell>
                   <TableCell>{item.productUnit}</TableCell>
                   <TableCell>{item.unitPrice?.toLocaleString()} đ</TableCell>
+                  <TableCell align="right">{item.tax *100} %</TableCell>
                   <TableCell>{item.productDate}</TableCell>
                 </TableRow>
               ))}
@@ -322,10 +324,10 @@ export default function PQList() {
                       <TableCell>{item.productName}</TableCell>
                       <TableCell>{item.productDescription}</TableCell>
                       <TableCell align="center">{item.productUnit}</TableCell>
-                      <TableCell align="center">{item.tax * 100} %</TableCell>
                       <TableCell align="center">
                         {item.unitPrice?.toLocaleString()} đ
                       </TableCell>
+                      <TableCell align="center">{item.tax * 100} %</TableCell>
                       <TextField
                         size="small"
                         type="number"
@@ -391,6 +393,8 @@ export default function PQList() {
           <Button
             onClick={() => setOpenCreatePoDialog(false)}
             disabled={processing}
+            variant="outlined"
+            
           >
             Hủy
           </Button>
