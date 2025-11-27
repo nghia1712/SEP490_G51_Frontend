@@ -78,6 +78,7 @@ export default function POActions({ poId, fetchPOs }) {
   } = usePO();
 
   const [activeDepositPOId, setActiveDepositPOId] = useState(null);
+
   useEffect(() => {
     if (state?.autoOpenDeposit && userRole === "accountant_staff") {
       setActiveDepositPOId(state.poId);
@@ -184,7 +185,8 @@ export default function POActions({ poId, fetchPOs }) {
     poStatus === STATUS.SENT && userRole === "purchases_staff";
   const showDeposit = poStatus === STATUS.APPROVED;
   const showPay = poStatus === STATUS.DEPOSITED || poStatus === STATUS.PAID;
-  const canDeposit = ["accountant_staff"].includes(userRole);
+  const canDeposit =
+    ["accountant_staff"].includes(userRole) && poStatus !== STATUS.DEPOSITED;
   const canPay = ["accountant_staff"].includes(userRole);
   const canCreateGRN =
     poStatus !== STATUS.DRAFT &&
@@ -322,7 +324,9 @@ export default function POActions({ poId, fetchPOs }) {
             <span>
               <IconButton
                 color="info"
-                onClick={() => setDepositOpen(true)}
+                onClick={() => {
+                  if (canDeposit) setDepositOpen(true);
+                }}
                 disabled={processing}
               >
                 <AccountBalance />
@@ -387,8 +391,9 @@ export default function POActions({ poId, fetchPOs }) {
       {/* Deposit Dialog */}
       <Dialog
         open={
-          depositOpen ||
-          (activeDepositPOId !== null && activeDepositPOId === poId)
+          (depositOpen ||
+            (activeDepositPOId !== null && activeDepositPOId === poId)) &&
+          canDeposit
         }
         onClose={() => {
           setDepositOpen(false);

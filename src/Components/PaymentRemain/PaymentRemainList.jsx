@@ -84,13 +84,18 @@ const PaymentRemainList = () => {
       setPage(1);
     } catch (error) {
       console.error(error);
+      const message =
+        error?.response?.data?.message ||
+        error.message ||
+        "Lỗi khi lấy danh sách";
       setSnack({
         open: true,
-        message: "Lỗi khi lấy danh sách",
+        message,
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -424,6 +429,7 @@ const PaymentRemainList = () => {
         open={snack.open}
         autoHideDuration={3000}
         onClose={handleSnackClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={handleSnackClose}

@@ -249,7 +249,7 @@ export default function POList() {
       <Dialog
         open={openDetail}
         onClose={handleCloseDetail}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
       >
         <DialogTitle>Chi tiết {`PO-${selectedPO?.poid}`}</DialogTitle>
@@ -327,6 +327,7 @@ export default function POList() {
                     <TableCell>Đơn vị</TableCell>
                     <TableCell align="center">Số lượng</TableCell>
                     <TableCell align="center">Đơn giá</TableCell>
+                    <TableCell>Thuế</TableCell>
                     <TableCell align="center">Thành tiền</TableCell>
                   </TableRow>
                 </TableHead>
@@ -340,6 +341,7 @@ export default function POList() {
                       <TableCell align="center">
                         {item.unitPrice.toLocaleString()} ₫
                       </TableCell>
+                      <TableCell>{item.tax *100} %</TableCell>
                       <TableCell align="center">
                         {item.unitPriceTotal.toLocaleString()} ₫
                       </TableCell>
