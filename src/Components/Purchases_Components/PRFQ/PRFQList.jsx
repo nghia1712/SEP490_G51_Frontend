@@ -90,7 +90,7 @@ export default function PRFQList() {
   const getStatus = (statusCode) => {
     switch (statusCode) {
       case 1:
-        return { label: "Đã gửi", color: "info" };
+        return { label: "Chờ xử lý", color: "info" };
       case 2:
         return { label: "Đã duyệt", color: "success" };
       case 3:
