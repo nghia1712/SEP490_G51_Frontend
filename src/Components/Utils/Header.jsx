@@ -118,12 +118,14 @@ const getRoleInfo = (role) => {
     },
   };
 
-  return roleMap[role] || {
-    label: role || "Unknown",
-    color: "#757575",
-    bgColor: "#f5f5f5",
-    IconComponent: PersonIcon,
-  };
+  return (
+    roleMap[role] || {
+      label: role || "Unknown",
+      color: "#757575",
+      bgColor: "#f5f5f5",
+      IconComponent: PersonIcon,
+    }
+  );
 };
 
 function Header() {
@@ -161,7 +163,8 @@ function Header() {
   // Check customer status if user is customer
   useEffect(() => {
     if (currentToken && userRole === "customer") {
-      userAPI.getCustomerStatus()
+      userAPI
+        .getCustomerStatus()
         .then((response) => {
           setCustomerStatus(response.data.data);
         })
@@ -172,7 +175,7 @@ function Header() {
   }, [currentToken, userRole]);
 
   // Ẩn navigation items cho customer khi chưa bổ sung thông tin hoặc ở route customer-unauthenticated
-  const shouldHideCustomerNav = 
+  const shouldHideCustomerNav =
     location.pathname === "/customer-unauthenticated" ||
     (userRole === "customer" && customerStatus?.needsAdditionalInfo);
 
@@ -234,29 +237,17 @@ function Header() {
     }, 0);
   };
 
-
   // --- NAVIGATION ITEMS ---
   const navItems = [
     {
       label: "Tổng quan",
       path: "/sales-dashboard",
-      allowedRoles: [
-        "manager",
-        "sales_staff"
-      ],
-    },
-    {
-      label: "Thống kê",
-      path: "/dashboard",
-      allowedRoles: ["manager", "admin"],
+      allowedRoles: ["sales_staff"],
     },
     {
       label: "Thuốc",
       path: "/product",
-      allowedRoles: [
-        "sales_staff",
-        "purchases_staff",
-      ],
+      allowedRoles: ["sales_staff", "purchases_staff"],
     },
     {
       label: "Danh mục",
@@ -276,23 +267,17 @@ function Header() {
     {
       label: "Báo giá(PQ)",
       path: "/purchase/pq",
-      allowedRoles: [ "purchases_staff"],
+      allowedRoles: ["purchases_staff"],
     },
     {
       label: "Đơn hàng nhập",
       path: "/po",
-      allowedRoles: [
-        "purchases_staff",
-        "warehouse_staff",
-        "accountant_staff",
-      ],
+      allowedRoles: ["purchases_staff", "warehouse_staff", "accountant_staff"],
     },
     {
       label: "Báo cáo kiểm kê",
       path: "/inventory-report",
-      allowedRoles: [
-        "warehouse_staff", "accountant_staff"
-      ],
+      allowedRoles: ["warehouse_staff"],
     },
     {
       label: "Kho hàng",
@@ -317,12 +302,12 @@ function Header() {
     {
       label: "Yêu cầu báo giá",
       path: "/request-quotation",
-      allowedRoles: ["manager", "sales_staff"],
+      allowedRoles: ["sales_staff"],
     },
     {
       label: "Báo giá",
       path: "/sales-quotation",
-      allowedRoles: ["manager", "sales_staff"],
+      allowedRoles: ["sales_staff"],
     },
     {
       label: "Đơn hàng (Sales)",
@@ -332,7 +317,7 @@ function Header() {
     {
       label: "Đơn hàng (Kế toán)",
       path: "/accountant/orders",
-      allowedRoles: ["accountant_staff", "manager"],
+      allowedRoles: ["accountant_staff"],
     },
     {
       label: "Thuế sản phẩm",
@@ -348,6 +333,16 @@ function Header() {
       label: "Công nợ",
       path: "/debt",
       allowedRoles: ["accountant_staff"],
+    },
+    {
+      label: "Doanh thu",
+      path: "/customer-debt",
+      allowedRoles: ["accountant_staff"],
+    },
+    {
+      label: "Thống kê",
+      path: "/manager-dashboard",
+      allowedRoles: ["manager"],
     },
     {
       label: "Yêu cầu thanh toán",
@@ -401,28 +396,27 @@ function Header() {
     return null; // Tất cả role khác không thấy menu tài khoản
   };
 
-  const baseVisible = navItems.filter(
-    (item) => {
-      if (!userRole || !item.allowedRoles.includes(userRole)) {
-        return false;
-      }
-      // Ẩn các navigation items cho customer khi chưa bổ sung thông tin
-      if (shouldHideCustomerNav && item.allowedRoles.includes("customer")) {
-        return false;
-      }
-      return true;
+  const baseVisible = navItems.filter((item) => {
+    if (!userRole || !item.allowedRoles.includes(userRole)) {
+      return false;
     }
-  );
+    // Ẩn các navigation items cho customer khi chưa bổ sung thông tin
+    if (shouldHideCustomerNav && item.allowedRoles.includes("customer")) {
+      return false;
+    }
+    return true;
+  });
   const roleAccountItem = getRoleAccountItem(userRole);
 
-  const visibleNavItems =
-    userRole === "admin"
-      ? adminNavItems
-      : userRole === "manager"
-      ? [adminNavItems[0]] // Manager chỉ thấy Tài khoản khách hàng
-      : roleAccountItem
-      ? [roleAccountItem, ...baseVisible]
-      : baseVisible;
+const visibleNavItems =
+  userRole === "admin"
+    ? adminNavItems
+    : userRole === "manager"
+    ? baseVisible
+    : roleAccountItem
+    ? [roleAccountItem, ...baseVisible]
+    : baseVisible;
+
 
   const visiblePartnerItems =
     userRole === "admin"
@@ -494,7 +488,9 @@ function Header() {
                 </ListItemButton>
               </ListItem>
             ))}
-            {transactionItemsForRender.length > 0 && <Divider>Giao dịch</Divider>}
+            {transactionItemsForRender.length > 0 && (
+              <Divider>Giao dịch</Divider>
+            )}
             {transactionItemsForRender.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
@@ -573,7 +569,7 @@ function Header() {
                       color="inherit"
                       onClick={() => handleNavigate(item.path)}
                       sx={{
-                                ...(isActiveNavItem(item.path)
+                        ...(isActiveNavItem(item.path)
                           ? activeNavStyle
                           : navButtonHoverStyle),
                       }}
@@ -649,75 +645,87 @@ function Header() {
                 <>
                   <NotificationMenu />
                   {/* Role Badge với dropdown */}
-                  {userRole && (() => {
-                    const roleInfo = getRoleInfo(userRole);
-                    const IconComponent = roleInfo.IconComponent;
-                    return (
-                      <>
-                        <Tooltip title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label}`}>
-                          <Chip
-                            icon={<IconComponent />}
-                            label={roleInfo.label}
-                            onClick={handleProfileMenuOpen}
-                            deleteIcon={<ArrowDropDownIcon />}
-                            onDelete={handleProfileMenuOpen}
-                            size="medium"
-                            sx={{
-                              backgroundColor: roleInfo.bgColor,
-                              color: roleInfo.color,
-                              fontWeight: 600,
-                              fontSize: "0.8rem",
-                              height: "30px",
-                              paddingX: "5px",
-                              border: `1px solid ${roleInfo.color}20`,
-                              cursor: "pointer",
-                              "& .MuiChip-icon": {
-                                color: roleInfo.color,
-                                fontSize: "20px",
-                                marginLeft: "8px",
-                              },
-                              "& .MuiChip-label": {
-                                paddingLeft: "8px",
-                                paddingRight: "4px",
-                              },
-                              "& .MuiChip-deleteIcon": {
-                                color: roleInfo.color,
-                                fontSize: "22px",
-                                marginRight: "4px",
-                                "&:hover": {
-                                  color: roleInfo.color,
-                                },
-                              },
-                              "&:hover": {
+                  {userRole &&
+                    (() => {
+                      const roleInfo = getRoleInfo(userRole);
+                      const IconComponent = roleInfo.IconComponent;
+                      return (
+                        <>
+                          <Tooltip
+                            title={`${profile?.fullName || "Tài khoản"} - ${
+                              roleInfo.label
+                            }`}
+                          >
+                            <Chip
+                              icon={<IconComponent />}
+                              label={roleInfo.label}
+                              onClick={handleProfileMenuOpen}
+                              deleteIcon={<ArrowDropDownIcon />}
+                              onDelete={handleProfileMenuOpen}
+                              size="medium"
+                              sx={{
                                 backgroundColor: roleInfo.bgColor,
-                                opacity: 0.9,
-                              },
+                                color: roleInfo.color,
+                                fontWeight: 600,
+                                fontSize: "0.8rem",
+                                height: "30px",
+                                paddingX: "5px",
+                                border: `1px solid ${roleInfo.color}20`,
+                                cursor: "pointer",
+                                "& .MuiChip-icon": {
+                                  color: roleInfo.color,
+                                  fontSize: "20px",
+                                  marginLeft: "8px",
+                                },
+                                "& .MuiChip-label": {
+                                  paddingLeft: "8px",
+                                  paddingRight: "4px",
+                                },
+                                "& .MuiChip-deleteIcon": {
+                                  color: roleInfo.color,
+                                  fontSize: "22px",
+                                  marginRight: "4px",
+                                  "&:hover": {
+                                    color: roleInfo.color,
+                                  },
+                                },
+                                "&:hover": {
+                                  backgroundColor: roleInfo.bgColor,
+                                  opacity: 0.9,
+                                },
+                              }}
+                            />
+                          </Tooltip>
+                          <Menu
+                            anchorEl={profileMenuAnchor}
+                            open={Boolean(profileMenuAnchor)}
+                            onClose={handleProfileMenuClose}
+                            anchorOrigin={{
+                              vertical: "bottom",
+                              horizontal: "right",
                             }}
-                          />
-                        </Tooltip>
-                        <Menu
-                          anchorEl={profileMenuAnchor}
-                          open={Boolean(profileMenuAnchor)}
-                          onClose={handleProfileMenuClose}
-                          anchorOrigin={{
-                            vertical: "bottom",
-                            horizontal: "right",
-                          }}
-                          transformOrigin={{
-                            vertical: "top",
-                            horizontal: "right",
-                          }}
-                        >
-                          {userRole !== "admin" && userRole !== "manager" && (
-                            <MenuItem onClick={() => { handleProfileMenuClose(); navigate("/profile"); }}>
-                              Tài khoản
+                            transformOrigin={{
+                              vertical: "top",
+                              horizontal: "right",
+                            }}
+                          >
+                            {userRole !== "admin" && userRole !== "manager" && (
+                              <MenuItem
+                                onClick={() => {
+                                  handleProfileMenuClose();
+                                  navigate("/profile");
+                                }}
+                              >
+                                Tài khoản
+                              </MenuItem>
+                            )}
+                            <MenuItem onClick={handleLogout}>
+                              Đăng xuất
                             </MenuItem>
-                          )}
-                          <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
-                        </Menu>
-                      </>
-                    );
-                  })()}
+                          </Menu>
+                        </>
+                      );
+                    })()}
                 </>
               ) : (
                 <Box sx={{ display: "flex" }}>

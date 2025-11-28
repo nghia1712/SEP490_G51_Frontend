@@ -76,7 +76,7 @@ export default function GRNList() {
           (item.goodsIssueNoteCode || "").toLowerCase().includes(keyword) ||
           (item.warehouseName || "").toLowerCase().includes(keyword) ||
           (item.createBy || "").toLowerCase().includes(keyword) ||
-          (item.stockExportOrderCode || "").toLowerCase().includes(keyword) 
+          (item.stockExportOrderCode || "").toLowerCase().includes(keyword)
       ) || []
     );
   }, [search, data]);
@@ -182,11 +182,7 @@ export default function GRNList() {
                       </TableCell>
                       <TableCell>{row.note}</TableCell>
                       <TableCell>{row.createBy}</TableCell>
-                      <TableCell>
-                        {row.status === 1 && role !== "warehouse_staff"
-                          ? "Chờ xử lý"
-                          : renderGINStatus(row.status)}
-                      </TableCell>
+                      <TableCell>{renderGINStatus(row.status)}</TableCell>
                       <TableCell>{row.stockExportOrderCode}</TableCell>
                       <TableCell align="center">
                         <Stack

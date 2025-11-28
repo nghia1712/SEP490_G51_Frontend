@@ -5,7 +5,7 @@ import ginApi from "../API/ginAPI";
 // ==== map trạng thái ====
 const ginStatusMap = {
   0: { label: "Nháp", color: "default" },
-  1: { label: "Đã gửi", color: "info" },
+  1: { label: "Chờ xử lý", color: "info" },
   2: { label: "Đã xuất kho", color: "success" },
   3: { label: "Quá hạn", color: "error" },
 };

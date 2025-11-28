@@ -72,6 +72,7 @@ import StockExportForm from "./Components/Warehouse_Components/GIN/StockExportFo
 import GINList from "./Components/Warehouse_Components/GIN/GINList.jsx";
 import DebtList from "./Components/Debt_Components/DebtList.jsx";
 import PaymentRemainList from "./Components/PaymentRemain/PaymentRemainList.jsx";
+import CustomerDebtList from "./Components/Debt_Components/CustomerDebtList.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -111,23 +112,31 @@ const CustomerHomeRedirect = () => {
       try {
         const response = await userAPI.getCustomerStatus();
         const status = response.data.data;
-        
-        console.log('Customer status:', status);
-        console.log('UserStatus value:', status?.userStatus, 'Type:', typeof status?.userStatus);
-        
+
+        console.log("Customer status:", status);
+        console.log(
+          "UserStatus value:",
+          status?.userStatus,
+          "Type:",
+          typeof status?.userStatus
+        );
+
         // UserStatus = 2 (Active) → redirect đến /customer
         // UserStatus = 1 (Inactive) → redirect đến /customer-unauthenticated
         // Kiểm tra cả string và số vì backend có thể trả về enum dạng số
         const userStatus = status?.userStatus;
-        if (status && (userStatus === 'Active' || userStatus === 2 || userStatus === '2')) {
-          setRedirectTo('/customer');
+        if (
+          status &&
+          (userStatus === "Active" || userStatus === 2 || userStatus === "2")
+        ) {
+          setRedirectTo("/customer");
         } else {
-          setRedirectTo('/customer-unauthenticated');
+          setRedirectTo("/customer-unauthenticated");
         }
       } catch (error) {
-        console.error('Error checking customer status:', error);
+        console.error("Error checking customer status:", error);
         // Nếu có lỗi, mặc định redirect đến customer-unauthenticated
-        setRedirectTo('/customer-unauthenticated');
+        setRedirectTo("/customer-unauthenticated");
       } finally {
         setLoading(false);
       }
@@ -138,7 +147,12 @@ const CustomerHomeRedirect = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -856,6 +870,20 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+                      <Route
+                        path="/customer-debt"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              "manager",
+                              "accountant_staff",
+                              "admin",
+                            ]}
+                          >
+                            <CustomerDebtList />
+                          </ProtectedRoute>
+                        }
+                      />
 
                       {/* Routes cho tất cả Staff */}
                       <Route
@@ -993,16 +1021,16 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route 
-                        path="/accountant/tax-policy" 
+                      <Route
+                        path="/accountant/tax-policy"
                         element={
-                          <ProtectedRoute allowedRoles={['accountant_staff']}>
+                          <ProtectedRoute allowedRoles={["accountant_staff"]}>
                             <AccountantTaxPolicy />
                           </ProtectedRoute>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="/sales-quotation" 
+                      <Route
+                        path="/sales-quotation"
                         element={
                           <ProtectedRoute
                             allowedRoles={["manager", "sales_staff"]}
@@ -1011,7 +1039,10 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route path="/list-transaction" element={<div>Giao dịch - Đang phát triển</div>} />
+                      <Route
+                        path="/list-transaction"
+                        element={<div>Giao dịch - Đang phát triển</div>}
+                      />
 
                       {/* Removed legacy /admin/users route */}
                       <Route
