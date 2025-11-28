@@ -39,7 +39,6 @@ import ListRSQ from "./Components/Sales_Components/ListRSQ";
 import CreateRSQ from "./Components/Sales_Components/CreateRSQ";
 import SalesQuotationList from "./Components/Sales_Components/SalesQuotationList";
 import SalesOrderList from "./Components/Sales_Components/SalesOrderList";
-import AccountantOrderList from "./Components/Accountant_Components/AccountantOrderList";
 import AccountantTaxPolicy from "./Components/Accountant_Components/AccountantTaxPolicy";
 import InvoiceList from "./Components/Invoice_Components/InvoiceList";
 import RequestQuotationDetails from "./Components/Sales_Components/RequestQuotationDetails";
@@ -998,16 +997,6 @@ function App() {
                             allowedRoles={["manager", "sales_staff"]}
                           >
                             <SalesOrderList />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/accountant/orders"
-                        element={
-                          <ProtectedRoute
-                            allowedRoles={["manager", "accountant_staff"]}
-                          >
-                            <AccountantOrderList />
                           </ProtectedRoute>
                         }
                       />

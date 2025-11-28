@@ -35,6 +35,7 @@ import SendIcon from '@mui/icons-material/Send';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import salesOrderAPI from '../../API/salesOrderAPI';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 import paymentAPI from '../../API/paymentAPI';
@@ -78,6 +79,16 @@ const CustomerOrderList = () => {
     !paymentOrderDetails ||
     !vnPayInitData?.paymentUrl ||
     remainingDepositAmount <= 0;
+  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
+  const [selectedRejectReason, setSelectedRejectReason] = useState('');
+  const detailOrderStatus = orderDetails?.status ?? orderDetails?.Status ?? null;
+  const detailPaymentStatus = orderDetails?.paymentStatus ?? orderDetails?.PaymentStatus ?? null;
+  const detailQuotationCode =
+    orderDetails?.quotationCode ??
+    orderDetails?.QuotationCode ??
+    orderDetails?.salesQuotationCode ??
+    orderDetails?.SalesQuotationCode ??
+    '-';
 
   const toNumberOrNull = useCallback((value) => {
     if (value === null || value === undefined || value === '') {
@@ -86,6 +97,59 @@ const CustomerOrderList = () => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   }, []);
+
+  const detailPaymentLabel = useMemo(() => {
+    if (!orderDetails) return null;
+
+    const status =
+      orderDetails.status ?? orderDetails.Status ?? orderDetails.salesOrderStatus ?? null;
+
+    // Với Nháp, Đã gửi, Từ chối: không hiển thị trạng thái thanh toán
+    if (status === 0 || status === 1 || status === 3) return null;
+
+    const totalAmountValue =
+      toNumberOrNull(
+        orderDetails.totalAmount ??
+          orderDetails.TotalAmount ??
+          orderDetails.totalPrice ??
+          orderDetails.TotalPrice ??
+          null,
+      ) ?? 0;
+
+    const depositAmountValue =
+      toNumberOrNull(orderDetails.depositAmount ?? orderDetails.DepositAmount ?? null) ?? 0;
+
+    const paidAmountValue =
+      toNumberOrNull(
+        orderDetails.paidAmount ??
+          orderDetails.PaidAmount ??
+          orderDetails.depositPaidAmount ??
+          orderDetails.DepositPaidAmount ??
+          null,
+      ) ?? 0;
+
+    // Đã thanh toán toàn bộ
+    if (totalAmountValue > 0 && paidAmountValue >= totalAmountValue) {
+      return 'Đã thanh toán';
+    }
+
+    // Đã trả đủ tiền cọc nhưng chưa thanh toán hết
+    if (depositAmountValue > 0 && paidAmountValue >= depositAmountValue) {
+      return 'Đã cọc';
+    }
+
+    // Có yêu cầu cọc nhưng chưa trả đủ cọc
+    if (depositAmountValue > 0 && paidAmountValue < depositAmountValue) {
+      return 'Chờ cọc';
+    }
+
+    // Không yêu cầu cọc, chưa thanh toán đủ
+    if (totalAmountValue > 0 && paidAmountValue < totalAmountValue) {
+      return 'Chờ thanh toán';
+    }
+
+    return null;
+  }, [orderDetails, toNumberOrNull]);
 
   const fetchQuotationInfo = useCallback(
     async (quotationId) => {
@@ -308,13 +372,13 @@ const CustomerOrderList = () => {
             paymentStatus = Number(paymentStatus);
           }
 
-          // Đảm bảo trạng thái thanh toán phù hợp với trạng thái đơn hàng
-          // Khi trạng thái đơn hàng là Chấp thuận (2) thì trạng thái thanh toán phải là Chờ thanh toán (0)
-          if (orderStatus === 2 && paymentStatus !== 0) {
+          // Đảm bảo trạng thái thanh toán tối thiểu hợp lý nếu backend chưa set
+          // Nếu đơn đã được chấp thuận (2) mà backend chưa gán PaymentStatus, mặc định là Pending (0)
+          if (orderStatus === 2 && (paymentStatus === null || paymentStatus === undefined)) {
             paymentStatus = 0;
           }
-          // Khi trạng thái đơn hàng là Hoàn thành (5) thì trạng thái thanh toán phải là Đã thanh toán (2)
-          if (orderStatus === 5 && paymentStatus !== 2) {
+          // Nếu đơn đã hoàn thành (5) mà PaymentStatus chưa có, mặc định là Paid (2)
+          if (orderStatus === 5 && (paymentStatus === null || paymentStatus === undefined)) {
             paymentStatus = 2;
           }
 
@@ -322,19 +386,49 @@ const CustomerOrderList = () => {
             toNumberOrNull(order.PaidAmount ?? order.paidAmount ?? order.depositPaidAmount ?? order.DepositPaidAmount ?? null) ??
             0;
 
+          const orderCode =
+            order.SalesOrderCode ||
+            order.salesOrderCode ||
+            order.OrderCode ||
+            order.orderCode ||
+            '';
+
+          const normalizedRejectReason = (order.RejectReason ?? order.rejectReason ?? '').toString().trim();
+          const depositPercentValue = toNumberOrNull(
+            order.DepositPercent ??
+              order.depositPercent ??
+              order.DepositPercentage ??
+              order.depositPercentage ??
+              null
+          );
+          const depositAmountValue = toNumberOrNull(
+            order.DepositAmount ??
+              order.depositAmount ??
+              order.RequiredDepositAmount ??
+              order.requiredDepositAmount ??
+              null
+          );
+
           return {
-          id: order.SalesOrderId || order.salesOrderId,
-          quotationCode: order.SalesOrderCode || order.salesOrderCode,
+            id: order.SalesOrderId || order.salesOrderId,
+            quotationCode: orderCode,
             orderStatus, // Trạng thái đơn hàng
             paymentStatus, // Trạng thái thanh toán
             status: orderStatus, // Giữ lại để tương thích với filter cũ
-          createdAt: order.CreateAt || order.createAt,
-          totalAmount: order.TotalPrice || order.totalPrice,
+            orderCode,
+            createdAt: order.CreateAt || order.createAt,
+            totalAmount: order.TotalPrice || order.totalPrice,
             paidAmount: paidAmountValue,
+            rejectReason: normalizedRejectReason || '',
+            depositPercent: depositPercentValue,
+            depositAmount: depositAmountValue,
           };
         });
+
         setAllOrders(mappedOrders);
         setOrders(applyStatusFilter(mappedOrders));
+
+        // rejectReason đã có trong dữ liệu list, không cần gọi thêm API chi tiết
       } else {
         setAllOrders([]);
         setOrders([]);
@@ -500,6 +594,51 @@ const CustomerOrderList = () => {
         return 'Không xác định';
     }
   };
+
+const hasDepositRequirement = (depositInfo) => {
+  if (!depositInfo) return false;
+  const percentValue = depositInfo.percent;
+  const amountValue = depositInfo.amount;
+  if (percentValue !== null && percentValue !== undefined) {
+    const parsed = Number(percentValue);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return true;
+    }
+  }
+  if (amountValue !== null && amountValue !== undefined) {
+    const parsedAmount = Number(amountValue);
+    if (Number.isFinite(parsedAmount) && parsedAmount > 0) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo) => {
+  const normalizedStatus = typeof orderStatus === 'string' ? Number(orderStatus) : orderStatus;
+  const normalizedPayment =
+    typeof paymentStatus === 'string' && paymentStatus !== ''
+      ? Number(paymentStatus)
+      : paymentStatus;
+
+  // Nếu backend đã set trạng thái thanh toán cụ thể (Đã cọc, Đã thanh toán, ...)
+  if (
+    normalizedPayment === 1 || // Đã cọc
+    normalizedPayment === 2 || // Đã thanh toán
+    normalizedPayment === 3 || // Thành công
+    normalizedPayment === 4 || // Thất bại
+    normalizedPayment === 5 // Trả lại tiền
+  ) {
+    return getPaymentStatusLabel(normalizedPayment);
+  }
+
+  // Chỉ custom label khi PaymentStatus vẫn là Pending (0 hoặc null) và đơn đã được chấp thuận
+  if (normalizedStatus === 2) {
+    return hasDepositRequirement(depositInfo) ? 'Chờ cọc' : 'Chờ thanh toán';
+  }
+
+  return getPaymentStatusLabel(normalizedPayment);
+};
 
   // Hàm lấy màu cho trạng thái thanh toán
   const getPaymentStatusColor = (status) => {
@@ -891,12 +1030,14 @@ const CustomerOrderList = () => {
         });
         
         let quotationDetailsList = [];
+        let quotationInfoData = null;
         if (data.salesQuotationId) {
           try {
             const quotationDetailResponse = await salesQuotationAPI.viewDetails(data.salesQuotationId);
+            quotationInfoData = quotationDetailResponse.data?.data ?? null;
             quotationDetailsList =
-              quotationDetailResponse.data?.data?.Details ??
-              quotationDetailResponse.data?.data?.details ??
+              quotationInfoData?.Details ??
+              quotationInfoData?.details ??
               [];
           } catch (quotationErr) {
             console.warn('Không thể lấy chi tiết báo giá để bổ sung dữ liệu đơn hàng', quotationErr);
@@ -999,11 +1140,44 @@ const CustomerOrderList = () => {
           null;
         const normalizedStatus = normalizeOrderStatus(rawStatus);
 
+        const rawPaymentStatus =
+          data.paymentStatus ??
+          data.PaymentStatus ??
+          data.paymentStatusValue ??
+          data.PaymentStatusValue ??
+          data.paymentStatusName ??
+          data.PaymentStatusName ??
+          null;
+        const normalizedPaymentStatus = normalizePaymentStatus(rawPaymentStatus);
+
+        let quotationCodeValue =
+          data.salesQuotationCode ??
+          data.SalesQuotationCode ??
+          data.quotationCode ??
+          data.QuotationCode ??
+          data.salesQuotation?.QuotationCode ??
+          data.salesQuotation?.quotationCode ??
+          data.SalesQuotation?.QuotationCode ??
+          data.SalesQuotation?.quotationCode ??
+          data.salesQuotation?.SalesQuotationCode ??
+          data.SalesQuotation?.SalesQuotationCode ??
+          null;
+
+        if (!quotationCodeValue && quotationInfoData) {
+          quotationCodeValue =
+            quotationInfoData.QuotationCode ??
+            quotationInfoData.quotationCode ??
+            quotationInfoData.SalesQuotationCode ??
+            quotationInfoData.salesQuotationCode ??
+            null;
+        }
+
         setOrderDetails({
           id: data.id ?? data.salesOrderId ?? data.SalesOrderId ?? orderId,
           code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? '',
           status: normalizedStatus,
           statusName: data.statusName ?? data.StatusName ?? data.salesOrderStatusName ?? null,
+          paymentStatus: normalizedPaymentStatus,
           createdAt: data.CreateAt ?? data.createAt ?? data.CreatedAt ?? data.createdAt ?? data.createdDate ?? data.CreatedDate ?? null,
           expiredDate: data.orderExpiredDate ?? data.OrderExpiredDate ?? data.salesOrderExpiredDate ?? data.SalesOrderExpiredDate ?? data.expiredDate ?? data.ExpiredDate ?? null,
           depositExpiredDate,
@@ -1013,6 +1187,7 @@ const CustomerOrderList = () => {
           paidAmount: paidAmount,
           depositAmount: depositAmount,
           remainingDeposit: remainingDeposit,
+          quotationCode: quotationCodeValue,
           details: mergedDetails,
         });
       } else {
@@ -1143,6 +1318,27 @@ const CustomerOrderList = () => {
             </IconButton>
           </Tooltip>
         )}
+        {status === 3 && (
+          <Tooltip title="Xem lý do từ chối" placement="bottom" arrow>
+            <IconButton
+              size="medium"
+              onClick={() => handleViewRejectReason(order)}
+              sx={{
+                color: '#d32f2f',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                  backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                },
+              }}
+            >
+              <InfoOutlinedIcon fontSize="medium" />
+            </IconButton>
+          </Tooltip>
+        )}
         {/* Icon xem chi tiết cho tất cả các trạng thái */}
         <Tooltip title="Xem chi tiết" placement="bottom" arrow>
           <IconButton
@@ -1165,6 +1361,18 @@ const CustomerOrderList = () => {
         </Tooltip>
       </Box>
     );
+  };
+
+  const handleViewRejectReason = useCallback((order) => {
+    if (!order) return;
+    const reason = (order.rejectReason ?? '').toString().trim();
+    setSelectedRejectReason(reason);
+    setReasonDialogOpen(true);
+  }, []);
+
+  const handleCloseRejectReason = () => {
+    setReasonDialogOpen(false);
+    setSelectedRejectReason('');
   };
 
   const formatDate = (dateString) => {
@@ -1213,6 +1421,27 @@ const CustomerOrderList = () => {
     return null;
   };
 
+  const normalizePaymentStatus = (statusValue) => {
+    if (statusValue === null || statusValue === undefined) return null;
+    if (typeof statusValue === 'number') return Number(statusValue);
+    if (typeof statusValue === 'string') {
+      const paymentMap = {
+        Pending: 0,
+        Deposited: 1,
+        Paid: 2,
+        Success: 3,
+        Failed: 4,
+        Refunded: 5,
+      };
+      if (statusValue in paymentMap) {
+        return paymentMap[statusValue];
+      }
+      const parsed = Number(statusValue);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  };
+
   const getDepositAmountValue = (data) => {
     if (!data) return null;
     const totalAmountValue = toNumberOrNull(data.totalAmount ?? data.TotalAmount ?? null);
@@ -1236,6 +1465,19 @@ const CustomerOrderList = () => {
     }
 
     return null;
+  };
+
+  const getAmountAfterDeposit = (data) => {
+    if (!data) return null;
+    const totalAmountValue = toNumberOrNull(
+      data.totalAmount ?? data.TotalAmount ?? data.totalPrice ?? data.TotalPrice ?? data.grandTotal ?? null,
+    );
+    if (totalAmountValue === null || Number.isNaN(totalAmountValue)) {
+      return null;
+    }
+    const depositAmountValue = toNumberOrNull(getDepositAmountValue(data)) ?? 0;
+    const amountAfterDeposit = totalAmountValue - depositAmountValue;
+    return Math.max(amountAfterDeposit, 0);
   };
 
   return (
@@ -1456,7 +1698,10 @@ const CustomerOrderList = () => {
                         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>-</Typography>
                       ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (
                         <Chip
-                          label={getPaymentStatusLabel(order.paymentStatus)}
+                          label={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
+                            percent: order.depositPercent,
+                            amount: order.depositAmount,
+                          })}
                           size="small"
                           sx={getPaymentStatusColor(order.paymentStatus)}
                         />
@@ -1521,7 +1766,7 @@ const CustomerOrderList = () => {
             <Box>
               {/* Thông tin đơn hàng - Layout 3 cột */}
               <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
-                {/* Phần 1 - Bên trái: Mã đơn hàng, Trạng thái, Thời gian tạo */}
+                {/* Phần 1 - Bên trái: Mã đơn hàng, Mã báo giá, Trạng thái đơn hàng, Trạng thái thanh toán */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -1533,14 +1778,52 @@ const CustomerOrderList = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
+                      Mã báo giá:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {detailQuotationCode}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái đơn hàng:
                     </Typography>
-                    <Chip
-                      label={orderDetails.statusName || getStatusLabel(orderDetails.status)}
-                      color={orderDetails.status !== undefined ? getStatusColor(orderDetails.status) : 'default'}
-                      size="small"
-                    />
+                    {detailOrderStatus !== null ? (
+                      <Chip
+                        label={orderDetails.statusName || getStatusLabel(detailOrderStatus)}
+                        sx={getOrderStatusColor(detailOrderStatus)}
+                        size="small"
+                      />
+                    ) : (
+                      <Typography variant="body1">-</Typography>
+                    )}
                   </Box>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Trạng thái thanh toán:
+                    </Typography>
+                    {detailPaymentLabel ? (
+                      <Chip
+                        label={detailPaymentLabel}
+                        sx={getPaymentStatusColor(
+                          detailPaymentStatus !== null && detailPaymentStatus !== undefined
+                            ? detailPaymentStatus
+                            : detailPaymentLabel === 'Đã thanh toán'
+                            ? 2
+                            : detailPaymentLabel === 'Đã cọc'
+                            ? 1
+                            : 0,
+                        )}
+                        size="small"
+                      />
+                    ) : (
+                      <Typography variant="body1">-</Typography>
+                    )}
+                  </Box>
+                </Box>
+                
+                {/* Phần 2 - Ở giữa: Thời gian tạo, Ngày hết hạn đơn hàng, Cọc, Thời hạn hết hạn cọc */}
+                <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Thời gian tạo:
@@ -1549,10 +1832,6 @@ const CustomerOrderList = () => {
                       {orderDetails.createdAt ? formatDate(orderDetails.createdAt) : '-'}
                     </Typography>
                   </Box>
-                </Box>
-                
-                {/* Phần 2 - Ở giữa: Ngày hết hạn đơn hàng, Cọc, Thời hạn hết hạn cọc */}
-                <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Ngày hết hạn đơn hàng:
@@ -1581,7 +1860,7 @@ const CustomerOrderList = () => {
                   </Box>
                 </Box>
                 
-                {/* Phần 3 - Bên phải: Số tiền đã cọc, Số tiền cần cọc, Tổng tiền đơn hàng */}
+                {/* Phần 3 - Bên phải: Số tiền đã cọc, Số tiền cần cọc, Số tiền sau cọc */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -1601,10 +1880,10 @@ const CustomerOrderList = () => {
                   </Box>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Tổng tiền đơn hàng:
+                      Số tiền sau cọc:
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {formatCurrency(orderDetails.totalAmount)}
+                      {formatCurrency(getAmountAfterDeposit(orderDetails))}
                     </Typography>
                   </Box>
                 </Box>
@@ -1784,7 +2063,14 @@ const CustomerOrderList = () => {
                     </Typography>
                     {paymentOrderDetails.paymentStatus !== undefined && paymentOrderDetails.paymentStatus !== null ? (
                       <Chip
-                        label={getPaymentStatusLabel(paymentOrderDetails.paymentStatus)}
+                        label={getPaymentStatusLabelByContext(
+                          paymentOrderDetails.paymentStatus,
+                          paymentOrderDetails.status ?? paymentOrderDetails.orderStatus ?? null,
+                          {
+                            percent: paymentOrderDetails.depositPercent,
+                            amount: paymentOrderDetails.depositAmount,
+                          }
+                        )}
                         size="small"
                         sx={{ ...getPaymentStatusColor(paymentOrderDetails.paymentStatus), fontWeight: 500 }}
                       />
@@ -1924,6 +2210,31 @@ const CustomerOrderList = () => {
         </DialogActions>
       </Dialog>
 
+
+
+      <Dialog
+        open={reasonDialogOpen}
+        onClose={handleCloseRejectReason}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Lý do từ chối đơn hàng</DialogTitle>
+        <DialogContent dividers>
+          {selectedRejectReason ? (
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+              {selectedRejectReason}
+            </Typography>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Đơn hàng này không có lý do từ chối.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRejectReason}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
@@ -1935,3 +2246,4 @@ const CustomerOrderList = () => {
 };
 
 export default CustomerOrderList;
+

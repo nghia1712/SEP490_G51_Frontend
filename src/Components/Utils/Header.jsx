@@ -345,11 +345,6 @@ function Header() {
       allowedRoles: ["manager"],
     },
     {
-      label: "Yêu cầu thanh toán",
-      path: "/payment-remain",
-      allowedRoles: ["accountant_staff", "customer"],
-    },
-    {
       label: "Yêu cầu báo giá",
       path: "/customer/request-quotation",
       allowedRoles: ["customer"],
@@ -363,6 +358,11 @@ function Header() {
       label: "Hóa đơn",
       path: "/customer/invoices",
       allowedRoles: ["customer"],
+    },
+    {
+      label: "Yêu cầu thanh toán phần còn lại",
+      path: "/payment-remain",
+      allowedRoles: ["accountant_staff", "customer"],
     },
   ];
 

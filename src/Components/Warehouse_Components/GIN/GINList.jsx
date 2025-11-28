@@ -85,10 +85,14 @@ export default function GRNList() {
   const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
 
   const handleOpenInvoiceDialog = (row) => {
-    setInvoiceDialogContext({
-      goodsIssueNoteCode: row.goodsIssueNoteCode,
-      salesOrderCode: row.salesOrderCode || row.stockExportOrderCode || "",
-    });
+    setInvoiceDialogContext(
+      row
+        ? {
+            goodsIssueNoteCode: row.goodsIssueNoteCode,
+            salesOrderCode: row.salesOrderCode || row.stockExportOrderCode || "",
+          }
+        : { goodsIssueNoteCode: "", salesOrderCode: "" }
+    );
     setInvoiceDialogOpen(true);
   };
 
@@ -115,12 +119,7 @@ export default function GRNList() {
 
       {/* Search */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
           <TextField
             variant="outlined"
             size="small"
@@ -136,6 +135,16 @@ export default function GRNList() {
             }}
             sx={{ width: 350 }}
           />
+
+          {role === "accountant_staff" && (
+            <Button
+              variant="contained"
+              startIcon={<ReceiptLong />}
+              onClick={() => handleOpenInvoiceDialog()}
+            >
+              Tạo hóa đơn
+            </Button>
+          )}
         </Stack>
       </Paper>
 
@@ -200,17 +209,6 @@ export default function GRNList() {
                             </IconButton>
                           </Tooltip>
 
-                          {role === "accountant_staff" && (
-                            <Tooltip title="Tạo hóa đơn từ phiếu xuất kho">
-                              <IconButton
-                                color="success"
-                                size="small"
-                                onClick={() => handleOpenInvoiceDialog(row)}
-                              >
-                                <ReceiptLong />
-                              </IconButton>
-                            </Tooltip>
-                          )}
                         </Stack>
                       </TableCell>
                     </TableRow>
