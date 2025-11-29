@@ -1,71 +1,43 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import {
-
   Container,
-
   Box,
-
   Typography,
-
   Table,
-
   TableBody,
-
   TableCell,
-
   TableContainer,
-
   TableHead,
-
   TableRow,
-
   Paper,
-
   Chip,
-
   CircularProgress,
-
   Alert,
-
   Snackbar,
-
   Button,
-
   FormControl,
-
   InputLabel,
-
   Select,
-
   MenuItem,
-
   Dialog,
-
   DialogTitle,
-
   DialogContent,
-
   DialogActions,
-
   IconButton,
-
   Tooltip,
-
   TableSortLabel,
-
   Pagination,
-
+  TextField,
 } from '@mui/material';
 
 import VisibilityIcon from '@mui/icons-material/Visibility';
-
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
-
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 
 import salesOrderAPI from '../../API/salesOrderAPI';
-
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 
 
@@ -83,6 +55,8 @@ const headerTextSx = {
 
 
 const SalesOrderList = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
 
@@ -96,7 +70,8 @@ const SalesOrderList = () => {
 
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -109,6 +84,11 @@ const SalesOrderList = () => {
   const [orderDetails, setOrderDetails] = useState(null);
 
   const [page, setPage] = useState(1);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectOrderId, setRejectOrderId] = useState(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectError, setRejectError] = useState(null);
 
   const pageSize = 5;
 
@@ -231,6 +211,10 @@ const SalesOrderList = () => {
               console.log('SalesOrderList - Mapped paymentStatus:', paymentStatus, 'from raw:', paymentStatusRaw);
             }
 
+            if (orderStatus === 1 || orderStatus === 3) {
+              paymentStatus = null;
+            }
+
             return {
 
               id: order.SalesOrderId || order.salesOrderId,
@@ -239,6 +223,10 @@ const SalesOrderList = () => {
 
               creator:
 
+                order.CustomerName ||
+
+                order.customerName ||
+
                 order.CreateBy ||
 
                 order.createBy ||
@@ -246,10 +234,6 @@ const SalesOrderList = () => {
                 order.CreatedBy ||
 
                 order.createdBy ||
-
-                order.CustomerName ||
-
-                order.customerName ||
 
                 '-',
 
@@ -319,7 +303,7 @@ const SalesOrderList = () => {
       case 0:
         return 'Nháp'; // Draft
       case 1:
-        return 'Đã gửi'; // Send
+        return 'Chờ xử lý'; // Send / Pending approval
       case 2:
         return 'Chấp thuận'; // Approved
       case 3:
@@ -335,7 +319,14 @@ const SalesOrderList = () => {
     }
   };
 
-
+  useEffect(() => {
+    const openOrderId = location.state?.openOrderId;
+    if (openOrderId) {
+      navigate(location.pathname, { replace: true, state: {} });
+      handleViewDetails(Number(openOrderId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, navigate]);
 
   const getOrderStatusColor = (status) => {
     // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
@@ -362,23 +353,50 @@ const SalesOrderList = () => {
 
 
   const getPaymentStatusLabel = (status) => {
-    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
+    // PaymentStatus enum (backend): NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
     switch (status) {
       case 0:
-        return 'Chờ thanh toán'; // Pending
+        return 'Chờ thanh toán'; // Chưa thanh toán đồng nào
       case 1:
-        return 'Đã cọc'; // Deposited
+        return 'Đã cọc'; // Đã thanh toán đúng/đủ tiền cọc
       case 2:
-        return 'Đã thanh toán'; // Paid
+        return 'Đã cọc'; // Đã thanh toán một phần (có thể đã cọc, chưa đủ tổng)
       case 3:
-        return 'Thành công'; // Success
+        return 'Đã thanh toán'; // Đã thanh toán toàn bộ
       case 4:
-        return 'Thất bại'; // Failed
-      case 5:
-        return 'Trả lại tiền'; // Refunded
+        return 'Trả lại tiền'; // Đã hoàn tiền
       default:
         return 'Không xác định';
     }
+  };
+
+  // Dùng riêng cho màn hình list:
+  // - Đơn đã được chấp thuận (Approved = 2), chưa thanh toán đồng nào => "Chờ cọc"
+  // - Các trường hợp khác hiển thị theo enum thanh toán
+  const getPaymentStatusLabelForList = (paymentStatus, orderStatus, paidAmount) => {
+    const normalizedStatus =
+      typeof orderStatus === 'string' && orderStatus !== ''
+        ? Number(orderStatus)
+        : orderStatus;
+
+    const normalizedPayment =
+      typeof paymentStatus === 'string' && paymentStatus !== ''
+        ? Number(paymentStatus)
+        : paymentStatus;
+
+    const paid = Number(paidAmount) || 0;
+
+    if (
+      normalizedStatus === 2 && // Approved
+      (normalizedPayment === null ||
+        normalizedPayment === undefined ||
+        normalizedPayment === 0) &&
+      paid === 0
+    ) {
+      return 'Chờ cọc';
+    }
+
+    return getPaymentStatusLabel(normalizedPayment);
   };
 
 
@@ -391,11 +409,11 @@ const SalesOrderList = () => {
 
         return { backgroundColor: '#fff3cd', color: '#856404' };
 
+      // 1 và 2 đều là trạng thái "Đã cọc" -> dùng chung một màu
       case 1:
+      case 2:
 
         return { backgroundColor: '#ede7f6', color: '#4a148c' };
-
-      case 2:
 
       case 3:
 
@@ -448,11 +466,44 @@ const SalesOrderList = () => {
 
 
   const formatCurrency = (value) => {
-
     const number = Number(value) || 0;
+    // Format với dấu phẩy thay vì dấu chấm
+    return new Intl.NumberFormat('vi-VN').format(number).replace(/\./g, ',');
+  };
 
-    return new Intl.NumberFormat('vi-VN').format(number);
-
+  const renderCurrency = (value, options = {}) => {
+    const formatted = formatCurrency(value);
+    const fontWeight = options.fontWeight ?? 500;
+    const unitFontWeight = options.unitFontWeight ?? fontWeight;
+    const fontSize = options.fontSize ?? 'inherit';
+    const unitFontSize = options.unitFontSize ?? '0.75em';
+    return (
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: 0.25,
+        }}
+      >
+        <Typography component="span" sx={{ fontWeight, fontSize }}>
+          {formatted}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: unitFontSize,
+            lineHeight: 1,
+            textDecoration: 'underline',
+            textDecorationThickness: '1px',
+            textUnderlineOffset: '1px',
+            fontWeight: unitFontWeight,
+          }}
+        >
+          đ
+        </Typography>
+      </Box>
+    );
   };
 
 
@@ -508,14 +559,22 @@ const SalesOrderList = () => {
   // Filter orders by status
 
   const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchOrderStatus =
+        orderStatusFilter === 'all' ||
+        (order.orderStatus !== undefined &&
+          order.orderStatus !== null &&
+          order.orderStatus === parseInt(orderStatusFilter, 10));
 
-    if (statusFilter === 'all') return orders;
+      const matchPaymentStatus =
+        paymentStatusFilter === 'all' ||
+        (order.paymentStatus !== undefined &&
+          order.paymentStatus !== null &&
+          order.paymentStatus === parseInt(paymentStatusFilter, 10));
 
-    const filterStatus = parseInt(statusFilter, 10);
-
-    return orders.filter(order => order.orderStatus === filterStatus);
-
-  }, [orders, statusFilter]);
+      return matchOrderStatus && matchPaymentStatus;
+    });
+  }, [orders, orderStatusFilter, paymentStatusFilter]);
 
 
 
@@ -592,10 +651,8 @@ const SalesOrderList = () => {
 
 
   useEffect(() => {
-
     setPage(1);
-
-  }, [statusFilter]);
+  }, [orderStatusFilter, paymentStatusFilter]);
 
 
 
@@ -888,7 +945,7 @@ const SalesOrderList = () => {
 
         const createdAtValue = data.createdAt ?? data.CreateAt ?? data.CreatedAt ?? null;
 
-        const depositExpiredFromData = data.depositExpiredDate ?? data.DepositExpiredDate ?? null;
+        const depositExpiredFromData = data.depositExpiredDate ?? data.DepositExpiredDate ?? data.depositExpiredDay ?? data.DepositExpiredDay ?? null;
 
         let computedDepositExpired = depositExpiredFromData;
 
@@ -1139,6 +1196,10 @@ const SalesOrderList = () => {
           code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? data.SalesOrderCode ?? '',
           creator:
 
+            data.customerName ??
+
+            data.CustomerName ??
+
             data.creator ??
 
             data.createBy ??
@@ -1148,10 +1209,6 @@ const SalesOrderList = () => {
             data.createdBy ??
 
             data.CreatedBy ??
-
-            data.customerName ??
-
-            data.CustomerName ??
 
             '-',
 
@@ -1179,6 +1236,8 @@ const SalesOrderList = () => {
           details: processedDetails,
 
           salesQuotationId: salesQuotationId,
+
+          quotationDetailsMap: quotationDetailsMap,
 
         });
 
@@ -1245,6 +1304,10 @@ const SalesOrderList = () => {
 
           creator:
 
+            data.customerName ??
+
+            data.CustomerName ??
+
             data.creator ??
 
             data.createBy ??
@@ -1254,10 +1317,6 @@ const SalesOrderList = () => {
             data.createdBy ??
 
             data.CreatedBy ??
-
-            data.customerName ??
-
-            data.CustomerName ??
 
             '-',
 
@@ -1357,30 +1416,49 @@ const SalesOrderList = () => {
 
 
 
-  const handleReject = async (orderId) => {
+  const handleReject = (orderId) => {
+    setRejectOrderId(orderId);
+    setRejectReason('');
+    setRejectError(null);
+    setRejectDialogOpen(true);
+  };
 
-    try {
+  const handleCloseRejectDialog = () => {
+    if (rejectLoading) return;
+    setRejectDialogOpen(false);
+    setRejectOrderId(null);
+    setRejectReason('');
+    setRejectError(null);
+  };
 
-      await salesOrderAPI.rejectOrder(orderId);
-
-      setSnackbarMessage('Đã từ chối đơn hàng.');
-
-      setSnackbarOpen(true);
-
-      // Refresh list without showing full page loading
-
-      await fetchOrders(false);
-
-    } catch (err) {
-
-      const errorMessage = err.response?.data?.message || 'Không thể từ chối đơn hàng.';
-
-      setSnackbarMessage(errorMessage);
-
-      setSnackbarOpen(true);
-
+  const handleConfirmReject = async () => {
+    if (!rejectReason.trim()) {
+      setRejectError('Vui lòng nhập lý do từ chối đơn hàng');
+      return;
     }
-
+    if (!rejectOrderId) {
+      setRejectError('Không xác định được đơn hàng cần từ chối');
+      return;
+    }
+    try {
+      setRejectLoading(true);
+      await salesOrderAPI.rejectOrder({
+        salesOrderId: rejectOrderId,
+        reason: rejectReason.trim(),
+      });
+      setSnackbarMessage('Đã từ chối đơn hàng.');
+      setSnackbarOpen(true);
+      setRejectDialogOpen(false);
+      setRejectOrderId(null);
+      setRejectReason('');
+      setRejectError(null);
+      await fetchOrders(false);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể từ chối đơn hàng.';
+      setRejectError(errorMessage);
+    } finally {
+      setRejectLoading(false);
+    }
   };
 
 
@@ -1449,40 +1527,52 @@ const SalesOrderList = () => {
 
       {/* Filter */}
 
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel id="order-status-filter-label">Lọc theo đơn hàng</InputLabel>
+          <Select
+            labelId="order-status-filter-label"
+            value={orderStatusFilter}
+            label="Lọc theo đơn hàng"
+            onChange={(e) => setOrderStatusFilter(e.target.value)}
+          >
+            <MenuItem value="all">Tất cả</MenuItem>
+            <MenuItem value="1">Chờ xử lý</MenuItem>
+            <MenuItem value="2">Chấp thuận</MenuItem>
+            <MenuItem value="3">Từ chối</MenuItem>
+            <MenuItem value="4">Đã giao hàng</MenuItem>
+            <MenuItem value="5">Hoàn thành</MenuItem>
+            <MenuItem value="6">Chưa hoàn thành</MenuItem>
+          </Select>
+        </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 200 }}>
-
-          <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
-
+          <InputLabel id="payment-status-filter-label">
+            Lọc theo trạng thái thanh toán
+          </InputLabel>
           <Select
-
-            labelId="status-filter-label"
-
-            value={statusFilter}
-
-            label="Lọc theo trạng thái"
-
-            onChange={(e) => setStatusFilter(e.target.value)}
-
+            labelId="payment-status-filter-label"
+            value={paymentStatusFilter}
+            label="Lọc theo trạng thái thanh toán"
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
           >
-
             <MenuItem value="all">Tất cả</MenuItem>
-
-            <MenuItem value="1">Chờ xử lý</MenuItem>
-
-            <MenuItem value="2">Đã duyệt</MenuItem>
-
-            <MenuItem value="3">Đã từ chối</MenuItem>
-
-            <MenuItem value="4">Đã cọc</MenuItem>
-
-            <MenuItem value="5">Đã thanh toán</MenuItem>
-
-            <MenuItem value="6">Hoàn thành</MenuItem>
-
+            <MenuItem value="0">Chờ thanh toán</MenuItem>
+            <MenuItem value="1">Đã cọc</MenuItem>
+            <MenuItem value="2">Đã thanh toán</MenuItem>
+            <MenuItem value="3">Thành công</MenuItem>
+            <MenuItem value="4">Thất bại</MenuItem>
+            <MenuItem value="5">Trả lại tiền</MenuItem>
           </Select>
-
         </FormControl>
 
       </Box>
@@ -1663,7 +1753,7 @@ const SalesOrderList = () => {
 
                 </TableCell>
 
-                <TableCell sx={{ width: '11%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '11%', py: 1, px: 3.1 }}>
 
                   <TableSortLabel
 
@@ -1765,7 +1855,7 @@ const SalesOrderList = () => {
 
                   <TableCell>{formatDate(order.createdAt)}</TableCell>
 
-                  <TableCell>
+                  <TableCell sx={{ textAlign: 'center' }}>
 
                     {order.orderStatus !== undefined && order.orderStatus !== null ? (
 
@@ -1787,35 +1877,57 @@ const SalesOrderList = () => {
 
                   </TableCell>
 
-                  <TableCell>
-
-                    {order.paymentStatus !== undefined && order.paymentStatus !== null ? (
-
-                      <Chip
-
-                        label={getPaymentStatusLabel(order.paymentStatus)}
-
-                        size="small"
-
-                        sx={getPaymentStatusColor(order.paymentStatus)}
-
-                      />
-
-                    ) : (
-
+                  <TableCell sx={{ textAlign: 'center' }}>
+                    {order.orderStatus === 1 || order.orderStatus === 3 ? (
                       '-'
-
+                    ) : (
+                      <Chip
+                        label={getPaymentStatusLabelForList(
+                          order.paymentStatus,
+                          order.orderStatus,
+                          order.paidAmount,
+                        )}
+                        size="small"
+                        sx={getPaymentStatusColor(order.paymentStatus ?? 0)}
+                      />
                     )}
-
                   </TableCell>
 
-                  <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.paidAmount)}</TableCell>
+                  <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(order.paidAmount)}</TableCell>
 
-                  <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.totalAmount)}</TableCell>
+                  <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(order.totalAmount)}</TableCell>
 
                   <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
 
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+
+                      {(order.paymentStatus === 1 || order.paymentStatus === 2) && (
+                        <Tooltip title="Tạo yêu cầu xuất kho từ đơn hàng này" placement="bottom" arrow>
+                          <IconButton
+                            size="medium"
+                            onClick={() =>
+                              navigate('/stock-export/create', {
+                                state: {
+                                  preselectedSalesOrderId: order.id,
+                                },
+                              })
+                            }
+                            sx={{
+                              color: '#1976d2',
+                              width: '40px',
+                              height: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              '&:hover': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                              },
+                            }}
+                          >
+                            <Inventory2Icon fontSize="medium" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
                       {order.orderStatus === 1 && (
 
@@ -2228,7 +2340,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1">
 
-                      {formatCurrency(orderDetails.paidAmount)} VNĐ
+                      {renderCurrency(orderDetails.paidAmount)}
 
                     </Typography>
 
@@ -2244,7 +2356,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
 
-                      {formatCurrency(orderDetails.remainingDeposit)} VNĐ
+                      {renderCurrency(orderDetails.remainingDeposit)}
 
                     </Typography>
 
@@ -2260,7 +2372,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
 
-                      {formatCurrency(orderDetails.totalAmount)} VNĐ
+                      {renderCurrency(orderDetails.totalAmount)}
 
                     </Typography>
 
@@ -2294,23 +2406,25 @@ const SalesOrderList = () => {
 
                         <TableCell sx={{ backgroundColor: '#f5f5f5', minWidth: '180px', whiteSpace: 'nowrap' }}>Tên Sản Phẩm</TableCell>
 
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '80px', whiteSpace: 'nowrap' }}>Đơn vị</TableCell>
+
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Ngày hết hạn</TableCell>
+
                         <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '80px', whiteSpace: 'nowrap' }}>Số lượng</TableCell>
 
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '100px', whiteSpace: 'nowrap' }}>Đơn Giá</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '140px', whiteSpace: 'nowrap' }}>Đơn giá trước thuế</TableCell>
 
-                        <TableCell sx={{ textAlign: 'left', backgroundColor: '#f5f5f5', pl: 2, minWidth: '120px', whiteSpace: 'nowrap' }}>Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Thuế</TableCell>
 
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Đơn giá sau thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '140px', whiteSpace: 'nowrap' }}>Đơn giá sau thuế</TableCell>
 
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '120px', whiteSpace: 'nowrap' }}>Ngày hết hạn</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '150px', whiteSpace: 'nowrap' }}>Thành tiền trước thuế</TableCell>
 
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5', minWidth: '100px', whiteSpace: 'nowrap' }}>Tạm tính</TableCell>
-
-                        <TableCell align="right" sx={{ backgroundColor: '#f5f5f5', minWidth: '150px', whiteSpace: 'nowrap', pr: 2, textAlign: 'right' }}>
+                        <TableCell align="right" sx={{ backgroundColor: '#f5f5f5', minWidth: '170px', whiteSpace: 'nowrap', pr: 2, textAlign: 'right' }}>
 
                           <Box component="div" sx={{ textAlign: 'right', width: '100%', display: 'block' }}>
 
-                            Tạm Tính Sau Thuế
+                            Thành tiền sau thuế
 
                           </Box>
 
@@ -2325,57 +2439,100 @@ const SalesOrderList = () => {
                       {Array.isArray(orderDetails.details) && orderDetails.details.length > 0 ? (
 
                         orderDetails.details.map((detail, index) => {
-
                           const quantity = detail.quantity ?? detail.Quantity ?? 0;
 
-                          const unitPrice = detail.unitPrice ?? detail.UnitPrice ?? 0;
+                          // Get lotId to find quotation match for unit
+                          const lotId = detail.lotId ?? detail.LotId ?? detail.lotID ?? detail.LotID ?? detail.Lot?.LotId ?? detail.lot?.LotId ?? null;
+                          let quotationMatch = null;
+                          if (lotId !== null && orderDetails.quotationDetailsMap) {
+                            quotationMatch = orderDetails.quotationDetailsMap.get(Number(lotId));
+                          }
 
-                          const unitPriceAfterTax = detail.unitPriceAfterTax ?? unitPrice;
+                          const unitName =
+                            detail.unitName ??
+                            detail.UnitName ??
+                            detail.unit ??
+                            detail.Unit ??
+                            detail.productUnit ??
+                            detail.ProductUnit ??
+                            quotationMatch?.productUnit ??
+                            detail.productUnitName ??
+                            detail.ProductUnitName ??
+                            detail.unitDisplay ??
+                            detail.UnitDisplay ??
+                            detail.unitText ??
+                            detail.UnitText ??
+                            detail.lotUnit ??
+                            detail.LotUnit ??
+                            detail.lot?.Unit ??
+                            detail.Lot?.Unit ??
+                            detail.lot?.unit ??
+                            detail.Lot?.unit ??
+                            detail.lot?.UnitName ??
+                            detail.Lot?.UnitName ??
+                            detail.lot?.unitName ??
+                            detail.Lot?.unitName ??
+                            detail.uomName ??
+                            detail.UomName ??
+                            '-';
 
-                          const subtotal = detail.subtotal ?? quantity * unitPrice;
+                          const expiredDate =
+                            detail.expiredDisplay ??
+                            detail.expiredDate ??
+                            detail.ExpiredDate ??
+                            '-';
 
-                          const subtotalAfterTax = detail.subtotalAfterTax ?? quantity * unitPriceAfterTax;
+                          const unitPriceBeforeTax =
+                            detail.unitPriceBeforeTax ??
+                            detail.unitPrice ??
+                            detail.UnitPrice ??
+                            0;
+
+                          const unitPriceAfterTax =
+                            detail.unitPriceAfterTax ??
+                            detail.UnitPriceAfterTax ??
+                            unitPriceBeforeTax;
+
+                          const subtotalBeforeTax =
+                            detail.subtotalBeforeTax ??
+                            detail.subtotal ??
+                            detail.Subtotal ??
+                            quantity * unitPriceBeforeTax;
+
+                          const subtotalAfterTax =
+                            detail.subtotalAfterTax ??
+                            detail.SubtotalAfterTax ??
+                            quantity * unitPriceAfterTax;
 
                           const taxText = detail.taxText ?? detail.TaxText ?? '-';
 
-                          const expiredDate = detail.expiredDate ?? '-';
-
-                          
-                          
                           return (
-
                             <TableRow key={detail.id ?? detail.productId ?? index}>
-
                               <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
 
                               <TableCell>{detail.productName ?? detail.ProductName ?? '-'}</TableCell>
 
+                              <TableCell sx={{ textAlign: 'center' }}>{unitName}</TableCell>
+
+                              <TableCell sx={{ textAlign: 'center' }}>{expiredDate}</TableCell>
+
                               <TableCell sx={{ textAlign: 'center' }}>{quantity}</TableCell>
 
-                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPrice)}</TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(unitPriceBeforeTax)}</TableCell>
 
-                              <TableCell sx={{ textAlign: 'left', pl: 3 }}>{taxText}</TableCell>
+                              <TableCell sx={{ textAlign: 'center' }}>{taxText}</TableCell>
 
-                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(unitPriceAfterTax)}</TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(unitPriceAfterTax)}</TableCell>
 
-                              <TableCell sx={{ textAlign: 'right' }}>{expiredDate}</TableCell>
-
-                              <TableCell sx={{ textAlign: 'right' }}>{formatCurrency(subtotal)}</TableCell>
+                              <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(subtotalBeforeTax)}</TableCell>
 
                               <TableCell align="right" sx={{ whiteSpace: 'nowrap', pr: 2 }}>
-
                                 <Box component="div" sx={{ textAlign: 'right', width: '100%', display: 'block' }}>
-
-                                  {formatCurrency(subtotalAfterTax)}
-
+                                  {renderCurrency(subtotalAfterTax)}
                                 </Box>
-
                               </TableCell>
-
                             </TableRow>
-
                           );
-
                         })
 
                       ) : (
@@ -2409,39 +2566,50 @@ const SalesOrderList = () => {
               {/* Tổng tiền */}
 
               {orderDetails.details && orderDetails.details.length > 0 && (
-
                 <Box sx={{ mb: 2, textAlign: 'right' }}>
+                  {(() => {
+                    const totalBeforeTax = orderDetails.details.reduce((sum, detail) => {
+                      return sum + (detail.subtotalBeforeTax ?? detail.subtotal ?? detail.Subtotal ?? 0);
+                    }, 0);
+                    const totalAfterTax = orderDetails.details.reduce((sum, detail) => {
+                      return sum + (detail.subtotalAfterTax ?? detail.SubtotalAfterTax ?? 0);
+                    }, 0);
+                    const totalTax = Math.max(totalAfterTax - totalBeforeTax, 0);
 
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-
-                    Tạm tính: {formatCurrency(
-
-                      orderDetails.details.reduce((sum, detail) => {
-
-                        return sum + (detail.subtotal ?? 0);
-
-                      }, 0)
-
-                    )} VNĐ
-
-                  </Typography>
-
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-
-                    Tổng tiền sau thuế: {formatCurrency(
-
-                      orderDetails.details.reduce((sum, detail) => {
-
-                        return sum + (detail.subtotalAfterTax ?? 0);
-
-                      }, 0)
-
-                    )} VNĐ
-
-                  </Typography>
-
+                    return (
+                      <>
+                        <Typography variant="body1" sx={{ mb: 0.5, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                          <span>Tổng tiền trước thuế:</span>
+                          {renderCurrency(totalBeforeTax)}
+                        </Typography>
+                        <Typography variant="body1" sx={{ mb: 0.5, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                          <span>Thuế:</span>
+                          {renderCurrency(totalTax)}
+                        </Typography>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: 1,
+                            alignItems: 'baseline',
+                          }}
+                        >
+                          <Box component="span" sx={{ fontWeight: 700 }}>
+                            Tổng tiền sau thuế:
+                          </Box>
+                          {renderCurrency(totalAfterTax, {
+                            fontWeight: 700,
+                            fontSize: '1.35rem',
+                            unitFontWeight: 700,
+                            unitFontSize: '1rem',
+                          })}
+                        </Typography>
+                      </>
+                    );
+                  })()}
                 </Box>
-
               )}
 
             </Box>
@@ -2458,7 +2626,51 @@ const SalesOrderList = () => {
 
       </Dialog>
 
-
+      {/* Reject Reason Dialog */}
+      <Dialog
+        open={rejectDialogOpen}
+        onClose={handleCloseRejectDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Từ chối đơn hàng</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Vui lòng nhập lý do từ chối để thông báo cho khách hàng.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={3}
+            label="Lý do từ chối"
+            value={rejectReason}
+            onChange={(e) => {
+              setRejectReason(e.target.value);
+              if (rejectError) setRejectError(null);
+            }}
+            error={Boolean(rejectError)}
+            helperText={rejectError}
+            disabled={rejectLoading}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRejectDialog} disabled={rejectLoading}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmReject}
+            disabled={rejectLoading}
+            variant="contained"
+            sx={{
+              backgroundColor: '#d32f2f',
+              '&:hover': { backgroundColor: '#b71c1c' },
+            }}
+          >
+            {rejectLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
 

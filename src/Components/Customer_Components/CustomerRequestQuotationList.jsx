@@ -63,6 +63,7 @@ const CustomerRequestQuotationList = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequestDetails, setSelectedRequestDetails] = useState(null);
+  const [pendingRsqId, setPendingRsqId] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [editInitialData, setEditInitialData] = useState(null);
@@ -79,6 +80,8 @@ const CustomerRequestQuotationList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [quotationDetailDialogOpen, setQuotationDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
+  const [quotationSelectionDialogOpen, setQuotationSelectionDialogOpen] = useState(false);
+  const [availableQuotations, setAvailableQuotations] = useState([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -248,6 +251,42 @@ const CustomerRequestQuotationList = () => {
     return totalAfterTax / (1 + taxRate);
   };
 
+  // Hàm extract ngày từ RequestCode (format: RSQ-{yyyyMMdd}-{random})
+  const extractDateFromCode = (code) => {
+    if (!code) return null;
+    try {
+      // RequestCode format: RSQ-20250115-ABC12345
+      const parts = code.split('-');
+      if (parts.length >= 2) {
+        const dateStr = parts[1]; // yyyyMMdd
+        if (dateStr && dateStr.length === 8 && /^\d+$/.test(dateStr)) {
+          const year = dateStr.substring(0, 4);
+          const month = dateStr.substring(4, 6);
+          const day = dateStr.substring(6, 8);
+          return new Date(`${year}-${month}-${day}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error extracting date from code:', error);
+    }
+    return null;
+  };
+
+  // Lấy ngày tạo từ localStorage (được lưu khi tạo request)
+  const getStoredCreatedDate = (requestCode) => {
+    if (!requestCode) return null;
+    try {
+      const stored = localStorage.getItem(`rsq_created_${requestCode}`);
+      if (stored) {
+        const date = parseDateValue(stored);
+        if (date) return date;
+      }
+    } catch (error) {
+      console.error('Error reading stored created date:', error);
+    }
+    return null;
+  };
+
   // Fetch data from API
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -274,27 +313,6 @@ const CustomerRequestQuotationList = () => {
         ? quotationsResult.value?.data?.data
         : [];
       const quotationsData = Array.isArray(quotationPayload) ? quotationPayload : [];
-
-      // Hàm extract ngày từ RequestCode (format: RSQ-{yyyyMMdd}-{random})
-      const extractDateFromCode = (code) => {
-        if (!code) return null;
-        try {
-          // RequestCode format: RSQ-20250115-ABC12345
-          const parts = code.split('-');
-          if (parts.length >= 2) {
-            const dateStr = parts[1]; // yyyyMMdd
-            if (dateStr && dateStr.length === 8) {
-              const year = dateStr.substring(0, 4);
-              const month = dateStr.substring(4, 6);
-              const day = dateStr.substring(6, 8);
-              return new Date(`${year}-${month}-${day}`);
-            }
-          }
-        } catch (error) {
-          console.error('Error extracting date from code:', error);
-        }
-        return null;
-      };
 
       const quotationInfoMap = quotationsData.reduce((acc, quotation) => {
         const requestCode = quotation.RequestCode || quotation.requestCode || '';
@@ -328,7 +346,45 @@ const CustomerRequestQuotationList = () => {
         const requestDate = item.RequestDate || item.requestDate || null;
         const requestCode = item.RequestCode || item.requestCode || '';
 
-        const createdDate = extractDateFromCode(requestCode);
+        // Ưu tiên: CreatedDate từ backend > localStorage > extract từ RequestCode
+        const backendCreatedDate = item.CreatedDate || item.createdDate || null;
+        let createdDate = backendCreatedDate 
+          ? parseDateValue(backendCreatedDate) 
+          : getStoredCreatedDate(requestCode) || extractDateFromCode(requestCode);
+        
+        // Nếu vẫn không có createdDate, xử lý theo trạng thái
+        if (!createdDate && requestCode) {
+          const storedDate = getStoredCreatedDate(requestCode);
+          
+          if (storedDate) {
+            // Đã có trong localStorage, dùng nó
+            createdDate = storedDate;
+          } else if (backendStatus === 0) {
+            // Request nháp: lưu ngày hiện tại vào localStorage
+            const currentDate = new Date();
+            try {
+              localStorage.setItem(`rsq_created_${requestCode}`, currentDate.toISOString());
+              createdDate = currentDate;
+            } catch (error) {
+              console.error('Error storing created date:', error);
+              createdDate = currentDate;
+            }
+          } else if ((backendStatus === 1 || backendStatus === 2) && requestDate) {
+            // Request đã gửi: dùng RequestDate làm ngày tạo (thường request được tạo và gửi cùng ngày)
+            // Lưu vào localStorage để giữ cho lần sau
+            const sentDate = parseDateValue(requestDate);
+            if (sentDate) {
+              try {
+                localStorage.setItem(`rsq_created_${requestCode}`, sentDate.toISOString());
+                createdDate = sentDate;
+              } catch (error) {
+                console.error('Error storing created date:', error);
+                createdDate = sentDate;
+              }
+            }
+          }
+        }
+        
         const sentDate = (backendStatus === 1 || backendStatus === 2) && requestDate ? requestDate : null;
 
         const quotationInfo = quotationInfoMap[requestCode];
@@ -371,6 +427,28 @@ const CustomerRequestQuotationList = () => {
     fetchRequests();
   }, [fetchRequests]);
 
+  // Xử lý pending rsqId sau khi requests đã được fetch
+  useEffect(() => {
+    if (pendingRsqId && requests.length > 0) {
+      console.log('CustomerRequestQuotationList - Processing pending rsqId:', pendingRsqId);
+      const openRequestDetailsDialog = async () => {
+        try {
+          const response = await requestSalesQuotationAPI.viewDetails(pendingRsqId);
+          if (response?.data?.data) {
+            console.log('CustomerRequestQuotationList - Opening dialog with pending rsqId');
+            setSelectedRequestDetails(response.data.data);
+            setDetailDialogOpen(true);
+            setPendingRsqId(null);
+          }
+        } catch (err) {
+          console.error('CustomerRequestQuotationList - Error opening dialog with pending rsqId:', err);
+          setPendingRsqId(null);
+        }
+      };
+      openRequestDetailsDialog();
+    }
+  }, [pendingRsqId, requests]);
+
   // Auto-open quotation dialog from notification
   useEffect(() => {
     const sqId = location.state?.sqId || location.state?.openQuotationId;
@@ -399,6 +477,31 @@ const CustomerRequestQuotationList = () => {
       };
       
       openQuotationDialog();
+    }
+  }, [location.state, navigate]);
+
+  // Auto-open request details dialog from notification
+  useEffect(() => {
+    const rsqId = location.state?.openRsqId;
+    console.log('CustomerRequestQuotationList - useEffect triggered, location.state:', location.state);
+    console.log('CustomerRequestQuotationList - rsqId:', rsqId, 'Type:', typeof rsqId);
+    
+    if (rsqId) {
+      const normalizedRsqId = Number(rsqId);
+      console.log('CustomerRequestQuotationList - Normalized rsqId:', normalizedRsqId);
+      
+      if (isNaN(normalizedRsqId)) {
+        console.error('CustomerRequestQuotationList - Invalid rsqId:', rsqId);
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+      
+      // Clear state ngay lập tức để tránh re-trigger
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      console.log('CustomerRequestQuotationList - Setting pending rsqId:', normalizedRsqId);
+      // Set pending rsqId để xử lý sau khi requests đã được fetch
+      setPendingRsqId(normalizedRsqId);
     }
   }, [location.state, navigate]);
 
@@ -841,35 +944,68 @@ const CustomerRequestQuotationList = () => {
     console.log('CustomerRequestQuotationList - handleViewQuotation called with rsqId:', rsqId);
     setLoading(true);
     try {
-      console.log('CustomerRequestQuotationList - Resolving quotationId for rsqId:', rsqId);
-      const quotationId = await resolveQuotationId(rsqId);
-      console.log('CustomerRequestQuotationList - Resolved quotationId:', quotationId);
+      // Lấy RequestCode từ request details
+      const requestResponse = await requestSalesQuotationAPI.viewDetails(rsqId);
+      const requestData = requestResponse.data?.data;
+      
+      if (!requestData) {
+        throw new Error('Không lấy được thông tin yêu cầu');
+      }
 
-      if (!quotationId) {
-        console.error('CustomerRequestQuotationList - No quotationId found');
+      const requestCode = requestData.RequestCode ?? requestData.requestCode;
+      if (!requestCode) {
+        throw new Error('Không tìm thấy mã yêu cầu');
+      }
+
+      // Lấy tất cả các báo giá liên quan đến RequestCode
+      const quotationListResponse = await salesQuotationAPI.viewList();
+      const quotationList = quotationListResponse.data?.data || [];
+      
+      // Lọc các báo giá có RequestCode trùng khớp và không phải draft (status !== 0)
+      const relatedQuotations = quotationList
+        .filter((q) => {
+          const qRequestCode = q.RequestCode ?? q.requestCode;
+          const qStatus = q.Status !== undefined ? q.Status : q.status;
+          return qRequestCode === requestCode && qStatus !== 0 && qStatus !== null && qStatus !== undefined;
+        })
+        .map((q) => ({
+          id: q.Id ?? q.id,
+          code: q.QuotationCode ?? q.quotationCode ?? '-',
+          date: q.QuotationDate ?? q.quotationDate ?? null,
+          status: q.Status !== undefined ? q.Status : q.status,
+        }))
+        .sort((a, b) => {
+          // Sắp xếp theo ngày giảm dần (mới nhất trước)
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
+
+      if (relatedQuotations.length === 0) {
         setSnackbarMessage('Chưa có báo giá được gửi cho yêu cầu này.');
         setSnackbarOpen(true);
         setLoading(false);
         return;
       }
 
-      console.log('CustomerRequestQuotationList - Fetching quotation details for sqId:', quotationId);
-      const quotationResponse = await salesQuotationAPI.viewDetails(quotationId);
-      console.log('CustomerRequestQuotationList - Quotation response:', quotationResponse);
-      const quotationData = quotationResponse.data?.data;
-      console.log('CustomerRequestQuotationList - Quotation data:', quotationData);
+      // Nếu chỉ có 1 báo giá, mở trực tiếp
+      if (relatedQuotations.length === 1) {
+        const quotationId = relatedQuotations[0].id;
+        const quotationResponse = await salesQuotationAPI.viewDetails(quotationId);
+        const quotationData = quotationResponse.data?.data;
 
-      if (!quotationData) {
-        throw new Error('Không lấy được dữ liệu báo giá');
+        if (!quotationData) {
+          throw new Error('Không lấy được dữ liệu báo giá');
+        }
+
+        setSelectedQuotationDetails(quotationData);
+        setCommentInput('');
+        setQuotationDetailDialogOpen(true);
+      } else {
+        // Nếu có nhiều báo giá, hiển thị dialog chọn
+        setAvailableQuotations(relatedQuotations);
+        setQuotationSelectionDialogOpen(true);
       }
-
-      // Set quotation details and open dialog instead of navigating
-      setSelectedQuotationDetails(quotationData);
-      setCommentInput(''); // Reset comment input
-      setQuotationDetailDialogOpen(true);
-      
-      console.log('CustomerRequestQuotationList - Dialog opened');
-      console.log('CustomerRequestQuotationList - Comments:', quotationData.Comments || quotationData.comments);
     } catch (err) {
       console.error('CustomerRequestQuotationList - Error in handleViewQuotation:', err);
       console.error('CustomerRequestQuotationList - Error response:', err.response);
@@ -880,6 +1016,30 @@ const CustomerRequestQuotationList = () => {
     } finally {
       setLoading(false);
       console.log('CustomerRequestQuotationList - handleViewQuotation completed');
+    }
+  };
+
+  const handleSelectQuotation = async (quotationId) => {
+    setQuotationSelectionDialogOpen(false);
+    setLoading(true);
+    try {
+      const quotationResponse = await salesQuotationAPI.viewDetails(quotationId);
+      const quotationData = quotationResponse.data?.data;
+
+      if (!quotationData) {
+        throw new Error('Không lấy được dữ liệu báo giá');
+      }
+
+      setSelectedQuotationDetails(quotationData);
+      setCommentInput('');
+      setQuotationDetailDialogOpen(true);
+    } catch (err) {
+      console.error('CustomerRequestQuotationList - Error loading quotation details:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Không thể tải chi tiết báo giá';
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1639,26 +1799,22 @@ const CustomerRequestQuotationList = () => {
                     </Typography>
                     <Typography variant="body1">
                       {(() => {
-                        // Lấy ngày tạo từ CreatedDate hoặc extract từ RequestCode
-                        const createdDate = selectedRequestDetails.CreatedDate || selectedRequestDetails.createdDate;
-                        if (createdDate) {
-                          return formatDate(createdDate);
-                        }
-                        // Nếu không có CreatedDate, extract từ RequestCode
                         const requestCode = selectedRequestDetails.RequestCode || selectedRequestDetails.requestCode || '';
-                        if (requestCode) {
-                          const parts = requestCode.split('-');
-                          if (parts.length >= 2) {
-                            const dateStr = parts[1];
-                            if (dateStr && dateStr.length === 8) {
-                              const year = dateStr.substring(0, 4);
-                              const month = dateStr.substring(4, 6);
-                              const day = dateStr.substring(6, 8);
-                              return formatDate(new Date(`${year}-${month}-${day}`));
-                            }
-                          }
+                        const backendStatus = selectedRequestDetails.Status !== undefined ? selectedRequestDetails.Status : selectedRequestDetails.status;
+                        const requestDate = selectedRequestDetails.RequestDate || selectedRequestDetails.requestDate || null;
+                        
+                        // Ưu tiên: CreatedDate từ backend > localStorage > extract từ RequestCode > RequestDate (nếu đã gửi)
+                        const backendCreatedDate = selectedRequestDetails.CreatedDate || selectedRequestDetails.createdDate;
+                        let createdDate = backendCreatedDate 
+                          ? parseDateValue(backendCreatedDate) 
+                          : getStoredCreatedDate(requestCode) || extractDateFromCode(requestCode);
+                        
+                        // Nếu vẫn không có và là request đã gửi, dùng RequestDate
+                        if (!createdDate && (backendStatus === 1 || backendStatus === 2) && requestDate) {
+                          createdDate = parseDateValue(requestDate);
                         }
-                        return '-';
+                        
+                        return createdDate ? formatDate(createdDate) : '-';
                       })()}
                     </Typography>
                   </Box>
@@ -1789,24 +1945,15 @@ const CustomerRequestQuotationList = () => {
                     </Typography>
                     <Typography variant="body1">
                       {(() => {
-                        const createdDate = editInitialData.CreatedDate || editInitialData.createdDate;
-                        if (createdDate) {
-                          return formatDate(createdDate);
-                        }
                         const requestCode = editInitialData.RequestCode || editInitialData.requestCode || '';
-                        if (requestCode) {
-                          const parts = requestCode.split('-');
-                          if (parts.length >= 2) {
-                            const dateStr = parts[1];
-                            if (dateStr && dateStr.length === 8) {
-                              const year = dateStr.substring(0, 4);
-                              const month = dateStr.substring(4, 6);
-                              const day = dateStr.substring(6, 8);
-                              return formatDate(new Date(`${year}-${month}-${day}`));
-                            }
-                          }
-                        }
-                        return '-';
+                        
+                        // Ưu tiên: CreatedDate từ backend > localStorage > extract từ RequestCode
+                        const backendCreatedDate = editInitialData.CreatedDate || editInitialData.createdDate;
+                        const createdDate = backendCreatedDate 
+                          ? parseDateValue(backendCreatedDate) 
+                          : getStoredCreatedDate(requestCode) || extractDateFromCode(requestCode);
+                        
+                        return createdDate ? formatDate(createdDate) : '-';
                       })()}
                     </Typography>
                   </Box>
@@ -2121,6 +2268,62 @@ const CustomerRequestQuotationList = () => {
             ) : (
               'Gửi yêu cầu'
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Quotation Selection Dialog */}
+      <Dialog
+        open={quotationSelectionDialogOpen}
+        onClose={() => setQuotationSelectionDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div">
+            Chọn báo giá để xem
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Yêu cầu này có {availableQuotations.length} báo giá. Vui lòng chọn báo giá bạn muốn xem:
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {availableQuotations.map((quotation) => (
+                <Button
+                  key={quotation.id}
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => handleSelectQuotation(quotation.id)}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    textTransform: 'none',
+                    py: 1.5,
+                    px: 2,
+                    borderColor: '#1976d2',
+                    '&:hover': {
+                      borderColor: '#1565c0',
+                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {quotation.code}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {quotation.date ? formatDate(quotation.date) : 'Chưa có ngày'}
+                    </Typography>
+                  </Box>
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQuotationSelectionDialogOpen(false)}>
+            Hủy
           </Button>
         </DialogActions>
       </Dialog>

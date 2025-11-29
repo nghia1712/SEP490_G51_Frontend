@@ -315,15 +315,11 @@ function Header() {
       allowedRoles: ["sales_staff"],
     },
     {
-      label: "Đơn hàng (Sales)",
+      label: "Đơn hàng",
       path: "/sales/orders",
       allowedRoles: ["sales_staff"],
     },
-    {
-      label: "Đơn hàng (Kế toán)",
-      path: "/accountant/orders",
-      allowedRoles: ["accountant_staff"],
-    },
+    
     {
       label: "Thuế sản phẩm",
       path: "/accountant/tax-policy",
@@ -350,11 +346,6 @@ function Header() {
       allowedRoles: ["manager"],
     },
     {
-      label: "Yêu cầu thanh toán",
-      path: "/payment-remain",
-      allowedRoles: ["accountant_staff", "customer"],
-    },
-    {
       label: "Yêu cầu báo giá",
       path: "/customer/request-quotation",
       allowedRoles: ["customer"],
@@ -368,6 +359,11 @@ function Header() {
       label: "Hóa đơn",
       path: "/customer/invoices",
       allowedRoles: ["customer"],
+    },
+    {
+      label: "Yêu cầu thanh toán phần còn lại",
+      path: "/payment-remain",
+      allowedRoles: ["accountant_staff", "customer"],
     },
   ];
 

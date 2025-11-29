@@ -1,6 +1,6 @@
 // File: ListRSQ.jsx - Danh sách yêu cầu báo giá
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -48,13 +48,17 @@ const headerTextSx = {
 
 const ListRSQ = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [requests, setRequests] = useState([]);
+  const [allQuotations, setAllQuotations] = useState([]); // Lưu tất cả báo giá để hiển thị trong dialog
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchRequestCode, setSearchRequestCode] = useState('');
+  const [searchCustomerName, setSearchCustomerName] = useState('');
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequestDetails, setSelectedRequestDetails] = useState(null);
   const [generateLoading, setGenerateLoading] = useState(false);
@@ -250,6 +254,31 @@ const ListRSQ = () => {
     }
   };
 
+  // Format date range (khoảng ngày)
+  const formatDateRange = (dateRange) => {
+    if (!dateRange || !dateRange.minDate || !dateRange.maxDate) return null;
+    try {
+      const minDate = new Date(dateRange.minDate);
+      const maxDate = new Date(dateRange.maxDate);
+      if (Number.isNaN(minDate.getTime()) || Number.isNaN(maxDate.getTime())) return null;
+      
+      const minFormatted = minDate.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const maxFormatted = maxDate.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      
+      return `Từ ${minFormatted} đến ${maxFormatted}`;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const resolveCustomerName = (source) => {
     if (!source) return '-';
 
@@ -308,10 +337,14 @@ const ListRSQ = () => {
           ? quotationsResult.value.data.data
           : [];
 
+      // Lưu tất cả báo giá để dùng trong dialog chi tiết
+      setAllQuotations(quotationsData);
+
       if (quotationsResult.status === 'rejected') {
         console.error('Không thể tải danh sách báo giá để lấy ngày báo giá', quotationsResult.reason);
       }
 
+      // Map để lưu tất cả các báo giá cho mỗi requestCode
       const quotationInfoMap = quotationsData.reduce((acc, quotation) => {
         const requestCode = quotation.RequestCode || quotation.requestCode || null;
         const quotationDate = quotation.QuotationDate || quotation.quotationDate || null;
@@ -320,19 +353,37 @@ const ListRSQ = () => {
         if (!requestCode) {
           return acc;
         }
+        
+        if (!acc[requestCode]) {
+          acc[requestCode] = {
+            quotations: [],
+            quotationDate: null, // Ngày mới nhất (để tương thích với code cũ)
+            quotationCode: null, // Code mới nhất
+            quotationId: null, // ID mới nhất
+            time: 0,
+          };
+        }
+        
         const incomingTime = quotationDate ? Date.parse(quotationDate) : 0;
         const existing = acc[requestCode];
+        
+        // Thêm báo giá vào danh sách
+        existing.quotations.push({
+          quotationDate,
+          quotationCode,
+          quotationId,
+          time: Number.isNaN(incomingTime) ? 0 : incomingTime,
+        });
+        
+        // Cập nhật báo giá mới nhất (để tương thích với code cũ)
         if (
-          !existing ||
           (incomingTime && (!existing.time || incomingTime > existing.time)) ||
           (!incomingTime && !existing.time)
         ) {
-          acc[requestCode] = {
-            quotationDate: quotationDate || null,
-            quotationCode: quotationCode || null,
-            quotationId: quotationId || null,
-            time: Number.isNaN(incomingTime) ? 0 : incomingTime,
-          };
+          existing.quotationDate = quotationDate || null;
+          existing.quotationCode = quotationCode || null;
+          existing.quotationId = quotationId || null;
+          existing.time = Number.isNaN(incomingTime) ? 0 : incomingTime;
         }
 
         return acc;
@@ -351,7 +402,46 @@ const ListRSQ = () => {
         const requestCode = item.RequestCode || item.requestCode || '';
         const customerName = resolveCustomerName(item);
         const quotationInfo = requestCode ? quotationInfoMap[requestCode] : null;
-        const quotationDate = quotationInfo?.quotationDate || null;
+        
+        // Tính toán ngày báo giá hiển thị
+        let quotationDate = null;
+        let quotationDateRange = null; // Khoảng ngày nếu có nhiều báo giá với ngày khác nhau
+        
+        if (quotationInfo && quotationInfo.quotations && quotationInfo.quotations.length > 0) {
+          // Lọc các báo giá có ngày hợp lệ
+          const validQuotations = quotationInfo.quotations.filter(q => q.quotationDate);
+          
+          if (validQuotations.length > 0) {
+            // Sắp xếp theo ngày
+            validQuotations.sort((a, b) => a.time - b.time);
+            
+            const minDate = validQuotations[0].quotationDate;
+            const maxDate = validQuotations[validQuotations.length - 1].quotationDate;
+            
+            // So sánh ngày (chỉ so sánh phần ngày, không so sánh giờ)
+            const minDateObj = new Date(minDate);
+            const maxDateObj = new Date(maxDate);
+            const minDateOnly = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), minDateObj.getDate());
+            const maxDateOnly = new Date(maxDateObj.getFullYear(), maxDateObj.getMonth(), maxDateObj.getDate());
+            const isSameDate = minDateOnly.getTime() === maxDateOnly.getTime();
+            
+            // Nếu tất cả cùng ngày hoặc chỉ có 1 báo giá
+            if (isSameDate || validQuotations.length === 1) {
+              quotationDate = maxDate;
+            } else {
+              // Có nhiều báo giá với ngày khác nhau
+              quotationDate = maxDate; // Vẫn lưu ngày mới nhất để tương thích
+              quotationDateRange = { minDate, maxDate };
+            }
+          } else {
+            // Không có báo giá nào có ngày hợp lệ, dùng ngày mới nhất (có thể null)
+            quotationDate = quotationInfo.quotationDate || null;
+          }
+        } else {
+          // Không có báo giá, dùng ngày từ quotationInfo (tương thích với code cũ)
+          quotationDate = quotationInfo?.quotationDate || null;
+        }
+        
         const quotationCode = quotationInfo?.quotationCode || null;
         const quotationId = quotationInfo?.quotationId || null;
 
@@ -362,6 +452,7 @@ const ListRSQ = () => {
             createdDate,
             sentDate: status === 1 || status === 2 ? requestDate : null,
           quotationDate,
+          quotationDateRange, // Thêm khoảng ngày
           quotationId,
           quotationCode,
             status,
@@ -383,6 +474,56 @@ const ListRSQ = () => {
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  // Auto-open request details dialog from notification
+  useEffect(() => {
+    const rsqId = location.state?.openRsqId;
+    console.log('ListRSQ - useEffect triggered, location.state:', location.state);
+    console.log('ListRSQ - rsqId:', rsqId);
+    
+    if (rsqId) {
+      const normalizedRsqId = Number(rsqId);
+      console.log('ListRSQ - Normalized rsqId:', normalizedRsqId);
+      
+      if (isNaN(normalizedRsqId)) {
+        console.error('ListRSQ - Invalid rsqId:', rsqId);
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+      
+      // Clear state ngay lập tức để tránh re-trigger
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Mở dialog chi tiết
+      const openRequestDetailsDialog = async () => {
+        try {
+          console.log('ListRSQ - Fetching request details for rsqId:', normalizedRsqId);
+          const response = await requestSalesQuotationAPI.viewDetails(normalizedRsqId);
+          console.log('ListRSQ - Request details response:', response);
+          
+          if (response?.data?.data) {
+            console.log('ListRSQ - Setting request details and opening dialog');
+            setSelectedRequestDetails(response.data.data);
+            setDetailDialogOpen(true);
+          } else {
+            console.warn('ListRSQ - No data in response');
+            setSnackbarMessage('Không thể tải chi tiết yêu cầu báo giá');
+            setSnackbarOpen(true);
+          }
+        } catch (err) {
+          console.error('ListRSQ - Error opening request details dialog from notification:', err);
+          const errorMessage = err.response?.data?.message || 'Không thể mở chi tiết yêu cầu báo giá';
+          setSnackbarMessage(errorMessage);
+          setSnackbarOpen(true);
+        }
+      };
+      
+      // Đợi một chút để đảm bảo component đã render xong
+      setTimeout(() => {
+        openRequestDetailsDialog();
+      }, 500);
+    }
+  }, [location.state, navigate]);
 
   const handleSort = (key) => {
     const isAsc = sortConfig.key === key && sortConfig.direction === 'asc';
@@ -497,6 +638,8 @@ const ListRSQ = () => {
         });
 
         const defaultTaxInfo = getDefaultTaxInfo(taxes);
+        // Đảm bảo có taxId hợp lệ (nếu không có thì lấy tax đầu tiên)
+        const defaultTaxId = defaultTaxInfo.id || (taxes.length > 0 ? (taxes[0].id || taxes[0].Id || null) : null);
         
         // Tạo rows từ details
         const initialRows = details.map((detail, index) => {
@@ -527,7 +670,7 @@ const ListRSQ = () => {
             productUnit: productUnit,
             lotId: defaultLot?.lotId || null,
             lotOptions: productLots,
-            taxId: defaultTaxInfo.id,
+            taxId: defaultTaxId, // Đảm bảo luôn có taxId hợp lệ
             taxOptions: taxes,
             note: '',
             minQuantity,
@@ -657,12 +800,29 @@ const handleDepositPercentChange = (value) => {
   };
 
   const handleSubmitQuotation = async (shouldSend = false) => {
+    // Validate expiredDate (bắt buộc)
+    if (!quotationForm.expiredDate || quotationForm.expiredDate.trim() === '') {
+      const message = 'Vui lòng chọn ngày hết hạn báo giá';
+      setQuotationError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // Validate details - phải có ít nhất một sản phẩm với lô và thuế hợp lệ
     const detailPayload = quotationRows
-      .filter(row => row.lotId !== null && row.lotId !== undefined && row.lotId !== 'NONE')
+      .filter(row => {
+        // Lọc các row có lotId hợp lệ (không null, undefined, hoặc 'NONE')
+        const hasValidLot = row.lotId !== null && row.lotId !== undefined && row.lotId !== 'NONE';
+        // Lọc các row có taxId hợp lệ (phải là số > 0)
+        const taxIdNum = Number(row.taxId);
+        const hasValidTax = !isNaN(taxIdNum) && taxIdNum > 0;
+        return hasValidLot && hasValidTax;
+      })
       .map(row => ({
         productId: row.productId,
         lotId: row.lotId,
-        taxId: row.taxId,
+        taxId: Number(row.taxId),
         note: row.note || '',
       }));
 
@@ -680,13 +840,15 @@ const handleDepositPercentChange = (value) => {
     try {
       const payload = {
         rsqId: selectedRequestDetails?.Id || selectedRequestDetails?.id,
-        noteId: quotationForm.noteId,
+        noteId: quotationForm.noteId || 1,
         expiredDate: quotationForm.expiredDate,
-      depositPercent: Number(quotationForm.depositPercent) || 0,
+        depositPercent: Number(quotationForm.depositPercent) || 0,
         depositDueDays: quotationForm.depositDueDays || 1,
         status: shouldSend ? 1 : 0,
         details: detailPayload,
       };
+      
+      console.log('Submitting quotation payload:', payload);
       
       const response = await salesQuotationAPI.createSalesQuotation(payload);
       const serverMessage =
@@ -718,12 +880,34 @@ const handleDepositPercentChange = (value) => {
   };
 
 
-  // Filter requests by status
+  // Filter requests by status and search
   const filteredRequests = useMemo(() => {
-    if (statusFilter === 'all') return requests;
-    const filterStatus = parseInt(statusFilter, 10);
-    return requests.filter(request => request.status === filterStatus);
-  }, [requests, statusFilter]);
+    let filtered = requests;
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      const filterStatus = parseInt(statusFilter, 10);
+      filtered = filtered.filter(request => request.status === filterStatus);
+    }
+
+    // Filter by request code search
+    if (searchRequestCode.trim()) {
+      const searchTerm = searchRequestCode.trim().toLowerCase();
+      filtered = filtered.filter(request => 
+        request.code && request.code.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Filter by customer name search
+    if (searchCustomerName.trim()) {
+      const searchTerm = searchCustomerName.trim().toLowerCase();
+      filtered = filtered.filter(request => 
+        request.customerName && request.customerName.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return filtered;
+  }, [requests, statusFilter, searchRequestCode, searchCustomerName]);
 
   const detailMatchedRequest = useMemo(() => {
     if (!selectedRequestDetails) return null;
@@ -742,29 +926,61 @@ const handleDepositPercentChange = (value) => {
     );
   }, [detailMatchedRequest, selectedRequestDetails]);
 
+  // Lấy tất cả các báo giá liên quan đến yêu cầu báo giá hiện tại
+  const relatedQuotations = useMemo(() => {
+    if (!selectedRequestDetails) return [];
+    const requestCode = selectedRequestDetails.RequestCode || selectedRequestDetails.requestCode || '';
+    if (!requestCode) return [];
+    
+    // Filter tất cả báo giá có RequestCode trùng với request code hiện tại
+    return allQuotations.filter((quotation) => {
+      const qRequestCode = quotation.RequestCode || quotation.requestCode || '';
+      return qRequestCode === requestCode;
+    }).map((quotation) => ({
+      id: quotation.Id || quotation.id,
+      code: quotation.QuotationCode || quotation.quotationCode || '',
+      date: quotation.QuotationDate || quotation.quotationDate || null,
+      status: quotation.Status !== undefined ? quotation.Status : quotation.status,
+    })).sort((a, b) => {
+      // Sắp xếp theo ngày giảm dần (mới nhất trước)
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [selectedRequestDetails, allQuotations]);
+
   const detailQuotationCode = useMemo(() => {
     if (!selectedRequestDetails) return null;
+    // Lấy mã báo giá mới nhất
+    if (relatedQuotations.length > 0) {
+      return relatedQuotations[0].code;
+    }
     return (
       detailMatchedRequest?.quotationCode ||
       selectedRequestDetails.QuotationCode ||
       selectedRequestDetails.quotationCode ||
       null
     );
-  }, [detailMatchedRequest, selectedRequestDetails]);
+  }, [detailMatchedRequest, selectedRequestDetails, relatedQuotations]);
 
   const detailQuotationId = useMemo(() => {
     if (!selectedRequestDetails) return null;
+    // Lấy ID báo giá mới nhất
+    if (relatedQuotations.length > 0) {
+      return relatedQuotations[0].id;
+    }
     return (
       detailMatchedRequest?.quotationId ||
       selectedRequestDetails.QuotationId ||
       selectedRequestDetails.quotationId ||
       null
     );
-  }, [detailMatchedRequest, selectedRequestDetails]);
+  }, [detailMatchedRequest, selectedRequestDetails, relatedQuotations]);
 
-  const handleOpenQuotationDetail = () => {
-    if (!detailQuotationId) return;
-    navigate('/sales-quotation', { state: { openQuotationId: detailQuotationId } });
+  const handleOpenQuotationDetail = (quotationId) => {
+    const targetId = quotationId || detailQuotationId;
+    if (!targetId) return;
+    navigate('/sales-quotation', { state: { openQuotationId: targetId } });
     setDetailDialogOpen(false);
   };
 
@@ -817,6 +1033,11 @@ const handleDepositPercentChange = (value) => {
     }
   }, [page, totalPages]);
 
+  // Reset page to 1 when search filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchRequestCode, searchCustomerName, statusFilter]);
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Title */}
@@ -865,6 +1086,44 @@ const handleDepositPercentChange = (value) => {
             <MenuItem value="2">Đã báo giá</MenuItem>
           </Select>
         </FormControl>
+
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <TextField
+            size="small"
+            label="Tìm kiếm mã yêu cầu"
+            value={searchRequestCode}
+            onChange={(e) => setSearchRequestCode(e.target.value)}
+            sx={{ 
+              minWidth: 200,
+              backgroundColor: 'white',
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'white',
+              },
+            }}
+            placeholder="Nhập mã yêu cầu..."
+          />
+          <TextField
+            size="small"
+            label="Tìm kiếm tên khách hàng"
+            value={searchCustomerName}
+            onChange={(e) => setSearchCustomerName(e.target.value)}
+            sx={{ 
+              minWidth: 200,
+              backgroundColor: 'white',
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'white',
+              },
+            }}
+            placeholder="Nhập tên khách hàng..."
+          />
+        </Box>
       </Box>
 
       {/* Loading */}
@@ -983,7 +1242,15 @@ const handleDepositPercentChange = (value) => {
                   <TableCell sx={{ fontWeight: 500 }}>{request.code}</TableCell>
                 <TableCell>{request.customerName || '-'}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(request.sentDate)}</TableCell>
-                <TableCell>{formatDate(request.quotationDate)}</TableCell>
+                <TableCell>
+                  {request.quotationDateRange ? (
+                    <Box sx={{ whiteSpace: 'nowrap' }}>
+                      {formatDateRange(request.quotationDateRange)}
+                    </Box>
+                  ) : (
+                    formatDate(request.quotationDate)
+                  )}
+                </TableCell>
                 <TableCell>
                   {request.status !== undefined && request.status !== null ? (
                     <Chip
@@ -1094,24 +1361,43 @@ const handleDepositPercentChange = (value) => {
                   Mã báo giá:
                 </Typography>
                 <Box sx={{ fontWeight: 500 }}>
-                  {detailQuotationCode ? (
-                    <Button
-                      variant="text"
-                      color="primary"
-                      onClick={handleOpenQuotationDetail}
-                      disabled={!detailQuotationId}
-                      sx={{
-                        textTransform: 'none',
-                        padding: 0,
-                        minWidth: 0,
-                        fontWeight: 500,
-                        '&:disabled': {
-                          color: 'text.disabled',
-                        },
-                      }}
-                    >
-                      {detailQuotationCode}
-                    </Button>
+                  {relatedQuotations.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      {relatedQuotations.map((quotation, index) => (
+                        <Button
+                          key={quotation.id || index}
+                          variant="text"
+                          color="primary"
+                          onClick={() => handleOpenQuotationDetail(quotation.id)}
+                          disabled={!quotation.id}
+                          sx={{
+                            textTransform: 'none',
+                            padding: 0,
+                            minWidth: 0,
+                            fontWeight: 500,
+                            justifyContent: 'flex-start',
+                            fontSize: '0.875rem',
+                            '&:disabled': {
+                              color: 'text.disabled',
+                            },
+                            '&:hover': {
+                              textDecoration: 'underline',
+                            },
+                          }}
+                        >
+                          {quotation.code || '-'}
+                          {quotation.date && (
+                            <Typography
+                              component="span"
+                              variant="caption"
+                              sx={{ ml: 1, color: 'text.secondary' }}
+                            >
+                              ({formatDate(quotation.date)})
+                            </Typography>
+                          )}
+                        </Button>
+                      ))}
+                    </Box>
                   ) : (
                     '-'
                   )}
@@ -1228,8 +1514,8 @@ const handleDepositPercentChange = (value) => {
         <DialogActions>
           {selectedRequestDetails && (() => {
             const status = selectedRequestDetails.Status !== undefined ? selectedRequestDetails.Status : selectedRequestDetails.status;
-            // Chỉ hiển thị nút "Tạo báo giá" khi trạng thái là "Chưa báo giá" (status = 1)
-            if (status === 1) {
+            // Hiển thị nút "Tạo báo giá" khi trạng thái là "Chưa báo giá" (status = 1) hoặc "Đã báo giá" (status = 2)
+            if (status === 1 || status === 2) {
               return (
             <Button
               onClick={() => handleCreateQuotation(selectedRequestDetails.Id || selectedRequestDetails.id)}
@@ -1423,7 +1709,7 @@ const handleDepositPercentChange = (value) => {
                               {row.taxOptions && row.taxOptions.length > 0 ? (
                                 <FormControl fullWidth size="small">
                                   <Select
-                                    value={row.taxId ?? row.taxOptions[0]?.id ?? row.taxOptions[0]?.Id ?? ''}
+                                    value={row.taxId && row.taxId > 0 ? row.taxId : (row.taxOptions[0]?.id ?? row.taxOptions[0]?.Id ?? '')}
                                     onChange={(e) => handleTaxChange(row.id, e.target.value)}
                                   >
                                     {row.taxOptions.map((tax) => (

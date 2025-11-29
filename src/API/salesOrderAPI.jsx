@@ -26,7 +26,8 @@ const salesOrderAPI = {
   approveOrder: (orderId) => authorApi.post(`${API_URL}/approve/${orderId}`),
 
   // POST /api/SalesOrder/reject/{orderId}
-  rejectOrder: (orderId) => authorApi.post(`${API_URL}/reject/${orderId}`),
+  rejectOrder: (payload) =>
+    authorApi.post(`${API_URL}/reject/${payload?.salesOrderId ?? ''}`, payload),
 
   // POST /api/SalesOrder/complete/{orderId}
   completeOrder: (orderId) => authorApi.post(`${API_URL}/complete/${orderId}`),

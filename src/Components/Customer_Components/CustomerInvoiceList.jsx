@@ -22,8 +22,18 @@ import {
   Pagination,
   Button,
   Tooltip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import PaymentIcon from '@mui/icons-material/Payment';
 import invoiceAPI from '../../API/invoiceAPI';
 
 const headerTextSx = {
@@ -44,6 +54,10 @@ const CustomerInvoiceList = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('qr'); // 'qr' | 'transfer' | 'cash'
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -69,6 +83,7 @@ const CustomerInvoiceList = () => {
             invoice.salesOrderCode ||
             invoice.SalesOrderCode ||
             `SO-${invoice.salesOrderId || invoice.SalesOrderId || ''}`,
+          salesOrderId: invoice.salesOrderId || invoice.SalesOrderId || null,
           status:
             invoice.status !== undefined
               ? invoice.status
@@ -80,7 +95,22 @@ const CustomerInvoiceList = () => {
             invoice.CreatedAt ||
             invoice.createAt ||
             invoice.CreateAt,
-          totalAmount: invoice.totalAmount || invoice.TotalAmount || 0,
+          // Tổng tiền hóa đơn
+          totalAmount:
+            invoice.totalAmount ??
+            invoice.TotalAmount ??
+            0,
+          // Tổng đã thanh toán (nếu backend trả về)
+          totalPaid:
+            invoice.totalPaid ??
+            invoice.TotalPaid ??
+            0,
+          // Số tiền còn lại phải thanh toán (ưu tiên TotalRemain nếu backend gửi)
+          totalRemain:
+            invoice.totalRemain ??
+            invoice.TotalRemain ??
+            (invoice.totalAmount ?? invoice.TotalAmount ?? 0) -
+              (invoice.totalPaid ?? invoice.TotalPaid ?? 0),
         }));
         setAllInvoices(mappedInvoices);
         setInvoices(applyStatusFilter(mappedInvoices));
@@ -125,7 +155,7 @@ const CustomerInvoiceList = () => {
       if (sortConfig.key === 'createdAt') {
         aValue = new Date(aValue || 0);
         bValue = new Date(bValue || 0);
-      } else if (sortConfig.key === 'totalAmount') {
+      } else if (sortConfig.key === 'totalAmount' || sortConfig.key === 'totalRemain') {
         aValue = Number(aValue || 0);
         bValue = Number(bValue || 0);
       } else {
@@ -199,12 +229,20 @@ const CustomerInvoiceList = () => {
     }
   };
 
+  // Hiển thị tiền với dấu phẩy và đơn vị "đ" gạch chân (giống màn đơn hàng)
   const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined) return '0 ₫';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
+    if (amount === null || amount === undefined) return '-';
+    const formatted = new Intl.NumberFormat('vi-VN')
+      .format(amount)
+      .replace(/\./g, ',');
+    return (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
+        <Box component="span">{formatted}</Box>
+        <Box component="span" sx={{ textDecoration: 'underline' }}>
+          đ
+        </Box>
+      </Box>
+    );
   };
 
   const handleDownloadPdf = async (invoice) => {
@@ -228,6 +266,54 @@ const CustomerInvoiceList = () => {
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     }
+  };
+
+  const handleOpenPaymentDialog = (invoice) => {
+    setSelectedInvoice(invoice);
+    const remain = Number(invoice.totalRemain || 0);
+    setPaymentAmount(remain > 0 ? String(remain) : '');
+    setPaymentMethod('qr');
+    setPaymentDialogOpen(true);
+  };
+
+  const handleClosePaymentDialog = () => {
+    setPaymentDialogOpen(false);
+    setSelectedInvoice(null);
+    setPaymentAmount('');
+    setPaymentMethod('qr');
+  };
+
+  const handleConfirmPayment = () => {
+    if (!selectedInvoice) return;
+
+    const remain = Number(selectedInvoice.totalRemain || 0);
+    const amount = Number(paymentAmount || 0);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setSnackbarSeverity('warning');
+      setSnackbarMessage('Số tiền thanh toán phải lớn hơn 0.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (amount > remain) {
+      setSnackbarSeverity('warning');
+      setSnackbarMessage('Số tiền thanh toán không được lớn hơn số tiền còn lại.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // TODO: Gọi API thanh toán tương ứng (VNPay / chuyển khoản / tiền mặt) theo paymentMethod.
+    // Hiện tại chỉ hiển thị thông báo demo.
+    const methodLabel =
+      paymentMethod === 'qr' ? 'QR (VNPay / VietQR)' : paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+
+    setSnackbarSeverity('info');
+    setSnackbarMessage(
+      `Bạn đã chọn thanh toán ${formatCurrency(amount)} bằng phương thức ${methodLabel} cho hóa đơn ${selectedInvoice.invoiceCode}.`,
+    );
+    setSnackbarOpen(true);
+    handleClosePaymentDialog();
   };
 
   return (
@@ -327,7 +413,7 @@ const CustomerInvoiceList = () => {
                     Ngày tạo
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '14%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'status'}
                     direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
@@ -337,7 +423,7 @@ const CustomerInvoiceList = () => {
                     Trạng thái
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '18%', py: 1.5, px: 2, textAlign: 'right' }}>
+                <TableCell sx={{ width: '16%', py: 1, pr: 0.1, pl: 1, textAlign: 'right' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'totalAmount'}
                     direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
@@ -347,9 +433,19 @@ const CustomerInvoiceList = () => {
                     Tổng tiền
                   </TableSortLabel>
                 </TableCell>
+                <TableCell sx={{ width: '16%', py: 1, pr: 0.1, pl: 1, textAlign: 'right' }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'totalRemain'}
+                    direction={sortConfig.key === 'totalRemain' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('totalRemain')}
+                    sx={headerTextSx}
+                  >
+                    Còn lại
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell
                   sx={{
-                    width: '18%',
+                    width: '16%',
                     py: 1.5,
                     px: 2,
                     textAlign: 'right',
@@ -396,22 +492,37 @@ const CustomerInvoiceList = () => {
                     <TableCell>
                       <Chip label={getStatusLabel(invoice.status)} size="small" sx={getStatusColor(invoice.status)} />
                     </TableCell>
-                    <TableCell sx={{ textAlign: 'right', fontWeight: 500, textTransform: 'none' }}>
+                    <TableCell sx={{ textAlign: 'right', pr: 4, fontWeight: 500, textTransform: 'none' }}>
                       {formatCurrency(invoice.totalAmount)}
                     </TableCell>
+                    <TableCell sx={{ textAlign: 'right', pr: 4, fontWeight: 500, textTransform: 'none' }}>
+                      {formatCurrency(invoice.totalRemain)}
+                    </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Tải hóa đơn PDF">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<DownloadIcon fontSize="small" />}
-                            onClick={() => handleDownloadPdf(invoice)}
-                          >
-                            Tải xuống
-                          </Button>
-                        </span>
-                      </Tooltip>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Tooltip title="Tải hóa đơn PDF">
+                          <span>
+                            <IconButton
+                              size="medium"
+                              color="primary"
+                              onClick={() => handleDownloadPdf(invoice)}
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Thanh toán hóa đơn">
+                          <span>
+                            <IconButton
+                              size="medium"
+                              color="success"
+                              onClick={() => handleOpenPaymentDialog(invoice)}
+                            >
+                              <PaymentIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))
@@ -445,6 +556,105 @@ const CustomerInvoiceList = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Dialog thanh toán hóa đơn */}
+      <Dialog
+        open={paymentDialogOpen}
+        onClose={handleClosePaymentDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thanh toán hóa đơn</DialogTitle>
+        <DialogContent dividers>
+          {selectedInvoice && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã hóa đơn:
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {selectedInvoice.invoiceCode}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Tổng tiền:
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {formatCurrency(selectedInvoice.totalAmount)}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Đã thanh toán:
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatCurrency(selectedInvoice.totalPaid)}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Còn lại:
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500, color: 'error.main' }}>
+                    {formatCurrency(selectedInvoice.totalRemain)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Số tiền muốn thanh toán:
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  inputProps={{
+                    min: 0,
+                    max: selectedInvoice.totalRemain ?? 0,
+                    step: 1000,
+                  }}
+                  placeholder="Nhập số tiền..."
+                />
+                <Typography variant="caption" color="text.secondary">
+                  Tối đa: {formatCurrency(selectedInvoice.totalRemain)}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Chọn phương thức thanh toán:
+                </Typography>
+                <RadioGroup
+                  row
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <FormControlLabel value="qr" control={<Radio />} label="QR (VNPay / VietQR)" />
+                  <FormControlLabel value="transfer" control={<Radio />} label="Chuyển khoản" />
+                  <FormControlLabel value="cash" control={<Radio />} label="Tiền mặt" />
+                </RadioGroup>
+              </Box>
+
+              <Alert severity="info">
+                Đây là giao diện cho phép khách hàng chọn số tiền và phương thức thanh toán.
+                Việc kết nối với cổng thanh toán thực tế (VNPay, ngân hàng, v.v.) sẽ được cấu hình ở backend.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePaymentDialog}>Hủy</Button>
+          <Button variant="contained" color="primary" onClick={handleConfirmPayment}>
+            Xác nhận thanh toán
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
