@@ -111,7 +111,7 @@ export default function POList() {
           {/* Button Upload Excel */}
           {userRole === "purchases_staff" && (
             <Button variant="contained" onClick={handleOpenUpload}>
-              Upload Excel
+              Tải lên từ file Excel
             </Button>
           )}
         </Stack>
