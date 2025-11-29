@@ -310,15 +310,11 @@ function Header() {
       allowedRoles: ["sales_staff"],
     },
     {
-      label: "Đơn hàng (Sales)",
+      label: "Đơn hàng",
       path: "/sales/orders",
       allowedRoles: ["sales_staff"],
     },
-    {
-      label: "Đơn hàng (Kế toán)",
-      path: "/accountant/orders",
-      allowedRoles: ["accountant_staff"],
-    },
+    
     {
       label: "Thuế sản phẩm",
       path: "/accountant/tax-policy",

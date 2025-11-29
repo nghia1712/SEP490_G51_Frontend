@@ -225,6 +225,10 @@ const SalesOrderList = () => {
 
               creator:
 
+                order.CustomerName ||
+
+                order.customerName ||
+
                 order.CreateBy ||
 
                 order.createBy ||
@@ -232,10 +236,6 @@ const SalesOrderList = () => {
                 order.CreatedBy ||
 
                 order.createdBy ||
-
-                order.CustomerName ||
-
-                order.customerName ||
 
                 '-',
 
@@ -355,23 +355,50 @@ const SalesOrderList = () => {
 
 
   const getPaymentStatusLabel = (status) => {
-    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
+    // PaymentStatus enum (backend): NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
     switch (status) {
       case 0:
-        return 'Chờ thanh toán'; // Pending
+        return 'Chờ thanh toán'; // Chưa thanh toán đồng nào
       case 1:
-        return 'Đã cọc'; // Deposited
+        return 'Đã cọc'; // Đã thanh toán đúng/đủ tiền cọc
       case 2:
-        return 'Đã thanh toán'; // Paid
+        return 'Đã cọc'; // Đã thanh toán một phần (có thể đã cọc, chưa đủ tổng)
       case 3:
-        return 'Thành công'; // Success
+        return 'Đã thanh toán'; // Đã thanh toán toàn bộ
       case 4:
-        return 'Thất bại'; // Failed
-      case 5:
-        return 'Trả lại tiền'; // Refunded
+        return 'Trả lại tiền'; // Đã hoàn tiền
       default:
         return 'Không xác định';
     }
+  };
+
+  // Dùng riêng cho màn hình list:
+  // - Đơn đã được chấp thuận (Approved = 2), chưa thanh toán đồng nào => "Chờ cọc"
+  // - Các trường hợp khác hiển thị theo enum thanh toán
+  const getPaymentStatusLabelForList = (paymentStatus, orderStatus, paidAmount) => {
+    const normalizedStatus =
+      typeof orderStatus === 'string' && orderStatus !== ''
+        ? Number(orderStatus)
+        : orderStatus;
+
+    const normalizedPayment =
+      typeof paymentStatus === 'string' && paymentStatus !== ''
+        ? Number(paymentStatus)
+        : paymentStatus;
+
+    const paid = Number(paidAmount) || 0;
+
+    if (
+      normalizedStatus === 2 && // Approved
+      (normalizedPayment === null ||
+        normalizedPayment === undefined ||
+        normalizedPayment === 0) &&
+      paid === 0
+    ) {
+      return 'Chờ cọc';
+    }
+
+    return getPaymentStatusLabel(normalizedPayment);
   };
 
 
@@ -442,7 +469,8 @@ const SalesOrderList = () => {
 
   const formatCurrency = (value) => {
     const number = Number(value) || 0;
-    return new Intl.NumberFormat('vi-VN').format(number);
+    // Format với dấu phẩy thay vì dấu chấm
+    return new Intl.NumberFormat('vi-VN').format(number).replace(/\./g, ',');
   };
 
   const renderCurrency = (value, options = {}) => {
@@ -919,7 +947,7 @@ const SalesOrderList = () => {
 
         const createdAtValue = data.createdAt ?? data.CreateAt ?? data.CreatedAt ?? null;
 
-        const depositExpiredFromData = data.depositExpiredDate ?? data.DepositExpiredDate ?? null;
+        const depositExpiredFromData = data.depositExpiredDate ?? data.DepositExpiredDate ?? data.depositExpiredDay ?? data.DepositExpiredDay ?? null;
 
         let computedDepositExpired = depositExpiredFromData;
 
@@ -1170,6 +1198,10 @@ const SalesOrderList = () => {
           code: data.orderCode ?? data.salesOrderCode ?? data.SalesOrderCode ?? data.SalesOrderCode ?? '',
           creator:
 
+            data.customerName ??
+
+            data.CustomerName ??
+
             data.creator ??
 
             data.createBy ??
@@ -1179,10 +1211,6 @@ const SalesOrderList = () => {
             data.createdBy ??
 
             data.CreatedBy ??
-
-            data.customerName ??
-
-            data.CustomerName ??
 
             '-',
 
@@ -1210,6 +1238,8 @@ const SalesOrderList = () => {
           details: processedDetails,
 
           salesQuotationId: salesQuotationId,
+
+          quotationDetailsMap: quotationDetailsMap,
 
         });
 
@@ -1276,6 +1306,10 @@ const SalesOrderList = () => {
 
           creator:
 
+            data.customerName ??
+
+            data.CustomerName ??
+
             data.creator ??
 
             data.createBy ??
@@ -1285,10 +1319,6 @@ const SalesOrderList = () => {
             data.createdBy ??
 
             data.CreatedBy ??
-
-            data.customerName ??
-
-            data.CustomerName ??
 
             '-',
 
@@ -1725,7 +1755,7 @@ const SalesOrderList = () => {
 
                 </TableCell>
 
-                <TableCell sx={{ width: '11%', py: 1.5, px: 2 }}>
+                <TableCell sx={{ width: '11%', py: 1, px: 3.1 }}>
 
                   <TableSortLabel
 
@@ -1850,30 +1880,24 @@ const SalesOrderList = () => {
                   </TableCell>
 
                   <TableCell sx={{ textAlign: 'center' }}>
-
-                    {order.orderStatus === 1 || order.orderStatus === 3 || order.paymentStatus === undefined || order.paymentStatus === null ? (
-
+                    {order.orderStatus === 1 || order.orderStatus === 3 ? (
                       '-'
-
                     ) : (
-
                       <Chip
-
-                        label={getPaymentStatusLabel(order.paymentStatus)}
-
+                        label={getPaymentStatusLabelForList(
+                          order.paymentStatus,
+                          order.orderStatus,
+                          order.paidAmount,
+                        )}
                         size="small"
-
-                        sx={getPaymentStatusColor(order.paymentStatus)}
-
+                        sx={getPaymentStatusColor(order.paymentStatus ?? 0)}
                       />
-
                     )}
-
                   </TableCell>
 
-                  <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.paidAmount)}</TableCell>
+                  <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(order.paidAmount)}</TableCell>
 
-                  <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(order.totalAmount)}</TableCell>
+                  <TableCell sx={{ textAlign: 'right' }}>{renderCurrency(order.totalAmount)}</TableCell>
 
                   <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
 
@@ -2290,7 +2314,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1">
 
-                      {formatCurrency(orderDetails.paidAmount)} VNĐ
+                      {renderCurrency(orderDetails.paidAmount)}
 
                     </Typography>
 
@@ -2306,7 +2330,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
 
-                      {formatCurrency(orderDetails.remainingDeposit)} VNĐ
+                      {renderCurrency(orderDetails.remainingDeposit)}
 
                     </Typography>
 
@@ -2322,7 +2346,7 @@ const SalesOrderList = () => {
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
 
-                      {formatCurrency(orderDetails.totalAmount)} VNĐ
+                      {renderCurrency(orderDetails.totalAmount)}
 
                     </Typography>
 
@@ -2391,6 +2415,13 @@ const SalesOrderList = () => {
                         orderDetails.details.map((detail, index) => {
                           const quantity = detail.quantity ?? detail.Quantity ?? 0;
 
+                          // Get lotId to find quotation match for unit
+                          const lotId = detail.lotId ?? detail.LotId ?? detail.lotID ?? detail.LotID ?? detail.Lot?.LotId ?? detail.lot?.LotId ?? null;
+                          let quotationMatch = null;
+                          if (lotId !== null && orderDetails.quotationDetailsMap) {
+                            quotationMatch = orderDetails.quotationDetailsMap.get(Number(lotId));
+                          }
+
                           const unitName =
                             detail.unitName ??
                             detail.UnitName ??
@@ -2398,6 +2429,7 @@ const SalesOrderList = () => {
                             detail.Unit ??
                             detail.productUnit ??
                             detail.ProductUnit ??
+                            quotationMatch?.productUnit ??
                             detail.productUnitName ??
                             detail.ProductUnitName ??
                             detail.unitDisplay ??
