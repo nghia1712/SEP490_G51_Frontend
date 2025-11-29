@@ -104,14 +104,14 @@ export default function CustomerDebtList() {
           </FormControl>
 
           <Button
-            size="small"
             variant="outlined"
+            color="secondary"
             onClick={() => {
               setStatusFilter("");
               setSearchText("");
             }}
           >
-            Clear
+            Xóa lọc
           </Button>
         </Stack>
       </Paper>

@@ -283,6 +283,7 @@ export default function POActions({ poId, fetchPOs }) {
               <TableCell>Mô tả</TableCell>
               <TableCell align="center">Số lượng</TableCell>
               <TableCell align="center">Đơn giá</TableCell>
+              <TableCell align="center">Thuế</TableCell>
               <TableCell align="center">Thành tiền</TableCell>
             </TableRow>
           </TableHead>
@@ -295,6 +296,7 @@ export default function POActions({ poId, fetchPOs }) {
                 <TableCell align="center">
                   {item.unitPrice.toLocaleString()} ₫
                 </TableCell>
+                <TableCell align="center">{item.tax *100} %</TableCell>
                 <TableCell align="center">
                   {item.unitPriceTotal.toLocaleString()} ₫
                 </TableCell>

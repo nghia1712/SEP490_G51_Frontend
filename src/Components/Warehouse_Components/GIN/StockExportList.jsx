@@ -278,7 +278,7 @@ export default function StockExportList() {
                           {/* Chỉ show tạo GIN với warehouse_staff */}
                           {userRole === "warehouse_staff" &&
                             item.status === 1 && (
-                              <Tooltip title="Tạo GIN từ lệnh này">
+                              <Tooltip title="Tạo phiếu xuất kho">
                                 <IconButton
                                   color="secondary"
                                   onClick={() => handleCreateGIN(item)}

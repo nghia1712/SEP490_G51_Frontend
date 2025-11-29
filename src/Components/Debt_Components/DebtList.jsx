@@ -85,7 +85,7 @@ export default function DebtList() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Báo cáo công nợ
+        Quản lý thanh toán
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2 }}>
@@ -124,10 +124,8 @@ export default function DebtList() {
                   <TableCell align="center">Thể loại nợ</TableCell>
                   <TableCell align="center">Thuộc về</TableCell>
                   <TableCell align="center">Phải trả</TableCell>
-                  <TableCell align="center">Trạng thái</TableCell>
                   <TableCell align="center">Dư nợ</TableCell>
-                  <TableCell align="center">Ngày tạo</TableCell>
-                  <TableCell align="center">Ngày trả</TableCell>
+                  <TableCell align="center">Ngày trả gần nhất</TableCell>
                   <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -154,21 +152,9 @@ export default function DebtList() {
                       </TableCell>
                       <TableCell align="center">{item.debtName}</TableCell>
                       <TableCell>{item.payables.toLocaleString()} đ</TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={
-                            debtStatusMap[item.status]?.label ||
-                            "Không xác định"
-                          }
-                          color={debtStatusMap[item.status]?.color || "default"}
-                          size="small"
-                        />
-                      </TableCell>
+
                       <TableCell align="center">
                         {item.currentDebt.toLocaleString()} đ
-                      </TableCell>
-                      <TableCell align="center">
-                        {new Date(item.createdDate).toLocaleDateString("vi-VN")}
                       </TableCell>
                       <TableCell align="center">
                         {item.payday
@@ -204,21 +190,17 @@ export default function DebtList() {
 
       {/* Detail Dialog */}
       <Dialog open={openDetail} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết công nợ</DialogTitle>
+        <DialogTitle>Chi tiết thanh toán</DialogTitle>
         <DialogContent dividers>
           {selectedDebt ? (
             <Stack spacing={3}>
               {/* Thông tin cơ bản */}
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Thông tin công nợ
+                  Thông tin
                 </Typography>
 
                 <Stack spacing={1}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>Mã công nợ:</Typography>
-                    <Typography fontWeight="bold">{`DB-${selectedDebt.reportID}`}</Typography>
-                  </Stack>
 
                   <Stack direction="row" justifyContent="space-between">
                     <Typography>Loại thực thể:</Typography>
@@ -246,15 +228,7 @@ export default function DebtList() {
                     </Typography>
                   </Stack>
                   <Stack direction="row" justifyContent="space-between">
-                    <Typography>Ngày tạo:</Typography>
-                    <Typography>
-                      {new Date(selectedDebt.createdDate).toLocaleDateString(
-                        "vi-VN"
-                      )}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography>Ngày thanh toán:</Typography>
+                    <Typography>Ngày thanh toán gần nhất:</Typography>
                     <Typography>
                       {selectedDebt.payday
                         ? new Date(selectedDebt.payday).toLocaleDateString(
@@ -269,17 +243,6 @@ export default function DebtList() {
                     justifyContent="space-between"
                     alignItems="center"
                   >
-                    <Typography>Trạng thái:</Typography>
-                    <Chip
-                      label={
-                        debtStatusMap[selectedDebt.status]?.label ||
-                        "Không xác định"
-                      }
-                      color={
-                        debtStatusMap[selectedDebt.status]?.color || "default"
-                      }
-                      size="small"
-                    />
                   </Stack>
                 </Stack>
               </Paper>

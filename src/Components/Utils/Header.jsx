@@ -245,6 +245,11 @@ function Header() {
       allowedRoles: ["sales_staff"],
     },
     {
+      label: "Tài khoản khách hàng",
+      path: "/admin/user/customer",
+      allowedRoles: ["manager"],
+    },
+    {
       label: "Thuốc",
       path: "/product",
       allowedRoles: ["sales_staff", "purchases_staff"],
@@ -408,15 +413,14 @@ function Header() {
   });
   const roleAccountItem = getRoleAccountItem(userRole);
 
-const visibleNavItems =
-  userRole === "admin"
-    ? adminNavItems
-    : userRole === "manager"
-    ? baseVisible
-    : roleAccountItem
-    ? [roleAccountItem, ...baseVisible]
-    : baseVisible;
-
+  const visibleNavItems =
+    userRole === "admin"
+      ? adminNavItems
+      : userRole === "manager"
+      ? baseVisible
+      : roleAccountItem
+      ? [roleAccountItem, ...baseVisible]
+      : baseVisible;
 
   const visiblePartnerItems =
     userRole === "admin"

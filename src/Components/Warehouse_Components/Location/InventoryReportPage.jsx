@@ -350,7 +350,7 @@ export default function InventoryReportPage() {
                   setDateTo("");
                 }}
               >
-                Clear
+                Xóa lọc
               </Button>
             </Stack>
           </Paper>

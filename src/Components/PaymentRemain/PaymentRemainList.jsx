@@ -311,7 +311,7 @@ const PaymentRemainList = () => {
           </Select>
 
           <Button variant="outlined" color="secondary" onClick={handleClear}>
-            Clear
+            Xóa lọc
           </Button>
         </Stack>
       </Paper>
