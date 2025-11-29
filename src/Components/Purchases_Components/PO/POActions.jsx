@@ -265,7 +265,7 @@ export default function POActions({ poId, fetchPOs }) {
             </Typography>
             {Number(poDetail.status) !== STATUS.SENT && (
               <Typography>
-                <strong>Công nợ:</strong> {poDetail.debt?.toLocaleString() || 0}{" "}
+                <strong>Còn nợ:</strong> {poDetail.debt?.toLocaleString() || 0}{" "}
                 ₫
               </Typography>
             )}
@@ -446,7 +446,7 @@ export default function POActions({ poId, fetchPOs }) {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Thanh toán công nợ</DialogTitle>
+        <DialogTitle>Thanh toán</DialogTitle>
         <DialogContent sx={{ minHeight: 400 }}>
           {renderPoInfo(true)}
           <TextField

@@ -151,7 +151,7 @@ export default function DebtList() {
                           : "Không xác định"}
                       </TableCell>
                       <TableCell align="center">{item.debtName}</TableCell>
-                      <TableCell>{item.payables.toLocaleString()} đ</TableCell>
+                      <TableCell align="right">{item.payables.toLocaleString()} đ</TableCell>
 
                       <TableCell align="center">
                         {item.currentDebt.toLocaleString()} đ

@@ -37,12 +37,6 @@ export default function CustomerDebtList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [searchText, setSearchText] = useState("");
 
-  // Fake nhắc nhở
-  const handleReminder = (item) => {
-    alert(`Đã gửi nhắc nhở cho khách hàng: ${item.customerName}`);
-    // TODO: call API gửi reminder nếu có
-  };
-
   // Filter & search
   const filteredData = useMemo(() => {
     return data
@@ -134,7 +128,6 @@ export default function CustomerDebtList() {
                   <TableCell align="center">Hạn trả</TableCell>
                   <TableCell align="center">Tổng tiền phải trả</TableCell>
                   <TableCell align="center">Còn nợ</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
 
@@ -166,18 +159,6 @@ export default function CustomerDebtList() {
                       </TableCell>
                       <TableCell align="right">
                         {item.debtAmount?.toLocaleString()} đ
-                      </TableCell>
-                      <TableCell align="center">
-                        {item.status !== 2 && (
-                          <Tooltip title="Nhắc nhở khách hàng">
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleReminder(item)}
-                            >
-                              <NotificationsActiveIcon />
-                            </IconButton>
-                          </Tooltip>
-                        )}
                       </TableCell>
                     </TableRow>
                   ))

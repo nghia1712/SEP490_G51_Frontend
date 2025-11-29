@@ -76,7 +76,7 @@ export default function PODialogs({
 
         <DialogContent dividers sx={{ minHeight: "70vh" }}>
           <Table size="small">
-            <TableHead sx={{ background: "#e0e0e0" }} >
+            <TableHead sx={{ background: "#e0e0e0" }}>
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>Tên sản phẩm</TableCell>
@@ -109,12 +109,16 @@ export default function PODialogs({
                       size="small"
                       type="number"
                       value={p.quantity === 0 ? "" : p.quantity}
-                      error={p.quantity > p.suggestedQuantity}
                       helperText={
                         p.quantity > p.suggestedQuantity
                           ? "Vượt quá số lượng gợi ý"
                           : ""
                       }
+                      FormHelperTextProps={{
+                        sx: {
+                          color: "warning.main",
+                        },
+                      }}
                       onChange={(e) => {
                         let val = e.target.value;
                         let newQuantity = val === "" ? "" : Number(val);

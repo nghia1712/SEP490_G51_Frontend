@@ -310,7 +310,7 @@ export default function POList() {
                       : selectedPO.deposit?.toLocaleString() + " ₫"}
                   </Typography>
                   <Typography>
-                    <strong>Công nợ:</strong> {selectedPO.debt.toLocaleString()}{" "}
+                    <strong>Còn nợ:</strong> {selectedPO.debt.toLocaleString()}{" "}
                     ₫
                   </Typography>
                 </Box>

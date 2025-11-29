@@ -261,7 +261,7 @@ export default function PQList() {
                   <TableCell>{item.productDescription}</TableCell>
                   <TableCell>{item.productUnit}</TableCell>
                   <TableCell>{item.unitPrice?.toLocaleString()} đ</TableCell>
-                  <TableCell align="right">{item.tax *100} %</TableCell>
+                  <TableCell align="right">{item.tax * 100} %</TableCell>
                   <TableCell>{item.productDate}</TableCell>
                 </TableRow>
               ))}
@@ -332,12 +332,16 @@ export default function PQList() {
                         size="small"
                         type="number"
                         value={item.quantity === 0 ? "" : item.quantity}
-                        error={item.quantity > item.suggestedQty}
                         helperText={
                           item.quantity > item.suggestedQty
                             ? "Vượt quá số lượng gợi ý"
                             : ""
                         }
+                        FormHelperTextProps={{
+                          sx: {
+                            color: "warning.main",
+                          },
+                        }}
                         onChange={(e) => {
                           let val = e.target.value;
                           let newQty = val === "" ? "" : Number(val);
@@ -394,7 +398,6 @@ export default function PQList() {
             onClick={() => setOpenCreatePoDialog(false)}
             disabled={processing}
             variant="outlined"
-            
           >
             Hủy
           </Button>

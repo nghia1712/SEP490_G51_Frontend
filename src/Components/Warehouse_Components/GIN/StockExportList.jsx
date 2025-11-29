@@ -94,9 +94,9 @@ export default function StockExportList() {
       case 0:
         return { label: "Nháp", color: "default" };
       case 1:
-        return { label: "Đã gửi", color: "primary" };
+        return { label: "Chở xử lý", color: "primary" };
       case 2:
-        return { label: "Đã xuất kho", color: "success" };
+        return { label: "Đã có phiếu xuất", color: "success" };
       case 3:
         return { label: "Quá hạn", color: "error" };
       default:
@@ -134,24 +134,27 @@ export default function StockExportList() {
   };
 
   const handleCreateGIN = async (item) => {
-    try {
-      const payload = {
-        stockExportOrderId: item.id,
-        note: `Tạo phiếu xuất kho từ yêu cầu ${item.salesOrderCode}`,
-      };
+    const payload = {
+      stockExportOrderId: item.id,
+      note: `Tạo phiếu xuất kho từ yêu cầu ${item.salesOrderCode}`,
+    };
 
-      const res = await createGIN(payload);
+    const res = await createGIN(payload);
 
-      showSnack("Tạo GIN thành công!");
-
-      setTimeout(() => {
-        refetch();
-        navigate("/gin");
-      }, 1200);
-    } catch (error) {
-      console.error(error);
-      showSnack(error?.message || "Tạo GIN thất bại", "error");
+    if (!res.success) {
+      showSnack(
+        res.error?.response?.data?.message || "Tạo GIN thất bại",
+        "error"
+      );
+      return;
     }
+
+    showSnack("Tạo GIN thành công!");
+
+    setTimeout(() => {
+      refetch();
+      navigate("/gin");
+    }, 1200);
   };
 
   return (

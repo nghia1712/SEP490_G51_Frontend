@@ -504,7 +504,7 @@ export default function PRFQCreate() {
             mt: 2,
           }}
         >
-          <Button variant="contained" onClick={() => setOpenPreview(true)}>
+          <Button variant="contained" onClick={() => setOpenPreview(true)} disabled={loading}>
             Xem trước
           </Button>
           <Button

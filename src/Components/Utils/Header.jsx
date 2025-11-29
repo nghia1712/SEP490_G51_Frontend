@@ -331,7 +331,7 @@ function Header() {
       allowedRoles: ["accountant_staff"],
     },
     {
-      label: "Công nợ",
+      label: "Quản lý thanh toán",
       path: "/debt",
       allowedRoles: ["accountant_staff"],
     },
