@@ -241,10 +241,12 @@ export default function NotificationMenu() {
 
     const messageText = n.message || "";
     const parsedOrderCode = extractOrderCodeFromMessage(messageText);
+    const isApprovedMessage = /chấp thuận/i.test(messageText);
+    const isRejectedMessage = /từ chối/i.test(messageText);
     const isOrderDecisionNotification =
       userRole === "customer" &&
       parsedOrderCode &&
-      /(chấp thuận|từ chối)/i.test(messageText);
+      (isApprovedMessage || isRejectedMessage);
 
     if (isOrderDecisionNotification) {
       handleClose();
@@ -278,8 +280,11 @@ export default function NotificationMenu() {
               matchingOrder.Id ||
               matchingOrder.id;
             if (orderId) {
+              const navigationState = isRejectedMessage
+                ? { openRejectOrderId: Number(orderId) }
+                : { openOrderId: Number(orderId) };
               navigate("/customer/orders", {
-                state: { openOrderId: Number(orderId) },
+                state: navigationState,
               });
               return;
             }

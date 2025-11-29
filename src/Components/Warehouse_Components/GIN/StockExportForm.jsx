@@ -60,7 +60,20 @@ export default function StockExportForm() {
     severity: "success",
   });
 
-  useEffect(() => {}, [id, location]);
+  // Lắng nghe state truyền từ màn hình đơn hàng (SalesOrderList)
+  // để tự động chọn đơn hàng tương ứng khi tạo mới yêu cầu xuất kho
+  useEffect(() => {
+    // Chỉ xử lý khi đang ở chế độ tạo mới (không có id trên URL)
+    if (id) return;
+
+    const preselectedId = location.state?.preselectedSalesOrderId;
+    if (!preselectedId) return;
+
+    setForm((prev) => ({
+      ...prev,
+      salesOrderId: preselectedId,
+    }));
+  }, [id, location.state]);
 
   const fetchSalesOrders = async () => {
     try {
@@ -89,6 +102,25 @@ export default function StockExportForm() {
   useEffect(() => {
     fetchSalesOrders();
   }, []);
+
+  // Sau khi danh sách đơn hàng được load, nếu có đơn được chọn sẵn
+  // từ màn hình trước thì load luôn chi tiết lô tương ứng
+  useEffect(() => {
+    if (id) return; // chỉ áp dụng cho màn hình create
+
+    const preselectedId = location.state?.preselectedSalesOrderId;
+    if (!preselectedId) return;
+
+    if (!salesOrderList || salesOrderList.length === 0) return;
+
+    const existedOrder = salesOrderList.find(
+      (s) => s.salesOrderId === preselectedId
+    );
+
+    if (existedOrder) {
+      loadOrderLots(preselectedId);
+    }
+  }, [id, location.state, salesOrderList]);
 
   const loadOrderLots = async (salesOrderId, existedDetails = []) => {
     try {

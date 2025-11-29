@@ -82,6 +82,7 @@ const CustomerOrderList = () => {
     remainingDepositAmount <= 0;
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState('');
+  const [pendingRejectOrderId, setPendingRejectOrderId] = useState(null);
   const detailOrderStatus = orderDetails?.status ?? orderDetails?.Status ?? null;
   const detailPaymentStatus = orderDetails?.paymentStatus ?? orderDetails?.PaymentStatus ?? null;
   const detailQuotationCode =
@@ -450,18 +451,39 @@ const CustomerOrderList = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Auto-open payment dialog if được điều hướng từ màn hình khác với openOrderId
+  // Auto-open payment dialog hoặc dialog lý do từ chối nếu được điều hướng từ màn khác
   useEffect(() => {
-    if (location.state?.openOrderId) {
-      const orderId = location.state.openOrderId;
-      // Clear state để tránh mở lại khi refresh
+    const { openOrderId, openRejectOrderId } = location.state || {};
+    if (openOrderId || openRejectOrderId) {
       navigate(location.pathname, { replace: true, state: {} });
-      // Gọi handlePayment sau một khoảng ngắn để đảm bảo data đã load
+    }
+
+    if (openOrderId) {
       setTimeout(() => {
-        handlePayment(orderId);
+        handlePayment(openOrderId);
       }, 500);
     }
+
+    if (openRejectOrderId) {
+      const normalizedId = Number(openRejectOrderId);
+      if (!Number.isNaN(normalizedId)) {
+        setPendingRejectOrderId(normalizedId);
+      }
+    }
   }, [location.state, navigate]);
+
+  useEffect(() => {
+    if (!pendingRejectOrderId || orders.length === 0) return;
+    const targetOrder = orders.find(
+      (order) => Number(order.id) === Number(pendingRejectOrderId),
+    );
+    if (targetOrder) {
+      const reason = (targetOrder.rejectReason ?? '').toString().trim();
+      setSelectedRejectReason(reason);
+      setReasonDialogOpen(true);
+      setPendingRejectOrderId(null);
+    }
+  }, [pendingRejectOrderId, orders]);
 
   useEffect(() => {
     setOrders(applyStatusFilter(allOrders));
@@ -676,15 +698,15 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
   // Hàm lấy màu cho trạng thái thanh toán
   const getPaymentStatusColor = (status) => {
-    // PaymentStatus enum: Pending=0, Deposited=1, Paid=2, Success=3, Failed=4, Refunded=5
+    // PaymentStatus enum: Pending=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
     switch (status) {
       case 0: // Chờ thanh toán (Pending)
         return { backgroundColor: '#fff3cd', color: '#856404' };
+      // 1 và 2 đều là trạng thái "Đã cọc" -> dùng chung một màu
       case 1: // Đã cọc (Deposited)
+      case 2: // Đã cọc (PartiallyPaid)
         return { backgroundColor: '#e1bee7', color: '#4a148c' };
-      case 2: // Đã thanh toán (Paid)
-        return { backgroundColor: '#d4edda', color: '#155724' };
-      case 3: // Thành công (Success)
+      case 3: // Đã thanh toán (Paid) / Thành công
         return { backgroundColor: '#c8e6c9', color: '#1b5e20' };
       case 4: // Thất bại (Failed)
         return { backgroundColor: '#ffcdd2', color: '#b71c1c' };

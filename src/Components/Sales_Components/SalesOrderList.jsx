@@ -33,13 +33,11 @@ import {
 } from '@mui/material';
 
 import VisibilityIcon from '@mui/icons-material/Visibility';
-
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
-
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 
 import salesOrderAPI from '../../API/salesOrderAPI';
-
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 
 
@@ -411,11 +409,11 @@ const SalesOrderList = () => {
 
         return { backgroundColor: '#fff3cd', color: '#856404' };
 
+      // 1 và 2 đều là trạng thái "Đã cọc" -> dùng chung một màu
       case 1:
+      case 2:
 
         return { backgroundColor: '#ede7f6', color: '#4a148c' };
-
-      case 2:
 
       case 3:
 
@@ -1902,6 +1900,34 @@ const SalesOrderList = () => {
                   <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }}>
 
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+
+                      {(order.paymentStatus === 1 || order.paymentStatus === 2) && (
+                        <Tooltip title="Tạo yêu cầu xuất kho từ đơn hàng này" placement="bottom" arrow>
+                          <IconButton
+                            size="medium"
+                            onClick={() =>
+                              navigate('/stock-export/create', {
+                                state: {
+                                  preselectedSalesOrderId: order.id,
+                                },
+                              })
+                            }
+                            sx={{
+                              color: '#1976d2',
+                              width: '40px',
+                              height: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              '&:hover': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                              },
+                            }}
+                          >
+                            <Inventory2Icon fontSize="medium" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
                       {order.orderStatus === 1 && (
 
