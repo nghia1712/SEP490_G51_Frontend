@@ -24,6 +24,12 @@ const ginAPI = {
 
   // ✅ DELETE: Xóa phiếu xuất kho
   delete: (ginId) => authorApi.delete(`${API_URL}/delete-goods-issue-note`, { params: { ginId } }),
+
+  // ✅ POST: Báo kho không đủ hàng
+  notEnough: (stockExportOrder) =>
+    authorApi.post(`${API_URL}/response-not-enough`, null, {
+      params: { stockExportOrder },
+    }),
 };
 
 export default ginAPI;

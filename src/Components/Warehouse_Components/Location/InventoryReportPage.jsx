@@ -158,35 +158,53 @@ export default function InventoryReportPage() {
   useEffect(() => {
     const loadSessionsByFilter = async () => {
       setLoading(true);
+
+      const handleApiCall = async (apiCall) => {
+        try {
+          const res = await apiCall();
+          return res.data.data || [];
+        } catch (err) {
+          if (
+            err.response?.status === 400 &&
+            (err.response?.data?.message === "Không có phiên kiểm kê nào." ||
+              err.response?.data?.message ===
+                "Không tìm thấy phiên kiểm kê nào cho vị trí kho này.")
+          ) {
+            return [];
+          }
+          throw err;
+        }
+      };
+
       try {
         let data = [];
 
         if (selectedLocation) {
-          const res = await warehouseAPI.getSessionByWarehouseLocation(
-            selectedLocation
+          data = await handleApiCall(() =>
+            warehouseAPI.getSessionByWarehouseLocation(selectedLocation)
           );
-          data = res.data.data || [];
         } else if (selectedWarehouse) {
-          const res = await warehouseAPI.getAllSession();
-          data = (res.data.data || []).filter(
-            (s) => s.warehouseID === selectedWarehouse
+          const allSessions = await handleApiCall(() =>
+            warehouseAPI.getAllSession()
           );
+          data = allSessions.filter((s) => s.warehouseID === selectedWarehouse);
         } else {
-          const res = await warehouseAPI.getAllSession();
-          data = res.data.data || [];
+          data = await handleApiCall(() => warehouseAPI.getAllSession());
         }
 
+        // Chỉ lấy những session đã hoàn tất
         data = data.filter((s) => s.status === 3);
 
+        // Filter theo search
         if (search) {
           data = data.filter((s) =>
             s.inventorySessionID.toString().includes(search)
           );
         }
 
+        // Filter theo date
         const parseDateOnly = (d) =>
           d ? new Date(new Date(d).toDateString()) : null;
-
         if (dateFrom) {
           const from = parseDateOnly(dateFrom);
           data = data.filter((s) => parseDateOnly(s.startDate) >= from);
@@ -199,7 +217,7 @@ export default function InventoryReportPage() {
         }
 
         setSessions(data);
-        setPage(1); // Reset page khi filter thay đổi
+        setPage(1);
       } catch (err) {
         showApiError(err, "Không thể tải chi tiết phiên kiểm kê");
       } finally {

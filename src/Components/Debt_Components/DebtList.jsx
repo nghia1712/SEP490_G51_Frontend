@@ -190,7 +190,7 @@ export default function DebtList() {
 
       {/* Detail Dialog */}
       <Dialog open={openDetail} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết thanh toán</DialogTitle>
+        <DialogTitle align="center">Chi tiết thanh toán</DialogTitle>
         <DialogContent dividers>
           {selectedDebt ? (
             <Stack spacing={3}>

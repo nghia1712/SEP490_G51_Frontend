@@ -144,7 +144,7 @@ export default function POList() {
                 {filteredPOs.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={12} align="center">
-                      Không có dữ liệu đơn hàng
+                      Chưa có đơn nhập hàng nào
                     </TableCell>
                   </TableRow>
                 ) : (

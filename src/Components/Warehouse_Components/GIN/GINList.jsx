@@ -89,7 +89,8 @@ export default function GRNList() {
       row
         ? {
             goodsIssueNoteCode: row.goodsIssueNoteCode,
-            salesOrderCode: row.salesOrderCode || row.stockExportOrderCode || "",
+            salesOrderCode:
+              row.salesOrderCode || row.stockExportOrderCode || "",
           }
         : { goodsIssueNoteCode: "", salesOrderCode: "" }
     );
@@ -119,7 +120,12 @@ export default function GRNList() {
 
       {/* Search */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+        >
           <TextField
             variant="outlined"
             size="small"
@@ -208,7 +214,6 @@ export default function GRNList() {
                               <Visibility />
                             </IconButton>
                           </Tooltip>
-
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -251,6 +256,9 @@ export default function GRNList() {
                   <b>Phiếu xuất kho:</b> {selectedExport.goodsIssueNoteCode}
                 </Typography>
                 <Typography>
+                  <b>Mã đơn hàng:</b> {selectedExport.stockExportOrderCode}
+                </Typography>
+                <Typography>
                   <b>Kho xuất:</b> {selectedExport.warehouseName}
                 </Typography>
 
@@ -264,13 +272,10 @@ export default function GRNList() {
                 </Typography>
 
                 <Typography>
-                  <b>Người phụ trách:</b> {selectedExport.createBy}
+                  <b>Người tạo:</b> {selectedExport.createBy}
                 </Typography>
                 <Typography>
                   <b>Mô tả:</b> {selectedExport.note}
-                </Typography>
-                <Typography>
-                  <b>Mã đơn hàng:</b> {selectedExport.stockExportOrderCode}
                 </Typography>
 
                 <Typography fontWeight="bold" mt={2} mb={1}>

@@ -133,19 +133,17 @@ const PaymentRemainList = () => {
   };
 
   // Các hàm render
-  const renderStatus = (s) => {
-    switch (s) {
-      case 0:
-        return <Chip color="warning" label="Chờ xử lý" />;
-      case 1:
+  const renderStatus = (vnPayStatus) => {
+    switch (vnPayStatus) {
+      case 0: // NotPaymentYet
+        return <Chip color="warning" label="Chưa thanh toán" />;
+      case 1: // Deposited
         return <Chip color="info" label="Đã đặt cọc" />;
-      case 2:
-        return <Chip color="primary" label="Đã thanh toán" />;
-      case 3:
-        return <Chip color="success" label="Thành công" />;
-      case 4:
-        return <Chip color="error" label="Thất bại" />;
-      case 5:
+      case 2: // PartiallyPaid
+        return <Chip color="primary" label="Thanh toán một phần" />;
+      case 3: // Paid
+        return <Chip color="success" label="Đã thanh toán" />;
+      case 4: // Refunded
         return <Chip color="default" label="Đã hoàn tiền" />;
       default:
         return <Chip color="default" label="Không xác định" />;
@@ -155,9 +153,13 @@ const PaymentRemainList = () => {
   const renderPaymentMethod = (m) => {
     switch (m) {
       case 0:
-        return "Chuyển khoản";
+        return "-";
       case 1:
+        return "VnPay";
+      case 2:
         return "Tiền mặt";
+      case 3:
+        return "Chuyển khoản ngân hàng";
       default:
         return "Không xác định";
     }
@@ -304,10 +306,9 @@ const PaymentRemainList = () => {
             <MenuItem value="">Tất cả trạng thái</MenuItem>
             <MenuItem value={0}>Chờ xử lý</MenuItem>
             <MenuItem value={1}>Đã đặt cọc</MenuItem>
-            <MenuItem value={2}>Đã thanh toán</MenuItem>
-            <MenuItem value={3}>Thành công</MenuItem>
-            <MenuItem value={4}>Thất bại</MenuItem>
-            <MenuItem value={5}>Đã hoàn tiền</MenuItem>
+            <MenuItem value={2}>Thanh toán một phần</MenuItem>
+            <MenuItem value={3}>Đã thanh toán</MenuItem>
+            <MenuItem value={4}>Hoàn tiền</MenuItem>
           </Select>
 
           <Button variant="outlined" color="secondary" onClick={handleClear}>
@@ -318,13 +319,13 @@ const PaymentRemainList = () => {
 
       {/* Table */}
       <Paper>
-        <TableContainer>
-          <Table>
+        <TableContainer sx={{ maxHeight: 500 }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Mã đơn hàng</TableCell>
-                <TableCell>Phiếu xuất kho</TableCell>
+                <TableCell>Mã hóa đơn</TableCell>
                 <TableCell>Loại thanh toán</TableCell>
                 <TableCell>Phương thức</TableCell>
                 <TableCell>Số tiền</TableCell>
@@ -347,7 +348,7 @@ const PaymentRemainList = () => {
                     <TableCell>
                       {item.salesOrderCode || item.salesOrderId}
                     </TableCell>
-                    <TableCell>{item.goodsIssueNoteId}</TableCell>
+                    <TableCell>{item.invoiceCode}</TableCell>
                     <TableCell>{renderPaymentType(item.paymentType)}</TableCell>
                     <TableCell>
                       {renderPaymentMethod(item.paymentMethod)}
@@ -355,7 +356,7 @@ const PaymentRemainList = () => {
                     <TableCell>
                       {item.amount.toLocaleString("vi-VN") + " ₫"}
                     </TableCell>
-                    <TableCell>{renderStatus(item.status)}</TableCell>
+                    <TableCell>{renderStatus(item.vnPayStatus)}</TableCell>
                     <TableCell>
                       {item.paidAt
                         ? new Date(item.paidAt).toLocaleDateString("vi-VN")
@@ -396,7 +397,7 @@ const PaymentRemainList = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={9} align="center">
-                    Không có dữ liệu
+                    Chưa có yêu cầu thanh toán nào
                   </TableCell>
                 </TableRow>
               )}

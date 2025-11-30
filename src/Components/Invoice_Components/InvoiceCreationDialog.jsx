@@ -202,7 +202,7 @@ const InvoiceCreationDialog = ({
               )}
               {!salesOrderLoading && salesOrderCodes.length === 0 && (
                 <MenuItem value="" disabled>
-                  Không có dữ liệu đơn hàng
+                  Chưa có đơn hàng nào
                 </MenuItem>
               )}
               {salesOrderCodes.map((code) => (

@@ -33,6 +33,7 @@ import {
   Add,
   Edit,
   NoteAdd,
+  WarningAmber,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
@@ -41,7 +42,7 @@ import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function StockExportList() {
   const { data, loading, refetch, deleteOrder, sendOrder } = useStockExport();
-  const { createGIN } = useGIN();
+  const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
 
   const [userRole, setUserRole] = useState(null);
@@ -89,15 +90,28 @@ export default function StockExportList() {
     } else showSnack("Gửi thất bại!", "error");
   };
 
+  const handleNotEnough = async (item) => {
+    const res = await notEnoughGIN(item.id);
+
+    if (res.success) {
+      showSnack(res.message, "success");
+      refetch();
+    } else {
+      showSnack(res.message, "error");
+    }
+  };
+
   const getStatus = (status) => {
     switch (status) {
       case 0:
         return { label: "Nháp", color: "default" };
       case 1:
-        return { label: "Chở xử lý", color: "primary" };
+        return { label: "Chở xử lý", color: "info" };
       case 2:
         return { label: "Đã có phiếu xuất", color: "success" };
       case 3:
+        return { label: "Không đủ hàng", color: "secondary" };
+      case 4:
         return { label: "Quá hạn", color: "error" };
       default:
         return { label: "Không xác định", color: "default" };
@@ -133,29 +147,58 @@ export default function StockExportList() {
     setViewId(null);
   };
 
+  const [notEnoughMap, setNotEnoughMap] = useState({});
+
   const handleCreateGIN = async (item) => {
     const payload = {
       stockExportOrderId: item.id,
       note: `Tạo phiếu xuất kho từ yêu cầu ${item.salesOrderCode}`,
     };
 
-    const res = await createGIN(payload);
+    try {
+      const res = await createGIN(payload);
 
-    if (!res.success) {
-      showSnack(
-        res.error?.response?.data?.message || "Tạo GIN thất bại",
-        "error"
-      );
-      return;
-    }
+      // Nếu API báo thất bại
+      if (!res.success) {
+        const msg =
+          res?.message ||
+          res?.error?.response?.data?.message ||
+          "Tạo phiếu xuất kho thất bại";
 
-    showSnack("Tạo GIN thành công!");
+        // Kiểm tra message "không đủ hàng"
+        if (/không đủ hàng/i.test(msg)) {
+          showSnack(msg, "error");
+          setNotEnoughMap((prev) => {
+            const updated = { ...prev, [item.id]: true };
+            localStorage.setItem("notEnoughMap", JSON.stringify(updated));
+            return updated;
+          });
+          return;
+        }
 
-    setTimeout(() => {
+        showSnack(msg, "error");
+        return;
+      }
+
+      // Nếu tạo thành công
+      showSnack("Tạo phiếu xuất kho thành công!", "success");
+      setNotEnoughMap((prev) => {
+        const updated = { ...prev, [item.id]: false };
+        localStorage.setItem("notEnoughMap", JSON.stringify(updated));
+        return updated;
+      });
       refetch();
-      navigate("/gin");
-    }, 1200);
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message || "Tạo phiếu xuất kho thất bại";
+      showSnack(msg, "error");
+    }
   };
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("notEnoughMap") || "{}");
+    setNotEnoughMap(saved);
+  }, []);
 
   return (
     <Box p={3}>
@@ -280,13 +323,27 @@ export default function StockExportList() {
 
                           {/* Chỉ show tạo GIN với warehouse_staff */}
                           {userRole === "warehouse_staff" &&
-                            item.status === 1 && (
+                            item.status === 1 &&
+                            !notEnoughMap[item.id] && (
                               <Tooltip title="Tạo phiếu xuất kho">
                                 <IconButton
                                   color="secondary"
                                   onClick={() => handleCreateGIN(item)}
                                 >
                                   <NoteAdd />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                          {userRole === "warehouse_staff" &&
+                            item.status === 1 &&
+                            notEnoughMap[item.id] && (
+                              <Tooltip title="Báo kho không đủ hàng">
+                                <IconButton
+                                  color="warning"
+                                  onClick={() => handleNotEnough(item)}
+                                >
+                                  <WarningAmber />
                                 </IconButton>
                               </Tooltip>
                             )}

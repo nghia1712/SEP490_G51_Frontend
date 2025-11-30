@@ -7,15 +7,20 @@ const ginStatusMap = {
   0: { label: "Nháp", color: "default" },
   1: { label: "Chờ xử lý", color: "info" },
   2: { label: "Đã xuất kho", color: "success" },
-  3: { label: "Quá hạn", color: "error" },
+  3: { label: "Không đủ hàng", color: "secondary" },
+  4: { label: "Quá hạn", color: "error" },
 };
 
 // chỉ lấy label
-export const mapGINStatus = (status) => ginStatusMap[status]?.label || "Không xác định";
+export const mapGINStatus = (status) =>
+  ginStatusMap[status]?.label || "Không xác định";
 
 // render Chip màu
 export const renderGINStatus = (status) => {
-  const s = ginStatusMap[status] || { label: "Không xác định", color: "default" };
+  const s = ginStatusMap[status] || {
+    label: "Không xác định",
+    color: "default",
+  };
   return <Chip label={s.label} color={s.color} size="small" />;
 };
 
@@ -51,7 +56,11 @@ export default function useGIN() {
       setData(res.data?.data || []);
     } catch (err) {
       setError(err);
-      setSnack({ open: true, message: err?.response?.data?.message || "Lấy danh sách thất bại", severity: "error" });
+      setSnack({
+        open: true,
+        message: err?.response?.data?.message || "Lấy danh sách thất bại",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -69,7 +78,11 @@ export default function useGIN() {
       setDetailItems(detail.details || []);
       setOpenDetail(true);
     } catch (err) {
-      setSnack({ open: true, message: "Lấy chi tiết thất bại", severity: "error" });
+      setSnack({
+        open: true,
+        message: "Lấy chi tiết thất bại",
+        severity: "error",
+      });
     } finally {
       setDetailLoading(false);
     }
@@ -86,11 +99,19 @@ export default function useGIN() {
   const createGIN = async (payload) => {
     try {
       const res = await ginApi.create(payload);
-      setSnack({ open: true, message: "Tạo phiếu xuất kho thành công", severity: "success" });
+      setSnack({
+        open: true,
+        message: "Tạo phiếu xuất kho thành công",
+        severity: "success",
+      });
       fetchList();
       return { success: true, data: res.data };
     } catch (err) {
-      setSnack({ open: true, message: err?.response?.data?.message || "Tạo phiếu xuất kho thất bại", severity: "error" });
+      setSnack({
+        open: true,
+        message: err?.response?.data?.message || "Tạo phiếu xuất kho thất bại",
+        severity: "error",
+      });
       return { success: false, error: err };
     }
   };
@@ -101,11 +122,19 @@ export default function useGIN() {
   const sendGIN = async (ginId) => {
     try {
       const res = await ginApi.send(ginId);
-      setSnack({ open: true, message: "Gửi phiếu xuất kho thành công", severity: "success" });
+      setSnack({
+        open: true,
+        message: "Gửi phiếu xuất kho thành công",
+        severity: "success",
+      });
       fetchList();
       return { success: true, data: res.data };
     } catch (err) {
-      setSnack({ open: true, message: "Gửi phiếu xuất kho thất bại", severity: "error" });
+      setSnack({
+        open: true,
+        message: "Gửi phiếu xuất kho thất bại",
+        severity: "error",
+      });
       return { success: false, error: err };
     }
   };
@@ -116,6 +145,27 @@ export default function useGIN() {
   useEffect(() => {
     fetchList();
   }, []);
+
+  // =========================
+  // NOT ENOUGH
+  // =========================
+  const notEnoughGIN = async (stockExportOrder) => {
+    try {
+      const res = await ginApi.notEnough(stockExportOrder);
+      return {
+        success: true,
+        message: res.data?.message || "Báo kho không đủ hàng thành công",
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err?.response?.data?.message || "Báo kho không đủ hàng thất bại",
+        error: err,
+      };
+    }
+  };
 
   return {
     data,
@@ -135,6 +185,7 @@ export default function useGIN() {
 
     createGIN,
     sendGIN,
+    notEnoughGIN,
 
     setSnack,
     snack,
