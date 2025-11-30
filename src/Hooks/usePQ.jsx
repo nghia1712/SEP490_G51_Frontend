@@ -16,11 +16,10 @@ export default function usePQ() {
     severity: "success",
   });
 
-  // 🔹 Load danh sách PQ
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await pqApi.getAllBasic();
+      const res = await pqApi.getAllWithStatus();
 
       const list = Array.isArray(res?.data?.data)
         ? res.data.data.map((item) => ({
@@ -36,14 +35,20 @@ export default function usePQ() {
         : [];
 
       setQuotations(list);
-    } catch (err) {
-      const msg = err?.response?.data?.message;
 
-      setSnackbar({
-        open: true,
-        message: msg,
-        severity: "error",
-      });
+      // Nếu API trả 404 và message "Không có báo giá nào trong hệ thống", set list rỗng, không show lỗi
+    } catch (err) {
+      if (err?.response?.status !== 404) {
+        const msg = err?.response?.data?.message || "Đã có lỗi xảy ra";
+
+        setSnackbar({
+          open: true,
+          message: msg,
+          severity: "error",
+        });
+      } else {
+        setQuotations([]);
+      }
     } finally {
       setLoading(false);
     }
