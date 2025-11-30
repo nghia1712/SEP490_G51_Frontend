@@ -114,7 +114,7 @@ export default function GRNListPage() {
                 justifyContent="space-between"
               >
                 <TextField
-                  placeholder="Tìm kiếm GRN..."
+                  placeholder="Tìm kiếm..."
                   size="small"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

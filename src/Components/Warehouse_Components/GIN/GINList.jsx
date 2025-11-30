@@ -29,7 +29,12 @@ import {
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
-import { Visibility, Search, ReceiptLong } from "@mui/icons-material";
+import {
+  Visibility,
+  Search,
+  ReceiptLong,
+  CheckCircle,
+} from "@mui/icons-material";
 import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialog";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
@@ -58,6 +63,7 @@ export default function GRNList() {
     snack,
     handleSnackClose,
     renderGINStatus,
+    exportedLotProduct,
   } = useGIN();
   const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
@@ -113,6 +119,25 @@ export default function GRNList() {
     });
     refetch();
     handleCloseInvoiceDialog();
+  };
+
+  const handleConfirmExport = async (ginId) => {
+    const res = await exportedLotProduct(ginId);
+
+    if (res.success) {
+      setSnack({
+        open: true,
+        severity: "success",
+        message: res.message || "Xác nhận xuất kho thành công",
+      });
+      refetch();
+    } else {
+      setSnack({
+        open: true,
+        severity: "error",
+        message: res.message || "Xác nhận xuất kho thất bại",
+      });
+    }
   };
 
   return (
@@ -179,11 +204,11 @@ export default function GRNList() {
                     <TableCell>#</TableCell>
                     <TableCell>Phiếu xuất kho</TableCell>
                     <TableCell>Kho</TableCell>
-                    <TableCell>Ngày tạo</TableCell>
+                    <TableCell>Mã yêu cầu</TableCell>
                     <TableCell>Mô tả</TableCell>
                     <TableCell>Người tạo</TableCell>
                     <TableCell>Trạng thái</TableCell>
-                    <TableCell>Mã yêu cầu</TableCell>
+                    <TableCell>Ngày tạo</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
@@ -206,21 +231,25 @@ export default function GRNList() {
                         <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell>{row.goodsIssueNoteCode}</TableCell>
                         <TableCell>{row.warehouseName}</TableCell>
+                        <TableCell>{row.stockExportOrderCode}</TableCell>
+
+                        <TableCell>{row.note}</TableCell>
+                        <TableCell>{row.createBy}</TableCell>
+                        <TableCell align="center">
+                          {renderGINStatus(row.status)}
+                        </TableCell>
                         <TableCell>
                           {row.createAt
                             ? new Date(row.createAt).toLocaleDateString("vi-VN")
                             : "-"}
                         </TableCell>
-                        <TableCell>{row.note}</TableCell>
-                        <TableCell>{row.createBy}</TableCell>
-                        <TableCell>{renderGINStatus(row.status)}</TableCell>
-                        <TableCell>{row.stockExportOrderCode}</TableCell>
                         <TableCell align="center">
                           <Stack
                             direction="row"
                             spacing={1}
                             justifyContent="center"
                           >
+                            {/* Xem chi tiết */}
                             <Tooltip title="Xem chi tiết">
                               <IconButton
                                 color="primary"
@@ -230,6 +259,19 @@ export default function GRNList() {
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
+
+                            {/* NÚT XÁC NHẬN XUẤT KHO */}
+                            {role === "warehouse_staff" && row.status === 1 && (
+                              <Tooltip title="Xác nhận đã xuất kho">
+                                <IconButton
+                                  color="success"
+                                  size="small"
+                                  onClick={() => handleConfirmExport(row.id)}
+                                >
+                                  <CheckCircle />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Stack>
                         </TableCell>
                       </TableRow>

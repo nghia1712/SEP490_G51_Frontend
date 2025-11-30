@@ -296,19 +296,6 @@ export default function InventoryReportPage() {
               spacing={2}
               alignItems="center"
             >
-              <TextField
-                placeholder="Tìm kiếm ID phiên..."
-                size="small"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <Select
                   value={selectedWarehouse}

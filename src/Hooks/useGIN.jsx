@@ -7,8 +7,6 @@ const ginStatusMap = {
   0: { label: "Nháp", color: "default" },
   1: { label: "Chờ xử lý", color: "info" },
   2: { label: "Đã xuất kho", color: "success" },
-  3: { label: "Không đủ hàng", color: "secondary" },
-  4: { label: "Quá hạn", color: "error" },
 };
 
 // chỉ lấy label
@@ -167,6 +165,41 @@ export default function useGIN() {
     }
   };
 
+  // =========================
+  // EXPORTED LOT PRODUCT
+  // =========================
+  const exportedLotProduct = async (ginId) => {
+    try {
+      const res = await ginApi.exportedLotProduct(ginId);
+
+      setSnack({
+        open: true,
+        message: res.data?.message || "Xuất lô sản phẩm thành công",
+        severity: "success",
+      });
+
+      fetchList();
+
+      return {
+        success: true,
+        message: res.data?.message,
+        data: res.data,
+      };
+    } catch (err) {
+      setSnack({
+        open: true,
+        message: err?.response?.data?.message || "Xuất lô sản phẩm thất bại",
+        severity: "error",
+      });
+
+      return {
+        success: false,
+        error: err,
+        message: err?.response?.data?.message || "Xuất lô sản phẩm thất bại",
+      };
+    }
+  };
+
   return {
     data,
     loading,
@@ -186,6 +219,7 @@ export default function useGIN() {
     createGIN,
     sendGIN,
     notEnoughGIN,
+    exportedLotProduct,
 
     setSnack,
     snack,
