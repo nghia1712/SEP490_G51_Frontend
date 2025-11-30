@@ -23,9 +23,12 @@ import {
   Alert,
   Pagination,
   Autocomplete,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { Visibility, Paid } from "@mui/icons-material";
+import { Visibility, Paid , RequestQuote } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import paymentAPI from "../../API/paymentAPI";
 import userAPI from "../../API/userAPI";
@@ -227,196 +230,232 @@ const PaymentRemainList = () => {
 
   return (
     <Box p={3}>
-      <Typography variant="h5" mb={2}>
-        Danh sách yêu cầu thanh toán
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <RequestQuote sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", color: "#1976d2" }}
+              >
+                Danh sách yêu cầu thanh toán
+              </Typography>
+            </Box>
 
-      {/* Filters & Search */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <TextField
-            label="Mã đơn hàng"
-            value={filters.salesOrderId}
-            onChange={(e) => {
-              const val = e.target.value;
-              setFilters({ ...filters, salesOrderId: val });
+            {/* FILTER & SEARCH */}
+            <Paper
+              sx={{ p: 2, mb: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                <TextField
+                  label="Mã đơn hàng"
+                  value={filters.salesOrderId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFilters({ ...filters, salesOrderId: val });
 
-              // Realtime search
-              const keyword = val.trim().toLowerCase();
-              let filtered = fullList;
+                    const keyword = val.trim().toLowerCase();
+                    let filtered = fullList;
 
-              if (keyword) {
-                filtered = filtered.filter(
-                  (item) =>
-                    item.salesOrderCode?.toLowerCase().includes(keyword) ||
-                    item.salesOrderId?.toString().includes(keyword)
-                );
-              }
+                    if (keyword) {
+                      filtered = filtered.filter(
+                        (item) =>
+                          item.salesOrderCode
+                            ?.toLowerCase()
+                            .includes(keyword) ||
+                          item.salesOrderId?.toString().includes(keyword)
+                      );
+                    }
 
-              if (filters.status !== "") {
-                filtered = filtered.filter(
-                  (item) => item.status === filters.status
-                );
-              }
+                    if (filters.status !== "") {
+                      filtered = filtered.filter(
+                        (item) => item.status === filters.status
+                      );
+                    }
 
-              setList(filtered);
-              setTotalPages(Math.ceil(filtered.length / pageSize));
-              setPage(1);
-            }}
-            size="small"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
+                    setList(filtered);
+                    setTotalPages(Math.ceil(filtered.length / pageSize));
+                    setPage(1);
+                  }}
+                  size="small"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-          <Select
-            displayEmpty
-            size="small"
-            value={filters.status}
-            onChange={(e) => {
-              const val = e.target.value === "" ? "" : Number(e.target.value);
-              setFilters({ ...filters, status: val });
+                <Select
+                  displayEmpty
+                  size="small"
+                  value={filters.status}
+                  onChange={(e) => {
+                    const val =
+                      e.target.value === "" ? "" : Number(e.target.value);
+                    setFilters({ ...filters, status: val });
 
-              // Realtime filter
-              let filtered = fullList;
+                    let filtered = fullList;
+                    const keyword = filters.salesOrderId.trim().toLowerCase();
 
-              const keyword = filters.salesOrderId.trim().toLowerCase();
-              if (keyword) {
-                filtered = filtered.filter(
-                  (item) =>
-                    item.salesOrderCode?.toLowerCase().includes(keyword) ||
-                    item.salesOrderId?.toString().includes(keyword)
-                );
-              }
+                    if (keyword) {
+                      filtered = filtered.filter(
+                        (item) =>
+                          item.salesOrderCode
+                            ?.toLowerCase()
+                            .includes(keyword) ||
+                          item.salesOrderId?.toString().includes(keyword)
+                      );
+                    }
 
-              if (val !== "") {
-                filtered = filtered.filter((item) => item.status === val);
-              }
+                    if (val !== "") {
+                      filtered = filtered.filter((item) => item.status === val);
+                    }
 
-              setList(filtered);
-              setTotalPages(Math.ceil(filtered.length / pageSize));
-              setPage(1);
-            }}
-            sx={{ width: 180 }}
-          >
-            <MenuItem value="">Tất cả trạng thái</MenuItem>
-            <MenuItem value={0}>Chờ xử lý</MenuItem>
-            <MenuItem value={1}>Đã đặt cọc</MenuItem>
-            <MenuItem value={2}>Thanh toán một phần</MenuItem>
-            <MenuItem value={3}>Đã thanh toán</MenuItem>
-            <MenuItem value={4}>Hoàn tiền</MenuItem>
-          </Select>
+                    setList(filtered);
+                    setTotalPages(Math.ceil(filtered.length / pageSize));
+                    setPage(1);
+                  }}
+                  sx={{ width: 180 }}
+                >
+                  <MenuItem value="">Tất cả trạng thái</MenuItem>
+                  <MenuItem value={0}>Chờ xử lý</MenuItem>
+                  <MenuItem value={1}>Đã đặt cọc</MenuItem>
+                  <MenuItem value={2}>Thanh toán một phần</MenuItem>
+                  <MenuItem value={3}>Đã thanh toán</MenuItem>
+                  <MenuItem value={4}>Hoàn tiền</MenuItem>
+                </Select>
 
-          <Button variant="outlined" color="secondary" onClick={handleClear}>
-            Xóa lọc
-          </Button>
-        </Stack>
-      </Paper>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleClear}
+                >
+                  Xóa lọc
+                </Button>
+              </Stack>
+            </Paper>
 
-      {/* Table */}
-      <Paper>
-        <TableContainer sx={{ maxHeight: 500 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Mã đơn hàng</TableCell>
-                <TableCell>Mã hóa đơn</TableCell>
-                <TableCell>Loại thanh toán</TableCell>
-                <TableCell>Phương thức</TableCell>
-                <TableCell>Số tiền</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Ngày yêu cầu</TableCell>
-                <TableCell align="center">Thao tác</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : paginatedList.length > 0 ? (
-                paginatedList.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell>
-                      {item.salesOrderCode || item.salesOrderId}
-                    </TableCell>
-                    <TableCell>{item.invoiceCode}</TableCell>
-                    <TableCell>{renderPaymentType(item.paymentType)}</TableCell>
-                    <TableCell>
-                      {renderPaymentMethod(item.paymentMethod)}
-                    </TableCell>
-                    <TableCell>
-                      {item.amount.toLocaleString("vi-VN") + " ₫"}
-                    </TableCell>
-                    <TableCell>{renderStatus(item.vnPayStatus)}</TableCell>
-                    <TableCell>
-                      {item.paidAt
-                        ? new Date(item.paidAt).toLocaleDateString("vi-VN")
-                        : "-"}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                      >
-                        <Tooltip title="Xem chi tiết">
-                          <IconButton
-                            color="primary"
-                            size="small"
-                            onClick={() => handleViewDetail(item)}
-                          >
-                            <Visibility />
-                          </IconButton>
-                        </Tooltip>
-                        {userRole === "customer" && item.status === 0 && (
-                          <Tooltip title="Thanh toán">
-                            <span>
-                              <IconButton
-                                color="success"
-                                onClick={() => handlePay(item)}
-                                disabled={loading}
-                              >
-                                <Paid />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    Chưa có yêu cầu thanh toán nào
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            {/* TABLE */}
+            {loading ? (
+              <Stack alignItems="center" mt={4}>
+                <CircularProgress />
+              </Stack>
+            ) : (
+              <TableContainer
+                component={Paper}
+                sx={{ borderRadius: 2, maxHeight: 500 }}
+              >
+                <Table stickyHeader>
+                  <TableHead
+                    sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                  >
+                    <TableRow>
+                      <TableCell>ID</TableCell>
+                      <TableCell>Mã đơn hàng</TableCell>
+                      <TableCell>Mã hóa đơn</TableCell>
+                      <TableCell>Loại thanh toán</TableCell>
+                      <TableCell>Phương thức</TableCell>
+                      <TableCell>Số tiền</TableCell>
+                      <TableCell>Trạng thái</TableCell>
+                      <TableCell>Ngày yêu cầu</TableCell>
+                      <TableCell align="center">Thao tác</TableCell>
+                    </TableRow>
+                  </TableHead>
 
-        {/* Pagination */}
-        {paginatedList.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-            />
-          </Box>
-        )}
-      </Paper>
+                  <TableBody>
+                    {paginatedList.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                          Chưa có yêu cầu thanh toán nào
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedList.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.id}</TableCell>
+                          <TableCell>
+                            {item.salesOrderCode || item.salesOrderId}
+                          </TableCell>
+                          <TableCell>{item.invoiceCode}</TableCell>
+                          <TableCell>
+                            {renderPaymentType(item.paymentType)}
+                          </TableCell>
+                          <TableCell>
+                            {renderPaymentMethod(item.paymentMethod)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {item.amount.toLocaleString("vi-VN")} ₫
+                          </TableCell>
+                          <TableCell>
+                            {renderStatus(item.vnPayStatus)}
+                          </TableCell>
+                          <TableCell>
+                            {item.paidAt
+                              ? new Date(item.paidAt).toLocaleDateString(
+                                  "vi-VN"
+                                )
+                              : "-"}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              justifyContent="center"
+                            >
+                              <Tooltip title="Xem chi tiết">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => handleViewDetail(item)}
+                                >
+                                  <Visibility />
+                                </IconButton>
+                              </Tooltip>
+                              {userRole === "customer" && item.status === 0 && (
+                                <Tooltip title="Thanh toán">
+                                  <span>
+                                    <IconButton
+                                      color="success"
+                                      onClick={() => handlePay(item)}
+                                      disabled={loading}
+                                    >
+                                      <Paid />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* PAGINATION */}
+            {paginatedList.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Detail Dialog */}
       <PaymentRemainDetail

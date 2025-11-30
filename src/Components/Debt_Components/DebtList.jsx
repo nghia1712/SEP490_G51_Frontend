@@ -21,8 +21,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
+import Payment from "@mui/icons-material/Payment";
 import usePO from "../../Hooks/usePO";
 
 const debtStatusMap = {
@@ -84,25 +88,34 @@ export default function DebtList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Quản lý thanh toán
-      </Typography>
+<Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+  <Card elevation={3} sx={{ borderRadius: 2 }}>
+    <CardContent>
+      {/* HEADER */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <Payment sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+        >
+          Quản lý thanh toán
+        </Typography>
+      </Box>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
+      {/* INFO BUTTONS */}
+      <Paper sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}>
         {secretLoading ? (
           <Stack alignItems="center">
             <CircularProgress size={24} />
           </Stack>
         ) : (
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <Button variant="contained">
               Tổng thu: {secretInfo?.totalRecieve?.toLocaleString() || "0"} đ
             </Button>
-
             <Button variant="outlined">
               Tổng chi: {secretInfo?.totalPaid?.toLocaleString() || "0"} đ
             </Button>
-
             <Button variant="outlined">
               Nợ trần: {secretInfo?.debtCeiling?.toLocaleString() || "0"} đ
             </Button>
@@ -110,83 +123,86 @@ export default function DebtList() {
         )}
       </Paper>
 
+      {/* TABLE */}
       {debtLoading ? (
         <Stack alignItems="center" mt={4}>
           <CircularProgress />
         </Stack>
       ) : (
-        <Paper>
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, maxHeight: 500 }}>
+          <Table stickyHeader>
+            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <TableRow>
+                <TableCell align="center">#</TableCell>
+                <TableCell align="center">Thể loại nợ</TableCell>
+                <TableCell align="center">Thuộc về</TableCell>
+                <TableCell align="right">Phải trả</TableCell>
+                <TableCell align="center">Dư nợ</TableCell>
+                <TableCell align="center">Ngày trả gần nhất</TableCell>
+                <TableCell align="center">Hành động</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedDebts.length === 0 ? (
                 <TableRow>
-                  <TableCell align="center">#</TableCell>
-                  <TableCell align="center">Thể loại nợ</TableCell>
-                  <TableCell align="center">Thuộc về</TableCell>
-                  <TableCell align="center">Phải trả</TableCell>
-                  <TableCell align="center">Dư nợ</TableCell>
-                  <TableCell align="center">Ngày trả gần nhất</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    Không có dữ liệu
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {paginatedDebts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      Không có dữ liệu
+              ) : (
+                paginatedDebts.map((item, idx) => (
+                  <TableRow key={item.reportID}>
+                    <TableCell align="center">
+                      {(page - 1) * rowsPerPage + idx + 1}
+                    </TableCell>
+                    <TableCell align="center">
+                      {item.entityType === 1
+                        ? "Nhà cung cấp"
+                        : item.entityType === 2
+                        ? "Khách hàng"
+                        : "Không xác định"}
+                    </TableCell>
+                    <TableCell align="center">{item.debtName}</TableCell>
+                    <TableCell align="right">{item.payables.toLocaleString()} đ</TableCell>
+                    <TableCell align="center">{item.currentDebt.toLocaleString()} đ</TableCell>
+                    <TableCell align="center">
+                      {item.payday
+                        ? new Date(item.payday).toLocaleDateString("vi-VN")
+                        : "-"}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Chi tiết">
+                        <IconButton
+                          color="info"
+                          onClick={() => handleOpenDetail(item.reportID)}
+                        >
+                          <Visibility />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  paginatedDebts.map((item, idx) => (
-                    <TableRow key={item.reportID}>
-                      <TableCell align="center">
-                        {(page - 1) * rowsPerPage + idx + 1}
-                      </TableCell>
-                      <TableCell align="center">
-                        {item.entityType === 1
-                          ? "Nhà cung cấp"
-                          : item.entityType === 2
-                          ? "Khách hàng"
-                          : "Không xác định"}
-                      </TableCell>
-                      <TableCell align="center">{item.debtName}</TableCell>
-                      <TableCell align="right">{item.payables.toLocaleString()} đ</TableCell>
-
-                      <TableCell align="center">
-                        {item.currentDebt.toLocaleString()} đ
-                      </TableCell>
-                      <TableCell align="center">
-                        {item.payday
-                          ? new Date(item.payday).toLocaleDateString("vi-VN")
-                          : "-"}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Chi tiết">
-                          <IconButton
-                            color="info"
-                            onClick={() => handleOpenDetail(item.reportID)}
-                          >
-                            <Visibility />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, v) => setPage(v)}
-            />
-          </Box>
-        </Paper>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
+
+      {/* PAGINATION */}
+      {paginatedDebts.length > 0 && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, v) => setPage(v)}
+            color="primary"
+          />
+        </Box>
+      )}
+    </CardContent>
+  </Card>
+</Container>
+
 
       {/* Detail Dialog */}
       <Dialog open={openDetail} onClose={handleClose} maxWidth="md" fullWidth>

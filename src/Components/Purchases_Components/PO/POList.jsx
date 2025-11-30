@@ -24,8 +24,17 @@ import {
   Snackbar,
   Alert,
   Pagination,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
-import { Visibility, Search, Close as CloseIcon } from "@mui/icons-material";
+import {
+  Visibility,
+  Search,
+  Close as CloseIcon,
+  ShoppingCart,
+  UploadFile,
+} from "@mui/icons-material";
 import POActions from "./POActions";
 import usePO from "../../../Hooks/usePO";
 import PODialogs from "./PODialogs";
@@ -79,153 +88,179 @@ export default function POList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Đơn nhập hàng (PO)
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <ShoppingCart sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Đơn nhập hàng
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filteredPOs.length} đơn
+              </Typography>
+            </Box>
 
-      {/* Search + Upload */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          {/* Search */}
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Tìm kiếm PO ID hoặc người tạo..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 350 }}
-          />
+            {/* FILTER + UPLOAD */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  placeholder="Tìm kiếm PO ID hoặc người tạo..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: 350 }}
+                />
 
-          {/* Button Upload Excel */}
-          {userRole === "purchases_staff" && (
-            <Button variant="contained" onClick={handleOpenUpload}>
-              Tải lên từ file Excel
-            </Button>
-          )}
-        </Stack>
-      </Paper>
+                {userRole === "purchases_staff" && (
+                  <Button
+                    variant="contained"
+                    startIcon={<UploadFile />}
+                    onClick={handleOpenUpload}
+                  >
+                    Tải file Excel
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
 
-      {loading ? (
-        <Stack alignItems="center" mt={4}>
-          <CircularProgress />
-        </Stack>
-      ) : (
-        <Paper>
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>Mã đơn hàng</TableCell>
-                  <TableCell>Nhà cung cấp</TableCell>
-                  <TableCell>Ngày đặt</TableCell>
-                  <TableCell align="center">Trạng thái nhận hàng</TableCell>
-                  <TableCell align="center">Trạng thái đơn hàng</TableCell>
-                  <TableCell>Tổng tiền</TableCell>
-                  <TableCell>Đã trả</TableCell>
-                  <TableCell>Còn nợ</TableCell>
-                  <TableCell align="center">Người tạo</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredPOs.length === 0 ? (
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead
+                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                >
                   <TableRow>
-                    <TableCell colSpan={12} align="center">
-                      Chưa có đơn nhập hàng nào
-                    </TableCell>
+                    <TableCell>#</TableCell>
+                    <TableCell>Mã đơn hàng</TableCell>
+                    <TableCell>Nhà cung cấp</TableCell>
+                    <TableCell>Ngày đặt</TableCell>
+                    <TableCell align="center">Trạng thái nhận hàng</TableCell>
+                    <TableCell align="center">Trạng thái đơn hàng</TableCell>
+                    <TableCell>Tổng tiền</TableCell>
+                    <TableCell>Đã trả</TableCell>
+                    <TableCell>Còn nợ</TableCell>
+                    <TableCell align="center">Người tạo</TableCell>
+                    <TableCell align="center">Hành động</TableCell>
                   </TableRow>
-                ) : (
-                  paginatedPOs.map((po, index) => (
-                    <TableRow key={po.poid}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{`PO-${po.poid}`}</TableCell>
-                      <TableCell>{po.supplierName || "-"}</TableCell>
-                      <TableCell>
-                        {new Date(po.orderDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
+                </TableHead>
 
-                      <TableCell align="center">
-                        {po.status !== 7 && (
-                          <Chip
-                            label={po.receivingStatus}
-                            color={
-                              po.receivingStatus === "Đã nhận đủ"
-                                ? "success"
-                                : po.receivingStatus === "Nhận một phần"
-                                ? "warning"
-                                : po.receivingStatus === "Chờ xác nhận"
-                                ? "warning"
-                                : po.receivingStatus === "Chưa nhận"
-                                ? "info"
-                                : "default"
-                            }
-                            size="small"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        {renderStatus(po.status)}
-                      </TableCell>
-                      <TableCell align="right">
-                        {po.total.toLocaleString()} ₫
-                      </TableCell>
-                      <TableCell align="right">
-                        {po.deposit?.toLocaleString() || 0} ₫
-                      </TableCell>
-                      <TableCell align="right">
-                        {po.debt.toLocaleString()} ₫
-                      </TableCell>
-                      <TableCell align="center">{po.userName}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleOpenDetail(po.poid)}
-                              size="small"
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                          <POActions poId={po.poid} fetchPOs={fetchPOs} />
-                        </Stack>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ) : filteredPOs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
+                        Chưa có đơn nhập hàng nào
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedPOs.map((po, index) => (
+                      <TableRow key={po.poid}>
+                        <TableCell>
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell>{`PO-${po.poid}`}</TableCell>
+                        <TableCell>{po.supplierName || "-"}</TableCell>
+                        <TableCell>
+                          {new Date(po.orderDate).toLocaleDateString("vi-VN")}
+                        </TableCell>
+                        <TableCell align="center">
+                          {po.status !== 7 && (
+                            <Chip
+                              label={po.receivingStatus}
+                              color={
+                                po.receivingStatus === "Đã nhận đủ"
+                                  ? "success"
+                                  : po.receivingStatus === "Nhận một phần" ||
+                                    po.receivingStatus === "Chờ xác nhận"
+                                  ? "warning"
+                                  : po.receivingStatus === "Chưa nhận"
+                                  ? "info"
+                                  : "default"
+                              }
+                              size="small"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {renderStatus(po.status)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {po.total.toLocaleString()} ₫
+                        </TableCell>
+                        <TableCell align="right">
+                          {po.deposit?.toLocaleString() || 0} ₫
+                        </TableCell>
+                        <TableCell align="right">
+                          {po.debt.toLocaleString()} ₫
+                        </TableCell>
+                        <TableCell align="center">{po.userName}</TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleOpenDetail(po.poid)}
+                                size="small"
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                            <POActions poId={po.poid} fetchPOs={fetchPOs} />
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          {filteredPOs.length > 0 && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                color="primary"
-              />
-            </Box>
-          )}
-        </Paper>
-      )}
+            {/* PAGINATION */}
+            {filteredPOs.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       <PODialogs
         openUpload={openUpload}
@@ -341,7 +376,7 @@ export default function POList() {
                       <TableCell align="center">
                         {item.unitPrice.toLocaleString()} ₫
                       </TableCell>
-                      <TableCell>{item.tax *100} %</TableCell>
+                      <TableCell>{item.tax * 100} %</TableCell>
                       <TableCell align="center">
                         {item.unitPriceTotal.toLocaleString()} ₫
                       </TableCell>

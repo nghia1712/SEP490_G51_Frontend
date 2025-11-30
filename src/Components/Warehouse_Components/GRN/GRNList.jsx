@@ -28,8 +28,11 @@ import {
   Alert,
   Grid,
   Pagination,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
-import { Visibility, Search, Download } from "@mui/icons-material";
+import { Visibility, Search, Download, ReceiptLong } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGRNList from "../../../Hooks/useGRNList";
 
@@ -83,125 +86,144 @@ export default function GRNListPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Phiếu nhập kho
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <ReceiptLong sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Phiếu nhập kho
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filteredData.length} phiếu
+              </Typography>
+            </Box>
 
-      {/* Search */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Search GRN..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 350 }}
-          />
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <TextField
+                  placeholder="Tìm kiếm GRN..."
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: 350 }}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<ReceiptLong />}
+                  onClick={() => navigate("/grn/manual-create")}
+                >
+                  Tạo phiếu nhập kho
+                </Button>
+              </Stack>
+            </Paper>
 
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/grn/manual-create")}
-          >
-            Tạo phiếu nhập kho
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* GRN Table */}
-      {loading ? (
-        <Stack alignItems="center" mt={4}>
-          <CircularProgress />
-        </Stack>
-      ) : (
-        <Paper>
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead sx={{ background: "#eee", fontWeight: "bold" }}>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell align="center">Phiếu nhập kho</TableCell>
-                  <TableCell>Kho</TableCell>
-                  <TableCell>Vị trí</TableCell>
-                  <TableCell align="center">Đơn hàng</TableCell>
-                  <TableCell>Nhà cung cấp</TableCell>
-                  <TableCell>Ngày tạo</TableCell>
-                  <TableCell>Người phụ trách</TableCell>
-                  <TableCell align="center">Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedData.length === 0 ? (
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      Không có dữ liệu
-                    </TableCell>
+                    <TableCell>#</TableCell>
+                    <TableCell align="center">Phiếu nhập kho</TableCell>
+                    <TableCell>Kho</TableCell>
+                    <TableCell>Vị trí</TableCell>
+                    <TableCell align="center">Đơn hàng</TableCell>
+                    <TableCell>Nhà cung cấp</TableCell>
+                    <TableCell>Ngày tạo</TableCell>
+                    <TableCell>Người phụ trách</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
-                ) : (
-                  paginatedData.map((row, idx) => (
-                    <TableRow key={row.grnId + "_" + idx}>
-                      <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
-                      <TableCell align="center">{`GRN-${row.grnid}`}</TableCell>
-                      <TableCell>{row.warehouse}</TableCell>
-                      <TableCell>{row.warehouseName}</TableCell>
-                      <TableCell align="center">{`PO-${row.poid}`}</TableCell>
-                      <TableCell>{row.source}</TableCell>
-                      <TableCell>
-                        {row.createDate
-                          ? new Date(row.createDate).toLocaleDateString("vi-VN")
-                          : "-"}
-                      </TableCell>
-                      <TableCell>{row.createBy}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              size="small"
-                              onClick={() => handleViewDetail(row)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                        Không có dữ liệu
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedData.map((row, idx) => (
+                      <TableRow key={row.grnId + "_" + idx}>
+                        <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
+                        <TableCell align="center">{`GRN-${row.grnid}`}</TableCell>
+                        <TableCell>{row.warehouse}</TableCell>
+                        <TableCell>{row.warehouseName}</TableCell>
+                        <TableCell align="center">{`PO-${row.poid}`}</TableCell>
+                        <TableCell>{row.source}</TableCell>
+                        <TableCell>
+                          {row.createDate
+                            ? new Date(row.createDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "-"}
+                        </TableCell>
+                        <TableCell>{row.createBy}</TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                size="small"
+                                onClick={() => handleViewDetail(row)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          {/* Pagination */}
-          {filteredData.length > 0 && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, value) => setPage(value)}
-                color="primary"
-              />
-            </Box>
-          )}
-        </Paper>
-      )}
+            {/* PAGINATION */}
+            {filteredData.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Create GRN Dialog */}
       <Dialog

@@ -23,6 +23,9 @@ import {
   Alert,
   Pagination,
   TableContainer,
+  Container,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
@@ -114,116 +117,131 @@ export default function GRNList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Phiếu xuất kho
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <ReceiptLong sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Phiếu xuất kho
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filtered.length} phiếu
+              </Typography>
+            </Box>
 
-      {/* Search */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Tìm kiếm..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 350 }}
-          />
-
-          {role === "accountant_staff" && (
-            <Button
-              variant="contained"
-              startIcon={<ReceiptLong />}
-              onClick={() => handleOpenInvoiceDialog()}
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              Tạo hóa đơn
-            </Button>
-          )}
-        </Stack>
-      </Paper>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                <TextField
+                  placeholder="Tìm kiếm..."
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                {role === "accountant_staff" && (
+                  <Button
+                    variant="contained"
+                    startIcon={<ReceiptLong />}
+                    onClick={() => handleOpenInvoiceDialog()}
+                  >
+                    Tạo hóa đơn
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
 
-      {/* Table danh sách */}
-      {loading ? (
-        <Stack alignItems="center" mt={4}>
-          <CircularProgress />
-        </Stack>
-      ) : (
-        <Paper>
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>Phiếu xuất kho</TableCell>
-                  <TableCell>Kho</TableCell>
-                  <TableCell>Ngày tạo</TableCell>
-                  <TableCell>Mô tả</TableCell>
-                  <TableCell>Người tạo</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Mã yêu cầu</TableCell>
-                  <TableCell align="center">Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {paginatedData.length === 0 ? (
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      Không có dữ liệu
-                    </TableCell>
+                    <TableCell>#</TableCell>
+                    <TableCell>Phiếu xuất kho</TableCell>
+                    <TableCell>Kho</TableCell>
+                    <TableCell>Ngày tạo</TableCell>
+                    <TableCell>Mô tả</TableCell>
+                    <TableCell>Người tạo</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                    <TableCell>Mã yêu cầu</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
-                ) : (
-                  paginatedData.map((row, idx) => (
-                    <TableRow key={row.id + "_" + idx}>
-                      <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
-                      <TableCell>{row.goodsIssueNoteCode}</TableCell>
-                      <TableCell>{row.warehouseName}</TableCell>
-                      <TableCell>
-                        {row.createAt
-                          ? new Date(row.createAt).toLocaleDateString("vi-VN")
-                          : "-"}
-                      </TableCell>
-                      <TableCell>{row.note}</TableCell>
-                      <TableCell>{row.createBy}</TableCell>
-                      <TableCell>{renderGINStatus(row.status)}</TableCell>
-                      <TableCell>{row.stockExportOrderCode}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              size="small"
-                              onClick={() => handleViewDetail(row)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            {/* Pagination */}
+                  ) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                        Không có dữ liệu
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedData.map((row, idx) => (
+                      <TableRow key={row.id}>
+                        <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
+                        <TableCell>{row.goodsIssueNoteCode}</TableCell>
+                        <TableCell>{row.warehouseName}</TableCell>
+                        <TableCell>
+                          {row.createAt
+                            ? new Date(row.createAt).toLocaleDateString("vi-VN")
+                            : "-"}
+                        </TableCell>
+                        <TableCell>{row.note}</TableCell>
+                        <TableCell>{row.createBy}</TableCell>
+                        <TableCell>{renderGINStatus(row.status)}</TableCell>
+                        <TableCell>{row.stockExportOrderCode}</TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                size="small"
+                                onClick={() => handleViewDetail(row)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* PAGINATION */}
             {filtered.length > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}
                   page={page}
@@ -232,9 +250,9 @@ export default function GRNList() {
                 />
               </Box>
             )}
-          </TableContainer>
-        </Paper>
-      )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Dialog chi tiết */}
       <Dialog

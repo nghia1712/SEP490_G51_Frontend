@@ -24,6 +24,9 @@ import {
   Snackbar,
   Alert,
   Pagination,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 import {
   Search,
@@ -34,6 +37,7 @@ import {
   Edit,
   NoteAdd,
   WarningAmber,
+  Storefront,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
@@ -202,208 +206,217 @@ export default function StockExportList() {
 
   return (
     <Box p={3}>
-      {/* Header */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
-      >
-        <Typography variant="h5" fontWeight="bold">
-          Yêu cầu xuất kho
-        </Typography>
-      </Stack>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <Storefront sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Yêu cầu xuất kho
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filteredList.length} yêu cầu
+              </Typography>
+            </Box>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Tìm kiếm..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 300 }}
-          />
-
-          {/* Chỉ show nút create với sales_staff */}
-          {userRole === "sales_staff" && (
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => navigate("/stock-export/create")}
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              Tạo yêu cầu xuất kho
-            </Button>
-          )}
-        </Stack>
-      </Paper>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                <TextField
+                  placeholder="Tìm kiếm..."
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                {userRole === "sales_staff" && (
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => navigate("/stock-export/create")}
+                  >
+                    Tạo yêu cầu xuất kho
+                  </Button>
+                )}
+              </Stack>
+            </Paper>
 
-      {/* Table */}
-      <Paper elevation={2}>
-        {loading ? (
-          <Stack alignItems="center" p={3}>
-            <CircularProgress />
-          </Stack>
-        ) : (
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
-              <TableHead sx={{ background: "#eee", fontWeight: "bold" }}>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell align="center">Yêu cầu xuất kho</TableCell>
-                  <TableCell>Mã đơn hàng</TableCell>
-                  <TableCell>Ngày gửi yêu cầu</TableCell>
-                  <TableCell>Ngày giao hàng</TableCell>
-                  <TableCell align="center">Trạng thái</TableCell>
-                  <TableCell>Người tạo</TableCell>
-                  <TableCell align="center">Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      Không có dữ liệu
-                    </TableCell>
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow sx={{ background: "#f5f5f5" }}>
+                    <TableCell>#</TableCell>
+                    <TableCell align="center">Yêu cầu xuất kho</TableCell>
+                    <TableCell>Mã đơn hàng</TableCell>
+                    <TableCell>Ngày gửi yêu cầu</TableCell>
+                    <TableCell>Ngày giao hàng</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
+                    <TableCell>Người tạo</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
-                ) : (
-                  paginatedData.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                      <TableCell align="center">
-                        {item.stockExportOrderCode}
-                      </TableCell>
-                      <TableCell>{item.salesOrderCode}</TableCell>
-                      <TableCell>
-                        {item.requestDate
-                          ? new Date(item.requestDate).toLocaleDateString(
-                              "vi-EN"
-                            )
-                          : ""}
-                      </TableCell>
-                      <TableCell>
-                        {item.dueDate
-                          ? new Date(item.dueDate).toLocaleDateString("vi-EN")
-                          : ""}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={getStatus(item.status).label}
-                          color={getStatus(item.status).color}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{item.createBy}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleViewDetail(item)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-
-                          {/* Chỉ show tạo GIN với warehouse_staff */}
-                          {userRole === "warehouse_staff" &&
-                            item.status === 1 &&
-                            !notEnoughMap[item.id] && (
-                              <Tooltip title="Tạo phiếu xuất kho">
-                                <IconButton
-                                  color="secondary"
-                                  onClick={() => handleCreateGIN(item)}
-                                >
-                                  <NoteAdd />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-
-                          {userRole === "warehouse_staff" &&
-                            item.status === 1 &&
-                            notEnoughMap[item.id] && (
-                              <Tooltip title="Báo kho không đủ hàng">
-                                <IconButton
-                                  color="warning"
-                                  onClick={() => handleNotEnough(item)}
-                                >
-                                  <WarningAmber />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-
-                          {item.status === 0 && (
-                            <>
-                              <Tooltip title="Sửa">
-                                <IconButton
-                                  color="info"
-                                  onClick={() =>
-                                    navigate(`/stock-export/edit/${item.id}`, {
-                                      state: { salesOrderId: item.soId },
-                                    })
-                                  }
-                                >
-                                  <Edit />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Xóa">
-                                <IconButton
-                                  color="error"
-                                  onClick={() => openConfirm(item.id)}
-                                >
-                                  <Delete />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Gửi">
-                                <IconButton
-                                  color="success"
-                                  onClick={() =>
-                                    handleSend(item.id, item.status)
-                                  }
-                                >
-                                  <Send />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          )}
-                        </Stack>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                  ) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                        Không có dữ liệu
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedData.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell align="center">
+                          {item.stockExportOrderCode}
+                        </TableCell>
+                        <TableCell>{item.salesOrderCode}</TableCell>
+                        <TableCell>
+                          {item.requestDate
+                            ? new Date(item.requestDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : ""}
+                        </TableCell>
+                        <TableCell>
+                          {item.dueDate
+                            ? new Date(item.dueDate).toLocaleDateString("vi-VN")
+                            : ""}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={getStatus(item.status).label}
+                            color={getStatus(item.status).color}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{item.createBy}</TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleViewDetail(item)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
 
-        {/* Pagination */}
-        {filteredList.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-            />
-          </Box>
-        )}
-      </Paper>
+                            {userRole === "warehouse_staff" &&
+                              item.status === 1 &&
+                              !notEnoughMap[item.id] && (
+                                <Tooltip title="Tạo phiếu xuất kho">
+                                  <IconButton
+                                    color="secondary"
+                                    onClick={() => handleCreateGIN(item)}
+                                  >
+                                    <NoteAdd />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+
+                            {userRole === "warehouse_staff" &&
+                              item.status === 1 &&
+                              notEnoughMap[item.id] && (
+                                <Tooltip title="Báo kho không đủ hàng">
+                                  <IconButton
+                                    color="warning"
+                                    onClick={() => handleNotEnough(item)}
+                                  >
+                                    <WarningAmber />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+
+                            {item.status === 0 && (
+                              <>
+                                <Tooltip title="Sửa">
+                                  <IconButton
+                                    color="info"
+                                    onClick={() =>
+                                      navigate(
+                                        `/stock-export/edit/${item.id}`,
+                                        { state: { salesOrderId: item.soId } }
+                                      )
+                                    }
+                                  >
+                                    <Edit />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Xóa">
+                                  <IconButton
+                                    color="error"
+                                    onClick={() => openConfirm(item.id)}
+                                  >
+                                    <Delete />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Gửi">
+                                  <IconButton
+                                    color="success"
+                                    onClick={() =>
+                                      handleSend(item.id, item.status)
+                                    }
+                                  >
+                                    <Send />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* PAGINATION */}
+            {filteredList.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Detail Dialog */}
       <Dialog

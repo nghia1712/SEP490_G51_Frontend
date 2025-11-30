@@ -25,12 +25,16 @@ import {
   Snackbar,
   Alert,
   Pagination,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   Visibility,
   NoteAdd,
   Delete,
+  PriceCheck,
 } from "@mui/icons-material";
 import palette from "../../../constants/palette";
 import usePQ from "../../../Hooks/usePQ";
@@ -82,126 +86,161 @@ export default function PQList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
-      >
-        Báo giá nhập
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <PriceCheck sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Báo giá nhập
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filtered.length} báo giá
+              </Typography>
+            </Box>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Tìm kiếm theo nhà cung cấp..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 350 }}
-          />
-        </Stack>
-      </Paper>
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  placeholder="Tìm kiếm theo nhà cung cấp..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: 350 }}
+                />
+              </Stack>
+            </Paper>
 
-      <Paper>
-        <TableContainer sx={{ maxHeight: 500 }}>
-          <Table stickyHeader>
-            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Mã báo giá</TableCell>
-                <TableCell>Ngày gửi</TableCell>
-                <TableCell>Nhà cung cấp</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Ngày hết hạn</TableCell>
-                <TableCell align="center">Hành động</TableCell>
-              </TableRow>
-            </TableHead>
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead
+                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                >
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Mã báo giá</TableCell>
+                    <TableCell>Ngày gửi</TableCell>
+                    <TableCell>Nhà cung cấp</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                    <TableCell>Ngày hết hạn</TableCell>
+                    <TableCell align="center">Hành động</TableCell>
+                  </TableRow>
+                </TableHead>
 
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    Chưa có báo giá nào
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginated.map((row, i) => {
-                  const isValid = row.status === "InDate";
-                  return (
-                    <TableRow key={row.quotationId}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{`PQ-${row.quotationId}`}</TableCell>
-                      <TableCell>
-                        {new Date(row.sentDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
-                      <TableCell>{row.supplierName}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={statusMap[row.status] || row.status}
-                          color={row.status === "InDate" ? "success" : "error"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{row.expiredDate}</TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Xem chi tiết">
-                          <span>
-                            <IconButton
-                              color="primary"
-                              onClick={() => openDetail(row.quotationId)}
-                              disabled={processing}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-
-                        {isValid && (
-                          <Tooltip title="Tạo yêu cầu">
-                            <span>
-                              <IconButton
-                                color="secondary"
-                                onClick={() => openCreatePO(row.quotationId)}
-                                disabled={processing}
-                              >
-                                <NoteAdd />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <CircularProgress size={24} />
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                  ) : filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        Chưa có báo giá nào
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginated.map((row, i) => {
+                      const isValid = row.status === "InDate";
+                      return (
+                        <TableRow key={row.quotationId}>
+                          <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
+                          <TableCell>{`PQ-${row.quotationId}`}</TableCell>
+                          <TableCell>
+                            {new Date(row.sentDate).toLocaleDateString("vi-VN")}
+                          </TableCell>
+                          <TableCell>{row.supplierName}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={statusMap[row.status] || row.status}
+                              color={
+                                row.status === "InDate" ? "success" : "error"
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{row.expiredDate}</TableCell>
+                          <TableCell align="center">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              justifyContent="center"
+                            >
+                              <Tooltip title="Xem chi tiết">
+                                <span>
+                                  <IconButton
+                                    color="primary"
+                                    onClick={() => openDetail(row.quotationId)}
+                                    disabled={processing}
+                                  >
+                                    <Visibility />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
 
-        {filtered.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-            />
-          </Box>
-        )}
-      </Paper>
+                              {isValid && (
+                                <Tooltip title="Tạo yêu cầu">
+                                  <span>
+                                    <IconButton
+                                      color="secondary"
+                                      onClick={() =>
+                                        openCreatePO(row.quotationId)
+                                      }
+                                      disabled={processing}
+                                    >
+                                      <NoteAdd />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* PAGINATION */}
+            {filtered.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Dialog Chi tiết PQ */}
       <Dialog

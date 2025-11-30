@@ -26,6 +26,9 @@ import {
   DialogActions,
   Grid,
   Pagination,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -34,6 +37,7 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Download as DownloadIcon,
+  RequestQuote,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import usePRFQ from "../../../Hooks/usePRFQ";
@@ -123,160 +127,185 @@ export default function PRFQList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
-      >
-        🧾 Yêu cầu báo giá mua hàng
-      </Typography>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <RequestQuote sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Yêu cầu báo giá mua hàng
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                Tổng: {filteredData.length} yêu cầu
+              </Typography>
+            </Box>
 
-      {/* ===== Search & Create ===== */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          {/* Search */}
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Tìm kiếm theo nhà cung cấp..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 350 }}
-          />
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <TextField
+                  placeholder="Tìm kiếm theo nhà cung cấp..."
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: 350 }}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ backgroundColor: palette.success.main }}
+                  onClick={handleCreate}
+                >
+                  Tạo yêu cầu báo giá
+                </Button>
+              </Stack>
+            </Paper>
 
-          {/* Button Tạo yêu cầu báo giá */}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            sx={{ backgroundColor: palette.success.main }}
-            onClick={handleCreate}
-          >
-            Tạo yêu cầu báo giá
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* ===== Table ===== */}
-      <Paper>
-        <TableContainer sx={{ maxHeight: 500 }}>
-          <Table stickyHeader>
-            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Mã yêu cầu</TableCell>
-                <TableCell>Ngày tạo</TableCell>
-                <TableCell>Nhà cung cấp</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Địa chỉ</TableCell>
-                <TableCell>Số điện thoại</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Người phụ trách</TableCell>
-                <TableCell align="center">Hành động</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    Chưa có yêu cầu báo giá nào
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((row, index) => (
-                  <TableRow key={row.prfqid}>
-                    <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                    <TableCell>{`PRFQ-${row.prfqid}`}</TableCell>
-                    <TableCell>
-                      {row.requestDate
-                        ? new Date(row.requestDate).toLocaleDateString("vi-VN")
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{row.supplierName || "—"}</TableCell>
-                    <TableCell>{row.supplierEmail || "—"}</TableCell>
-                    <TableCell>{row.supplierAddress || "—"}</TableCell>
-                    <TableCell>{row.supplierPhone || "—"}</TableCell>
-                    <TableCell align="center">
-                      {(() => {
-                        const { label, color } = getStatus(row.status);
-                        return (
-                          <Chip label={label} color={color} size="small" />
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell align="center">{row.createdBy || "—"}</TableCell>
-                    <TableCell align="center">
-                      {row.status !== 4 ? (
-                        <Tooltip title="Chi tiết / Xem trước">
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleViewDetail(row.prfqid)}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>
-                      ) : (
-                        <>
-                          <Tooltip title="Tiếp tục chỉnh sửa">
-                            <IconButton
-                              color="success"
-                              onClick={() => handleContinue(row.prfqid)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Xóa yêu cầu báo giá">
-                            <IconButton
-                              color="error"
-                              onClick={() =>
-                                setDeleteConfirm({
-                                  open: true,
-                                  prfqId: row.prfqid,
-                                })
-                              }
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                    </TableCell>
+            {/* TABLE */}
+            <TableContainer
+              component={Paper}
+              sx={{ borderRadius: 2, maxHeight: 500 }}
+            >
+              <Table stickyHeader>
+                <TableHead
+                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                >
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Mã yêu cầu</TableCell>
+                    <TableCell>Ngày tạo</TableCell>
+                    <TableCell>Nhà cung cấp</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Địa chỉ</TableCell>
+                    <TableCell>Số điện thoại</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                    <TableCell>Người phụ trách</TableCell>
+                    <TableCell align="center">Hành động</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                        <CircularProgress size={24} />
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                        Chưa có yêu cầu báo giá nào
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedData.map((row, index) => (
+                      <TableRow key={row.prfqid}>
+                        <TableCell>
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell>{`PRFQ-${row.prfqid}`}</TableCell>
+                        <TableCell>
+                          {row.requestDate
+                            ? new Date(row.requestDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "—"}
+                        </TableCell>
+                        <TableCell>{row.supplierName || "—"}</TableCell>
+                        <TableCell>{row.supplierEmail || "—"}</TableCell>
+                        <TableCell>{row.supplierAddress || "—"}</TableCell>
+                        <TableCell>{row.supplierPhone || "—"}</TableCell>
+                        <TableCell align="center">
+                          {(() => {
+                            const { label, color } = getStatus(row.status);
+                            return (
+                              <Chip label={label} color={color} size="small" />
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell align="center">
+                          {row.createdBy || "—"}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            {row.status !== 4 ? (
+                              <Tooltip title="Chi tiết / Xem trước">
+                                <IconButton
+                                  color="primary"
+                                  onClick={() => handleViewDetail(row.prfqid)}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              <>
+                                <Tooltip title="Tiếp tục chỉnh sửa">
+                                  <IconButton
+                                    color="success"
+                                    onClick={() => handleContinue(row.prfqid)}
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Xóa yêu cầu báo giá">
+                                  <IconButton
+                                    color="error"
+                                    onClick={() =>
+                                      setDeleteConfirm({
+                                        open: true,
+                                        prfqId: row.prfqid,
+                                      })
+                                    }
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-        {/* ===== Pagination ===== */}
-        {filteredData.length > 0 && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-            />
-          </Box>
-        )}
-      </Paper>
+            {/* PAGINATION */}
+            {filteredData.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* ===== Popup chi tiết ===== */}
       <Dialog

@@ -22,7 +22,11 @@ import {
   Select,
   MenuItem,
   Button,
+  Card,
+  CardContent,
+  Container,
 } from "@mui/material";
+import { AccountBalanceWallet } from "@mui/icons-material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import useCustomerDebt from "../../Hooks/useCustomerDebt";
 
@@ -61,13 +65,27 @@ export default function CustomerDebtList() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Danh sách công nợ khách hàng
-      </Typography>
+<Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+  <Card elevation={3} sx={{ borderRadius: 2 }}>
+    <CardContent>
+      {/* HEADER */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <AccountBalanceWallet sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+        >
+          Danh sách nợ của khách hàng
+        </Typography>
+      </Box>
 
-      {/* Filter & Search */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+      {/* FILTER + SEARCH */}
+      <Paper sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
           <TextField
             size="small"
             label="Tìm kiếm..."
@@ -77,6 +95,7 @@ export default function CustomerDebtList() {
               setPage(1);
             }}
           />
+
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Trạng thái</InputLabel>
             <Select
@@ -88,7 +107,7 @@ export default function CustomerDebtList() {
               }}
             >
               <MenuItem value="">Tất cả</MenuItem>
-              <MenuItem value={0}>Chưa trả nợ</MenuItem>
+              <MenuItem value={0}>Chưa trả</MenuItem>
               <MenuItem value={1}>Trả một phần</MenuItem>
               <MenuItem value={2}>Hết nợ</MenuItem>
               <MenuItem value={3}>Nợ xấu</MenuItem>
@@ -110,73 +129,70 @@ export default function CustomerDebtList() {
         </Stack>
       </Paper>
 
-      {/* List */}
+      {/* TABLE */}
       {loading ? (
         <Stack alignItems="center" mt={4}>
           <CircularProgress />
         </Stack>
       ) : (
-        <Paper>
-          <TableContainer sx={{ maxHeight: 550 }}>
-            <Table stickyHeader>
-              <TableHead>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, maxHeight: 550 }}>
+          <Table stickyHeader>
+            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <TableRow>
+                <TableCell align="center">#</TableCell>
+                <TableCell align="center">Khách hàng</TableCell>
+                <TableCell align="center">Mã đơn hàng</TableCell>
+                <TableCell align="center">Trạng thái</TableCell>
+                <TableCell align="center">Hạn trả</TableCell>
+                <TableCell align="center">Tổng tiền phải trả</TableCell>
+                <TableCell align="center">Còn nợ</TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell align="center">#</TableCell>
-                  <TableCell align="center">Khách hàng</TableCell>
-                  <TableCell align="center">Mã đơn hàng</TableCell>
-                  <TableCell align="center">Trạng thái</TableCell>
-                  <TableCell align="center">Hạn trả</TableCell>
-                  <TableCell align="center">Tổng tiền phải trả</TableCell>
-                  <TableCell align="center">Còn nợ</TableCell>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    Không có dữ liệu
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      Không có dữ liệu
+              ) : (
+                paginatedData.map((item, idx) => (
+                  <TableRow key={item.id}>
+                    <TableCell align="center">
+                      {(page - 1) * rowsPerPage + idx + 1}
                     </TableCell>
+                    <TableCell align="center">{item.customerName}</TableCell>
+                    <TableCell align="center">{item.salesOrderCode}</TableCell>
+                    <TableCell align="center">{renderDebtStatus(item.status)}</TableCell>
+                    <TableCell align="center">
+                      {new Date(item.dueDate).toLocaleDateString("vi-VN")}
+                    </TableCell>
+                    <TableCell align="right">{item.totalAmount?.toLocaleString()} đ</TableCell>
+                    <TableCell align="right">{item.debtAmount?.toLocaleString()} đ</TableCell>
                   </TableRow>
-                ) : (
-                  paginatedData.map((item, idx) => (
-                    <TableRow key={item.id}>
-                      <TableCell align="center">
-                        {(page - 1) * rowsPerPage + idx + 1}
-                      </TableCell>
-                      <TableCell align="center">{item.customerName}</TableCell>
-                      <TableCell align="center">
-                        {item.salesOrderCode}
-                      </TableCell>
-                      <TableCell align="center">
-                        {renderDebtStatus(item.status)}
-                      </TableCell>
-                      <TableCell align="center">
-                        {new Date(item.dueDate).toLocaleDateString("vi-VN")}
-                      </TableCell>
-                      <TableCell align="right">
-                        {item.totalAmount?.toLocaleString()} đ
-                      </TableCell>
-                      <TableCell align="right">
-                        {item.debtAmount?.toLocaleString()} đ
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, v) => setPage(v)}
-            />
-          </Box>
-        </Paper>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
+
+      {/* PAGINATION */}
+      {paginatedData.length > 0 && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, v) => setPage(v)}
+            color="primary"
+          />
+        </Box>
+      )}
+    </CardContent>
+  </Card>
+</Container>
+
     </Box>
   );
 }

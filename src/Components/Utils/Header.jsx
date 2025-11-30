@@ -275,7 +275,7 @@ function Header() {
       allowedRoles: ["purchases_staff"],
     },
     {
-      label: "Đơn hàng nhập",
+      label: "Đơn nhập hàng",
       path: "/po",
       allowedRoles: ["purchases_staff", "warehouse_staff", "accountant_staff"],
     },
@@ -331,12 +331,12 @@ function Header() {
       allowedRoles: ["accountant_staff"],
     },
     {
-      label: "Quản lý thanh toán",
+      label: "Công nợ nhà cung cấp",
       path: "/debt",
       allowedRoles: ["accountant_staff"],
     },
     {
-      label: "Doanh thu",
+      label: "Công nợ khách hàng",
       path: "/customer-debt",
       allowedRoles: ["accountant_staff"],
     },
@@ -361,7 +361,7 @@ function Header() {
       allowedRoles: ["customer"],
     },
     {
-      label: "Yêu cầu thanh toán phần còn lại",
+      label: "Yêu cầu thanh toán",
       path: "/payment-remain",
       allowedRoles: ["accountant_staff", "customer"],
     },
