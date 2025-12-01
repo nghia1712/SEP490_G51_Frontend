@@ -79,6 +79,15 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
       return;
     }
 
+    if (lot.salePrice <= lot.inputPrice) {
+      setSnack({
+        open: true,
+        message: "Giá bán phải lớn hơn giá nhập",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
       setUpdatingLotId(lot.lotID);
       await warehouseAPI.updateLotSalePrice(
