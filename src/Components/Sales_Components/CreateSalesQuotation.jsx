@@ -42,6 +42,7 @@ const CreateSalesQuotation = () => {
     status: 0, // 0: Draft
     depositPercent: 0,
     depositDueDays: 1,
+    expectedDeliveryDate: 2, // Thời hạn giao hàng dự kiến (ngày)
   });
 
   // State cho lịch sử trao đổi
@@ -250,6 +251,14 @@ const CreateSalesQuotation = () => {
       setSnackbarOpen(true);
       return false;
     }
+
+    if (quotationData.depositDueDays >= quotationData.expectedDeliveryDate) {
+      const message = 'Thời hạn thanh toán cọc phải nhỏ hơn thời hạn giao hàng dự kiến';
+      setError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return false;
+    }
     return true;
   };
 
@@ -259,6 +268,7 @@ const CreateSalesQuotation = () => {
     expiredDate: quotationData.expiredDate,
     depositPercent: quotationData.depositPercent || 0,
     depositDueDays: quotationData.depositDueDays || 1,
+    expectedDeliveryDate: quotationData.expectedDeliveryDate || 1,
     details: rows.map(row => ({
       productId: row.productId,
       lotId: row.lotId,
@@ -369,6 +379,9 @@ const CreateSalesQuotation = () => {
 
   const taxOptions = formData?.taxes || formData?.Taxes || [];
 
+  const isDepositDueInvalid =
+    quotationData.depositDueDays >= quotationData.expectedDeliveryDate;
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -439,15 +452,43 @@ const CreateSalesQuotation = () => {
           inputProps={{ min: 0, max: 70, step: 0.1 }}
           variant="outlined"
           size="small"
+          required
         />
         <TextField
           label="Thời hạn thanh toán cọc (ngày)"
           type="number"
           value={quotationData.depositDueDays}
-          onChange={(e) => setQuotationData({ ...quotationData, depositDueDays: Math.max(1, Math.min(7, parseInt(e.target.value, 10) || 1)) })}
-          inputProps={{ min: 1, max: 7 }}
+          onChange={(e) =>
+            setQuotationData({
+              ...quotationData,
+              depositDueDays: Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)),
+            })
+          }
+          inputProps={{ min: 1, max: 365 }}
           variant="outlined"
           size="small"
+          required
+          error={isDepositDueInvalid}
+          helperText={
+            isDepositDueInvalid
+              ? 'Thời hạn thanh toán cọc phải nhỏ hơn thời hạn giao hàng dự kiến'
+              : ''
+          }
+        />
+        <TextField
+          label="Thời hạn giao hàng (ngày)"
+          type="number"
+          value={quotationData.expectedDeliveryDate}
+          onChange={(e) =>
+            setQuotationData({
+              ...quotationData,
+              expectedDeliveryDate: Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)),
+            })
+          }
+          inputProps={{ min: 1, max: 365 }}
+          variant="outlined"
+          size="small"
+          required
         />
       </Box>
 
@@ -569,7 +610,7 @@ const CreateSalesQuotation = () => {
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
               <TableCell align="center">STT</TableCell>
               <TableCell>Tên sản phẩm</TableCell>
-              <TableCell>Lô hàng</TableCell>
+              <TableCell>Lô hàng (chọn theo ngày hết hạn)</TableCell>
               <TableCell>Đơn vị</TableCell>
               <TableCell>Thuế</TableCell>
               <TableCell>Ngày hết hạn</TableCell>
@@ -603,7 +644,7 @@ const CreateSalesQuotation = () => {
                         <MenuItem value="">Chọn lô</MenuItem>
                         {row.lotOptions.map((lot) => (
                           <MenuItem key={`${row.id}-${lot.lotId}`} value={lot.lotId ?? ''}>
-                            {`Lô ${lot.lotId ?? 'N/A'} - HH: ${formatDate(lot.expiredDate)}`}
+                            {lot.expiredDate ? formatDate(lot.expiredDate) : 'Không có ngày hết hạn'}
                           </MenuItem>
                         ))}
                       </TextField>

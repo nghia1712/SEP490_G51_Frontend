@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Info, HourglassEmpty } from '@mui/icons-material';
 import userAPI from '../../API/userAPI';
+import notificationAPI from '../../API/notificationAPI';
 import { SimpleHeader } from '../Utils/SimpleHeaderWrapper';
 import Footer from '../Utils/Footer';
 
@@ -18,10 +19,12 @@ const CustomerUnauthenticatedPage = () => {
   const [customerStatus, setCustomerStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [hasDeclineNotification, setHasDeclineNotification] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     checkCustomerStatus();
+    checkDeclineNotification();
   }, []);
 
   const checkCustomerStatus = async () => {
@@ -44,6 +47,31 @@ const CustomerUnauthenticatedPage = () => {
       setLoading(false);
     }
   };
+
+  const checkDeclineNotification = async () => {
+    try {
+      const res = await notificationAPI.getUserNotifications();
+      const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+      const hasDecline = list.some((n) => {
+        const title = n.title || n.Title;
+        const isRead = n.isRead ?? n.IsRead;
+        // Chỉ điều hướng về form khi còn thông báo từ chối CHƯA đọc
+        return title === 'Thông báo phản hồi duyệt tài khoản' && isRead === false;
+      });
+      if (hasDecline) {
+        setHasDeclineNotification(true);
+      }
+    } catch (e) {
+      console.error('Error checking decline notification:', e);
+    }
+  };
+
+  // Nếu có thông báo bị từ chối, điều hướng thẳng sang trang bổ sung thông tin
+  useEffect(() => {
+    if (!loading && hasDeclineNotification) {
+      navigate('/customer/additional-info', { replace: true });
+    }
+  }, [loading, hasDeclineNotification, navigate]);
 
   if (loading) {
     return (
@@ -103,6 +131,11 @@ const CustomerUnauthenticatedPage = () => {
   // Nếu chưa bổ sung thông tin hoặc chưa được duyệt, hiển thị modal
   if (!customerStatus) {
     return null; // Đang loading hoặc có lỗi
+  }
+
+  // Nếu đã có thông báo bị từ chối thì effect ở trên sẽ điều hướng, không render gì thêm
+  if (hasDeclineNotification) {
+    return null;
   }
 
   // Nếu đã bổ sung thông tin nhưng chưa được duyệt, hiển thị thông báo chờ duyệt

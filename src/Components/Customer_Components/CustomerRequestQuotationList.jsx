@@ -80,6 +80,7 @@ const CustomerRequestQuotationList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [quotationDetailDialogOpen, setQuotationDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
+  const [selectedQuotationMeta, setSelectedQuotationMeta] = useState(null);
   const [quotationSelectionDialogOpen, setQuotationSelectionDialogOpen] = useState(false);
   const [availableQuotations, setAvailableQuotations] = useState([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -133,6 +134,9 @@ const CustomerRequestQuotationList = () => {
         return 'Đã báo giá';
       case 3:
         return 'Hết hạn';
+      case 4:
+      case 'invalid':
+        return 'Không hợp lệ';
       default:
         return 'Không xác định';
     }
@@ -148,6 +152,9 @@ const CustomerRequestQuotationList = () => {
         return { backgroundColor: '#d4edda', color: '#155724' }; // Quoted - Green
       case 3:
         return { backgroundColor: '#f8d7da', color: '#721c24' }; // Expired - Red
+      case 4:
+      case 'invalid':
+        return { backgroundColor: '#fdecea', color: '#c62828' }; // Invalid - Dark Red
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
@@ -168,6 +175,27 @@ const CustomerRequestQuotationList = () => {
     }
     return 2; // Đã báo giá
   };
+  const selectedQuotationStatus = React.useMemo(() => {
+    if (!selectedQuotationDetails) return null;
+    const rawStatus =
+      selectedQuotationDetails.Status !== undefined
+        ? selectedQuotationDetails.Status
+        : selectedQuotationDetails.status;
+    const expiredDate =
+      selectedQuotationDetails.ExpiredDate ?? selectedQuotationDetails.expiredDate ?? null;
+
+    if (selectedQuotationMeta?.isInvalid || rawStatus === 3) {
+      return 4;
+    }
+
+    return getQuotationDetailStatus(rawStatus, expiredDate);
+  }, [selectedQuotationDetails, selectedQuotationMeta]);
+
+  const handleCloseQuotationDetailDialog = React.useCallback(() => {
+    setQuotationDetailDialogOpen(false);
+    setCommentInput('');
+    setSelectedQuotationMeta(null);
+  }, []);
 
   // Format date
   const formatDate = (dateString) => {
@@ -393,14 +421,12 @@ const CustomerRequestQuotationList = () => {
         const expiredByStatus = quotationStatus === 2;
         const expiredByDate = quotationExpiredDate ? isExpiredDate(quotationExpiredDate) : false;
         const isExpired = backendStatus === 2 && (expiredByStatus || expiredByDate);
-        const displayStatus = isExpired ? 3 : backendStatus;
-
         return {
           id: item.Id || item.id,
           code: requestCode,
           createdDate,
           sentDate,
-          status: displayStatus,
+          status: backendStatus,
           rawStatus: backendStatus,
           quotationExpiredDate,
           isExpired,
@@ -467,6 +493,7 @@ const CustomerRequestQuotationList = () => {
             // Open dialog directly
             setSelectedQuotationDetails(quotationData);
             setCommentInput('');
+            setSelectedQuotationMeta({ isInvalid: false, id: sqId });
             setQuotationDetailDialogOpen(true);
           }
         } catch (err) {
@@ -979,7 +1006,12 @@ const CustomerRequestQuotationList = () => {
           const dateA = a.date ? new Date(a.date).getTime() : 0;
           const dateB = b.date ? new Date(b.date).getTime() : 0;
           return dateB - dateA;
-        });
+        })
+        .map((quotation, index) => ({
+          ...quotation,
+          isLatest: index === 0,
+          isInvalid: index !== 0,
+        }));
 
       if (relatedQuotations.length === 0) {
         setSnackbarMessage('Chưa có báo giá được gửi cho yêu cầu này.');
@@ -1000,10 +1032,12 @@ const CustomerRequestQuotationList = () => {
 
         setSelectedQuotationDetails(quotationData);
         setCommentInput('');
+        setSelectedQuotationMeta({ isInvalid: false, id: quotationId });
         setQuotationDetailDialogOpen(true);
       } else {
         // Nếu có nhiều báo giá, hiển thị dialog chọn
         setAvailableQuotations(relatedQuotations);
+        setSelectedQuotationMeta(null);
         setQuotationSelectionDialogOpen(true);
       }
     } catch (err) {
@@ -1020,6 +1054,8 @@ const CustomerRequestQuotationList = () => {
   };
 
   const handleSelectQuotation = async (quotationId) => {
+    const selectedMeta = availableQuotations.find((q) => q.id === quotationId) || null;
+    setSelectedQuotationMeta(selectedMeta);
     setQuotationSelectionDialogOpen(false);
     setLoading(true);
     try {
@@ -1038,6 +1074,7 @@ const CustomerRequestQuotationList = () => {
       const errorMessage = err.response?.data?.message || err.message || 'Không thể tải chi tiết báo giá';
       setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
+      setSelectedQuotationMeta(null);
     } finally {
       setLoading(false);
     }
@@ -1206,7 +1243,7 @@ const CustomerRequestQuotationList = () => {
         depositExpiredDate,
       });
       setOrderFormRows(formRows);
-      setQuotationDetailDialogOpen(false); // Close quotation dialog
+      handleCloseQuotationDetailDialog(); // Close quotation dialog
       setOrderFormDialogOpen(true); // Open order form dialog
     } catch (err) {
       const message = err.response?.data?.message || err.message || 'Không thể tải thông tin báo giá.';
@@ -1487,7 +1524,6 @@ const CustomerRequestQuotationList = () => {
             <MenuItem value="0">Nháp</MenuItem>
             <MenuItem value="1">Đã gửi</MenuItem>
             <MenuItem value="2">Đã báo giá</MenuItem>
-            <MenuItem value="3">Hết hạn</MenuItem>
           </Select>
         </FormControl>
 
@@ -2287,37 +2323,51 @@ const CustomerRequestQuotationList = () => {
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Yêu cầu này có {availableQuotations.length} báo giá. Vui lòng chọn báo giá bạn muốn xem:
+              Nếu muốn đặt đơn, vui lòng xem báo giá mới nhất và tạo đơn hàng.
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {availableQuotations.map((quotation) => (
-                <Button
-                  key={quotation.id}
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => handleSelectQuotation(quotation.id)}
-                  sx={{
-                    justifyContent: 'flex-start',
-                    textTransform: 'none',
-                    py: 1.5,
-                    px: 2,
-                    borderColor: '#1976d2',
-                    '&:hover': {
-                      borderColor: '#1565c0',
-                      backgroundColor: 'rgba(25, 118, 210, 0.04)',
-                    },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {quotation.code}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {quotation.date ? formatDate(quotation.date) : 'Chưa có ngày'}
-                    </Typography>
-                  </Box>
-                </Button>
-              ))}
+              {availableQuotations.map((quotation) => {
+                return (
+                  <Button
+                    key={quotation.id}
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => handleSelectQuotation(quotation.id)}
+                    sx={{
+                      justifyContent: 'space-between',
+                      textTransform: 'none',
+                      py: 1.5,
+                      px: 2,
+                      borderColor: quotation.isInvalid ? '#d32f2f' : '#1976d2',
+                      color: quotation.isInvalid ? '#b71c1c' : 'inherit',
+                      '&:hover': {
+                        borderColor: quotation.isInvalid ? '#d32f2f' : '#1565c0',
+                        backgroundColor: quotation.isInvalid
+                          ? 'rgba(211, 47, 47, 0.04)'
+                          : 'rgba(25, 118, 210, 0.04)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, pr: 2 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {quotation.code}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {quotation.date ? formatDate(quotation.date) : 'Chưa có ngày'}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={quotation.isInvalid ? 'Báo giá cũ' : 'Báo giá mới nhất'}
+                      sx={{
+                        backgroundColor: quotation.isInvalid ? '#fdecea' : '#e8f5e9',
+                        color: quotation.isInvalid ? '#c62828' : '#2e7d32',
+                        fontWeight: 600,
+                      }}
+                    />
+                  </Button>
+                );
+              })}
             </Box>
           </Box>
         </DialogContent>
@@ -2331,7 +2381,7 @@ const CustomerRequestQuotationList = () => {
       {/* Quotation Detail Dialog */}
       <Dialog
         open={quotationDetailDialogOpen}
-        onClose={() => setQuotationDetailDialogOpen(false)}
+        onClose={handleCloseQuotationDetailDialog}
         maxWidth="lg"
         fullWidth
       >
@@ -2367,20 +2417,13 @@ const CustomerRequestQuotationList = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái:
                     </Typography>
-                    {(() => {
-                      const rawStatus = selectedQuotationDetails.Status !== undefined
-                        ? selectedQuotationDetails.Status
-                        : selectedQuotationDetails.status;
-                      const expiredDate = selectedQuotationDetails.ExpiredDate ?? selectedQuotationDetails.expiredDate ?? null;
-                      const displayStatus = getQuotationDetailStatus(rawStatus, expiredDate);
-                      return (
-                        <Chip
-                          label={getStatusLabel(displayStatus)}
-                          size="small"
-                          sx={getStatusColor(displayStatus)}
-                        />
-                      );
-                    })()}
+                  {selectedQuotationStatus !== null && (
+                    <Chip
+                      label={getStatusLabel(selectedQuotationStatus)}
+                      size="small"
+                      sx={getStatusColor(selectedQuotationStatus)}
+                    />
+                  )}
                   </Box>
                 </Box>
                 
@@ -2648,7 +2691,7 @@ const CustomerRequestQuotationList = () => {
           )}
         </DialogContent>
         <DialogActions>
-          {selectedQuotationDetails && (selectedQuotationDetails.Status === 1 || selectedQuotationDetails.status === 1) && (
+          {selectedQuotationStatus === 2 && (
             <Button
               variant="contained"
               onClick={handleCreateOrder}
@@ -2662,10 +2705,7 @@ const CustomerRequestQuotationList = () => {
               {isCreatingOrder ? <CircularProgress size={22} color="inherit" /> : 'Tạo đơn hàng'}
             </Button>
           )}
-          <Button onClick={() => {
-            setQuotationDetailDialogOpen(false);
-            setCommentInput(''); // Reset comment when closing
-          }}>Đóng</Button>
+          <Button onClick={handleCloseQuotationDetailDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

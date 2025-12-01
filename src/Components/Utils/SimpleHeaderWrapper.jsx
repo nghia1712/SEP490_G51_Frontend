@@ -24,6 +24,7 @@ import Login from "../Login_Components/Login";
 import Register from "../Login_Components/Register";
 import ConfirmEmail from "../Login_Components/ConfirmEmail";
 import Footer from "./Footer";
+import NotificationMenu from "./NotificationMenu";
 
 // Bảng màu của bạn
 const palette = {
@@ -161,8 +162,11 @@ const SimpleHeader = () => {
 
           {/* Profile menu nếu đã đăng nhập, Login/Register nếu chưa */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {currentToken ? (
-              <>
+          {currentToken ? (
+            <>
+                {/* Notification bell */}
+                <NotificationMenu />
+
                 {/* Role Badge */}
                 {userRole && (() => {
                   const roleInfo = getRoleInfo(userRole);

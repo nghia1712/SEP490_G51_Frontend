@@ -109,7 +109,10 @@ const userAPI = {
     },
     
     // Admin APIs for customer approval
-    updateCustomerStatus: (customerId) => authorApi.put(`/Admin/activate/${customerId}`),
+    // Status: "Active" để duyệt, "decline" để từ chối
+    // note: lý do (bắt buộc khi từ chối)
+    updateCustomerStatus: (customerId, status, note) => 
+        authorApi.put(`/Admin/activate/${customerId}`, { Status: status, note: note || '' }),
 };
 
 export default userAPI;

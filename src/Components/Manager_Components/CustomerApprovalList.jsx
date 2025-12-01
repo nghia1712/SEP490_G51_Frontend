@@ -22,7 +22,8 @@ import {
   IconButton,
   Tooltip,
   Avatar,
-  Divider
+  Divider,
+  TextField
 } from '@mui/material';
 import {
   CheckCircle,
@@ -46,6 +47,8 @@ const CustomerApprovalList = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState('');
 
   useEffect(() => {
     fetchCustomers();
@@ -115,7 +118,8 @@ const CustomerApprovalList = () => {
   const handleApprove = async (customerId) => {
     try {
       setActionLoading(true);
-      const response = await userAPI.updateCustomerStatus(customerId);
+      // Gửi Status: "Active" để duyệt
+      const response = await userAPI.updateCustomerStatus(customerId, 'Active', 'Đã được duyệt');
       console.log('Approve response:', response);
       
       if (response.data && response.data.data) {
@@ -127,7 +131,36 @@ const CustomerApprovalList = () => {
       }
     } catch (error) {
       console.error('Error approving customer:', error);
-      setError('Có lỗi xảy ra khi duyệt khách hàng');
+      setError(error.response?.data?.message || 'Có lỗi xảy ra khi duyệt khách hàng');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectNote.trim()) {
+      setError('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      // Gửi Status: "decline" để từ chối
+      const response = await userAPI.updateCustomerStatus(selectedCustomer.id, 'decline', rejectNote.trim());
+      console.log('Reject response:', response);
+      
+      if (response.data && response.data.data) {
+        setSuccess('Đã từ chối và gửi thông báo cho khách hàng');
+        await fetchCustomers(); // Refresh list
+        setRejectDialogOpen(false);
+        setDetailDialogOpen(false);
+        setRejectNote('');
+      } else {
+        setError(response.data?.message || 'Có lỗi xảy ra khi từ chối');
+      }
+    } catch (error) {
+      console.error('Error rejecting customer:', error);
+      setError(error.response?.data?.message || 'Có lỗi xảy ra khi từ chối khách hàng');
     } finally {
       setActionLoading(false);
     }
@@ -328,16 +361,84 @@ const CustomerApprovalList = () => {
             Đóng
           </Button>
           {selectedCustomer && selectedCustomer.userStatus === 'Inactive' && (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircle />}
-              onClick={() => handleApprove(selectedCustomer.id)}
-              disabled={actionLoading}
-            >
-              {actionLoading ? 'Đang xử lý...' : 'Duyệt'}
-            </Button>
+            <>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Cancel />}
+                onClick={() => {
+                  setRejectDialogOpen(true);
+                }}
+                disabled={actionLoading}
+              >
+                Từ chối
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircle />}
+                onClick={() => handleApprove(selectedCustomer.id)}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Đang xử lý...' : 'Duyệt'}
+              </Button>
+            </>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog
+        open={rejectDialogOpen}
+        onClose={() => {
+          setRejectDialogOpen(false);
+          setRejectNote('');
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Từ chối duyệt tài khoản khách hàng
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Vui lòng nhập lý do từ chối. Lý do này sẽ được gửi đến khách hàng qua thông báo.
+          </Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Lý do từ chối"
+            fullWidth
+            multiline
+            rows={4}
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            placeholder="Nhập lý do từ chối..."
+            required
+            error={!rejectNote.trim() && rejectNote.length > 0}
+            helperText={!rejectNote.trim() && rejectNote.length > 0 ? 'Lý do từ chối là bắt buộc' : `Đã nhập ${rejectNote.length}/256 ký tự`}
+            inputProps={{ maxLength: 256 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setRejectDialogOpen(false);
+              setRejectNote('');
+            }}
+            disabled={actionLoading}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<Cancel />}
+            onClick={handleReject}
+            disabled={actionLoading || !rejectNote.trim()}
+          >
+            {actionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

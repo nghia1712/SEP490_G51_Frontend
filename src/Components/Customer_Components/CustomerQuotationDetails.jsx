@@ -187,6 +187,32 @@ const CustomerQuotationDetails = () => {
     }
   };
 
+  const buildRelatedQuotations = (quotationList, requestCode) => {
+    if (!Array.isArray(quotationList) || !requestCode) return [];
+    return quotationList
+      .filter((quotation) => {
+        const qRequestCode = quotation.RequestCode ?? quotation.requestCode;
+        const qStatus = quotation.Status !== undefined ? quotation.Status : quotation.status;
+        return (
+          qRequestCode === requestCode &&
+          qStatus !== undefined &&
+          qStatus !== null &&
+          qStatus !== 0
+        );
+      })
+      .map((quotation) => ({
+        id: quotation.Id ?? quotation.id,
+        code: quotation.QuotationCode ?? quotation.quotationCode ?? '-',
+        date: quotation.QuotationDate ?? quotation.quotationDate ?? null,
+        status: quotation.Status !== undefined ? quotation.Status : quotation.status,
+      }))
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
+  };
+
   const fetchData = useCallback(async () => {
     if (!id) return;
 
@@ -194,110 +220,65 @@ const CustomerQuotationDetails = () => {
     setError(null);
 
     try {
-      // id from route is rsqId, but we need sqId (sales quotation id)
-      // Get sqId from query params or location state
       const searchParams = new URLSearchParams(location.search);
-      let sqId = location.state?.sqId || searchParams.get('sqId');
+      const stateSqId = location.state?.sqId;
+      let sqId = stateSqId || searchParams.get('sqId');
 
-      console.log('CustomerQuotationDetails - id from route:', id);
-      console.log('CustomerQuotationDetails - sqId from query/state:', sqId);
-      console.log('CustomerQuotationDetails - location.state:', location.state);
-      console.log('CustomerQuotationDetails - location.search:', location.search);
-      
-      // If sqId is not in query/state, try to find it from SalesQuotation list by rsqId
-      if (!sqId) {
-        const rsqId = Number(id);
-        if (Number.isNaN(rsqId)) {
-          throw new Error('Mã yêu cầu báo giá không hợp lệ');
-        }
-        
-        console.log('CustomerQuotationDetails - sqId not found, fetching SalesQuotation list for rsqId:', rsqId);
-        // Try to get quotation from SalesQuotation list
-        try {
-          const quotationListResponse = await salesQuotationAPI.viewList();
-          console.log('CustomerQuotationDetails - Quotation list response:', quotationListResponse.data);
-          
-          if (quotationListResponse.data && quotationListResponse.data.data) {
-            const quotationList = quotationListResponse.data.data;
-            console.log('CustomerQuotationDetails - Quotation list:', quotationList);
-            
-            // Find quotation that matches rsqId (via RequestCode or other identifier)
-            // Since we have rsqId, we need to find the quotation that belongs to this request
-            // We can match by checking if the quotation's RequestCode matches the request's RequestCode
-            // But we don't have RequestCode here, so we'll need to get it from request details first
-            const requestResponse = await requestSalesQuotationAPI.viewDetails(rsqId);
-            console.log('CustomerQuotationDetails - Request response:', requestResponse.data);
-            
-            if (requestResponse.data && requestResponse.data.data) {
-              const requestData = requestResponse.data.data;
-              const requestCode = requestData.RequestCode ?? requestData.requestCode;
-              console.log('CustomerQuotationDetails - Request code:', requestCode);
-              
-              // Find quotation with matching RequestCode
-              const matchingQuotation = Array.isArray(quotationList) 
-                ? quotationList.find((q) => {
-                    const qRequestCode = q.RequestCode ?? q.requestCode;
-                    return qRequestCode === requestCode;
-                  })
-                : null;
-              
-              if (matchingQuotation) {
-                sqId = matchingQuotation.Id ?? matchingQuotation.id;
-                console.log('CustomerQuotationDetails - Found sqId from matching quotation:', sqId);
-              }
-            }
-          }
-        } catch (listErr) {
-          console.error('CustomerQuotationDetails - Error fetching quotation list:', listErr);
-          // Continue to throw original error if sqId is still not found
-        }
+      const rsqId = Number(id);
+      if (Number.isNaN(rsqId)) {
+        throw new Error('Mã yêu cầu báo giá không hợp lệ');
       }
 
-      if (!sqId) {
-        console.error('CustomerQuotationDetails - No sqId found');
+      let requestCode = location.state?.requestCode;
+      if (!requestCode) {
+        const requestResponse = await requestSalesQuotationAPI.viewDetails(rsqId);
+        const requestData = requestResponse.data?.data;
+        requestCode = requestData?.RequestCode ?? requestData?.requestCode;
+      }
+
+      if (!requestCode) {
+        throw new Error('Không tìm thấy mã yêu cầu báo giá.');
+      }
+
+      const quotationListResponse = await salesQuotationAPI.viewList();
+      const quotationList = quotationListResponse.data?.data || [];
+      const relatedQuotations = buildRelatedQuotations(quotationList, requestCode);
+
+      if (relatedQuotations.length === 0) {
         throw new Error('Chưa có báo giá được gửi cho yêu cầu này.');
       }
 
-      const numericSqId = Number(sqId);
+      let numericSqId = sqId ? Number(sqId) : NaN;
+      let targetQuotation = Number.isNaN(numericSqId)
+        ? null
+        : relatedQuotations.find((quotation) => Number(quotation.id) === numericSqId);
+
+      if (!targetQuotation) {
+        targetQuotation = relatedQuotations[0];
+        numericSqId = Number(targetQuotation.id);
+      }
+
       if (Number.isNaN(numericSqId)) {
         throw new Error('Mã báo giá không hợp lệ');
       }
 
-      console.log('CustomerQuotationDetails - Calling viewDetails with sqId:', numericSqId);
-
-      // Use preloaded data if available
       const preloadedQuotation = location.state?.quotationData;
-      if (preloadedQuotation) {
-        console.log('CustomerQuotationDetails - Using preloaded data:', preloadedQuotation);
-        console.log('CustomerQuotationDetails - Preloaded data type:', typeof preloadedQuotation);
-        console.log('CustomerQuotationDetails - Preloaded data keys:', Object.keys(preloadedQuotation || {}));
+      const canUsePreloaded = preloadedQuotation && Number(stateSqId) === numericSqId;
+
+      if (canUsePreloaded) {
         setQuotationDetails(preloadedQuotation);
         setSalesQuotationId(numericSqId);
         setLoading(false);
-        console.log('CustomerQuotationDetails - Preloaded data set, returning');
         return;
       }
 
-      console.log('CustomerQuotationDetails - No preloaded data, fetching from API');
-
       const response = await salesQuotationAPI.viewDetails(numericSqId);
-      console.log('CustomerQuotationDetails - API response:', response);
-      console.log('CustomerQuotationDetails - API response.data:', response.data);
-      console.log('CustomerQuotationDetails - API response.data.data:', response.data?.data);
       
       if (response.data && response.data.data) {
         const quotationData = response.data.data;
-        console.log('CustomerQuotationDetails - Quotation details:', quotationData);
-        console.log('CustomerQuotationDetails - Quotation details type:', typeof quotationData);
-        console.log('CustomerQuotationDetails - Quotation details keys:', Object.keys(quotationData || {}));
-        console.log('CustomerQuotationDetails - Comments:', quotationData.Comments || quotationData.comments);
-        console.log('CustomerQuotationDetails - Comments type:', typeof (quotationData.Comments || quotationData.comments));
         setQuotationDetails(quotationData);
         setSalesQuotationId(numericSqId);
       } else {
-        console.error('CustomerQuotationDetails - No data in response:', response);
-        console.error('CustomerQuotationDetails - response.data:', response.data);
-        console.error('CustomerQuotationDetails - response.data?.data:', response.data?.data);
         throw new Error('Không lấy được chi tiết báo giá');
       }
     } catch (err) {

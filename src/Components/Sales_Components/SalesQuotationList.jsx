@@ -72,6 +72,7 @@ const SalesQuotationList = () => {
     expiredDate: null,
     depositPercent: 0,
     depositDueDays: 1,
+    expectedDeliveryDate: 2,
   });
   const [editRows, setEditRows] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -92,6 +93,8 @@ const SalesQuotationList = () => {
         return 'Đã gửi';
       case 2:
         return 'Hết hạn';
+      case 3:
+        return 'Không hợp lệ';
       default:
         return 'Không xác định';
     }
@@ -104,11 +107,31 @@ const SalesQuotationList = () => {
       case 1:
         return { backgroundColor: '#d1ecf1', color: '#0c5460' }; // Sent - Blue
       case 2:
-        return { backgroundColor: '#fdecea', color: '#b71c1c' }; // Expired - Red
+        return { backgroundColor: '#f8d7da', color: '#721c24' }; // Expired - Red
+      case 3:
+        return { backgroundColor: '#fdecea', color: '#b71c1c' }; // Invalid - Darker Red
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
   };
+
+  const selectedDetailDisplayStatus = useMemo(() => {
+    if (!selectedQuotationDetails) return null;
+    const rawStatus =
+      selectedQuotationDetails.Status !== undefined &&
+      selectedQuotationDetails.Status !== null
+        ? selectedQuotationDetails.Status
+        : selectedQuotationDetails.status;
+
+    const sqId = selectedQuotationDetails.Id || selectedQuotationDetails.id;
+    const listItem = quotations.find((q) => q.id === sqId);
+
+    if (listItem && listItem.status !== undefined && listItem.status !== null) {
+      return listItem.status;
+    }
+
+    return rawStatus;
+  }, [selectedQuotationDetails, quotations]);
 
   const resolveCustomerName = (source) => {
     if (!source) return '-';
@@ -293,21 +316,73 @@ const SalesQuotationList = () => {
       const response = await salesQuotationAPI.viewList();
 
       if (response.data && response.data.data) {
-        const data = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
+        const data = Array.isArray(response.data.data) ? response.data.data : [];
+
+        // Nhóm theo RequestCode để xác định báo giá mới nhất trên mỗi yêu cầu
+        const groups = data.reduce((acc, item) => {
+          const requestCode = item.RequestCode || item.requestCode || '';
+          if (!requestCode) return acc;
+
+          if (!acc[requestCode]) {
+            acc[requestCode] = [];
+          }
+          acc[requestCode].push(item);
+          return acc;
+        }, {});
+
+        const latestIdSet = new Set();
+
+        Object.values(groups).forEach((items) => {
+          if (!Array.isArray(items) || items.length === 0) return;
+
+          const sorted = [...items].sort((a, b) => {
+            const aDate = a.QuotationDate || a.quotationDate || null;
+            const bDate = b.QuotationDate || b.quotationDate || null;
+            const aTime = aDate ? new Date(aDate).getTime() : 0;
+            const bTime = bDate ? new Date(bDate).getTime() : 0;
+
+            if (aTime !== bTime) {
+              return bTime - aTime; // mới nhất trước
+            }
+
+            const aId = a.Id || a.id || 0;
+            const bId = b.Id || b.id || 0;
+            return (bId || 0) - (aId || 0);
+          });
+
+          const latest = sorted[0];
+          const latestId = latest?.Id || latest?.id;
+          if (latestId !== undefined && latestId !== null) {
+            latestIdSet.add(latestId);
+          }
+        });
 
         const mappedData = data.map((item) => {
           const customerName = resolveCustomerUsername(item);
+          const backendStatus =
+            item.Status !== undefined && item.Status !== null ? item.Status : item.status;
+          const id = item.Id || item.id;
+          const isLatest = latestIdSet.has(id);
+
+          let displayStatus = backendStatus;
+
+          // Nếu là báo giá cũ (không phải mới nhất) và đã từng gửi/đã hết hạn, hiển thị là Không hợp lệ
+          if (!isLatest && (backendStatus === 1 || backendStatus === 2)) {
+            displayStatus = 3;
+          } else if (backendStatus === 3) {
+            displayStatus = 3;
+          }
 
           return {
-          id: item.Id || item.id,
+            id,
           quotationCode: item.QuotationCode || item.quotationCode || '',
           requestCode: item.RequestCode || item.requestCode || '',
           quotationDate: item.QuotationDate || item.quotationDate || null,
           expiredDate: item.ExpiredDate || item.expiredDate || null,
             customerName,
-          status: item.Status !== undefined ? item.Status : item.status,
+            status: displayStatus,
+            rawStatus: backendStatus,
+            isLatest,
             rawItem: item,
           };
         });
@@ -416,9 +491,31 @@ const SalesQuotationList = () => {
         const rsqId = data.RsqId || data.rsqId || data.RequestSalesQuotationId || null;
 
         let formDataMeta = null;
-        if (rsqId) {
+        let resolvedRsqId = rsqId;
+
+        // Nếu chưa có RsqId thì tìm theo RequestCode
+        if (!resolvedRsqId) {
+          const requestCode = data.RequestCode || data.requestCode || '';
+          if (requestCode) {
+            try {
+              const rsqListResp = await requestSalesQuotationAPI.viewList();
+              const rsqList = rsqListResp.data?.data || [];
+              const matchedRsq = rsqList.find((item) => {
+                const code = item.RequestCode || item.requestCode || '';
+                return code === requestCode;
+              });
+              if (matchedRsq) {
+                resolvedRsqId = matchedRsq.Id || matchedRsq.id || null;
+              }
+            } catch (findErr) {
+              console.error('Không thể tìm RsqId theo RequestCode khi sửa báo giá', findErr);
+            }
+          }
+        }
+
+        if (resolvedRsqId) {
           try {
-            const formResp = await salesQuotationAPI.generateForm(rsqId);
+            const formResp = await salesQuotationAPI.generateForm(resolvedRsqId);
             formDataMeta = formResp.data?.data || null;
           } catch (metaErr) {
             console.error('Không thể tải form meta cho sửa báo giá', metaErr);
@@ -452,61 +549,220 @@ const SalesQuotationList = () => {
           const expiredRaw = lot.expiredDate || lot.ExpiredDate || null;
           const formattedExpired =
             expiredRaw && !Number.isNaN(new Date(expiredRaw).getTime())
-              ? new Date(expiredRaw).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              ? new Date(expiredRaw).toLocaleDateString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
               : null;
           acc[productId].push({
             lotId: lot.lotID || lot.LotID || lot.id || lot.Id || null,
             salePrice: lot.salePrice || lot.SalePrice || 0,
             expiredDate: expiredRaw,
-            displayLabel: `${lotIdentifier}${formattedExpired ? ` - HH: ${formattedExpired}` : ''}`,
+            // Chỉ hiển thị ngày hết hạn để người dùng chọn theo hạn dùng
+            displayLabel: formattedExpired || 'Không có ngày hết hạn',
           });
           return acc;
         }, {});
 
+        // Thêm option "Hết lô hàng" cho mỗi sản phẩm giống màn Tạo báo giá
+        Object.keys(lotsByProduct).forEach((productId) => {
+          lotsByProduct[productId].push({
+            lotId: null,
+            salePrice: 0,
+            expiredDate: null,
+            displayLabel: 'Hết lô hàng',
+          });
+        });
+
         const defaultTaxInfo = getDefaultTaxInfo(taxes);
 
         const initializedRows = details.map((detail, idx) => {
-          const productId = detail.ProductId || detail.productId;
+          let productId = detail.ProductId || detail.productId;
           const productName = detail.ProductName || detail.productName || '';
-          const productLots = lotsByProduct[productId] || [];
+          const unit =
+            detail.Unit ||
+            detail.unit ||
+            detail.ProductUnit ||
+            detail.productUnit ||
+            '';
+
+          // Lấy danh sách lô tương ứng với sản phẩm.
+          // Ưu tiên map theo ProductId; nếu không khớp thì map theo tên + đơn vị.
+          let productLots = lotsByProduct[productId] || [];
+          if (!productLots.length) {
+            const matchingLots = lotProducts.filter((lot) => {
+              const lotName = lot.productName || lot.ProductName || '';
+              const lotUnit = lot.unit || lot.Unit || '';
+              return (
+                lotName.trim() === productName.trim() &&
+                (!unit || lotUnit.trim() === unit.trim())
+              );
+            });
+
+            productLots = matchingLots.map((lot) => {
+              const expiredRaw = lot.expiredDate || lot.ExpiredDate || null;
+              const formattedExpired =
+                expiredRaw && !Number.isNaN(new Date(expiredRaw).getTime())
+                  ? new Date(expiredRaw).toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })
+                  : null;
+              return {
+                lotId: lot.lotID || lot.LotID || lot.id || lot.Id || null,
+                salePrice: lot.salePrice || lot.SalePrice || 0,
+                expiredDate: expiredRaw,
+                displayLabel: formattedExpired || 'Không có ngày hết hạn',
+              };
+            });
+
+            // Nếu tìm được lô theo tên/đơn vị thì cập nhật lại productId theo productID hiện tại của hệ thống
+            if (matchingLots.length > 0) {
+              const mappedProductId =
+                matchingLots[0].productID ||
+                matchingLots[0].ProductID ||
+                null;
+              if (mappedProductId) {
+                productId = mappedProductId;
+              }
+            }
+
+            // Thêm option "Hết lô hàng" cho trường hợp fallback theo tên sản phẩm
+            if (productLots.length) {
+              productLots.push({
+                lotId: null,
+                salePrice: 0,
+                expiredDate: null,
+                displayLabel: 'Hết lô hàng',
+              });
+            }
+          }
           const currentLotId = detail.LotId || detail.lotId || null;
           const sqdId = detail.Id || detail.id || null;
+
+          const expiredRaw =
+            detail.LotExpiredDate ||
+            detail.lotExpiredDate ||
+            detail.ExpiredDate ||
+            detail.expiredDate ||
+            null;
+
           const lotOptions =
             productLots.length > 0
               ? productLots
               : [
                   {
-                    lotId: currentLotId,
-                    salePrice: detail.SalesPrice || detail.salesPrice || 0,
-                    expiredDate: detail.LotExpiredDate || detail.lotExpiredDate || null,
-                    displayLabel: currentLotId ? `Lô ${currentLotId}` : 'Không có lô',
+                    lotId: currentLotId ?? 1,
+                    salePrice:
+                      detail.UnitPrice ??
+                      detail.unitPrice ??
+                      detail.SalesPrice ??
+                      detail.salesPrice ??
+                      0,
+                    expiredDate: expiredRaw,
+                    // Hiển thị ngày hết hạn, không hiển thị "Lô x"
+                    displayLabel: expiredRaw ? formatDate(expiredRaw) : 'Không có ngày hết hạn',
                   },
                 ];
-          const selectedLot =
-            lotOptions.find((lot) => lot.lotId === currentLotId) || lotOptions[0] || null;
-          const lotId = selectedLot ? selectedLot.lotId : null;
-          const unitPrice = selectedLot ? selectedLot.salePrice || 0 : detail.SalesPrice || detail.salesPrice || 0;
 
-          const taxOptions = taxes.length > 0 ? taxes : detail.Taxes || detail.taxes || [];
-          const taxId =
+          // Chọn lô mặc định:
+          //  - Nếu có LotId từ backend thì ưu tiên tìm theo LotId
+          //  - Nếu không có LotId nhưng có ngày hết hạn trong chi tiết thì map theo expiredDate
+          //  - Cuối cùng fallback sang lô đầu tiên KHÔNG phải "Hết lô hàng"
+          let selectedLot = null;
+          if (currentLotId !== null && currentLotId !== undefined) {
+            selectedLot = lotOptions.find((lot) => lot.lotId === currentLotId) || null;
+          }
+          if (!selectedLot && expiredRaw) {
+            const targetTime = new Date(expiredRaw).getTime();
+            selectedLot =
+              lotOptions.find(
+                (lot) =>
+                  lot.expiredDate &&
+                  new Date(lot.expiredDate).getTime() === targetTime
+              ) || null;
+          }
+          if (!selectedLot) {
+            selectedLot =
+              lotOptions.find(
+                (lot) => lot.lotId !== null && lot.lotId !== undefined
+              ) || lotOptions[0] || null;
+          }
+
+          const lotId = selectedLot ? selectedLot.lotId : null;
+
+          const minQuantity =
+            detail.MinQuantity ??
+            detail.minQuantity ??
+            detail.Quantity ??
+            detail.quantity ??
+            1;
+
+          const unitPrice =
+            detail.UnitPrice ??
+            detail.unitPrice ??
+            detail.SalesPrice ??
+            detail.salesPrice ??
+            (selectedLot ? selectedLot.salePrice || 0 : 0);
+          
+          const taxText = detail.TaxText || detail.taxText || '';
+
+          // Ưu tiên danh sách thuế đầy đủ từ form meta (giống màn Tạo báo giá)
+          const taxOptions =
+            taxes.length > 0 ? taxes : detail.Taxes || detail.taxes || [];
+
+          // Chuẩn hóa TaxText để map với tên thuế trong meta
+          const normalize = (value) =>
+            String(value || '')
+              .toLowerCase()
+              .replace(/\s+/g, '');
+
+          let taxId =
             detail.TaxId ||
             detail.taxId ||
-            (taxOptions[0]?.id ?? taxOptions[0]?.Id ?? defaultTaxInfo.id);
-          const selectedTax = (taxOptions || []).find((tax) => (tax.id || tax.Id) === taxId);
-          const taxRate = selectedTax ? getTaxRateFromText(selectedTax.name || selectedTax.Name) : defaultTaxInfo.rate;
+            null;
 
-          const { beforeTax, afterTax } = calculateTotals(1, unitPrice, taxRate);
+          if (!taxId && taxText && taxOptions.length > 0) {
+            const target = normalize(taxText);
+            const matched = taxOptions.find((tax) => {
+              const name = normalize(tax.name || tax.Name || '');
+              return name === target;
+            });
+            if (matched) {
+              taxId = matched.id || matched.Id || null;
+            }
+          }
+
+          if (!taxId && taxOptions.length > 0) {
+            taxId = taxOptions[0].id || taxOptions[0].Id || defaultTaxInfo.id;
+          }
+
+          const selectedTax = (taxOptions || []).find(
+            (tax) => (tax.id || tax.Id) === taxId
+          );
+          const taxRateSource =
+            (selectedTax && (selectedTax.name || selectedTax.Name || '')) ||
+            taxText ||
+            '';
+          const taxRate = taxRateSource
+            ? getTaxRateFromText(taxRateSource)
+            : defaultTaxInfo.rate;
+
+          const { beforeTax, afterTax } = calculateTotals(minQuantity, unitPrice, taxRate);
 
           return {
             id: idx + 1,
             sqdId,
             productId,
             productName,
+            unit,
             lotId,
             lotOptions,
             taxId,
             taxOptions: taxOptions.length > 0 ? taxOptions : [],
-            minQuantity: 1,
+            minQuantity,
             unitPrice,
             totalBeforeTax: beforeTax,
             totalAfterTax: afterTax,
@@ -517,8 +773,51 @@ const SalesQuotationList = () => {
 
         setEditRows(initializedRows);
 
+        // Parse deposit / deadline information, ưu tiên field từ backend, fallback từ ghi chú
+        const noteText = data.Notes || data.Note || data.note || '';
+
+        let parsedDepositPercent = null;
+        let parsedDepositDueDays = null;
+        let parsedExpectedDeliveryDate = null;
+
+        if (noteText) {
+          try {
+            // Ví dụ: "Tạm ứng 15% tiền cọc trong vòng 5 ngày ..."
+            const depositMatch = noteText.match(/Tạm\s+ứng\s+(\d+(?:[.,]\d+)?)\s*%\s*tiền\s+cọc/i);
+            if (depositMatch && depositMatch[1]) {
+              parsedDepositPercent = Number(
+                depositMatch[1].replace(',', '.')
+              );
+            }
+
+            const depositDueMatch = noteText.match(
+              /trong\s+vòng\s+(\d+)\s+ngày\s+kể\s+từ\s+khi\s+ký\s+hợp\s+đồng/i
+            );
+            if (depositDueMatch && depositDueMatch[1]) {
+              parsedDepositDueDays = Number(depositDueMatch[1]);
+            }
+
+            const deliveryMatch = noteText.match(
+              /giao\s+trong\s+thời\s+gian\s+(\d+)\s+ngày\s+kể\s+từ\s+ngày\s+ký\s+kết\s+hợp\s+đồng/i
+            );
+            if (deliveryMatch && deliveryMatch[1]) {
+              parsedExpectedDeliveryDate = Number(deliveryMatch[1]);
+            }
+          } catch (parseErr) {
+            console.error('Không thể parse thông tin cọc / giao hàng từ ghi chú:', parseErr);
+          }
+        }
+
+        // Xác định sqnId gửi lên backend:
+        //  - Ưu tiên SqnId từ dữ liệu báo giá
+        //  - Nếu thiếu, fallback sang ghi chú đầu tiên trong notesMeta (giống khi tạo báo giá)
+        let resolvedSqnId = data.SqnId || data.sqnId || null;
+        if (!resolvedSqnId && Array.isArray(notesMeta) && notesMeta.length > 0) {
+          resolvedSqnId = notesMeta[0].id || notesMeta[0].Id || null;
+        }
+
         setEditFormData({
-          sqnId: data.SqnId || data.sqnId || null,
+          sqnId: resolvedSqnId,
           expiredDate:
             data.ExpiredDate || data.expiredDate
               ? dayjs(data.ExpiredDate || data.expiredDate)
@@ -528,13 +827,25 @@ const SalesQuotationList = () => {
               ? data.DepositPercent
               : data.depositPercent !== undefined
               ? data.depositPercent
+              : parsedDepositPercent !== null
+              ? parsedDepositPercent
               : 0,
           depositDueDays:
             data.DepositDueDays !== undefined
               ? data.DepositDueDays
               : data.depositDueDays !== undefined
               ? data.depositDueDays
+              : parsedDepositDueDays !== null
+              ? parsedDepositDueDays
               : 1,
+          expectedDeliveryDate:
+            data.ExpectedDeliveryDate !== undefined
+              ? data.ExpectedDeliveryDate
+              : data.expectedDeliveryDate !== undefined
+              ? data.expectedDeliveryDate
+              : parsedExpectedDeliveryDate !== null
+              ? parsedExpectedDeliveryDate
+              : 2,
         });
         
         setEditDialogOpen(true);
@@ -555,11 +866,21 @@ const SalesQuotationList = () => {
       prevRows.map((row) => {
         if (row.id !== rowId) return row;
         if (!normalizedLotId) {
-          const { beforeTax, afterTax } = calculateTotals(1, 0, row.taxRate || 0);
+          const quantity = row.minQuantity ?? 1;
+          // Chọn thuế 0% nếu có trong danh sách thuế
+          const zeroTax = (row.taxOptions || []).find((tax) => {
+            const name = String(tax.name || tax.Name || '').toLowerCase();
+            return name.includes('0%');
+          });
+          const zeroTaxId = zeroTax ? zeroTax.id || zeroTax.Id || null : null;
+
+          const { beforeTax, afterTax } = calculateTotals(quantity, 0, 0);
           return {
             ...row,
             lotId: null,
             unitPrice: 0,
+            taxId: zeroTaxId,
+            taxRate: 0,
             totalBeforeTax: beforeTax,
             totalAfterTax: afterTax,
           };
@@ -567,7 +888,8 @@ const SalesQuotationList = () => {
         const selectedLot = (row.lotOptions || []).find((lot) => lot.lotId === normalizedLotId);
         if (selectedLot) {
           const unitPrice = selectedLot.salePrice ?? 0;
-          const { beforeTax, afterTax } = calculateTotals(1, unitPrice, row.taxRate || 0);
+          const quantity = row.minQuantity ?? 1;
+          const { beforeTax, afterTax } = calculateTotals(quantity, unitPrice, row.taxRate || 0);
           return {
             ...row,
             lotId: normalizedLotId,
@@ -588,7 +910,8 @@ const SalesQuotationList = () => {
         if (row.id !== rowId) return row;
 
         if (!normalizedTaxId) {
-          const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, 0);
+          const quantity = row.minQuantity ?? 1;
+          const { beforeTax, afterTax } = calculateTotals(quantity, row.unitPrice, 0);
           return {
             ...row,
             taxId: null,
@@ -604,7 +927,8 @@ const SalesQuotationList = () => {
         const taxRate = getTaxRateFromText(
           selectedTax?.name || selectedTax?.Name || ''
         );
-        const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, taxRate);
+        const quantity = row.minQuantity ?? 1;
+        const { beforeTax, afterTax } = calculateTotals(quantity, row.unitPrice, taxRate);
 
         return {
           ...row,
@@ -643,8 +967,17 @@ const SalesQuotationList = () => {
       return;
     }
 
-    if (!editFormData.sqnId || editFormData.sqnId === null) {
-      setEditError('Báo giá này chưa có ghi chú. Vui lòng liên hệ quản trị viên.');
+    if (
+      editFormData.expectedDeliveryDate === null ||
+      editFormData.expectedDeliveryDate === undefined ||
+      Number(editFormData.expectedDeliveryDate) <= 0
+    ) {
+      setEditError('Vui lòng nhập thời hạn giao hàng dự kiến');
+      return;
+    }
+
+    if (editFormData.depositDueDays >= editFormData.expectedDeliveryDate) {
+      setEditError('Thời hạn thanh toán cọc phải nhỏ hơn thời hạn giao hàng dự kiến');
       return;
     }
 
@@ -672,6 +1005,7 @@ const SalesQuotationList = () => {
         ExpiredDate: editFormData.expiredDate.format('YYYY-MM-DD'),
         DepositPercent: editFormData.depositPercent,
         DepositDueDays: editFormData.depositDueDays,
+        ExpectedDeliveryDate: editFormData.expectedDeliveryDate,
         Details: detailPayload.map((detail) => ({
           SqdId: detail.sqdId,
           ProductId: detail.productId,
@@ -874,6 +1208,7 @@ const SalesQuotationList = () => {
             <MenuItem value="0">Nháp</MenuItem>
             <MenuItem value="1">Đã gửi</MenuItem>
             <MenuItem value="2">Hết hạn</MenuItem>
+            <MenuItem value="3">Không hợp lệ</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -923,17 +1258,15 @@ const SalesQuotationList = () => {
                     Mã báo giá
                   </TableSortLabel>
                 </TableCell>
-                <TableCell
-                  sx={{
-                    width: '18%',
-                    py: 1.5,
-                    px: 2,
-                    textTransform: 'uppercase',
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                  }}
+                <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === 'requestCode'}
+                    direction={sortConfig.key === 'requestCode' ? sortConfig.direction : 'asc'}
+                    onClick={() => handleSort('requestCode')}
+                    sx={headerTextSx}
                 >
                   Mã yêu cầu báo giá
+                  </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ width: '18%', py: 1.5, px: 2 }}>
                   <TableSortLabel
@@ -1184,11 +1517,13 @@ const SalesQuotationList = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái:
                     </Typography>
+                    {selectedDetailDisplayStatus !== null && (
                     <Chip
-                      label={getStatusLabel(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
+                        label={getStatusLabel(selectedDetailDisplayStatus)}
                       size="small"
-                      sx={getStatusColor(selectedQuotationDetails.Status !== undefined ? selectedQuotationDetails.Status : selectedQuotationDetails.status)}
+                        sx={getStatusColor(selectedDetailDisplayStatus)}
                     />
+                    )}
                   </Box>
                 </Box>
                 
@@ -1597,12 +1932,36 @@ const SalesQuotationList = () => {
                       type="number"
                       value={editFormData.depositDueDays}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
-                        if (value >= 1 && value <= 7) {
+                        const value = parseInt(e.target.value, 10) || 1;
+                        if (value >= 1 && value <= 365) {
                           setEditFormData(prev => ({ ...prev, depositDueDays: value }));
                         }
                       }}
-                      inputProps={{ min: 1, max: 7 }}
+                      inputProps={{ min: 1, max: 365 }}
+                      fullWidth
+                      variant="standard"
+                      error={
+                        editFormData.expectedDeliveryDate !== undefined &&
+                        editFormData.depositDueDays >= editFormData.expectedDeliveryDate
+                      }
+                      helperText={
+                        editFormData.expectedDeliveryDate !== undefined &&
+                        editFormData.depositDueDays >= editFormData.expectedDeliveryDate
+                          ? 'Thời hạn thanh toán cọc phải nhỏ hơn thời hạn giao hàng dự kiến'
+                          : ''
+                      }
+                    />
+                    <TextField
+                      label="Thời hạn giao hàng (ngày)"
+                      type="number"
+                      value={editFormData.expectedDeliveryDate}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value, 10) || 1;
+                        if (value >= 1 && value <= 365) {
+                          setEditFormData(prev => ({ ...prev, expectedDeliveryDate: value }));
+                        }
+                      }}
+                      inputProps={{ min: 1, max: 365 }}
                       fullWidth
                       variant="standard"
                     />
@@ -1620,10 +1979,9 @@ const SalesQuotationList = () => {
                         <TableRow>
                           <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
                           <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
-                          <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Lô hàng</TableCell>
+                          <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
+                          <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Lô hàng (chọn theo ngày hết hạn)</TableCell>
                           <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
-                          <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
-                          <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
                           <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
                           <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
                           <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
@@ -1635,6 +1993,7 @@ const SalesQuotationList = () => {
                             <TableRow key={row.id}>
                               <TableCell sx={{ textAlign: 'center' }}>{row.id}</TableCell>
                               <TableCell>{row.productName || '-'}</TableCell>
+                              <TableCell>{row.unit || '-'}</TableCell>
                               <TableCell sx={{ minWidth: 200 }}>
                                 {row.lotOptions && row.lotOptions.length > 0 ? (
                                   <FormControl fullWidth size="small">
@@ -1686,10 +2045,6 @@ const SalesQuotationList = () => {
                                   </Typography>
                                 )}
                               </TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>{row.minQuantity ?? 1}</TableCell>
-                              <TableCell sx={{ textAlign: 'right' }}>
-                                {row.unitPrice !== undefined ? renderCurrency(row.unitPrice) : '-'}
-                              </TableCell>
                               <TableCell sx={{ textAlign: 'right' }}>
                                 {row.totalBeforeTax !== undefined ? renderCurrency(row.totalBeforeTax) : '-'}
                               </TableCell>
@@ -1710,7 +2065,7 @@ const SalesQuotationList = () => {
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                            <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                               <Typography variant="body2" color="text.secondary">
                                 Không có sản phẩm
                               </Typography>

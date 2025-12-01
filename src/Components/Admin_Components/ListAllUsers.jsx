@@ -61,6 +61,7 @@ const ListAllUsers = ({ roleGroup }) => {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [approvingCustomerId, setApprovingCustomerId] = useState(null);
     const [currentUserRole, setCurrentUserRole] = useState(null);
+    const [imagePreview, setImagePreview] = useState({ show: false, url: null, title: "" });
 
     const fetchUsers = async () => {
         try {
@@ -231,7 +232,13 @@ const ListAllUsers = ({ roleGroup }) => {
         }
         setApprovingCustomerId(userId);
         try {
-            const response = await userAPI.updateCustomerStatus(userId);
+            // Gửi trạng thái Active để duyệt hồ sơ
+            // Backend yêu cầu trường note không được null/empty, nên gửi mặc định một nội dung ngắn.
+            const response = await userAPI.updateCustomerStatus(
+                userId,
+                "Active",
+                "Đã duyệt hồ sơ khách hàng"
+            );
             const message =
                 response?.data?.message ||
                 response?.message ||
@@ -245,6 +252,41 @@ const ListAllUsers = ({ roleGroup }) => {
                 error?.response?.data?.message ||
                 error?.message ||
                 "Không thể duyệt hồ sơ khách hàng.";
+            alert(message);
+        } finally {
+            setApprovingCustomerId(null);
+        }
+    };
+
+    const handleRejectCustomer = async (user) => {
+        const userId = getUserIdFromAny(user);
+        if (!userId) {
+            alert("Không xác định được khách hàng cần từ chối.");
+            return;
+        }
+
+        const note = window.prompt("Nhập lý do từ chối hồ sơ khách hàng:");
+        if (!note || !note.trim()) {
+            alert("Bạn cần nhập lý do từ chối.");
+            return;
+        }
+
+        setApprovingCustomerId(userId);
+        try {
+            const response = await userAPI.updateCustomerStatus(userId, "decline", note.trim());
+            const message =
+                response?.data?.message ||
+                response?.message ||
+                "Đã từ chối hồ sơ khách hàng.";
+            alert(message);
+            setIsDetailOpen(false);
+            await fetchUsers();
+        } catch (error) {
+            console.error("Error rejecting customer:", error);
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Không thể từ chối hồ sơ khách hàng.";
             alert(message);
         } finally {
             setApprovingCustomerId(null);
@@ -1404,7 +1446,15 @@ const ListAllUsers = ({ roleGroup }) => {
                                                             );
                                                             if (!imageCnkdUrl) return null;
                                                             return (
-                                                                <div style={{ maxWidth: '200px' }}>
+                                                                <div style={{ maxWidth: '200px', cursor: 'pointer' }}
+                                                                    onClick={() =>
+                                                                        setImagePreview({
+                                                                            show: true,
+                                                                            url: imageCnkdUrl,
+                                                                            title: 'Ảnh CNKD',
+                                                                        })
+                                                                    }
+                                                                >
                                                                     <div className="text-center fw-semibold mb-1">
                                                                         Ảnh CNKD
                                                                     </div>
@@ -1420,6 +1470,9 @@ const ListAllUsers = ({ roleGroup }) => {
                                                                             backgroundColor: '#fafafa',
                                                                         }}
                                                                     />
+                                                                    <div className="text-center mt-1" style={{ fontSize: '0.85rem', color: '#555' }}>
+                                                                        (Nhấn để phóng to)
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })()}
@@ -1429,7 +1482,15 @@ const ListAllUsers = ({ roleGroup }) => {
                                                             );
                                                             if (!imageBytUrl) return null;
                                                             return (
-                                                                <div style={{ maxWidth: '200px' }}>
+                                                                <div style={{ maxWidth: '200px', cursor: 'pointer' }}
+                                                                    onClick={() =>
+                                                                        setImagePreview({
+                                                                            show: true,
+                                                                            url: imageBytUrl,
+                                                                            title: 'Ảnh BYT',
+                                                                        })
+                                                                    }
+                                                                >
                                                                     <div className="text-center fw-semibold mb-1">
                                                                         Ảnh BYT
                                                                     </div>
@@ -1445,6 +1506,9 @@ const ListAllUsers = ({ roleGroup }) => {
                                                                             backgroundColor: '#fafafa',
                                                                         }}
                                                                     />
+                                                                    <div className="text-center mt-1" style={{ fontSize: '0.85rem', color: '#555' }}>
+                                                                        (Nhấn để phóng to)
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })()}
@@ -1505,18 +1569,55 @@ const ListAllUsers = ({ roleGroup }) => {
                             return null;
                         }
                         return (
-                            <Button
-                                variant="success"
-                                onClick={() => handleApproveCustomer(detailUser)}
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? 'Đang duyệt...' : 'Duyệt hồ sơ'}
-                            </Button>
+                            <>
+                                <Button
+                                    variant="success"
+                                    className="me-2"
+                                    onClick={() => handleApproveCustomer(detailUser)}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? 'Đang xử lý...' : 'Duyệt hồ sơ'}
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    onClick={() => handleRejectCustomer(detailUser)}
+                                    disabled={isProcessing}
+                                >
+                                    Từ chối
+                                </Button>
+                            </>
                         );
                     })()}
                     <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
                 </Modal.Footer>
             </Modal>
+            {/* Image preview modal for customer documents */}
+            <Modal
+                show={imagePreview.show}
+                onHide={() => setImagePreview({ show: false, url: null, title: "" })}
+                centered
+                size="lg"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>{imagePreview.title || "Xem ảnh"}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {imagePreview.url && (
+                        <div style={{ textAlign: "center" }}>
+                            <img
+                                src={imagePreview.url}
+                                alt={imagePreview.title || "Preview"}
+                                style={{
+                                    maxWidth: "100%",
+                                    maxHeight: "70vh",
+                                    objectFit: "contain",
+                                }}
+                            />
+                        </div>
+                    )}
+                </Modal.Body>
+            </Modal>
+
             {/* Chỉ cho phép tạo nhân viên trong trang nhân viên */}
             {isStaffView && (
                 <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl" contentClassName="p-0">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -34,6 +35,7 @@ import notificationAPI from '../../API/notificationAPI';
 const steps = ['Thông tin cơ bản', 'Upload tài liệu', 'Xác nhận'];
 
 const CustomerAdditionalInfoForm = () => {
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     mst: '',
@@ -53,9 +55,12 @@ const CustomerAdditionalInfoForm = () => {
   const [customerStatus, setCustomerStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [previewDialog, setPreviewDialog] = useState({ open: false, image: null, title: '' });
+  const [declineReason, setDeclineReason] = useState('');
+  const [declineNotificationId, setDeclineNotificationId] = useState(null);
 
   useEffect(() => {
     checkCustomerStatus();
+    fetchDeclineNotification();
   }, []);
 
   const checkCustomerStatus = async () => {
@@ -70,12 +75,42 @@ const CustomerAdditionalInfoForm = () => {
     }
   };
 
+  const fetchDeclineNotification = async () => {
+    try {
+      const response = await notificationAPI.getUserNotifications();
+      const notifications = response?.data?.data || response?.data || [];
+      if (Array.isArray(notifications)) {
+        const declineNoti = notifications.find((n) => {
+          const title = n.title || n.Title;
+          const isRead = n.isRead ?? n.IsRead;
+          // Chỉ quan tâm tới thông báo từ chối chưa đọc
+          return title === 'Thông báo phản hồi duyệt tài khoản' && isRead === false;
+        });
+
+        if (declineNoti) {
+          const msg = declineNoti.message || declineNoti.Message || '';
+          setDeclineReason(msg);
+          setDeclineNotificationId(declineNoti.id || declineNoti.Id);
+        } else {
+          setDeclineReason('');
+          setDeclineNotificationId(null);
+        }
+      } else {
+        setDeclineReason('');
+        setDeclineNotificationId(null);
+      }
+    } catch (error) {
+      console.error('Error loading decline notification:', error);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     // Chỉ cho phép nhập số
     if (name === 'mst' || name === 'mshkd') {
       const numericValue = value.replace(/\D/g, '');
-      if (numericValue.length <= 10) {
+      // Cho phép nhập từ 9 đến 13 chữ số, nhưng không chặn khi người dùng chưa đủ 9 số
+      if (numericValue.length <= 13) {
         setFormData(prev => ({
           ...prev,
           [name]: numericValue
@@ -129,12 +164,12 @@ const CustomerAdditionalInfoForm = () => {
     
     if (step === 0) {
       // Validate step 1: Thông tin cơ bản
-      if (!formData.mst || formData.mst.length !== 10) {
-        setError('Mã số thuế phải có đúng 10 chữ số');
+      if (!formData.mst || formData.mst.length < 9 || formData.mst.length > 13) {
+        setError('Mã số thuế phải có từ 9 đến 13 chữ số');
         return false;
       }
-      if (!formData.mshkd || formData.mshkd.length !== 10) {
-        setError('Mã số kinh doanh phải có đúng 10 chữ số');
+      if (!formData.mshkd || formData.mshkd.length < 9 || formData.mshkd.length > 13) {
+        setError('Mã số kinh doanh phải có từ 9 đến 13 chữ số');
         return false;
       }
     } else if (step === 1) {
@@ -185,25 +220,21 @@ const CustomerAdditionalInfoForm = () => {
       };
 
       const response = await userAPI.updateCustomerProfile(submitData);
-      
+
       if (response.data.success || response.data.data || response.status === 200) {
-        // Thông báo đã được backend xử lý và gửi qua hệ thống notification,
-        // frontend không tự tạo message nữa để tránh trùng lặp nội dung.
-        setSuccess('Cập nhật thông tin thành công! Thông tin của bạn đang chờ admin duyệt.');
-        // Refresh customer status
+        // Nếu có thông báo từ chối trước đó thì đánh dấu đã đọc,
+        // để lần đăng nhập sau không bị trả về form nữa
+        if (declineNotificationId) {
+          try {
+            await notificationAPI.markAsRead(declineNotificationId);
+          } catch (markErr) {
+            console.error('Error marking decline notification as read:', markErr);
+          }
+        }
+
+        // Sau khi cập nhật thành công, chuyển sang màn hình chờ duyệt
         await checkCustomerStatus();
-        // Reset form
-        setFormData({
-          mst: '',
-          mshkd: '',
-          imageCnkd: null,
-          imageByt: null
-        });
-        setPreviews({
-          imageCnkd: null,
-          imageByt: null
-        });
-        setActiveStep(0);
+        navigate('/customer-unauthenticated', { replace: true });
       } else {
         throw new Error(response.data.message || 'Có lỗi xảy ra');
       }
@@ -236,7 +267,7 @@ const CustomerAdditionalInfoForm = () => {
   }
 
   // Nếu customer đã submit thông tin bổ sung, hiển thị trạng thái
-  if (customerStatus && !customerStatus.needsAdditionalInfo) {
+  if (customerStatus && !customerStatus.needsAdditionalInfo && !declineReason) {
     return (
       <Box maxWidth="900px" mx="auto" p={3}>
         <Card>
@@ -282,28 +313,34 @@ const CustomerAdditionalInfoForm = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                label="Mã số thuế (MST)"
+              label="Mã số thuế (MST)"
                   name="mst"
                   value={formData.mst}
                   onChange={handleInputChange}
-                  placeholder="Nhập 10 chữ số"
+                placeholder="Nhập 9 - 13 chữ số"
                   required
-                  helperText="Mã số thuế phải có đúng 10 chữ số"
-                error={formData.mst.length > 0 && formData.mst.length !== 10}
+                helperText="Mã số thuế phải có từ 9 đến 13 chữ số"
+              error={
+                  formData.mst.length > 0 &&
+                  (formData.mst.length < 9 || formData.mst.length > 13)
+                }
                 />
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                label="Mã số hộ kinh doanh (MSHKD)"
+              label="Mã số hộ kinh doanh (MSHKD)"
                   name="mshkd"
                   value={formData.mshkd}
                   onChange={handleInputChange}
-                  placeholder="Nhập 10 chữ số"
+                placeholder="Nhập 9 - 13 chữ số"
                   required
-                  helperText="Mã số kinh doanh phải có đúng 10 chữ số"
-                error={formData.mshkd.length > 0 && formData.mshkd.length !== 10}
+                helperText="Mã số kinh doanh phải có từ 9 đến 13 chữ số"
+              error={
+                  formData.mshkd.length > 0 &&
+                  (formData.mshkd.length < 9 || formData.mshkd.length > 13)
+                }
                 />
               </Grid>
           </Grid>
@@ -516,6 +553,13 @@ const CustomerAdditionalInfoForm = () => {
             </Typography>
           </Box>
 
+          {declineReason && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                {declineReason}
+              </Typography>
+            </Alert>
+          )}
           {error && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
               {error}

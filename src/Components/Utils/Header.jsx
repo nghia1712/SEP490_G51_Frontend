@@ -174,9 +174,11 @@ function Header() {
     }
   }, [currentToken, userRole]);
 
-  // Ẩn navigation items cho customer khi chưa bổ sung thông tin hoặc ở route customer-unauthenticated
+  // Ẩn navigation items cho customer khi chưa bổ sung thông tin
+  // hoặc đang ở các route đặc biệt (customer-unauthenticated, additional-info)
   const shouldHideCustomerNav =
     location.pathname === "/customer-unauthenticated" ||
+    location.pathname.startsWith("/customer/additional-info") ||
     (userRole === "customer" && customerStatus?.needsAdditionalInfo);
 
   // Function to check if nav item is active

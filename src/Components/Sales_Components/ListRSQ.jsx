@@ -69,6 +69,7 @@ const ListRSQ = () => {
     expiredDate: '',
     depositPercent: 0,
     depositDueDays: 1,
+    expectedDeliveryDate: 2,
     noteId: 1,
   });
   const [quotationLoading, setQuotationLoading] = useState(false);
@@ -607,7 +608,8 @@ const ListRSQ = () => {
             lotQuantity: lot.lotQuantity || lot.LotQuantity || 1,
             unit: lot.unit || lot.Unit || '',
             note: lot.note || lot.Note || '',
-            displayLabel: `${lotIdentifier}${expiredLabel ? `: ${expiredLabel}` : ''}`,
+            // Chỉ hiển thị ngày hết hạn (nếu có), không hiển thị "Lô x"
+            displayLabel: expiredLabel || 'Không có ngày hết hạn',
             taxRate: 0,
           });
           return acc;
@@ -844,6 +846,7 @@ const handleDepositPercentChange = (value) => {
         expiredDate: quotationForm.expiredDate,
         depositPercent: Number(quotationForm.depositPercent) || 0,
         depositDueDays: quotationForm.depositDueDays || 1,
+        expectedDeliveryDate: quotationForm.expectedDeliveryDate || 1,
         status: shouldSend ? 1 : 0,
         details: detailPayload,
       };
@@ -1243,13 +1246,8 @@ const handleDepositPercentChange = (value) => {
                 <TableCell>{request.customerName || '-'}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(request.sentDate)}</TableCell>
                 <TableCell>
-                  {request.quotationDateRange ? (
-                    <Box sx={{ whiteSpace: 'nowrap' }}>
-                      {formatDateRange(request.quotationDateRange)}
-                    </Box>
-                  ) : (
-                    formatDate(request.quotationDate)
-                  )}
+                  {/* Luôn hiển thị ngày báo giá mới nhất */}
+                  {formatDate(request.quotationDate)}
                 </TableCell>
                 <TableCell>
                   {request.status !== undefined && request.status !== null ? (
@@ -1596,6 +1594,7 @@ const handleDepositPercentChange = (value) => {
                 <Box sx={{ minWidth: 320 }}>
                   <Typography variant="body1" sx={{ mb: 1, fontWeight: 600, fontSize: '1.1rem' }}>
                     Cọc (% của đơn hàng)
+                    <span style={{ color: '#d32f2f' }}> *</span>
                   </Typography>
                   <TextField
                     type="number"
@@ -1616,23 +1615,58 @@ const handleDepositPercentChange = (value) => {
                 <Box sx={{ minWidth: 320 }}>
                   <Typography variant="body1" sx={{ mb: 1, fontWeight: 600, fontSize: '1.1rem' }}>
                     Thời hạn thanh toán cọc (ngày)
+                    <span style={{ color: '#d32f2f' }}> *</span>
                   </Typography>
                   <TextField
                     type="number"
                     value={quotationForm.depositDueDays}
-                    onChange={(e) => setQuotationForm({ 
-                      ...quotationForm, 
-                      depositDueDays: Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1)) 
-                    })}
-                    inputProps={{ min: 1, max: 30 }}
+                    onChange={(e) =>
+                      setQuotationForm({
+                        ...quotationForm,
+                        depositDueDays: Math.max(
+                          1,
+                          Math.min(365, parseInt(e.target.value, 10) || 1),
+                        ),
+                      })
+                    }
+                    inputProps={{ min: 1, max: 365 }}
                     variant="outlined"
                     size="medium"
                     fullWidth
-                    sx={{ 
+                    sx={{
                       '& .MuiInputBase-input': {
                         fontSize: '1rem',
                         py: 1.5,
-                      }
+                      },
+                    }}
+                  />
+                </Box>
+                <Box sx={{ minWidth: 320 }}>
+                  <Typography variant="body1" sx={{ mb: 1, fontWeight: 600, fontSize: '1.1rem' }}>
+                    Thời hạn giao hàng (ngày)
+                    <span style={{ color: '#d32f2f' }}> *</span>
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={quotationForm.expectedDeliveryDate}
+                    onChange={(e) =>
+                      setQuotationForm({
+                        ...quotationForm,
+                        expectedDeliveryDate: Math.max(
+                          1,
+                          Math.min(365, parseInt(e.target.value, 10) || 1),
+                        ),
+                      })
+                    }
+                    inputProps={{ min: 1, max: 365 }}
+                    variant="outlined"
+                    size="medium"
+                    fullWidth
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        fontSize: '1rem',
+                        py: 1.5,
+                      },
                     }}
                   />
                 </Box>
@@ -1650,7 +1684,7 @@ const handleDepositPercentChange = (value) => {
                         <TableCell sx={{ width: '60px', textAlign: 'center' }}>STT</TableCell>
                         <TableCell>Tên sản phẩm</TableCell>
                         <TableCell>Đơn vị</TableCell>
-                        <TableCell>Lô hàng</TableCell>
+                        <TableCell>Lô hàng (chọn theo ngày hết hạn)</TableCell>
                         <TableCell>Thuế</TableCell>
                         <TableCell align="right">Thành tiền trước thuế</TableCell>
                         <TableCell align="right">Thành tiền sau thuế</TableCell>
