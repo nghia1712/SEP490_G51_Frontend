@@ -428,7 +428,8 @@ export default function usePO() {
     return poList.filter(
       (po) =>
         po.poid.toString().includes(search) ||
-        po.userName.toLowerCase().includes(search.toLowerCase())
+        po.userName.toLowerCase().includes(search.toLowerCase()) ||
+        po.supplierName.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, poList]);
   // ================== DEBT REPORT ==================

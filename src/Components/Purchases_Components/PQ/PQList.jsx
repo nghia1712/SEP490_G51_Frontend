@@ -72,6 +72,30 @@ export default function PQList() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const handleCreatePO = async (status) => {
+    // 🔥 Kiểm tra nếu không còn sản phẩm nào
+    if (!quotationToCreatePo.items || quotationToCreatePo.items.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "Không thể tạo PO vì danh sách sản phẩm đang trống!",
+        severity: "error",
+      });
+      return;
+    }
+
+    // 🔥 Kiểm tra nếu sản phẩm nào đó chưa nhập số lượng
+    const hasEmptyQty = quotationToCreatePo.items.some(
+      (x) => x.quantity === "" || x.quantity === 0 || x.quantity == null
+    );
+
+    if (hasEmptyQty) {
+      setSnackbar({
+        open: true,
+        message: "Vui lòng nhập số lượng cho tất cả sản phẩm!",
+        severity: "error",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
       await createPO(status);
@@ -79,6 +103,7 @@ export default function PQList() {
       setProcessing(false);
     }
   };
+
   const statusMap = {
     InDate: "Còn hiệu lực",
     OutOfDate: "Hết hiệu lực",

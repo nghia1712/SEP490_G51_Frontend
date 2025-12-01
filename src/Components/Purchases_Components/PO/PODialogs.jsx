@@ -37,7 +37,7 @@ export default function PODialogs({
     <>
       {/* Upload Excel Dialog */}
       <Dialog open={openUpload} onClose={handleCloseUpload} fullWidth>
-        <DialogTitle>Upload file Excel PO</DialogTitle>
+        <DialogTitle>Tải file Excel</DialogTitle>
         <DialogContent>
           <Button variant="outlined" component="label" disabled={uploading}>
             Chọn file Excel
@@ -60,7 +60,7 @@ export default function PODialogs({
             disabled={!excelFile || uploading}
             variant="contained"
           >
-            {uploading ? "Đang upload..." : "Upload"}
+            {uploading ? "Đang tải lên..." : "Tải lên"}
           </Button>
         </DialogActions>
       </Dialog>
