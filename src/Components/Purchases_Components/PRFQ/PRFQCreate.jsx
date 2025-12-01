@@ -310,7 +310,7 @@ export default function PRFQCreate() {
             <Grid item xs={6}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                  Thông tin Nhà Thuốc / Sender
+                  Thông tin Nhà Thuốc
                 </Typography>
                 <Typography variant="body2">
                   Tên: CÔNG TY TNHH DƯỢC PHẨM SỐ 17
@@ -329,7 +329,7 @@ export default function PRFQCreate() {
             <Grid item xs={6}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                  Thông tin Nhà Cung Cấp / Receiver
+                  Thông tin Nhà Cung Cấp
                 </Typography>
 
                 <TextField
@@ -449,7 +449,7 @@ export default function PRFQCreate() {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            placeholder="Tên sản phẩm"
+                            placeholder="Chọn hoặc tìm kiếm sản phẩm"
                             size="small"
                             fullWidth
                           />
@@ -504,7 +504,11 @@ export default function PRFQCreate() {
             mt: 2,
           }}
         >
-          <Button variant="contained" onClick={() => setOpenPreview(true)} disabled={loading}>
+          <Button
+            variant="contained"
+            onClick={() => setOpenPreview(true)}
+            disabled={loading}
+          >
             Xem trước
           </Button>
           <Button

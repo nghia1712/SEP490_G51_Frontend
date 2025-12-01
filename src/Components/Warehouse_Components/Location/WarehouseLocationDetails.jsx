@@ -126,15 +126,15 @@ export default function WarehouseLocationDetailPage() {
   };
 
   const formatVNDate = (dateStr) => {
-  if (!dateStr) return "-";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "-";
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
 
-  // Loại bỏ 0001-01-01 (giá trị mặc định C#)
-  if (date.getFullYear() === 1) return "-";
+    // Loại bỏ 0001-01-01 (giá trị mặc định C#)
+    if (date.getFullYear() === 1) return "-";
 
-  return date.toLocaleDateString("vi-VN"); // luôn trả về dd/MM/yyyy
-};
+    return date.toLocaleDateString("vi-VN"); // luôn trả về dd/MM/yyyy
+  };
 
   const submitInventory = async () => {
     if (!location || !inventorySessionId) return;
@@ -306,12 +306,8 @@ export default function WarehouseLocationDetailPage() {
                           <TableCell>
                             {lot.inputPrice.toLocaleString()} đ
                           </TableCell>
-                          <TableCell>
-                            {formatVNDate(lot.inputDate)}
-                          </TableCell>
-                          <TableCell>
-                            {formatVNDate(lot.inputDate)}
-                          </TableCell>
+                          <TableCell>{formatVNDate(lot.inputDate)}</TableCell>
+                          <TableCell>{formatVNDate(lot.inputDate)}</TableCell>
                           {inventoryMode && (
                             <TableCell>
                               <TextField
@@ -329,9 +325,11 @@ export default function WarehouseLocationDetailPage() {
                                   }));
                                 }}
                                 size="small"
+                                disabled={!!comparisonData}
                               />
                             </TableCell>
                           )}
+
                           {inventoryMode &&
                             comparisonData &&
                             comparisonData.length > 0 && (
@@ -355,6 +353,7 @@ export default function WarehouseLocationDetailPage() {
                                   }));
                                 }}
                                 size="small"
+                                disabled={!!comparisonData}
                               />
                             </TableCell>
                           )}
