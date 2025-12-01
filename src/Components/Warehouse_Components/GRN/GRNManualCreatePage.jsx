@@ -339,6 +339,34 @@ export default function GRNManualCreatePage({ poId }) {
     }
   };
 
+  const handleReloadProducts = async () => {
+    if (!selectedPO) return;
+
+    try {
+      const res = await poAPI.getDetail(selectedPO);
+      const poDetail = res.data?.data;
+      if (!poDetail) return;
+
+      const items = (poDetail.details || [])
+        .filter((p) => p.remainingQty > 0)
+        .map((p) => ({
+          productId: p.productID,
+          productName: p.productName,
+          quantity: p.remainingQty || 1,
+          unitPrice: p.unitPrice || 0,
+          expiredDate: p.expiredDate
+            ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
+            : "",
+          description: p.description || "",
+          remainingQty: p.remainingQty,
+          dvt: p.dvt,
+        }));
+
+      setFormData({ items });
+    } catch (err) {
+      console.error("Lỗi reload sản phẩm:", err);
+    }
+  };
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -434,9 +462,25 @@ export default function GRNManualCreatePage({ poId }) {
 
       {/* --- DANH SÁCH SẢN PHẨM --- */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
-        <Typography variant="subtitle1" fontWeight={600} mb={2}>
-          Danh sách sản phẩm
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={600}>
+            Danh sách sản phẩm
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleReloadProducts}
+          >
+            Tải lại
+          </Button>
+        </Box>
 
         <TableContainer>
           <Table>
@@ -498,7 +542,14 @@ export default function GRNManualCreatePage({ poId }) {
       </Paper>
 
       {/* --- BUTTON --- */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: 2,
+          mt: 3,
+        }}
+      >
         <Button variant="contained" size="large" onClick={handleCreateGRN}>
           Tạo phiếu nhập kho
         </Button>

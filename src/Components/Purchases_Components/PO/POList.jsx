@@ -118,7 +118,7 @@ export default function POList() {
                 <TextField
                   variant="outlined"
                   size="small"
-                  placeholder="Tìm kiếm PO ID hoặc người tạo..."
+                  placeholder="Tìm kiếm..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   InputProps={{
