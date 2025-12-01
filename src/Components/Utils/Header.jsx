@@ -270,7 +270,7 @@ function Header() {
       allowedRoles: ["purchases_staff", "admin"],
     },
     {
-      label: "Báo giá(PQ)",
+      label: "Báo giá nhập",
       path: "/purchase/pq",
       allowedRoles: ["purchases_staff"],
     },
