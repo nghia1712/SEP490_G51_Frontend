@@ -30,7 +30,11 @@ export default function useGRNList({ poId, autoOpenCreate }) {
   const [openCreate, setOpenCreate] = useState(false);
 
   // Snackbar
-  const [snack, setSnack] = useState({ open: false, severity: "success", message: "" });
+  const [snack, setSnack] = useState({
+    open: false,
+    severity: "success",
+    message: "",
+  });
   const handleSnackClose = () => setSnack((s) => ({ ...s, open: false }));
 
   /** ===================== Fetch GRN list ===================== */
@@ -54,7 +58,19 @@ export default function useGRNList({ poId, autoOpenCreate }) {
   const filtered = useMemo(() => {
     if (!search) return data;
     return data.filter((item) => {
-      const text = [item.grnId, item.supplierName, item.description, item.poid].join(" ").toLowerCase();
+      const text = [
+        item.grnId,
+        item.grnid,
+        item.poid,
+        item.source,
+        item.description,
+        item.warehouse,
+        item.warehouseName,
+        item.createBy,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
       return text.includes(search.toLowerCase());
     });
   }, [search, data]);
@@ -111,8 +127,14 @@ export default function useGRNList({ poId, autoOpenCreate }) {
     try {
       const res = await poAPI.getDetail(id);
       const data = res?.data?.data ?? null;
+
       setPoInfo(data);
-      setPoItems(data?.details ?? []);
+
+      const filteredItems = (data?.details ?? []).filter(
+        (item) => Number(item.remainingQty) > 0
+      );
+
+      setPoItems(filteredItems);
     } catch (err) {
       console.error(err);
     }
@@ -127,21 +149,59 @@ export default function useGRNList({ poId, autoOpenCreate }) {
   }, [autoOpenCreate]);
 
   /** ===================== Create GRN ===================== */
-  const handleCreateGRN = async () => {
-    if (!selectedWarehouse || !selectedLocation) {
-      return setSnack({ open: true, severity: "error", message: "Vui lòng chọn kho và vị trí kho" });
-    }
-    const payload = { warehouseLocationId: selectedLocation };
-    try {
-      await grnApi.createFromPO(poId, payload);
-      setSnack({ open: true, severity: "success", message: "Tạo phiếu nhập kho thành công" });
-      setOpenCreate(false);
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      setSnack({ open: true, severity: "error", message: "Tạo phiếu nhập kho thất bại" });
-    }
-  };
+const handleCreateGRN = async () => {
+  if (!selectedWarehouse || !selectedLocation) {
+    return setSnack({
+      open: true,
+      severity: "error",
+      message: "Vui lòng chọn kho và vị trí kho",
+    });
+  }
+
+  if (!poItems || poItems.length === 0) {
+    return setSnack({
+      open: true,
+      severity: "error",
+      message: "Không có sản phẩm còn tồn để tạo GRN",
+    });
+  }
+
+  const hasInvalidQuantity = poItems.some(
+    (item) => !item.quantity || Number(item.quantity) <= 0
+  );
+
+  if (hasInvalidQuantity) {
+    return setSnack({
+      open: true,
+      severity: "error",
+      message: "Số lượng sản phẩm không được để trống hoặc nhỏ hơn 0!",
+    });
+  }
+
+  const payload = { warehouseLocationId: selectedLocation };
+
+  try {
+    const res = await grnApi.createFromPO(poId, payload);
+    setSnack({
+      open: true,
+      severity: "success",
+      message: res?.data?.message || "Tạo phiếu nhập kho thành công",
+    });
+    setOpenCreate(false);
+    fetchData();
+  } catch (err) {
+    console.error(err);
+    // Lấy thông báo từ API trả về
+    const apiMessage =
+      err?.response?.data?.message || err?.response?.data?.error || err.message || "Tạo phiếu nhập kho thất bại";
+    setSnack({
+      open: true,
+      severity: "error",
+      message: apiMessage,
+    });
+  }
+};
+
 
   /** ===================== Download PDF ===================== */
   const handleDownloadPDF = async (grnId) => {
@@ -156,7 +216,11 @@ export default function useGRNList({ poId, autoOpenCreate }) {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      setSnack({ open: true, severity: "error", message: "Không thể tải file PDF" });
+      setSnack({
+        open: true,
+        severity: "error",
+        message: "Không thể tải file PDF",
+      });
     }
   };
 

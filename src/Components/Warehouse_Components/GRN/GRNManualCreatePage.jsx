@@ -122,7 +122,7 @@ export default function GRNManualCreatePage({ poId }) {
 
       setPoList(merged);
     } catch (err) {
-      console.error("Lỗi fetch PO chưa nhận đủ hàng:", err);
+      console.error("Lỗi lấy đơn hàng chưa nhận đủ hàng:", err);
     }
   };
 
@@ -131,7 +131,7 @@ export default function GRNManualCreatePage({ poId }) {
       const res = await warehouseApi.getAllWarehouses();
       console.log("📦 warehouseApi.getAllWarehouses raw data =", res.data);
 
-       const list = res.data?.data ?? [];
+      const list = res.data?.data ?? [];
 
       const activeList = list.filter((w) => w.status);
 
@@ -200,19 +200,21 @@ export default function GRNManualCreatePage({ poId }) {
         const poDetail = res.data?.data;
         if (!poDetail) return;
 
-        const items = (poDetail.details || []).map((p) => ({
-          productId: p.productID,
-          productName: p.productName,
-          quantity: p.remainingQty || 1,
-          unitPrice: p.unitPrice || 0,
-          expiredDate: p.expiredDate
-            ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
-            : "",
+        const items = (poDetail.details || [])
+          .filter((p) => p.remainingQty > 0)
+          .map((p) => ({
+            productId: p.productID,
+            productName: p.productName,
+            quantity: p.remainingQty || 1,
+            unitPrice: p.unitPrice || 0,
+            expiredDate: p.expiredDate
+              ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
+              : "",
 
-          description: p.description || "",
-          remainingQty:p.remainingQty,
-          dvt:p.dvt,
-        }));
+            description: p.description || "",
+            remainingQty: p.remainingQty,
+            dvt: p.dvt,
+          }));
 
         setFormData({ items });
       } catch (err) {
@@ -240,7 +242,7 @@ export default function GRNManualCreatePage({ poId }) {
     if (!selectedPO) {
       return setSnackbar({
         open: true,
-        message: "Vui lòng chọn PO",
+        message: "Vui lòng chọn đơn hàng",
         severity: "error",
       });
     }
@@ -255,6 +257,16 @@ export default function GRNManualCreatePage({ poId }) {
       return setSnackbar({
         open: true,
         message: "Vui lòng chọn nhà cung cấp",
+        severity: "error",
+      });
+    }
+    const invalidItem = formData.items.find(
+      (item) => !item.quantity || Number(item.quantity) <= 0
+    );
+    if (invalidItem) {
+      return setSnackbar({
+        open: true,
+        message: "Số lượng sản phẩm không được để trống hoặc nhỏ hơn 0",
         severity: "error",
       });
     }

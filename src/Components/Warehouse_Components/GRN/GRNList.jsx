@@ -152,7 +152,7 @@ export default function GRNListPage() {
                     <TableCell align="center">Đơn hàng</TableCell>
                     <TableCell>Nhà cung cấp</TableCell>
                     <TableCell>Ngày tạo</TableCell>
-                    <TableCell>Người phụ trách</TableCell>
+                    <TableCell>Người tạo</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
@@ -389,7 +389,7 @@ export default function GRNListPage() {
                     </Grid>
                     <Grid item xs={6}>
                       <Typography>
-                        <b>Người phụ trách:</b> {selectedGRN.createBy}
+                        <b>Người tạo:</b> {selectedGRN.createBy}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
