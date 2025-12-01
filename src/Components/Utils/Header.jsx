@@ -246,7 +246,7 @@ function Header() {
     },
     {
       label: "Tài khoản khách hàng",
-      path: "/admin/user/customer",
+      path: "/admin/users/customer",
       allowedRoles: ["manager"],
     },
     {
