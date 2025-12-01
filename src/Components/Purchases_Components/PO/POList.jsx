@@ -248,7 +248,7 @@ export default function POList() {
             </TableContainer>
 
             {/* PAGINATION */}
-            {filteredPOs.length > 0 && (
+            {filteredPOs.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}

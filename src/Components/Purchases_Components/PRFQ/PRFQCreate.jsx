@@ -227,9 +227,23 @@ export default function PRFQCreate() {
     setLoading(true);
 
     try {
+      // Kiểm tra sản phẩm rỗng
+      const invalidItem = formData.items.some(
+        (item) => !item.productId || !item.productName.trim()
+      );
       const productIds = formData.items
         .map((item) => item.productId)
         .filter((id) => id);
+
+      if (invalidItem) {
+        setSnackbar({
+          open: true,
+          message: "Vui lòng chọn sản phẩm!",
+          severity: "warning",
+        });
+        setLoading(false);
+        return;
+      }
 
       if (productIds.length === 0) {
         setSnackbar({
@@ -305,29 +319,58 @@ export default function PRFQCreate() {
 
         {/* THÔNG TIN NCC */}
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Grid container spacing={2}>
+          <Grid
+            container
+            spacing={2}
+            sx={{ display: "flex", alignItems: "stretch" }}
+          >
             {/* BÊN TRÁI: NHÀ THUỐC */}
-            <Grid item xs={6}>
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                  Thông tin Nhà Thuốc
-                </Typography>
-                <Typography variant="body2">
-                  Tên: CÔNG TY TNHH DƯỢC PHẨM SỐ 17
-                </Typography>
-                <Typography variant="body2">
-                  Mã số thuế: 030203002865
-                </Typography>
-                <Typography variant="body2">
-                  Địa chỉ: 165 Dư Hàng Kênh, Tp Hải Phòng
-                </Typography>
-                <Typography variant="body2">Hotline: 0398233047</Typography>
+            <Grid item xs={6} sx={{ display: "flex" }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, mb: 1 }}
+                  >
+                    Thông tin Nhà Thuốc
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Tên:</strong> CÔNG TY TNHH DƯỢC PHẨM SỐ 17
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Mã số thuế:</strong> 030203002865
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Địa chỉ:</strong> 165 Dư Hàng Kênh, Tp Hải Phòng
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Hotline:</strong> 0398233047
+                  </Typography>
+                </Box>
               </Paper>
             </Grid>
 
             {/* BÊN PHẢI: NHÀ CUNG CẤP */}
-            <Grid item xs={6}>
-              <Paper variant="outlined" sx={{ p: 2 }}>
+            <Grid item xs={6} sx={{ display: "flex" }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-start",
+                }}
+              >
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                   Thông tin Nhà Cung Cấp
                 </Typography>
@@ -349,19 +392,25 @@ export default function PRFQCreate() {
                   ))}
                 </TextField>
 
-                {selectedSupplier && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2">
-                      Email: {selectedSupplier.email}
+                <Box sx={{ mt: 1 }}>
+                  {selectedSupplier ? (
+                    <>
+                      <Typography variant="body2">
+                        <strong>Email:</strong> {selectedSupplier.email}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Địa chỉ:</strong> {selectedSupplier.address}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>SĐT:</strong> {selectedSupplier.phoneNumber}
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                      Chưa chọn nhà cung cấp
                     </Typography>
-                    <Typography variant="body2">
-                      Địa chỉ: {selectedSupplier.address}
-                    </Typography>
-                    <Typography variant="body2">
-                      SĐT: {selectedSupplier.phoneNumber}
-                    </Typography>
-                  </Box>
-                )}
+                  )}
+                </Box>
               </Paper>
             </Grid>
           </Grid>
@@ -505,14 +554,16 @@ export default function PRFQCreate() {
           }}
         >
           <Button
-            variant="contained"
+            variant="outlined"
+            color="inherit"
             onClick={() => setOpenPreview(true)}
             disabled={loading}
           >
             Xem trước
           </Button>
           <Button
-            variant="contained"
+            variant="outlined"
+            color="secondary"
             onClick={() => handleSubmit("Draft")}
             disabled={loading}
           >

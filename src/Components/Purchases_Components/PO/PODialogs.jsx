@@ -13,8 +13,10 @@ import {
   TableBody,
   IconButton,
   TextField,
+  Box,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { Delete } from "@mui/icons-material";
 
 export default function PODialogs({
   openUpload,
@@ -72,24 +74,47 @@ export default function PODialogs({
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Xác nhận sản phẩm từ Excel</DialogTitle>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{
+            px: 2,
+            borderBottom: "1px solid #e0e0e0",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          <DialogTitle sx={{ m: 0, fontSize: 18, fontWeight: "bold" }}>
+            Xác nhận sản phẩm từ Excel
+          </DialogTitle>
+
+          <Button
+            color="info"
+            size="small"
+            onClick={handleUploadExcel}
+            disabled={sending}
+          >
+            {sending ? <CircularProgress size={20} /> : "Tải lại"}
+          </Button>
+        </Box>
 
         <DialogContent dividers sx={{ minHeight: "70vh" }}>
           <Table size="small">
             <TableHead sx={{ background: "#e0e0e0" }}>
               <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Tên sản phẩm</TableCell>
-                <TableCell>Mô tả</TableCell>
-                <TableCell>ĐVT</TableCell>
-                <TableCell>Đơn giá</TableCell>
-                <TableCell>Thuế</TableCell>
-                <TableCell>Số lượng</TableCell>
-                <TableCell>Gợi ý</TableCell>
-                <TableCell>Tối thiểu</TableCell>
-                <TableCell>Hiện tại</TableCell>
-                <TableCell>Tối đa</TableCell>
-                <TableCell>Hạn sử dụng</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  Tên sản phẩm
+                </TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Mô tả</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>ĐVT</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Đơn giá</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Thuế</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Số lượng</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Gợi ý</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Tối thiểu</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Hiện tại</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Tối đa</TableCell>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>Hạn dùng</TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableHead>
@@ -97,9 +122,20 @@ export default function PODialogs({
             <TableBody>
               {uploadedProducts.map((p, i) => (
                 <TableRow key={p.productID}>
-                  <TableCell>{i + 1}</TableCell>
                   <TableCell>{p.productName}</TableCell>
-                  <TableCell>{p.description}</TableCell>
+                  <TableCell
+                    sx={{
+                      maxWidth: 200, // giới hạn chiều rộng cột
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      cursor: "pointer",
+                    }}
+                    title={p.description} // hiển thị tooltip khi hover
+                  >
+                    {p.description}
+                  </TableCell>
+
                   <TableCell>{p.dvt}</TableCell>
                   <TableCell>{p.unitPrice.toLocaleString()} ₫</TableCell>
                   <TableCell>{p.tax * 100} %</TableCell>
@@ -166,7 +202,7 @@ export default function PODialogs({
                         )
                       }
                     >
-                      <CloseIcon />
+                      <Delete />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -191,14 +227,6 @@ export default function PODialogs({
             disabled={sending}
           >
             {sending ? <CircularProgress size={20} /> : "Đóng"}
-          </Button>
-          <Button
-            variant="outlined"
-            color="info"
-            onClick={handleUploadExcel}
-            disabled={sending}
-          >
-            {sending ? <CircularProgress size={20} /> : "Tải lại"}
           </Button>
           <Button
             variant="contained"

@@ -386,7 +386,24 @@ export default function StockExportForm() {
             </Stack>
 
             {/* Chi tiết lô */}
-            <Typography variant="h6">Chi tiết lô hàng</Typography>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Typography variant="h6">Chi tiết lô hàng</Typography>
+              <Button
+                color="primary"
+                onClick={() =>
+                  setForm((prev) => ({ ...prev, details: originalDetails }))
+                }
+              >
+                Tải lại
+              </Button>
+            </Box>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -463,21 +480,12 @@ export default function StockExportForm() {
             <Stack direction="row" spacing={2} justifyContent="flex-end">
               <Button onClick={() => navigate("/stock-export")}>Hủy</Button>
               <Button
-                variant="contained"
+                variant="outlined"
+                color="secondary"
                 onClick={() => handlleSubmit("Draft")}
               >
                 Lưu nháp
               </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={() =>
-                  setForm((prev) => ({ ...prev, details: originalDetails }))
-                }
-              >
-                Tải lại
-              </Button>
-
               <Button
                 variant="contained"
                 color="success"

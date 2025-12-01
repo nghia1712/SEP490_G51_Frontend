@@ -406,7 +406,7 @@ export default function StockExportList() {
             </TableContainer>
 
             {/* PAGINATION */}
-            {filteredList.length > 0 && (
+            {filteredList.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}

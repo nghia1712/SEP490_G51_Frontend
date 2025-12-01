@@ -315,7 +315,7 @@ export default function WarehouseList() {
             </TableContainer>
 
             {/* PAGINATION */}
-            {filteredWarehouses.length > 0 && (
+            {filteredWarehouses.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}

@@ -144,8 +144,8 @@ export default function CustomerDebtList() {
                 <TableCell align="center">Mã đơn hàng</TableCell>
                 <TableCell align="center">Trạng thái</TableCell>
                 <TableCell align="center">Hạn trả</TableCell>
-                <TableCell align="center">Tổng tiền phải trả</TableCell>
-                <TableCell align="center">Còn nợ</TableCell>
+                <TableCell align="right">Tổng tiền phải trả</TableCell>
+                <TableCell align="right">Còn nợ</TableCell>
               </TableRow>
             </TableHead>
 
@@ -179,7 +179,7 @@ export default function CustomerDebtList() {
       )}
 
       {/* PAGINATION */}
-      {paginatedData.length > 0 && (
+      {paginatedData.length > 0 && totalPages > 1 && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
           <Pagination
             count={totalPages}

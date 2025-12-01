@@ -29,6 +29,9 @@ import {
   CardContent,
   Container,
 } from "@mui/material";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { vi as viLocale } from "date-fns/locale";
 import {
   Search as SearchIcon,
   Visibility,
@@ -58,14 +61,24 @@ export default function PQList() {
     changeQuantity,
     removeItem,
   } = usePQ();
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const filtered = quotations.filter((q) =>
-    q.supplierName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = quotations.filter((q) => {
+    const supplierMatch = q.supplierName
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+    const sentDate = new Date(q.sentDate);
+    const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
+    const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
+
+    return supplierMatch && fromMatch && toMatch;
+  });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
 
@@ -152,6 +165,46 @@ export default function PQList() {
                   }}
                   sx={{ width: 350 }}
                 />
+
+                <LocalizationProvider
+                  dateAdapter={AdapterDateFns}
+                  locale={viLocale}
+                >
+                  <DatePicker
+                    label="Ngày gửi từ"
+                    value={dateFrom ? new Date(dateFrom) : null}
+                    onChange={(newValue) => {
+                      if (!newValue) return;
+                      const value = newValue.toISOString().split("T")[0];
+                      setDateFrom(value);
+
+                      // Nếu dateTo trước dateFrom thì reset dateTo
+                      if (dateTo && new Date(dateTo) < newValue) {
+                        setDateTo("");
+                      }
+                    }}
+                    format="dd/MM/yyyy"
+                    slotProps={{
+                      textField: { size: "small", sx: { width: 180 } },
+                    }}
+                    maxDate={dateTo ? new Date(dateTo) : undefined}
+                  />
+
+                  <DatePicker
+                    label="Ngày gửi đến"
+                    value={dateTo ? new Date(dateTo) : null}
+                    onChange={(newValue) => {
+                      if (!newValue) return;
+                      const value = newValue.toISOString().split("T")[0];
+                      setDateTo(value);
+                    }}
+                    format="dd/MM/yyyy"
+                    slotProps={{
+                      textField: { size: "small", sx: { width: 180 } },
+                    }}
+                    minDate={dateFrom ? new Date(dateFrom) : undefined}
+                  />
+                </LocalizationProvider>
               </Stack>
             </Paper>
 
@@ -253,7 +306,7 @@ export default function PQList() {
             </TableContainer>
 
             {/* PAGINATION */}
-            {filtered.length > 0 && (
+            {filtered.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}
@@ -357,38 +410,74 @@ export default function PQList() {
                 <strong>Mã báo giá:</strong> PQ-
                 {quotationToCreatePo.quotationId}
               </Typography>
-              <Typography sx={{ mt: 2, fontWeight: "bold" }}>
-                Danh sách sản phẩm:
-              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mt: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold" }}>
+                  Danh sách sản phẩm:
+                </Typography>
+
+                <Button
+                  color="info"
+                  onClick={() => openCreatePO(quotationToCreatePo?.quotationId)}
+                  disabled={processing}
+                >
+                  {processing ? <CircularProgress size={20} /> : "Tải lại"}
+                </Button>
+              </Box>
 
               <Table size="small">
                 <TableHead sx={{ background: "#e0e0e0" }}>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Sản phẩm</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell align="center">Đơn vị</TableCell>
-                    <TableCell align="center">Đơn giá</TableCell>
-                    <TableCell align="center">Thuế</TableCell>
-                    <TableCell align="center">Số lượng</TableCell>
-                    <TableCell align="center">Gợi ý</TableCell>
-                    <TableCell align="center">Tối thiểu</TableCell>
-                    <TableCell align="center">Hiện tại</TableCell>
-                    <TableCell align="center">Tối đa</TableCell>
-
-                    <TableCell align="center">Hạn dùng</TableCell>
-                    <TableCell align="center"></TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Tên sản phẩm
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Mô tả</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>ĐVT</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Đơn giá</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Thuế</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Số lượng
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Gợi ý</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Tối thiểu
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Hiện tại
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Tối đa</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Hạn dùng
+                    </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
                   {quotationToCreatePo.items?.map((item, i) => (
                     <TableRow key={i}>
-                      <TableCell>{i + 1}</TableCell>
                       <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.productDescription}</TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 200, // giới hạn chiều rộng cột
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          cursor: "pointer",
+                        }}
+                        title={item.productDescription} // tooltip khi hover
+                      >
+                        {item.productDescription}
+                      </TableCell>
+
                       <TableCell align="center">{item.productUnit}</TableCell>
-                      <TableCell align="center">
+                      <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
                         {item.unitPrice?.toLocaleString()} đ
                       </TableCell>
                       <TableCell align="center">{item.tax * 100} %</TableCell>
@@ -472,14 +561,6 @@ export default function PQList() {
             disabled={processing}
           >
             {processing ? <CircularProgress size={20} /> : "Tạo nháp"}
-          </Button>
-          <Button
-            variant="outlined"
-            color="info"
-            onClick={() => openCreatePO(quotationToCreatePo?.quotationId)}
-            disabled={processing}
-          >
-            {processing ? <CircularProgress size={20} /> : "Tải lại"}
           </Button>
           <Button
             variant="contained"

@@ -293,7 +293,7 @@ export default function PRFQList() {
             </TableContainer>
 
             {/* PAGINATION */}
-            {filteredData.length > 0 && (
+            {filteredData.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}

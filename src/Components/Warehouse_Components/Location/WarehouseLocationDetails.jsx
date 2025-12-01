@@ -380,7 +380,7 @@ export default function WarehouseLocationDetailPage() {
               </TableContainer>
 
               {/* PAGINATION */}
-              {location?.lotProduct?.length > 0 && (
+              {location?.lotProduct?.length > 0 && totalPages > 1 && (
                 <Box
                   sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
                 >

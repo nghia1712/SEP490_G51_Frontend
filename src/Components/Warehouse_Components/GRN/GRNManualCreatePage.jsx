@@ -475,7 +475,6 @@ export default function GRNManualCreatePage({ poId }) {
           </Typography>
           <Button
             size="small"
-            variant="outlined"
             onClick={handleReloadProducts}
           >
             Tải lại

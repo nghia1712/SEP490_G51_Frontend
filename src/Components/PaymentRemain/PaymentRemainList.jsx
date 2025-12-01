@@ -28,7 +28,7 @@ import {
   Container,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { Visibility, Paid , RequestQuote } from "@mui/icons-material";
+import { Visibility, Paid, RequestQuote } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import paymentAPI from "../../API/paymentAPI";
 import userAPI from "../../API/userAPI";
@@ -358,12 +358,12 @@ const PaymentRemainList = () => {
                     sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
                   >
                     <TableRow>
-                      <TableCell>ID</TableCell>
+                      <TableCell>Mã yêu cầu</TableCell>
                       <TableCell>Mã đơn hàng</TableCell>
                       <TableCell>Mã hóa đơn</TableCell>
                       <TableCell>Loại thanh toán</TableCell>
-                      <TableCell>Phương thức</TableCell>
-                      <TableCell>Số tiền</TableCell>
+                      <TableCell align="center">Phương thức</TableCell>
+                      <TableCell align="right">Số tiền</TableCell>
                       <TableCell>Trạng thái</TableCell>
                       <TableCell>Ngày yêu cầu</TableCell>
                       <TableCell align="center">Thao tác</TableCell>
@@ -380,7 +380,7 @@ const PaymentRemainList = () => {
                     ) : (
                       paginatedList.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell>{item.id}</TableCell>
+                          <TableCell align="center">{item.id}</TableCell>
                           <TableCell>
                             {item.salesOrderCode || item.salesOrderId}
                           </TableCell>
@@ -388,7 +388,7 @@ const PaymentRemainList = () => {
                           <TableCell>
                             {renderPaymentType(item.paymentType)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align="center">
                             {renderPaymentMethod(item.paymentMethod)}
                           </TableCell>
                           <TableCell align="right">
@@ -443,7 +443,7 @@ const PaymentRemainList = () => {
             )}
 
             {/* PAGINATION */}
-            {paginatedList.length > 0 && (
+            {paginatedList.length > 0 && totalPages > 1 && (
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
                 <Pagination
                   count={totalPages}
