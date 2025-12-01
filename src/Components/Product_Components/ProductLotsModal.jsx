@@ -19,6 +19,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import warehouseAPI from "../../API/warehouseAPI";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 /* ----------------- HÀM XỬ LÝ NGÀY ------------------ */
 /* Hỗ trợ cả dd/MM/yyyy và yyyy-MM-dd */
@@ -38,6 +39,7 @@ const parseDate = (dateStr) => {
 
   return new Date(dateStr);
 };
+const userRole = getUserRoleFromToken();
 
 const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
   const [localLots, setLocalLots] = useState([]);
@@ -51,7 +53,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
 
   useEffect(() => {
     setLocalLots(lots);
-    setEditingLotId(null); // reset edit khi mở popup
+    setEditingLotId(null);
   }, [lots]);
 
   const handleSalePriceChange = (lotId, value) => {
@@ -145,7 +147,9 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Mã sản phẩm</TableCell>
                   <TableCell>Ngày kiểm tra cuối</TableCell>
-                  <TableCell>Hành động</TableCell>
+                  {userRole === "sales_staff" && (
+                    <TableCell>Hành động</TableCell>
+                  )}
                 </TableRow>
               </TableHead>
 
@@ -175,10 +179,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                             size="small"
                             value={lot.salePrice}
                             onChange={(e) =>
-                              handleSalePriceChange(
-                                lot.lotID,
-                                e.target.value
-                              )
+                              handleSalePriceChange(lot.lotID, e.target.value)
                             }
                             disabled={updatingLotId === lot.lotID}
                             variant="outlined"
@@ -210,19 +211,20 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                       </TableCell>
 
                       <TableCell>
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => handleUpdateClick(lot)}
-                          disabled={updatingLotId === lot.lotID}
-                        >
-                          {editingLotId === lot.lotID ? (
-                            <SaveIcon />
-                          ) : (
-                            <EditIcon />
-                          )}
-                        </IconButton>
-
+                        {userRole === "sales_staff" && (
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => handleUpdateClick(lot)}
+                            disabled={updatingLotId === lot.lotID}
+                          >
+                            {editingLotId === lot.lotID ? (
+                              <SaveIcon />
+                            ) : (
+                              <EditIcon />
+                            )}
+                          </IconButton>
+                        )}
                         {updatingLotId === lot.lotID && (
                           <CircularProgress size={20} sx={{ ml: 1 }} />
                         )}
