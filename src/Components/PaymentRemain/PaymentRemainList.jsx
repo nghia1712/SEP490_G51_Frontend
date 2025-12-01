@@ -139,7 +139,7 @@ const PaymentRemainList = () => {
   const renderStatus = (vnPayStatus) => {
     switch (vnPayStatus) {
       case 0: // NotPaymentYet
-        return <Chip color="warning" label="Chưa thanh toán" />;
+        return <Chip color="warning" label="Chờ thanh toán" />;
       case 1: // Deposited
         return <Chip color="info" label="Đã đặt cọc" />;
       case 2: // PartiallyPaid
@@ -326,7 +326,7 @@ const PaymentRemainList = () => {
                   sx={{ width: 180 }}
                 >
                   <MenuItem value="">Tất cả trạng thái</MenuItem>
-                  <MenuItem value={0}>Chờ xử lý</MenuItem>
+                  <MenuItem value={0}>Chờ thanh toán</MenuItem>
                   <MenuItem value={1}>Đã đặt cọc</MenuItem>
                   <MenuItem value={2}>Thanh toán một phần</MenuItem>
                   <MenuItem value={3}>Đã thanh toán</MenuItem>

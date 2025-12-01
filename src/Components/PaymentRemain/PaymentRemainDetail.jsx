@@ -20,7 +20,7 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
   const renderStatus = (vnPayStatus) => {
     switch (vnPayStatus) {
       case 0:
-        return <Chip color="warning" label="Chưa thanh toán" />;
+        return <Chip color="warning" label="Chờ thanh toán" />;
       case 1:
         return <Chip color="info" label="Đã đặt cọc" />;
       case 2:
