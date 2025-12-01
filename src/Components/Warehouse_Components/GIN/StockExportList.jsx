@@ -231,6 +231,7 @@ export default function StockExportList() {
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
                 alignItems="center"
+                justifyContent="space-between"
               >
                 <TextField
                   placeholder="Tìm kiếm..."
@@ -245,6 +246,7 @@ export default function StockExportList() {
                     ),
                   }}
                 />
+
                 {userRole === "sales_staff" && (
                   <Button
                     variant="contained"

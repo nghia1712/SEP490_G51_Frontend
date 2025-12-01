@@ -106,7 +106,7 @@ export default function StockExportForm() {
   // Sau khi danh sách đơn hàng được load, nếu có đơn được chọn sẵn
   // từ màn hình trước thì load luôn chi tiết lô tương ứng
   useEffect(() => {
-    if (id) return; // chỉ áp dụng cho màn hình create
+    if (id) return;
 
     const preselectedId = location.state?.preselectedSalesOrderId;
     if (!preselectedId) return;
@@ -214,7 +214,8 @@ export default function StockExportForm() {
 
   const validateForm = () => {
     const newErrors = [];
-
+    if (!form.details || form.details.length === 0)
+      newErrors.push("Vui lòng thêm sản phẩm");
     if (!form.salesOrderId) newErrors.push("Vui lòng chọn đơn hàng");
     if (!form.dueDate) newErrors.push("Vui lòng chọn Ngày xuất");
 
@@ -461,12 +462,15 @@ export default function StockExportForm() {
             {/* Buttons */}
             <Stack direction="row" spacing={2} justifyContent="flex-end">
               <Button onClick={() => navigate("/stock-export")}>Hủy</Button>
-              <Button variant="contained" onClick={() => handleSubmit("Draft")}>
+              <Button
+                variant="contained"
+                onClick={() => handlleSubmit("Draft")}
+              >
                 Lưu nháp
               </Button>
               <Button
                 variant="contained"
-                color="success"
+                color="secondary"
                 onClick={() =>
                   setForm((prev) => ({ ...prev, details: originalDetails }))
                 }

@@ -35,9 +35,9 @@ const ginAPI = {
     }),
 
   // ✅ POST: Báo kho không đủ hàng
-  notEnough: (stockExportOrder) =>
+  notEnough: (stockExportOrderId) =>
     authorApi.post(`${API_URL}/response-not-enough`, null, {
-      params: { stockExportOrder },
+      params: { stockExportOrderId },
     }),
 
   // ✅ POST: Xuất lô sản phẩm
