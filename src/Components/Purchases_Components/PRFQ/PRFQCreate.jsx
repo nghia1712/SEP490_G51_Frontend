@@ -582,10 +582,10 @@ export default function PRFQCreate() {
                         colSpan={4}
                         sx={{ fontWeight: 700, borderRight: "1px solid #000" }}
                       >
-                        BÊN GỬI / SENDER
+                        BÊN GỬI
                       </TableCell>
                       <TableCell colSpan={4} sx={{ fontWeight: 700 }}>
-                        BÊN NHẬN / RECEIVER
+                        BÊN NHẬN
                       </TableCell>
                     </TableRow>
 
