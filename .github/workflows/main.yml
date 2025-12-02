@@ -1,0 +1,53 @@
+name: deploy bbpharmacy.site
+
+on:
+    push:
+        branches: ["main"]
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+
+            - name: Use legacy peer deps to avoid ERESOLVE
+              run: npm config set legacy-peer-deps true
+
+            - run: npm ci
+            - run: npm run build
+
+            - name: Zip dist folder
+              run: |
+                  zip -r dist.zip dist
+
+            - name: Upload dist.zip to VPS
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.USER_NAME }}
+                  password: ${{ secrets.PASS_WORD }}
+                  port: 22
+                  source: "dist.zip"
+                  target: "/tmp/"
+
+            - name: Deploy bbpharmacy.site
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.USER_NAME }}
+                  password: ${{ secrets.PASS_WORD }}
+                  port: 22
+                  script: |
+                      ROOT="/www/wwwroot/bbpharmacy.site"
+                      echo "Cleaning old files (except .user.ini & .htaccess)"
+                      find $ROOT -mindepth 1 ! -name '.user.ini' ! -name '.htaccess' ! -name '.well-known' -exec rm -rf {} +
+                      echo "Extracting new build..."
+                      unzip -o /tmp/dist.zip -d "$ROOT"
+                      rm -f /tmp/dist.zip
+                      echo "Deploy done."
