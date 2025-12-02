@@ -184,15 +184,9 @@ export default function PODialogs({
                   <TableCell>{p.minQuantity}</TableCell>
                   <TableCell>{p.currentQuantity}</TableCell>
                   <TableCell>{p.maxQuantity}</TableCell>
-
                   <TableCell>
-                    {p.expiredDateDisplay
-                      ? parseDDMMYYYY(p.expiredDateDisplay).toLocaleDateString(
-                          "vi-VN"
-                        )
-                      : "-"}
+                    {p.expiredDateDisplay}
                   </TableCell>
-
                   <TableCell>
                     <IconButton
                       color="error"
