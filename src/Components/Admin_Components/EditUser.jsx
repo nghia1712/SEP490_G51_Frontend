@@ -50,17 +50,17 @@ const EditUser = ({ user, closeModal, users, setUsers, onUpdateSuccess }) => {
                 // Check if path has extension
                 const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatar);
                 if (hasExtension) {
-                    return `http://localhost:5137${avatar}`;
+                    return `https://api.bbpharmacy.site/${avatar}`;
                 } else {
                     // Try with .jpg extension
-                    return `http://localhost:5137${avatar}.jpg`;
+                    return `https://api.bbpharmacy.site/${avatar}.jpg`;
                 }
             }
             // If it's just a filename, assume it's in the images folder
             if (avatar.startsWith('/')) {
-                return `http://localhost:5137${avatar}`;
+                return `https://api.bbpharmacy.site/${avatar}`;
             }
-            return `http://localhost:5137/images/${avatar}`;
+            return `https://api.bbpharmacy.site//images/${avatar}`;
         }
         
         return null; // No avatar found
@@ -406,11 +406,11 @@ const EditUser = ({ user, closeModal, users, setUsers, onUpdateSuccess }) => {
                                     } else if (userAvatarFromAPI !== null && userAvatarFromAPI !== undefined) {
                                         // Avatar from API (explicitly check for null/undefined to handle deleted avatars)
                                         if (userAvatarFromAPI.startsWith('/images/')) {
-                                            avatarUrl = `http://localhost:5137${userAvatarFromAPI}`;
+                                            avatarUrl = `https://api.bbpharmacy.site/${userAvatarFromAPI}`;
                                         } else if (userAvatarFromAPI.startsWith('http://') || userAvatarFromAPI.startsWith('https://')) {
                                             avatarUrl = userAvatarFromAPI;
                                         } else {
-                                            avatarUrl = `http://localhost:5137/images/${userAvatarFromAPI}`;
+                                            avatarUrl = `https://api.bbpharmacy.site//images/${userAvatarFromAPI}`;
                                         }
                                     } else if (userAvatarFromAPI === null) {
                                         // API explicitly returned null (avatar deleted), show default

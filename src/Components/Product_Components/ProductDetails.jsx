@@ -109,7 +109,7 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
               <Row gutter={[32, 16]} align="middle" justify="center">
                 <Col xs={24} md={9} style={{ textAlign: "center" }}>
                   <Image
-                    src={productDetail.image || productDetail.Image ? `http://localhost:5137${productDetail.image || productDetail.Image}` : "/images/login_image.jpg"}
+                    src={productDetail.image || productDetail.Image ? `https://api.bbpharmacy.site/${productDetail.image || productDetail.Image}` : "/images/login_image.jpg"}
                     alt="Product"
                     width={180}
                     height={180}

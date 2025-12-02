@@ -528,7 +528,7 @@ const ListProduct = () => {
                               variant="rounded"
                               src={
                                 product.image
-                                  ? `http://localhost:5137${product.image}`
+                                  ? `https://api.bbpharmacy.site/${product.image}`
                                   : null
                               }
                               alt={product.productName}

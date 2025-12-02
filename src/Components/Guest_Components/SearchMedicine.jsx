@@ -429,7 +429,7 @@ const SearchMedicine = () => {
             // Get product image URL
             const productImage = product.image || product.Image;
             const imageUrl = productImage 
-              ? `http://localhost:5137${productImage}` 
+              ? `https://api.bbpharmacy.site/${productImage}` 
               : "/images/login_image.jpg";
             
             return (
@@ -576,7 +576,7 @@ const SearchMedicine = () => {
             
             // Get product image URL for dialog
             const dialogImageUrl = selectedMedicine.image || selectedMedicine.Image
-              ? `http://localhost:5137${selectedMedicine.image || selectedMedicine.Image}`
+              ? `https://api.bbpharmacy.site/${selectedMedicine.image || selectedMedicine.Image}`
               : "/images/login_image.jpg";
             
             return (

@@ -20,8 +20,8 @@ export default defineConfig({
     proxy: {
       // Proxy all /api calls to the ASP.NET backend
       "/api": {
-        // target: 'https://api.bbpharmacy.site/',
-        target: "http://localhost:5137",
+        target: 'https://api.bbpharmacy.site/',
+        // target: "http://localhost:5137",
         changeOrigin: true,
         secure: false,
         // Keep the /api prefix because backend controllers are under /api
