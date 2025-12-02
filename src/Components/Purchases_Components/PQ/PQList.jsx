@@ -205,6 +205,18 @@ export default function PQList() {
                     minDate={dateFrom ? new Date(dateFrom) : undefined}
                   />
                 </LocalizationProvider>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    setSearch("");
+                    setDateFrom("");
+                    setDateTo("");
+                    setPage(1);
+                  }}
+                >
+                  Xóa lọc
+                </Button>
               </Stack>
             </Paper>
 
