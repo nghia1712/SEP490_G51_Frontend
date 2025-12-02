@@ -530,13 +530,7 @@ export default function PQList() {
                       </TableCell>
                       <TableCell align="center">{item.maxQty ?? "-"}</TableCell>
 
-                      <TableCell align="center">
-                        {item.productDate
-                          ? new Date(item.productDate).toLocaleDateString(
-                              "vi-VN"
-                            )
-                          : ""}
-                      </TableCell>
+                      <TableCell align="center">{item.productDate}</TableCell>
 
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">
