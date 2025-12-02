@@ -111,7 +111,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
       setUpdatingLotId(null);
     }
   };
-
+  const canEdit = userRole === "sales_staff";
   return (
     <>
       <Dialog
@@ -156,9 +156,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                   <TableCell>Nhà cung cấp</TableCell>
                   <TableCell>Mã sản phẩm</TableCell>
                   <TableCell>Ngày kiểm tra cuối</TableCell>
-                  {userRole === "sales_staff" && (
-                    <TableCell>Hành động</TableCell>
-                  )}
+                  {canEdit && <TableCell>Hành động</TableCell>}
                 </TableRow>
               </TableHead>
 
@@ -220,7 +218,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                       </TableCell>
 
                       <TableCell>
-                        {userRole === "sales_staff" && (
+                        {canEdit && (
                           <IconButton
                             color="primary"
                             size="small"
