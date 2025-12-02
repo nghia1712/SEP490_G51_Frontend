@@ -394,7 +394,7 @@ export default function StockExportForm() {
                 mb: 2,
               }}
             >
-              <Typography variant="h6">Chi tiết lô hàng</Typography>
+              <Typography fontWeight={"bold"} variant="h6">Chi tiết lô hàng</Typography>
               <Button
                 color="primary"
                 onClick={() =>
@@ -406,7 +406,12 @@ export default function StockExportForm() {
             </Box>
             <TableContainer>
               <Table size="small">
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>STT</TableCell>
                     <TableCell>Sản phẩm</TableCell>

@@ -265,8 +265,13 @@ export default function StockExportList() {
               sx={{ borderRadius: 2, maxHeight: 500 }}
             >
               <Table stickyHeader>
-                <TableHead>
-                  <TableRow sx={{ background: "#f5f5f5" }}>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
+                  <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell align="center">Yêu cầu xuất kho</TableCell>
                     <TableCell>Mã đơn hàng</TableCell>
@@ -427,7 +432,7 @@ export default function StockExportList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết yêu cầu xuất kho</DialogTitle>
+        <DialogTitle fontWeight={"bold"}>Chi tiết yêu cầu xuất kho</DialogTitle>
         <DialogContent dividers>
           {detailLoading ? (
             <Stack alignItems="center" p={3}>
@@ -466,7 +471,12 @@ export default function StockExportList() {
                 Danh sách sản phẩm
               </Typography>
               <Table size="small">
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Tên SP</TableCell>

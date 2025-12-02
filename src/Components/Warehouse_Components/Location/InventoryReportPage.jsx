@@ -363,7 +363,12 @@ export default function InventoryReportPage() {
           {/* TABLE */}
           <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
             <Table stickyHeader>
-              <TableHead>
+              <TableHead
+                sx={{
+                  backgroundColor: "#f5f5f5",
+                  "& .MuiTableCell-root": { fontWeight: "bold" },
+                }}
+              >
                 <TableRow>
                   <TableCell>#</TableCell>
                   <TableCell>Phiên kiểm kê</TableCell>
@@ -444,7 +449,7 @@ export default function InventoryReportPage() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết phiên kiểm kê</DialogTitle>
+        <DialogTitle fontWeight={"bold"}>Chi tiết phiên kiểm kê</DialogTitle>
         <DialogContent>
           {detailLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -453,7 +458,12 @@ export default function InventoryReportPage() {
           ) : histories.length > 0 ? (
             <TableContainer component={Paper} sx={{ mt: 2 }}>
               <Table size="small">
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Sản phẩm</TableCell>

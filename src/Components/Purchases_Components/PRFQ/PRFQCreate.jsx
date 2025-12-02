@@ -691,13 +691,13 @@ export default function PRFQCreate() {
                 sx={{
                   bgcolor: "#00932aff",
                   color: "white",
-                  fontWeight: 700,
+                  fontWeight: "bold",
                   textAlign: "center",
                   py: 1,
                   mt: 1,
                 }}
               >
-                DANH SÁCH SẢN PHẨM (PRODUCT LIST)
+                DANH SÁCH SẢN PHẨM
               </Box>
 
               <TableContainer>

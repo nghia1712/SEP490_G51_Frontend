@@ -274,7 +274,12 @@ export default function WarehouseLocationDetailPage() {
               </Typography>
               <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
                 <Table stickyHeader>
-                  <TableHead>
+                  <TableHead
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
+                  >
                     <TableRow>
                       <TableCell>#</TableCell>
                       <TableCell>Sản phẩm</TableCell>

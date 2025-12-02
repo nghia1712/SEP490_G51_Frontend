@@ -355,7 +355,10 @@ const PaymentRemainList = () => {
               >
                 <Table stickyHeader>
                   <TableHead
-                    sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
                   >
                     <TableRow>
                       <TableCell>Mã yêu cầu</TableCell>

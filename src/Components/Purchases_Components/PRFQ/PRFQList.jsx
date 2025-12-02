@@ -185,22 +185,38 @@ export default function PRFQList() {
               sx={{ borderRadius: 2, maxHeight: 500 }}
             >
               <Table stickyHeader>
-                <TableHead
-                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
-                >
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Mã yêu cầu</TableCell>
-                    <TableCell>Ngày tạo</TableCell>
-                    <TableCell>Nhà cung cấp</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Địa chỉ</TableCell>
-                    <TableCell>Số điện thoại</TableCell>
-                    <TableCell>Trạng thái</TableCell>
-                    <TableCell>Người phụ trách</TableCell>
-                    <TableCell align="center">Hành động</TableCell>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                    <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
+                    <TableCell
+                      sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+                    >
+                      Mã yêu cầu
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Ngày tạo</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Nhà cung cấp
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Địa chỉ</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Số điện thoại
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Trạng thái
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Người phụ trách
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+                      align="center"
+                    >
+                      Hành động
+                    </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {loading ? (
                     <TableRow>
@@ -231,7 +247,9 @@ export default function PRFQList() {
                         <TableCell>{row.supplierName || "—"}</TableCell>
                         <TableCell>{row.supplierEmail || "—"}</TableCell>
                         <TableCell>{row.supplierAddress || "—"}</TableCell>
-                        <TableCell>{row.supplierPhone || "—"}</TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>
+                          {row.supplierPhone || "—"}
+                        </TableCell>
                         <TableCell align="center">
                           {(() => {
                             const { label, color } = getStatus(row.status);
@@ -240,7 +258,7 @@ export default function PRFQList() {
                             );
                           })()}
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>
                           {row.createdBy || "—"}
                         </TableCell>
                         <TableCell align="center">
@@ -319,6 +337,7 @@ export default function PRFQList() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            fontWeight: "bold",
           }}
         >
           Chi tiết yêu cầu báo giá
@@ -337,9 +356,12 @@ export default function PRFQList() {
             <Box>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
+                  <Typography fontWeight={"bold"} variant="h6" sx={{ mb: 1 }}>
+                    Yêu cầu báo giá
+                  </Typography>
                   <Box sx={{ mb: 1 }}>
                     <Typography>
-                      <b>PRFQ ID:</b> {`PRFQ-${detailData?.prfqid}`}
+                      <b>Mã yêu cầu:</b> {`PRFQ-${detailData?.prfqid}`}
                     </Typography>
                   </Box>
                   <Box sx={{ mb: 1 }}>
@@ -369,7 +391,7 @@ export default function PRFQList() {
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
+                  <Typography fontWeight={"bold"} variant="h6" sx={{ mb: 1 }}>
                     Nhà cung cấp
                   </Typography>
                   <Box sx={{ mb: 1 }}>
@@ -403,13 +425,14 @@ export default function PRFQList() {
               </Typography>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Tên SP</TableCell>
-                    <TableCell>Mô tả</TableCell>
-                    <TableCell>Đơn vị</TableCell>
+                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                    <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Tên SP</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Mô tả</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Đơn vị</TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {detailData?.products?.map((d, i) => (
                     <TableRow key={i}>

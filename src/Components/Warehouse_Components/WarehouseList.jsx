@@ -40,8 +40,12 @@ import useWarehouse from "../../Hooks/useWarehouse";
 
 export default function WarehouseList() {
   const navigate = useNavigate();
-  const { warehouses: rawWarehouses, loading, error, fetchWarehouses } =
-    useWarehouse();
+  const {
+    warehouses: rawWarehouses,
+    loading,
+    error,
+    fetchWarehouses,
+  } = useWarehouse();
 
   // map status từ 0/1 sang "active"/"inactive"
   const warehouses = rawWarehouses.map((w) => ({
@@ -191,7 +195,9 @@ export default function WarehouseList() {
                             color="primary"
                           />
                         }
-                        label={<Typography variant="body2">{status}</Typography>}
+                        label={
+                          <Typography variant="body2">{status}</Typography>
+                        }
                       />
                     ))}
                   </FormGroup>
@@ -236,7 +242,12 @@ export default function WarehouseList() {
               sx={{ maxHeight: 600, borderRadius: 2, boxShadow: 1 }}
             >
               <Table stickyHeader>
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Tên kho</TableCell>

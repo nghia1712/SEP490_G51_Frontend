@@ -199,7 +199,12 @@ export default function GRNList() {
               sx={{ borderRadius: 2, maxHeight: 500 }}
             >
               <Table stickyHeader>
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Phiếu xuất kho</TableCell>
@@ -303,7 +308,7 @@ export default function GRNList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết phiếu xuất kho</DialogTitle>
+        <DialogTitle fontWeight={"bold"}>Chi tiết phiếu xuất kho</DialogTitle>
         <DialogContent dividers>
           {detailLoading ? (
             <Stack alignItems="center" mt={3}>
@@ -343,7 +348,12 @@ export default function GRNList() {
                 </Typography>
 
                 <Table size="small">
-                  <TableHead>
+                  <TableHead
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
+                  >
                     <TableRow>
                       <TableCell>#</TableCell>
                       <TableCell>Tên sản phẩm</TableCell>

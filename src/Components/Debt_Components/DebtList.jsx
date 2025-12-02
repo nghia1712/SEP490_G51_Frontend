@@ -249,7 +249,9 @@ export default function DebtList() {
 
       {/* Detail Dialog */}
       <Dialog open={openDetail} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle align="center">Chi tiết thanh toán</DialogTitle>
+        <DialogTitle fontWeight={"bold"} align="center">
+          Chi tiết thanh toán
+        </DialogTitle>
         <DialogContent dividers>
           {selectedDebt ? (
             <Stack spacing={3}>
@@ -316,7 +318,12 @@ export default function DebtList() {
                   </Typography>
 
                   <Table size="small">
-                    <TableHead>
+                    <TableHead
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        "& .MuiTableCell-root": { fontWeight: "bold" },
+                      }}
+                    >
                       <TableRow>
                         <TableCell align="center">Đơn hàng</TableCell>
                         <TableCell align="right">Tổng tiền</TableCell>

@@ -65,134 +65,155 @@ export default function CustomerDebtList() {
 
   return (
     <Box sx={{ p: 3 }}>
-<Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
-  <Card elevation={3} sx={{ borderRadius: 2 }}>
-    <CardContent>
-      {/* HEADER */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <AccountBalanceWallet sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
-        >
-          Danh sách nợ của khách hàng
-        </Typography>
-      </Box>
+      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <AccountBalanceWallet
+                sx={{ fontSize: 40, mr: 2, color: "#1976d2" }}
+              />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Danh sách nợ của khách hàng
+              </Typography>
+            </Box>
 
-      {/* FILTER + SEARCH */}
-      <Paper sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems="center"
-        >
-          <TextField
-            size="small"
-            label="Tìm kiếm..."
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-          />
-
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Trạng thái</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Trạng thái"
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
+            {/* FILTER + SEARCH */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              <MenuItem value="">Tất cả</MenuItem>
-              <MenuItem value={0}>Chưa trả</MenuItem>
-              <MenuItem value={1}>Trả một phần</MenuItem>
-              <MenuItem value={2}>Hết nợ</MenuItem>
-              <MenuItem value={3}>Nợ xấu</MenuItem>
-              <MenuItem value={4}>Quá hạn</MenuItem>
-              <MenuItem value={5}>Đơn bị hủy</MenuItem>
-            </Select>
-          </FormControl>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                <TextField
+                  size="small"
+                  label="Tìm kiếm..."
+                  value={searchText}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setPage(1);
+                  }}
+                />
 
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => {
-              setStatusFilter("");
-              setSearchText("");
-            }}
-          >
-            Xóa lọc
-          </Button>
-        </Stack>
-      </Paper>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Trạng thái</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Trạng thái"
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <MenuItem value="">Tất cả</MenuItem>
+                    <MenuItem value={0}>Chưa trả</MenuItem>
+                    <MenuItem value={1}>Trả một phần</MenuItem>
+                    <MenuItem value={2}>Hết nợ</MenuItem>
+                    <MenuItem value={3}>Nợ xấu</MenuItem>
+                    <MenuItem value={4}>Quá hạn</MenuItem>
+                    <MenuItem value={5}>Đơn bị hủy</MenuItem>
+                  </Select>
+                </FormControl>
 
-      {/* TABLE */}
-      {loading ? (
-        <Stack alignItems="center" mt={4}>
-          <CircularProgress />
-        </Stack>
-      ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, maxHeight: 550 }}>
-          <Table stickyHeader>
-            <TableHead sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-              <TableRow>
-                <TableCell align="center">#</TableCell>
-                <TableCell align="center">Khách hàng</TableCell>
-                <TableCell align="center">Mã đơn hàng</TableCell>
-                <TableCell align="center">Trạng thái</TableCell>
-                <TableCell align="center">Hạn trả</TableCell>
-                <TableCell align="right">Tổng tiền phải trả</TableCell>
-                <TableCell align="right">Còn nợ</TableCell>
-              </TableRow>
-            </TableHead>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    setStatusFilter("");
+                    setSearchText("");
+                  }}
+                >
+                  Xóa lọc
+                </Button>
+              </Stack>
+            </Paper>
 
-            <TableBody>
-              {paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    Không có dữ liệu
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((item, idx) => (
-                  <TableRow key={item.id}>
-                    <TableCell align="center">
-                      {(page - 1) * rowsPerPage + idx + 1}
-                    </TableCell>
-                    <TableCell align="center">{item.customerName}</TableCell>
-                    <TableCell align="center">{item.salesOrderCode}</TableCell>
-                    <TableCell align="center">{renderDebtStatus(item.status)}</TableCell>
-                    <TableCell align="center">
-                      {new Date(item.dueDate).toLocaleDateString("vi-VN")}
-                    </TableCell>
-                    <TableCell align="right">{item.totalAmount?.toLocaleString()} đ</TableCell>
-                    <TableCell align="right">{item.debtAmount?.toLocaleString()} đ</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            {/* TABLE */}
+            {loading ? (
+              <Stack alignItems="center" mt={4}>
+                <CircularProgress />
+              </Stack>
+            ) : (
+              <TableContainer
+                component={Paper}
+                sx={{ borderRadius: 2, maxHeight: 550 }}
+              >
+                <Table stickyHeader>
+                  <TableHead
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
+                  >
+                    <TableRow>
+                      <TableCell align="center">#</TableCell>
+                      <TableCell align="center">Khách hàng</TableCell>
+                      <TableCell align="center">Mã đơn hàng</TableCell>
+                      <TableCell align="center">Trạng thái</TableCell>
+                      <TableCell align="center">Hạn trả</TableCell>
+                      <TableCell align="right">Tổng tiền phải trả</TableCell>
+                      <TableCell align="right">Còn nợ</TableCell>
+                    </TableRow>
+                  </TableHead>
 
-      {/* PAGINATION */}
-      {paginatedData.length > 0 && totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={(_, v) => setPage(v)}
-            color="primary"
-          />
-        </Box>
-      )}
-    </CardContent>
-  </Card>
-</Container>
+                  <TableBody>
+                    {paginatedData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                          Không có dữ liệu
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedData.map((item, idx) => (
+                        <TableRow key={item.id}>
+                          <TableCell align="center">
+                            {(page - 1) * rowsPerPage + idx + 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.customerName}
+                          </TableCell>
+                          <TableCell align="center">
+                            {item.salesOrderCode}
+                          </TableCell>
+                          <TableCell align="center">
+                            {renderDebtStatus(item.status)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {new Date(item.dueDate).toLocaleDateString("vi-VN")}
+                          </TableCell>
+                          <TableCell align="right">
+                            {item.totalAmount?.toLocaleString()} đ
+                          </TableCell>
+                          <TableCell align="right">
+                            {item.debtAmount?.toLocaleString()} đ
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
 
+            {/* PAGINATION */}
+            {paginatedData.length > 0 && totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, v) => setPage(v)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Container>
     </Box>
   );
 }

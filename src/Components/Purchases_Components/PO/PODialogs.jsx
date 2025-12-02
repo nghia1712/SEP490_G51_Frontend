@@ -137,7 +137,7 @@ export default function PODialogs({
                   </TableCell>
 
                   <TableCell>{p.dvt}</TableCell>
-                  <TableCell>{p.unitPrice.toLocaleString()} ₫</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>{p.unitPrice.toLocaleString()} ₫</TableCell>
                   <TableCell>{p.tax * 100} %</TableCell>
 
                   <TableCell>
@@ -185,7 +185,11 @@ export default function PODialogs({
                   <TableCell>{p.currentQuantity}</TableCell>
                   <TableCell>{p.maxQuantity}</TableCell>
                   <TableCell>
-                    {p.expiredDateDisplay}
+                    {p.expiredDateDisplay
+                      ? new Date(p.expiredDateDisplay).toLocaleDateString(
+                          "vi-VN"
+                        )
+                      : ""}
                   </TableCell>
                   <TableCell>
                     <IconButton

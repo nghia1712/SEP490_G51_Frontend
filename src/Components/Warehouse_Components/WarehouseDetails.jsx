@@ -214,7 +214,12 @@ export default function WarehouseDetailPage() {
                   sx={{ maxHeight: 400, borderRadius: 2 }}
                 >
                   <Table stickyHeader>
-                    <TableHead>
+                    <TableHead
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        "& .MuiTableCell-root": { fontWeight: "bold" },
+                      }}
+                    >
                       <TableRow>
                         <TableCell>#</TableCell>
                         <TableCell>Tên vị trí</TableCell>

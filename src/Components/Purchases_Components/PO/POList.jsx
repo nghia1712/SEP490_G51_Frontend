@@ -150,20 +150,39 @@ export default function POList() {
             >
               <Table stickyHeader>
                 <TableHead
-                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
                 >
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>Mã đơn hàng</TableCell>
-                    <TableCell>Nhà cung cấp</TableCell>
-                    <TableCell>Ngày đặt</TableCell>
-                    <TableCell align="center">Trạng thái nhận hàng</TableCell>
-                    <TableCell align="center">Trạng thái đơn hàng</TableCell>
-                    <TableCell>Tổng tiền</TableCell>
-                    <TableCell>Đã trả</TableCell>
-                    <TableCell>Còn nợ</TableCell>
-                    <TableCell align="center">Người tạo</TableCell>
-                    <TableCell align="center">Hành động</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Mã đơn hàng
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Nhà cung cấp
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Ngày đặt
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
+                      Trạng thái nhận hàng
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
+                      Trạng thái đơn hàng
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Tổng tiền
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Đã trả</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>Còn nợ</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
+                      Người tạo
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
+                      Hành động
+                    </TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -212,13 +231,13 @@ export default function POList() {
                         <TableCell align="center">
                           {renderStatus(po.status)}
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
                           {po.total.toLocaleString()} ₫
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
                           {po.deposit?.toLocaleString() || 0} ₫
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
                           {po.debt.toLocaleString()} ₫
                         </TableCell>
                         <TableCell align="center">{po.userName}</TableCell>
@@ -287,7 +306,9 @@ export default function POList() {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Chi tiết {`PO-${selectedPO?.poid}`}</DialogTitle>
+        <DialogTitle fontWeight={"bold"}>
+          Chi tiết {`PO-${selectedPO?.poid}`}
+        </DialogTitle>
         <DialogContent dividers>
           {selectedPO ? (
             <>
@@ -296,29 +317,29 @@ export default function POList() {
               >
                 <Box>
                   <Typography>
-                    <strong>Ngày đặt:</strong>{" "}
+                    <strong>Người phụ trách:</strong> {selectedPO.userName}
+                  </Typography>
+                  <Typography>
+                    <strong>Ngày đặt hàng:</strong>
                     {new Date(selectedPO.orderDate).toLocaleDateString("vi-EN")}
+                  </Typography>
+                  <Typography>
+                    <strong>Trạng thái đơn hàng:</strong>
+                    {renderStatus(selectedPO.status)}
                   </Typography>
                   {selectedPO.status === 3 && selectedPO.deposit > 0 && (
                     <Typography>
-                      <strong>Ngày đặt cọc:</strong>{" "}
-                      {new Date(selectedPO.depositDate).toLocaleDateString(
+                      <strong>Ngày đặt cọc:</strong>
+                      {new Date(selectedPO.paymentDate).toLocaleDateString(
                         "vi-EN"
                       )}
                     </Typography>
                   )}
-                  <Typography>
-                    <strong>Trạng thái thanh toán:</strong>{" "}
-                    {renderStatus(selectedPO.status)}
-                  </Typography>
-                  <Typography>
-                    <strong>Người tạo:</strong> {selectedPO.userName}
-                  </Typography>
                   {(selectedPO.status === 3 ||
                     selectedPO.status === 4 ||
                     selectedPO.status === 6) && (
                     <Typography>
-                      <strong>Người thanh toán:</strong>{" "}
+                      <strong>Người trả:</strong>{" "}
                       {selectedPO.paymentBy &&
                       selectedPO.paymentBy !== "Unknown"
                         ? selectedPO.paymentBy
@@ -355,7 +376,12 @@ export default function POList() {
                 Danh sách sản phẩm
               </Typography>
               <Table size="small">
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>Sản phẩm</TableCell>
                     <TableCell>Mô tả</TableCell>

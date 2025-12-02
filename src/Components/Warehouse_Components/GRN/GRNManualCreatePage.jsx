@@ -481,7 +481,12 @@ export default function GRNManualCreatePage({ poId }) {
 
         <TableContainer>
           <Table>
-            <TableHead>
+            <TableHead
+              sx={{
+                backgroundColor: "#f5f5f5",
+                "& .MuiTableCell-root": { fontWeight: "bold" },
+              }}
+            >
               <TableRow>
                 <TableCell>STT</TableCell>
                 <TableCell>Sản phẩm</TableCell>

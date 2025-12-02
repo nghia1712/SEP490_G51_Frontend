@@ -143,7 +143,12 @@ export default function GRNListPage() {
               sx={{ borderRadius: 2, maxHeight: 500 }}
             >
               <Table stickyHeader>
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell align="center">Phiếu nhập kho</TableCell>
@@ -288,7 +293,12 @@ export default function GRNListPage() {
             </Typography>
             <TableContainer component={Paper}>
               <Table size="small">
-                <TableHead>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Tên sản phẩm</TableCell>
@@ -334,7 +344,7 @@ export default function GRNListPage() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Chi tiết phiếu nhập kho</DialogTitle>
+        <DialogTitle fontWeight={"bold"}>Chi tiết phiếu nhập kho</DialogTitle>
         <DialogContent dividers>
           <IconButton
             sx={{ position: "absolute", top: 8, right: 8 }}
@@ -406,7 +416,12 @@ export default function GRNListPage() {
               </Typography>
               <TableContainer component={Paper}>
                 <Table size="small">
-                  <TableHead>
+                  <TableHead
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
+                  >
                     <TableRow>
                       <TableCell>#</TableCell>
                       <TableCell>Tên sản phẩm</TableCell>

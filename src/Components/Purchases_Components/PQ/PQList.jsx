@@ -214,17 +214,25 @@ export default function PQList() {
               sx={{ borderRadius: 2, maxHeight: 500 }}
             >
               <Table stickyHeader>
-                <TableHead
-                  sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}
-                >
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Mã báo giá</TableCell>
-                    <TableCell>Ngày gửi</TableCell>
-                    <TableCell>Nhà cung cấp</TableCell>
-                    <TableCell>Trạng thái</TableCell>
-                    <TableCell>Ngày hết hạn</TableCell>
-                    <TableCell align="center">Hành động</TableCell>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                    <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Mã báo giá
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Ngày gửi</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Nhà cung cấp
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Trạng thái
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Ngày hết hạn
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }} align="center">
+                      Hành động
+                    </TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -327,7 +335,7 @@ export default function PQList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle fontWeight={"bold"}>
           Chi tiết báo giá {`PQ-${selectedQuotation?.quotationId}`}
         </DialogTitle>
         <DialogContent dividers>
@@ -339,10 +347,7 @@ export default function PQList() {
             {new Date(selectedQuotation?.sentDate).toLocaleDateString("vi-EN")}
           </Typography>
           <Typography>
-            <strong>Ngày hết hạn:</strong>{" "}
-            {new Date(selectedQuotation?.expiredDate).toLocaleDateString(
-              "vi-EN"
-            )}
+            <strong>Ngày hết hạn:</strong> {selectedQuotation?.expiredDate}
           </Typography>
           <Typography sx={{ mb: 2 }}>
             <strong>Trạng thái:</strong>{" "}
@@ -360,16 +365,17 @@ export default function PQList() {
           <Divider sx={{ my: 2 }} />
           <Table size="small">
             <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>Tên sản phẩm</TableCell>
-                <TableCell>Mô tả</TableCell>
-                <TableCell>Đơn vị</TableCell>
-                <TableCell>Đơn giá</TableCell>
-                <TableCell>Thuế</TableCell>
-                <TableCell>Hạn dùng</TableCell>
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Tên sản phẩm</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Mô tả</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Đơn vị</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Đơn giá</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Thuế</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Hạn dùng</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {selectedQuotation?.items?.map((item, i) => (
                 <TableRow key={i}>
@@ -524,7 +530,13 @@ export default function PQList() {
                       </TableCell>
                       <TableCell align="center">{item.maxQty ?? "-"}</TableCell>
 
-                      <TableCell align="center">{item.productDate}</TableCell>
+                      <TableCell align="center">
+                        {item.productDate
+                          ? new Date(item.productDate).toLocaleDateString(
+                              "vi-VN"
+                            )
+                          : ""}
+                      </TableCell>
 
                       <TableCell align="center">
                         <Tooltip title="Xóa sản phẩm">

@@ -277,7 +277,12 @@ export default function POActions({ poId, fetchPOs }) {
           Danh sách sản phẩm
         </Typography>
         <Table size="small">
-          <TableHead>
+          <TableHead
+            sx={{
+              backgroundColor: "#f5f5f5",
+              "& .MuiTableCell-root": { fontWeight: "bold" },
+            }}
+          >
             <TableRow>
               <TableCell>Sản phẩm</TableCell>
               <TableCell>Mô tả</TableCell>
@@ -296,7 +301,7 @@ export default function POActions({ poId, fetchPOs }) {
                 <TableCell align="center">
                   {item.unitPrice.toLocaleString()} ₫
                 </TableCell>
-                <TableCell align="center">{item.tax *100} %</TableCell>
+                <TableCell align="center">{item.tax * 100} %</TableCell>
                 <TableCell align="center">
                   {item.unitPriceTotal.toLocaleString()} ₫
                 </TableCell>
@@ -476,12 +481,12 @@ export default function POActions({ poId, fetchPOs }) {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>Chỉnh sửa PO nháp</DialogTitle>
+        <DialogTitle>Chỉnh sửa đơn hàng nháp</DialogTitle>
         <DialogContent dividers>
           {poDetail && (
             <>
               <Typography>
-                <strong>PO ID:</strong> {poDetail.poid}
+                <strong>Mã đơn hàng:</strong> {poDetail.poid}
               </Typography>
               <Typography>
                 <strong>Người tạo:</strong> {poDetail.userName}
@@ -490,7 +495,12 @@ export default function POActions({ poId, fetchPOs }) {
                 Danh sách sản phẩm:
               </Typography>
               <Table size="small">
-                <TableHead sx={{ background: "#e0e0e0" }}>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Sản phẩm</TableCell>
