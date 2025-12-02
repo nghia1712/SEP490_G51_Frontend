@@ -496,7 +496,7 @@ function PurchasesDashboard() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={100} // Tăng nhẹ kích thước để lấp đầy không gian
+                        outerRadius={100}
                         labelLine={false}
                         label={({ name, percent, value }) =>
                           `${name} (${value}): ${(percent * 100).toFixed(0)}%`
@@ -536,8 +536,8 @@ function PurchasesDashboard() {
                     <thead className="bg-light text-muted sticky-top">
                       <tr>
                         <th className="ps-4 py-2">Sản phẩm</th>
-                        <th className="text-center py-2">SL</th>
-                        <th className="pe-4 text-end py-2">TT</th>
+                        <th className="text-center py-2">Số lượng</th>
+                        <th className="pe-4 text-end py-2">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -619,7 +619,7 @@ function PurchasesDashboard() {
                           <td className="ps-4">
                             <div className="fw-semibold">{lot.productName}</div>
                             <small className="text-muted">
-                              Mã lô: {lot._lotID} • SL: {lot.lotQuantity}
+                              Mã lô: {lot._lotID} • Số lượng: {lot.lotQuantity}
                             </small>
                           </td>
                           <td className="pe-4 text-end text-danger fw-semibold">
