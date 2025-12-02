@@ -438,7 +438,12 @@ export default function PQList() {
               </Box>
 
               <Table size="small">
-                <TableHead sx={{ background: "#e0e0e0" }}>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
                   <TableRow>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       Tên sản phẩm
