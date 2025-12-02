@@ -427,9 +427,9 @@ export default function usePO() {
     if (!search) return poList;
     return poList.filter(
       (po) =>
-        po.poid.toString().includes(search) ||
         po.userName.toLowerCase().includes(search.toLowerCase()) ||
-        po.supplierName.toLowerCase().includes(search.toLowerCase())
+        po.supplierName.toLowerCase().includes(search.toLowerCase())||
+        `PO-${po.poid}`.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, poList]);
   // ================== DEBT REPORT ==================

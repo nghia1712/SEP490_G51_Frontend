@@ -27,6 +27,10 @@ import {
   Card,
   CardContent,
   Container,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Visibility,
@@ -71,13 +75,38 @@ export default function POList() {
   } = usePO();
   const [page, setPage] = React.useState(1);
   const pageSize = 10;
-  const totalPages = Math.ceil(filteredPOs.length / pageSize);
   const userRole = getUserRoleFromToken();
+  const [receivingStatusFilter, setReceivingStatusFilter] = React.useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = React.useState("");
 
-  const paginatedPOs = filteredPOs.slice(
+  const filteredPOsWithFilter = filteredPOs.filter((po) => {
+    const matchesSearch =
+      search === "" ||
+      po.poid.toString().includes(search) ||
+      po.supplierName?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesReceiving =
+      receivingStatusFilter === "" ||
+      po.receivingStatus === receivingStatusFilter;
+
+    const matchesOrderStatus =
+      orderStatusFilter === "" || po.status === Number(orderStatusFilter);
+
+    return matchesSearch && matchesReceiving && matchesOrderStatus;
+  });
+
+  const totalPages = Math.ceil(filteredPOsWithFilter.length / pageSize);
+  const paginatedPOs = filteredPOsWithFilter.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
+  const handleClearFilters = () => {
+    setSearch("");
+    setReceivingStatusFilter("");
+    setOrderStatusFilter("");
+    setPage(1);
+  };
+
   const renderStatus = (status) => {
     const s = statusMap[Number(status)] || {
       label: "Unknown",
@@ -106,15 +135,20 @@ export default function POList() {
             </Box>
 
             {/* FILTER + UPLOAD */}
-            <Paper
-              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              alignItems="center"
+              justifyContent="space-between"
             >
+              {/* Left group: search + filters + clear */}
               <Stack
-                direction={{ xs: "column", md: "row" }}
+                direction="row"
                 spacing={2}
                 alignItems="center"
-                justifyContent="space-between"
+                flexWrap="wrap"
               >
+                {/* Search chung */}
                 <TextField
                   variant="outlined"
                   size="small"
@@ -128,20 +162,69 @@ export default function POList() {
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ width: 350 }}
+                  sx={{ width: 250 }}
                 />
 
-                {userRole === "purchases_staff" && (
-                  <Button
-                    variant="contained"
-                    startIcon={<UploadFile />}
-                    onClick={handleOpenUpload}
+                {/* Filter trạng thái nhận hàng */}
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Trạng thái nhận hàng</InputLabel>
+                  <Select
+                    value={receivingStatusFilter}
+                    label="Trạng thái nhận hàng"
+                    onChange={(e) => {
+                      setReceivingStatusFilter(e.target.value);
+                      setPage(1);
+                    }}
                   >
-                    Tải file Excel
-                  </Button>
-                )}
+                    <MenuItem value="">Tất cả</MenuItem>
+                    <MenuItem value="Đã nhận đủ">Đã nhận đủ</MenuItem>
+                    <MenuItem value="Nhận một phần">Nhận một phần</MenuItem>
+                    <MenuItem value="Chờ xác nhận">Chờ xác nhận</MenuItem>
+                    <MenuItem value="Chưa nhận">Chưa nhận</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Filter trạng thái đơn hàng */}
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Trạng thái đơn hàng</InputLabel>
+                  <Select
+                    value={orderStatusFilter}
+                    label="Trạng thái đơn hàng"
+                    onChange={(e) => {
+                      setOrderStatusFilter(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <MenuItem value="">Tất cả</MenuItem>
+                    {Object.entries(statusMap).map(([key, val]) => (
+                      <MenuItem key={key} value={key}>
+                        {val.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Button xóa lọc */}
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleClearFilters}
+                >
+                  Xóa lọc
+                </Button>
               </Stack>
-            </Paper>
+
+              {/* Right group: upload button */}
+              {userRole === "purchases_staff" && (
+                <Button
+                  variant="contained"
+                  startIcon={<UploadFile />}
+                  onClick={handleOpenUpload}
+                >
+                  Tải file Excel
+                </Button>
+              )}
+            </Stack>
 
             {/* TABLE */}
             <TableContainer

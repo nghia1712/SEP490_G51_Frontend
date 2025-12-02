@@ -320,7 +320,7 @@ export default function POActions({ poId, fetchPOs }) {
           <Tooltip title="Duyệt yêu cầu">
             <span>
               <IconButton
-                color="primary"
+                color="success"
                 onClick={handleApprove}
                 disabled={processing}
               >

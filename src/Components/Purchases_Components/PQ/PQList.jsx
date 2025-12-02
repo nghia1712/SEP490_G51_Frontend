@@ -69,15 +69,16 @@ export default function PQList() {
   const pageSize = 10;
 
   const filtered = quotations.filter((q) => {
-    const supplierMatch = q.supplierName
-      ?.toLowerCase()
-      .includes(search.toLowerCase());
+    const keyword = search.toLowerCase();
+
+    const supplierMatch = q.supplierName?.toLowerCase().includes(keyword);
+    const pqMatch = `PQ-${q.quotationId}`.toLowerCase().includes(keyword);
 
     const sentDate = new Date(q.sentDate);
     const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
     const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
 
-    return supplierMatch && fromMatch && toMatch;
+    return (supplierMatch || pqMatch) && fromMatch && toMatch;
   });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
@@ -153,7 +154,7 @@ export default function PQList() {
                 <TextField
                   variant="outlined"
                   size="small"
-                  placeholder="Tìm kiếm theo nhà cung cấp..."
+                  placeholder="Tìm kiếm..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   InputProps={{

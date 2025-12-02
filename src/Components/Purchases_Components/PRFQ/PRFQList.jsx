@@ -76,7 +76,12 @@ export default function PRFQList() {
 
   // ===== Filter dữ liệu =====
   const filteredData = prfqs.filter((p) =>
-    p.supplierName?.toLowerCase().includes(search.toLowerCase())
+    p.supplierName?.toLowerCase().includes(search.toLowerCase())||
+    p.supplierEmail?.toLowerCase().includes(search.toLowerCase())||
+    p.supplierPhone?.toLowerCase().includes(search.toLowerCase())||
+    p.supplierAddress?.toLowerCase().includes(search.toLowerCase())||
+    `PRFQ-${p.prfqid}`.toLowerCase().includes(search.toLowerCase())||
+    p.createdBy?.toLowerCase().includes(search.toLowerCase())
   );
 
   // ===== Pagination =====
@@ -155,7 +160,7 @@ export default function PRFQList() {
                 justifyContent="space-between"
               >
                 <TextField
-                  placeholder="Tìm kiếm theo nhà cung cấp..."
+                  placeholder="Tìm kiếm..."
                   size="small"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
