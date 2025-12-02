@@ -531,7 +531,6 @@ export default function usePO() {
     debtLoading,
     fetchDebtReport,
     fetchDebtDetail,
-    fetchPOs,
     secretInfo,
     secretLoading,
     fetchPharmacySecretInfo,
