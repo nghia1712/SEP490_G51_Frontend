@@ -100,7 +100,12 @@ export default function PODialogs({
 
         <DialogContent dividers sx={{ minHeight: "70vh" }}>
           <Table size="small">
-            <TableHead sx={{ background: "#e0e0e0" }}>
+            <TableHead
+              sx={{
+                backgroundColor: "#f5f5f5",
+                "& .MuiTableCell-root": { fontWeight: "bold" },
+              }}
+            >
               <TableRow>
                 <TableCell sx={{ whiteSpace: "nowrap" }}>
                   Tên sản phẩm
@@ -137,7 +142,9 @@ export default function PODialogs({
                   </TableCell>
 
                   <TableCell>{p.dvt}</TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{p.unitPrice.toLocaleString()} ₫</TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {p.unitPrice.toLocaleString()} ₫
+                  </TableCell>
                   <TableCell>{p.tax * 100} %</TableCell>
 
                   <TableCell>
