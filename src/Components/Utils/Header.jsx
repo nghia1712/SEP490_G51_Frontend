@@ -277,7 +277,7 @@ function Header() {
       allowedRoles: ["purchases_staff"],
     },
     {
-      label: "Đơn nhập hàng",
+      label: "Đơn hàng nhập",
       path: "/po",
       allowedRoles: ["purchases_staff", "warehouse_staff", "accountant_staff"],
     },

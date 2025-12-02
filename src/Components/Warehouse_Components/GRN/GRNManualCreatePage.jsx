@@ -49,9 +49,7 @@ export default function GRNManualCreatePage({ poId }) {
   const [description, setDescription] = useState("");
   const [total, setTotal] = useState(0);
 
-  const [formData, setFormData] = useState({
-    items: [{ productName: "", quantity: 1, unitPrice: 0, expiredDate: "" }],
-  });
+  const [formData, setFormData] = useState({ items: [] });
 
   const [productSuggestions, setProductSuggestions] = useState([]);
   const searchTimeout = useRef(null);
@@ -260,6 +258,13 @@ export default function GRNManualCreatePage({ poId }) {
         severity: "error",
       });
     }
+    if (!formData.items || formData.items.length === 0) {
+      return setSnackbar({
+        open: true,
+        message: "Danh sách sản phẩm trống, không thể tạo phiếu nhập kho",
+        severity: "error",
+      });
+    }
     const invalidItem = formData.items.find(
       (item) => !item.quantity || Number(item.quantity) <= 0
     );
@@ -315,11 +320,7 @@ export default function GRNManualCreatePage({ poId }) {
       setSelectedWarehouse("");
       setSelectedLocation("");
       setSelectedSupplier("");
-      setFormData({
-        items: [
-          { productName: "", quantity: 1, unitPrice: 0, expiredDate: "" },
-        ],
-      });
+      setFormData({ items: [] });
       setDescription("");
 
       setTimeout(() => {
@@ -473,10 +474,7 @@ export default function GRNManualCreatePage({ poId }) {
           <Typography variant="subtitle1" fontWeight={600}>
             Danh sách sản phẩm
           </Typography>
-          <Button
-            size="small"
-            onClick={handleReloadProducts}
-          >
+          <Button size="small" onClick={handleReloadProducts}>
             Tải lại
           </Button>
         </Box>
