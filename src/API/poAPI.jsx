@@ -58,6 +58,12 @@ const poAPI = {
   // 🔹 Lấy thông tin kinh doanh (Pharmacy Secret Info)
   getPharmacySecretInfo: () =>
     authorApi.get(`${API_URL}/GetPharmacySecretInfor`),
+
+  // 🔹 Lấy chi tiết PO theo năm, nhóm theo tháng
+  getDetailsByYear: (year) =>
+    authorApi.get(`${API_URL}/detailsByYear`, {
+      params: { year },
+    }),
 };
 
 export default poAPI;

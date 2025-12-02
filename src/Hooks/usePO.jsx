@@ -422,13 +422,41 @@ export default function usePO() {
     }
   };
 
+  // ================== PO BY YEAR ==================
+  const [poByYear, setPoByYear] = useState([]);
+  const [poByYearLoading, setPoByYearLoading] = useState(false);
+  const fetchPOByYear = async (year) => {
+    setPoByYearLoading(true);
+    try {
+      const res = await poApi.getDetailsByYear(year);
+      const data = res?.data?.data || [];
+      setPoByYear(data);
+       return data;
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy PO theo năm:", err);
+
+      const apiMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Lấy PO theo năm thất bại";
+
+      setSnackbar({
+        open: true,
+        message: apiMsg,
+        severity: "error",
+      });
+    } finally {
+      setPoByYearLoading(false);
+    }
+  };
+
   // ================== FILTER ==================
   const filteredPOs = useMemo(() => {
     if (!search) return poList;
     return poList.filter(
       (po) =>
         po.userName.toLowerCase().includes(search.toLowerCase()) ||
-        po.supplierName.toLowerCase().includes(search.toLowerCase())||
+        po.supplierName.toLowerCase().includes(search.toLowerCase()) ||
         `PO-${po.poid}`.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, poList]);
@@ -534,5 +562,8 @@ export default function usePO() {
     secretInfo,
     secretLoading,
     fetchPharmacySecretInfo,
+    poByYear,
+    poByYearLoading,
+    fetchPOByYear,
   };
 }

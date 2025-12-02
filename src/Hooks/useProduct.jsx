@@ -269,6 +269,65 @@ const useProduct = () => {
       return false;
     }
   };
+  const fetchProductsBelowMinQuantity = async () => {
+    setLoading(true);
+    try {
+      const response = await productAPI.getBelowMinQuantity();
+      const data = response?.data?.data ?? [];
+      const normalized = data.map((p) => ({
+        ...p,
+        _pid: p?.productID ?? p?.ProductID ?? p?._id ?? null,
+        productID: p?.productID ?? p?.ProductID ?? p?._id,
+        productName: p?.productName ?? p?.ProductName,
+        minQuantity: p?.minQuantity ?? p?.MinQuantity,
+        totalCurrentQuantity:
+          p?.totalCurrentQuantity ?? p?.TotalCurrentQuantity,
+        unit: p?.unit ?? p?.Unit,
+        status: p?.status ?? p?.Status,
+      }));
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to fetch products below min quantity");
+      console.error(err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProductsWithNearestLot = async () => {
+    setLoading(true);
+    try {
+      const response = await productAPI.getNearestLot();
+      const data = response?.data?.data ?? [];
+      console.log("Raw nearest lots:", data);
+
+      const normalized = data.map((lot) => ({
+        ...lot,
+        _lotID: lot.lotID ?? lot.id,
+        productID: lot.productID,
+        productName: lot.productName,
+        inputDate: lot.inputDate,
+        expiredDate: lot.expiredDate,
+        lotQuantity: lot.lotQuantity,
+        salePrice: lot.salePrice,
+        inputPrice: lot.inputPrice,
+        supplierName: lot.supplierName ?? "Unknown",
+        supplierID: lot.supplierID,
+        warehouseLocationID: lot.warehouseLocationID,
+        warehouseLocationName: lot.warehouseLocationName,
+        lastCheckedDate: lot.lastCheckedDate,
+      }));
+      console.log("Normalized nearest lots:", normalized);
+      return normalized;
+    } catch (err) {
+      setError(err.message || "Failed to fetch products with nearest lot");
+      console.error(err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     products,
@@ -285,6 +344,8 @@ const useProduct = () => {
     inactiveProduct,
     checkProductName,
     fetchProductLots,
+    fetchProductsBelowMinQuantity,
+    fetchProductsWithNearestLot,
   };
 };
 
