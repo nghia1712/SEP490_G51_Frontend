@@ -62,6 +62,15 @@ const prfqAPI = {
 
   // 🔹 Xem trước sản phẩm theo báo giá đã chọn (preview2)
   preview2: (qid) => authorApi.get(`${API_URL}/preview2/${qid}`),
+  
+  // 🔹 Import báo giá nhà cung cấp từ file Excel
+  importQuotation: (file) => {
+    const formData = new FormData();
+    formData.append("file", file); // phải đúng tên "file" như backend
+    return authorApi.post(`${API_URL}/import`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export default prfqAPI;

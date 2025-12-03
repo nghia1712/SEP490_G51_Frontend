@@ -65,7 +65,9 @@ export default function GRNList() {
     renderGINStatus,
     exportedLotProduct,
   } = useGIN();
-  const [filtered, setFiltered] = useState([]);
+  const [filtered, setFiltered] = useState([]).sort(
+    (a, b) => Number(b.ginId) - Number(a.ginId)
+  );
   const [page, setPage] = useState(1);
   const pageSize = 10;
 

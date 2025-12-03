@@ -73,7 +73,10 @@ export default function GRNListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredData = filtered || [];
+  const filteredData = (filtered || []).sort(
+    (a, b) => Number(b.grnid) - Number(a.grnid)
+  );
+
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = filteredData.slice(
     (page - 1) * pageSize,

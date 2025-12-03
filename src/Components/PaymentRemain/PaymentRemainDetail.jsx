@@ -60,18 +60,16 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
     }
   };
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(value);
+  const formatCurrency = (value) => {
+    const number = Number(value) || 0;
+    return number.toLocaleString();
+  };
 
   const formatDateTime = (date) =>
     date ? new Date(date).toLocaleDateString("vi-VN") : "-";
 
   // ====== Detail Rows ======
   const detailRows = [
-    ["Yêu cầu thanh toán", data.id],
     ["Mã đơn hàng", data.salesOrderCode || data.salesOrderId],
     ["Mã hóa đơn", data.invoiceCode || "-"],
     ["Loại thanh toán", renderPaymentType(data.paymentType)],
@@ -102,7 +100,9 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: "bold" }}>
+      <DialogTitle
+        sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: "bold" }}
+      >
         Chi tiết yêu cầu thanh toán
       </DialogTitle>
       <DialogContent dividers sx={{ p: 2 }}>

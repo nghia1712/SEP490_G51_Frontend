@@ -203,7 +203,7 @@ function Header() {
     {
       label: "Yêu cầu báo giá nhập",
       path: "/purchase/prfq",
-      allowedRoles: ["purchases_staff", "admin"],
+      allowedRoles: ["purchases_staff"],
     },
     {
       label: "Báo giá nhập",

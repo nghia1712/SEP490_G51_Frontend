@@ -39,12 +39,14 @@ import {
   ShoppingCart,
   UploadFile,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import POActions from "./POActions";
 import usePO from "../../../Hooks/usePO";
 import PODialogs from "./PODialogs";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function POList() {
+  const navigate = useNavigate();
   const {
     filteredPOs,
     loading,
@@ -95,11 +97,11 @@ export default function POList() {
     return matchesSearch && matchesReceiving && matchesOrderStatus;
   });
 
-  const totalPages = Math.ceil(filteredPOsWithFilter.length / pageSize);
-  const paginatedPOs = filteredPOsWithFilter.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
+  const sortedPOs = [...filteredPOsWithFilter].sort((a, b) => b.poid - a.poid);
+
+  const totalPages = Math.ceil(sortedPOs.length / pageSize);
+  const paginatedPOs = sortedPOs.slice((page - 1) * pageSize, page * pageSize);
+
   const handleClearFilters = () => {
     setSearch("");
     setReceivingStatusFilter("");
@@ -215,14 +217,25 @@ export default function POList() {
               </Stack>
 
               {/* Right group: upload button */}
+              {/* Right group: upload button + create PO */}
               {userRole === "purchases_staff" && (
-                <Button
-                  variant="contained"
-                  startIcon={<UploadFile />}
-                  onClick={handleOpenUpload}
-                >
-                  Tạo đơn từ Excel
-                </Button>
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="contained"
+                    startIcon={<UploadFile />}
+                    onClick={handleOpenUpload}
+                  >
+                    Tạo đơn từ Excel
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={() => navigate("/po/create")}
+                  >
+                    Tạo đơn hàng
+                  </Button>
+                </Stack>
               )}
             </Stack>
 

@@ -73,6 +73,7 @@ import DebtList from "./Components/Debt_Components/DebtList.jsx";
 import PaymentRemainList from "./Components/PaymentRemain/PaymentRemainList.jsx";
 import CustomerDebtList from "./Components/Debt_Components/CustomerDebtList.jsx";
 import AboutPharmacy from "./Components/Guest_Components/AboutPharmacy.jsx";
+import CreatePOFromPQ from "./Components/Purchases_Components/PO/CreatePOFromPQ.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -641,6 +642,13 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+                      <Route path="/po/create" element={
+                        <ProtectedRoute
+                          allowedRoles={["purchases_staff"]}
+                        >
+                          <CreatePOFromPQ />
+                        </ProtectedRoute>
+                      }/>
 
                       {/* Routes cho GRN */}
                       <Route

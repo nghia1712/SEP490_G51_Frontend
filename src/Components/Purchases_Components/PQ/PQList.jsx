@@ -41,6 +41,7 @@ import {
 } from "@mui/icons-material";
 import palette from "../../../constants/palette";
 import usePQ from "../../../Hooks/usePQ";
+import usePRFQ from "../../../Hooks/usePRFQ";
 
 export default function PQList() {
   const {
@@ -60,26 +61,34 @@ export default function PQList() {
     createPO,
     changeQuantity,
     removeItem,
+    loadData,
   } = usePQ();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(1);
+
   const pageSize = 10;
+  const { prfqs, showSnackbar, handleImportQuotation, importLoading } =
+    usePRFQ();
+  const [openUploadDialog, setOpenUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const filtered = quotations.filter((q) => {
-    const keyword = search.toLowerCase();
+  const filtered = quotations
+    .filter((q) => {
+      const keyword = search.toLowerCase();
 
-    const supplierMatch = q.supplierName?.toLowerCase().includes(keyword);
-    const pqMatch = `PQ-${q.quotationId}`.toLowerCase().includes(keyword);
+      const supplierMatch = q.supplierName?.toLowerCase().includes(keyword);
+      const pqMatch = `PQ-${q.quotationId}`.toLowerCase().includes(keyword);
 
-    const sentDate = new Date(q.sentDate);
-    const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
-    const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
+      const sentDate = new Date(q.sentDate);
+      const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
+      const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
 
-    return (supplierMatch || pqMatch) && fromMatch && toMatch;
-  });
+      return (supplierMatch || pqMatch) && fromMatch && toMatch;
+    })
+    .sort((a, b) => b.quotationId - a.quotationId);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
 
@@ -148,76 +157,86 @@ export default function PQList() {
             >
               <Stack
                 direction={{ xs: "column", md: "row" }}
-                spacing={2}
                 alignItems="center"
+                spacing={2}
+                justifyContent="space-between"
               >
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  placeholder="Tìm kiếm..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: 350 }}
-                />
-
-                <LocalizationProvider
-                  dateAdapter={AdapterDateFns}
-                  locale={viLocale}
-                >
-                  <DatePicker
-                    label="Ngày gửi từ"
-                    value={dateFrom ? new Date(dateFrom) : null}
-                    onChange={(newValue) => {
-                      if (!newValue) return;
-                      const value = newValue.toISOString().split("T")[0];
-                      setDateFrom(value);
-
-                      // Nếu dateTo trước dateFrom thì reset dateTo
-                      if (dateTo && new Date(dateTo) < newValue) {
-                        setDateTo("");
-                      }
+                {/* Left: Tìm kiếm và lọc ngày */}
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    placeholder="Tìm kiếm..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
                     }}
-                    format="dd/MM/yyyy"
-                    slotProps={{
-                      textField: { size: "small", sx: { width: 180 } },
-                    }}
-                    maxDate={dateTo ? new Date(dateTo) : undefined}
+                    sx={{ width: 350 }}
                   />
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    locale={viLocale}
+                  >
+                    <DatePicker
+                      label="Ngày gửi từ"
+                      value={dateFrom ? new Date(dateFrom) : null}
+                      onChange={(newValue) => {
+                        if (!newValue) return;
+                        const value = newValue.toISOString().split("T")[0];
+                        setDateFrom(value);
+                        if (dateTo && new Date(dateTo) < newValue)
+                          setDateTo("");
+                      }}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      maxDate={dateTo ? new Date(dateTo) : undefined}
+                    />
+                    <DatePicker
+                      label="Ngày gửi đến"
+                      value={dateTo ? new Date(dateTo) : null}
+                      onChange={(newValue) => {
+                        if (!newValue) return;
+                        const value = newValue.toISOString().split("T")[0];
+                        setDateTo(value);
+                      }}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      minDate={dateFrom ? new Date(dateFrom) : undefined}
+                    />
+                  </LocalizationProvider>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setDateFrom("");
+                      setDateTo("");
+                      setPage(1);
+                    }}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Stack>
 
-                  <DatePicker
-                    label="Ngày gửi đến"
-                    value={dateTo ? new Date(dateTo) : null}
-                    onChange={(newValue) => {
-                      if (!newValue) return;
-                      const value = newValue.toISOString().split("T")[0];
-                      setDateTo(value);
-                    }}
-                    format="dd/MM/yyyy"
-                    slotProps={{
-                      textField: { size: "small", sx: { width: 180 } },
-                    }}
-                    minDate={dateFrom ? new Date(dateFrom) : undefined}
-                  />
-                </LocalizationProvider>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => {
-                    setSearch("");
-                    setDateFrom("");
-                    setDateTo("");
-                    setPage(1);
-                  }}
-                >
-                  Xóa lọc
-                </Button>
+                {/* Right: Nút tải báo giá */}
+                <Box sx={{ marginLeft: "auto" }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setOpenUploadDialog(true)}
+                  >
+                    Tải báo giá từ Excel
+                  </Button>
+                </Box>
               </Stack>
             </Paper>
 
@@ -414,6 +433,82 @@ export default function PQList() {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog Upload PQ */}
+      <Dialog
+        open={openUploadDialog}
+        onClose={() => setOpenUploadDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Tải báo giá từ Excel</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Button variant="outlined" component="label">
+              Chọn file
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                hidden
+                onChange={(e) => setSelectedFile(e.target.files[0] || null)}
+              />
+            </Button>
+            <Typography>
+              {selectedFile ? selectedFile.name : "Chưa chọn file"}
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setOpenUploadDialog(false)}
+            disabled={importLoading}
+            variant="outlined"
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!selectedFile || importLoading}
+            onClick={async () => {
+              if (!selectedFile) return;
+              setProcessing(true);
+              try {
+                const res = await handleImportQuotation(selectedFile);
+                loadData();
+                setSelectedFile(null);
+                setOpenUploadDialog(false);
+
+                setSnackbar({
+                  open: true,
+                  message: res?.data?.message || "Tải báo giá thành công",
+                  severity: "success",
+                });
+              } catch (err) {
+                setSnackbar({
+                  open: true,
+                  message:
+                    err.response?.data?.message || "Tải báo giá thất bại",
+                  severity: "error",
+                });
+              } finally {
+                setProcessing(false);
+              }
+            }}
+          >
+            {!selectedFile ? (
+              "Tải lên"
+            ) : importLoading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Đang tải
+              </>
+            ) : (
+              "Tải lên"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Dialog Tạo PO */}
       <Dialog
         open={openCreatePoDialog}
@@ -505,40 +600,47 @@ export default function PQList() {
                         {item.unitPrice?.toLocaleString()} đ
                       </TableCell>
                       <TableCell align="center">{item.tax * 100} %</TableCell>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={item.quantity === 0 ? "" : item.quantity}
-                        helperText={
-                          item.quantity > item.suggestedQty
-                            ? "Vượt quá số lượng gợi ý"
-                            : ""
-                        }
-                        FormHelperTextProps={{
-                          sx: {
-                            color: "warning.main",
-                          },
-                        }}
-                        onChange={(e) => {
-                          let val = e.target.value;
-                          let newQty = val === "" ? "" : Number(val);
-
-                          if (newQty < 1 && newQty !== "") newQty = 1;
-
-                          changeQuantity(i, newQty);
-
-                          if (newQty > item.suggestedQty) {
-                            setSnackbar({
-                              open: true,
-                              message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
-                              severity: "warning",
-                            });
+                      <TableCell
+                        align="center"
+                        sx={{ position: "relative", pb: 3 }}
+                      >
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.quantity === 0 ? "" : item.quantity}
+                          helperText={
+                            item.quantity > item.suggestedQty
+                              ? "Số lượng vượt quá gợi ý"
+                              : ""
                           }
-                        }}
-                        sx={{ width: 80 }}
-                        disabled={processing}
-                      />
-
+                          FormHelperTextProps={{
+                            sx: {
+                              color: "warning.main",
+                              position: "absolute",
+                              whiteSpace: "nowrap",
+                              overflow: "visible",
+                              left: 0,
+                              bottom: -20,
+                              zIndex: 1,
+                            },
+                          }}
+                          onChange={(e) => {
+                            let val = e.target.value;
+                            let newQty = val === "" ? "" : Number(val);
+                            if (newQty < 1 && newQty !== "") newQty = 1;
+                            changeQuantity(i, newQty);
+                            if (newQty > item.suggestedQty) {
+                              setSnackbar({
+                                open: true,
+                                message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
+                                severity: "warning",
+                              });
+                            }
+                          }}
+                          sx={{ width: 100, position: "relative" }}
+                          disabled={processing}
+                        />
+                      </TableCell>
                       <TableCell align="center">
                         {item.suggestedQty ?? "-"}
                       </TableCell>
@@ -576,7 +678,7 @@ export default function PQList() {
             disabled={processing}
             variant="outlined"
           >
-            Hủy
+            {processing ? <CircularProgress size={20} /> : "Hủy"}
           </Button>
           <Button
             variant="outlined"

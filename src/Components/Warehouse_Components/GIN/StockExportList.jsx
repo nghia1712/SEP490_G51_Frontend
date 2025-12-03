@@ -122,17 +122,19 @@ export default function StockExportList() {
     }
   };
 
-  const filteredList = (Array.isArray(data) ? data : []).filter((item) => {
-    const keyword = search.toLowerCase();
+  const filteredList = (Array.isArray(data) ? data : [])
+    .filter((item) => {
+      const keyword = search.toLowerCase();
 
-    const statusText = getStatus(item.status).label.toLowerCase();
+      const statusText = getStatus(item.status).label.toLowerCase();
 
-    return (
-      (item.stockExportOrderCode || "").toLowerCase().includes(keyword) ||
-      (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
-      (item.createBy || "").toLowerCase().includes(keyword)
-    );
-  });
+      return (
+        (item.stockExportOrderCode || "").toLowerCase().includes(keyword) ||
+        (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
+        (item.createBy || "").toLowerCase().includes(keyword)
+      );
+    })
+    .sort((a, b) => Number(b.id) - Number(a.id));
 
   const totalPages = Math.ceil(filteredList.length / pageSize);
   const paginatedData = filteredList.slice(

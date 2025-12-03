@@ -147,7 +147,10 @@ export default function PODialogs({
                   </TableCell>
                   <TableCell>{p.tax * 100} %</TableCell>
 
-                  <TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{ position: "relative", pb: 3 }}
+                    >
                     <TextField
                       size="small"
                       type="number"
@@ -157,11 +160,17 @@ export default function PODialogs({
                           ? "Vượt quá số lượng gợi ý"
                           : ""
                       }
-                      FormHelperTextProps={{
-                        sx: {
-                          color: "warning.main",
-                        },
-                      }}
+                         FormHelperTextProps={{
+                          sx: {
+                            color: "warning.main",
+                            position: "absolute",
+                            whiteSpace: "nowrap",
+                            overflow: "visible",
+                            left: 0,
+                            bottom: -20,
+                            zIndex: 1,
+                          },
+                        }}
                       onChange={(e) => {
                         let val = e.target.value;
                         let newQuantity = val === "" ? "" : Number(val);
