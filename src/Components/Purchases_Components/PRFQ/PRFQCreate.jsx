@@ -227,13 +227,10 @@ export default function PRFQCreate() {
     setLoading(true);
 
     try {
-      // Kiểm tra sản phẩm rỗng
+      // validate + build payload
       const invalidItem = formData.items.some(
         (item) => !item.productId || !item.productName.trim()
       );
-      const productIds = formData.items
-        .map((item) => item.productId)
-        .filter((id) => id);
 
       if (invalidItem) {
         setSnackbar({
@@ -241,9 +238,13 @@ export default function PRFQCreate() {
           message: "Vui lòng chọn sản phẩm!",
           severity: "warning",
         });
-        setLoading(false);
+        setLoading(false); // ❗Trường hợp lỗi thì cho phép bấm lại
         return;
       }
+
+      const productIds = formData.items
+        .map((item) => item.productId)
+        .filter(Boolean);
 
       if (productIds.length === 0) {
         setSnackbar({
@@ -261,18 +262,12 @@ export default function PRFQCreate() {
         myPhone: formData.phone,
         myAddress: formData.address,
         productIds,
-        prfqStatus: status === "Draft" ? 4 : 1, // Draft = 4, Submit = 1
+        prfqStatus: status === "Draft" ? 4 : 1,
       };
-      let res;
 
-      // ✅ Nếu đang chỉnh sửa bản nháp → gọi continueEdit
-      if (isUpdate) {
-        res = await prfqApi.continueEdit(id, payload);
-      }
-      // ✅ Nếu tạo mới → create
-      else {
-        res = await prfqApi.create(payload);
-      }
+      let res;
+      if (isUpdate) res = await prfqApi.continueEdit(id, payload);
+      else res = await prfqApi.create(payload);
 
       setSnackbar({
         open: true,
@@ -285,17 +280,16 @@ export default function PRFQCreate() {
         severity: "success",
       });
 
+      // ❗GIỮ loading = true CHO ĐẾN KHI CHUYỂN TRANG
       setTimeout(() => navigate("/purchase/prfq"), 1200);
     } catch (error) {
       console.error("Lỗi Submit:", error);
-
       setSnackbar({
         open: true,
         message: error.response?.data?.message || "Có lỗi xảy ra!",
         severity: "error",
       });
-    } finally {
-      setLoading(false);
+      setLoading(false); // lỗi → bật lại nút
     }
   };
 
@@ -303,6 +297,7 @@ export default function PRFQCreate() {
     <>
       <AddProduct
         open={openAddProduct}
+        disabled={loading}
         handleClose={handleCloseAddProduct}
         onSaveSuccess={() => console.log("Thêm sản phẩm thành công!")}
       />
@@ -378,6 +373,7 @@ export default function PRFQCreate() {
 
                 <TextField
                   select
+                  disabled={loading}
                   label="Chọn nhà cung cấp"
                   name="supplierId"
                   fullWidth
@@ -438,6 +434,7 @@ export default function PRFQCreate() {
                     <TableCell>
                       <Autocomplete
                         freeSolo
+                        disabled={loading}
                         options={productSuggestions}
                         getOptionLabel={(p) => p.productName || ""}
                         isOptionEqualToValue={(option, value) =>
@@ -509,6 +506,7 @@ export default function PRFQCreate() {
                     <TableCell align="center">
                       <Tooltip title="Thêm sản phẩm nhanh">
                         <IconButton
+                          disabled={loading}
                           color="primary"
                           size="small"
                           sx={{ mr: 1 }}
@@ -520,6 +518,7 @@ export default function PRFQCreate() {
                       <Tooltip title="Xóa dòng này">
                         <IconButton
                           color="error"
+                          disabled={loading}
                           onClick={() => handleRemoveItem(index)}
                         >
                           <DeleteIcon />
@@ -531,6 +530,7 @@ export default function PRFQCreate() {
                 <TableRow>
                   <TableCell colSpan={3} align="center">
                     <Button
+                      disabled={loading}
                       startIcon={<AddIcon />}
                       onClick={handleAddItem}
                       sx={{ color: palette.success.main }}

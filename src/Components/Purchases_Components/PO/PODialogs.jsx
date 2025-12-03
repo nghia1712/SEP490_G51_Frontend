@@ -210,6 +210,7 @@ export default function PODialogs({
                   <TableCell>
                     <IconButton
                       color="error"
+                      disabled={sending}
                       onClick={() =>
                         setUploadedProducts((prev) =>
                           prev.filter((_, index) => index !== i)

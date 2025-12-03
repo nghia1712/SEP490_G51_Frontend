@@ -36,7 +36,7 @@ export default function StockExportForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const [originalDetails, setOriginalDetails] = useState([]);
-
+  const [actionLock, setActionLock] = useState(false);
   const {
     data: stockDetail,
     loading: loadingStock,
@@ -303,8 +303,7 @@ export default function StockExportForm() {
     } catch (err) {
       console.error(err);
       setSnack({ open: true, severity: "error", message: "Lỗi khi xử lý!" });
-    } finally {
-      setLoading(false);
+      loading(false);
     }
   };
 
@@ -394,9 +393,12 @@ export default function StockExportForm() {
                 mb: 2,
               }}
             >
-              <Typography fontWeight={"bold"} variant="h6">Chi tiết lô hàng</Typography>
+              <Typography fontWeight={"bold"} variant="h6">
+                Chi tiết lô hàng
+              </Typography>
               <Button
                 color="primary"
+                disabled={loading}
                 onClick={() =>
                   setForm((prev) => ({ ...prev, details: originalDetails }))
                 }
@@ -470,6 +472,7 @@ export default function StockExportForm() {
                       <TableCell>
                         <IconButton
                           color="error"
+                          disabled={loading}
                           onClick={() => handleDeleteLot(i)}
                         >
                           <DeleteIcon />
@@ -483,10 +486,16 @@ export default function StockExportForm() {
 
             {/* Buttons */}
             <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button onClick={() => navigate("/stock-export")}>Hủy</Button>
+              <Button
+                disabled={loading}
+                onClick={() => navigate("/stock-export")}
+              >
+                Hủy
+              </Button>
               <Button
                 variant="outlined"
                 color="secondary"
+                disabled={loading}
                 onClick={() => handlleSubmit("Draft")}
               >
                 Lưu nháp
@@ -494,6 +503,7 @@ export default function StockExportForm() {
               <Button
                 variant="contained"
                 color="success"
+                disabled={loading}
                 onClick={() => handleSubmit("Send")}
               >
                 Gửi

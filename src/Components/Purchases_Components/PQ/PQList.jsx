@@ -441,21 +441,19 @@ export default function PQList() {
         fullWidth
       >
         <DialogTitle>Tải báo giá từ Excel</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2}>
-            <Button variant="outlined" component="label">
-              Chọn file
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                hidden
-                onChange={(e) => setSelectedFile(e.target.files[0] || null)}
-              />
-            </Button>
-            <Typography>
-              {selectedFile ? selectedFile.name : "Chưa chọn file"}
-            </Typography>
-          </Stack>
+        <DialogContent>
+          <Button variant="outlined" component="label" disabled={importLoading}>
+            Chọn file
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              hidden
+              onChange={(e) => setSelectedFile(e.target.files[0] || null)}
+            />
+          </Button>
+          <Typography>
+            {selectedFile ? selectedFile.name : "Chưa chọn file"}
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button
