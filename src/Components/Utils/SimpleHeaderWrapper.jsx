@@ -154,7 +154,7 @@ const SimpleHeader = () => {
               textAlign: "left",
             }}
           >
-            Pharmacy
+            Nhà thuốc số 17
           </MuiTypography>
 
           {/* Spacer to push buttons right */}
@@ -167,43 +167,35 @@ const SimpleHeader = () => {
                 {/* Notification bell */}
                 <NotificationMenu />
 
-                {/* Role Badge */}
+                {/* Badge role + menu giống header chính, KHÔNG dùng avatar trắng */}
                 {userRole && (() => {
                   const roleInfo = getRoleInfo(userRole);
                   const IconComponent = roleInfo.IconComponent;
                   return (
-                    <Chip
-                      icon={<IconComponent />}
-                      label={roleInfo.label}
-                      size="small"
-                      sx={{
-                        backgroundColor: roleInfo.bgColor,
-                        color: roleInfo.color,
-                        fontWeight: 600,
-                        fontSize: "0.75rem",
-                        height: "24px",
-                        border: `1px solid ${roleInfo.color}20`,
-                        "& .MuiChip-icon": {
+                    <Tooltip
+                      title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label}`}
+                    >
+                      <Chip
+                        icon={<IconComponent />}
+                        label={roleInfo.label}
+                        onClick={handleProfileMenuOpen}
+                        deleteIcon={<ArrowDropDownIcon />}
+                        onDelete={handleProfileMenuOpen}
+                        size="medium"
+                        sx={{
+                          backgroundColor: roleInfo.bgColor,
                           color: roleInfo.color,
-                          fontSize: "16px",
-                        },
-                      }}
-                    />
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          "& .MuiChip-icon": { color: roleInfo.color },
+                          "& .MuiChip-deleteIcon": {
+                            color: roleInfo.color,
+                          },
+                        }}
+                      />
+                    </Tooltip>
                   );
                 })()}
-                <Tooltip title={`${profile?.fullName || "Tài khoản"} - ${getRoleInfo(userRole).label}`}>
-                  <IconButton
-                    onClick={handleProfileMenuOpen}
-                    sx={{ p: 0.5, borderRadius: "8px" }}
-                  >
-                    <Avatar
-                      alt={profile?.fullName}
-                      src={avatarUrl}
-                      sx={{ width: 32, height: 32 }}
-                    />
-                    <ArrowDropDownIcon sx={{ color: palette.white }} />
-                  </IconButton>
-                </Tooltip>
                 <Menu
                   anchorEl={profileMenuAnchor}
                   open={Boolean(profileMenuAnchor)}

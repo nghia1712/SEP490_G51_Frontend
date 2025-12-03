@@ -55,7 +55,7 @@ const ListRSQ = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'sentDate', direction: 'desc' }); // Mặc định sort theo ngày gửi từ mới nhất đến cũ nhất
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchRequestCode, setSearchRequestCode] = useState('');
   const [searchCustomerName, setSearchCustomerName] = useState('');
@@ -929,6 +929,18 @@ const handleDepositPercentChange = (value) => {
     );
   }, [detailMatchedRequest, selectedRequestDetails]);
 
+  // Kiểm tra báo giá có hết hạn không
+  const isExpired = (expiredDate) => {
+    if (!expiredDate) return false;
+    try {
+      const expired = new Date(expiredDate);
+      expired.setHours(23, 59, 59, 999);
+      return expired.getTime() < Date.now();
+    } catch (error) {
+      return false;
+    }
+  };
+
   // Lấy tất cả các báo giá liên quan đến yêu cầu báo giá hiện tại
   const relatedQuotations = useMemo(() => {
     if (!selectedRequestDetails) return [];
@@ -943,6 +955,7 @@ const handleDepositPercentChange = (value) => {
       id: quotation.Id || quotation.id,
       code: quotation.QuotationCode || quotation.quotationCode || '',
       date: quotation.QuotationDate || quotation.quotationDate || null,
+      expiredDate: quotation.ExpiredDate || quotation.expiredDate || null,
       status: quotation.Status !== undefined ? quotation.Status : quotation.status,
     })).sort((a, b) => {
       // Sắp xếp theo ngày giảm dần (mới nhất trước)
@@ -989,31 +1002,34 @@ const handleDepositPercentChange = (value) => {
 
   // Sort requests
   const sortedRequests = useMemo(() => {
-    if (!sortConfig.key) return filteredRequests;
+    // Nếu không có sortConfig.key, mặc định sort theo ngày gửi từ mới nhất đến cũ nhất
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
+      : { key: 'sentDate', direction: 'desc' };
 
     return [...filteredRequests].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      let aValue = a[effectiveSortConfig.key];
+      let bValue = b[effectiveSortConfig.key];
 
-      if (sortConfig.key === 'code') {
+      if (effectiveSortConfig.key === 'code') {
         aValue = aValue || '';
         bValue = bValue || '';
-      } else if (sortConfig.key === 'customerName') {
+      } else if (effectiveSortConfig.key === 'customerName') {
         aValue = aValue || '';
         bValue = bValue || '';
-      } else if (sortConfig.key === 'sentDate' || sortConfig.key === 'quotationDate') {
+      } else if (effectiveSortConfig.key === 'sentDate' || effectiveSortConfig.key === 'quotationDate') {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
-      } else if (sortConfig.key === 'status') {
+      } else if (effectiveSortConfig.key === 'status') {
         aValue = aValue !== undefined && aValue !== null ? aValue : -1;
         bValue = bValue !== undefined && bValue !== null ? bValue : -1;
       }
 
       if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+        return effectiveSortConfig.direction === 'asc' ? -1 : 1;
       }
       if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+        return effectiveSortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;
     });
@@ -1361,40 +1377,42 @@ const handleDepositPercentChange = (value) => {
                 <Box sx={{ fontWeight: 500 }}>
                   {relatedQuotations.length > 0 ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {relatedQuotations.map((quotation, index) => (
-                        <Button
-                          key={quotation.id || index}
-                          variant="text"
-                          color="primary"
-                          onClick={() => handleOpenQuotationDetail(quotation.id)}
-                          disabled={!quotation.id}
-                          sx={{
-                            textTransform: 'none',
-                            padding: 0,
-                            minWidth: 0,
-                            fontWeight: 500,
-                            justifyContent: 'flex-start',
-                            fontSize: '0.875rem',
-                            '&:disabled': {
-                              color: 'text.disabled',
-                            },
-                            '&:hover': {
-                              textDecoration: 'underline',
-                            },
-                          }}
-                        >
-                          {quotation.code || '-'}
-                          {quotation.date && (
-                            <Typography
-                              component="span"
-                              variant="caption"
-                              sx={{ ml: 1, color: 'text.secondary' }}
-                            >
-                              ({formatDate(quotation.date)})
-                            </Typography>
-                          )}
-                        </Button>
-                      ))}
+                      {relatedQuotations.map((quotation, index) => {
+                        // Nếu chỉ có 1 báo giá thì không hiển thị trạng thái
+                        const showStatus = relatedQuotations.length > 1;
+                        const isLatest = index === 0; // Mã đầu tiên sau khi sort là mới nhất
+                        const hasExpired = isExpired(quotation.expiredDate);
+                        const isValid = isLatest && !hasExpired; // Có hiệu lực nếu là mã mới nhất và chưa hết hạn
+                        const statusText = isValid ? 'có hiệu lực' : 'không hiệu lực';
+                        
+                        return (
+                          <Typography
+                            key={quotation.id || index}
+                            component="span"
+                            variant="body2"
+                            onClick={() => {
+                              if (quotation.id) {
+                                handleOpenQuotationDetail(quotation.id);
+                              }
+                            }}
+                            sx={{
+                              display: 'block',
+                              textAlign: 'left',
+                              color: quotation.id ? '#1976d2' : 'text.disabled',
+                              textDecoration: showStatus && !isValid ? 'line-through' : 'none',
+                              opacity: showStatus && !isValid ? 0.6 : 1,
+                              cursor: quotation.id ? 'pointer' : 'default',
+                              textDecorationColor: 'rgba(0, 0, 0, 0.4)',
+                              '&:hover': {
+                                textDecoration: quotation.id ? (showStatus && !isValid ? 'line-through' : 'underline') : 'none',
+                                opacity: quotation.id ? (showStatus && !isValid ? 0.6 : 0.8) : 0.6,
+                              },
+                            }}
+                          >
+                            {quotation.code || '-'}{showStatus ? ` (${statusText})` : ''}
+                          </Typography>
+                        );
+                      })}
                     </Box>
                   ) : (
                     '-'

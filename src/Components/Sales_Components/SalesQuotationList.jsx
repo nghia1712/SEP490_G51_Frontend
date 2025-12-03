@@ -60,7 +60,7 @@ const SalesQuotationList = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'quotationDate', direction: 'desc' }); // Mặc định sort theo ngày báo giá từ mới nhất đến cũ nhất
   const [statusFilter, setStatusFilter] = useState('all');
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
@@ -422,28 +422,31 @@ const SalesQuotationList = () => {
 
   // Sort quotations
   const sortedQuotations = useMemo(() => {
-    if (!sortConfig.key) return filteredQuotations;
+    // Nếu không có sortConfig.key, mặc định sort theo ngày báo giá từ mới nhất đến cũ nhất
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
+      : { key: 'quotationDate', direction: 'desc' };
 
     return [...filteredQuotations].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      let aValue = a[effectiveSortConfig.key];
+      let bValue = b[effectiveSortConfig.key];
 
-      if (sortConfig.key === 'quotationCode') {
+      if (effectiveSortConfig.key === 'quotationCode') {
         aValue = aValue || '';
         bValue = bValue || '';
-      } else if (sortConfig.key === 'quotationDate' || sortConfig.key === 'expiredDate') {
+      } else if (effectiveSortConfig.key === 'quotationDate' || effectiveSortConfig.key === 'expiredDate') {
         aValue = aValue ? new Date(aValue).getTime() : 0;
         bValue = bValue ? new Date(bValue).getTime() : 0;
-      } else if (sortConfig.key === 'status') {
+      } else if (effectiveSortConfig.key === 'status') {
         aValue = aValue !== undefined && aValue !== null ? aValue : -1;
         bValue = bValue !== undefined && bValue !== null ? bValue : -1;
       }
 
       if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+        return effectiveSortConfig.direction === 'asc' ? -1 : 1;
       }
       if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+        return effectiveSortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;
     });

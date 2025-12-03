@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogTitle,
@@ -27,6 +28,7 @@ const InvoiceCreationDialog = ({
   defaultGoodsIssueNoteCode = "",
   onSuccess,
 }) => {
+  const navigate = useNavigate();
   const [salesOrderCodes, setSalesOrderCodes] = useState([]);
   const [salesOrderLoading, setSalesOrderLoading] = useState(false);
   const [selectedSalesOrder, setSelectedSalesOrder] = useState(
@@ -153,10 +155,27 @@ const InvoiceCreationDialog = ({
         goodsIssueNoteCodes: selectedGoodsCodes,
       };
       const res = await invoiceAPI.generateFromGoodsIssueNotes(payload);
+      const invoiceId = res.data?.data?.id || res.data?.data?.Id;
+      
+      // Nếu có invoiceId, gọi API để set status = Send (đã gửi)
+      if (invoiceId) {
+        try {
+          await invoiceAPI.sendInvoiceEmail(invoiceId);
+        } catch (sendError) {
+          // Nếu gửi email thất bại nhưng invoice đã được tạo, vẫn tiếp tục
+          console.warn('Could not send invoice email, but invoice was created:', sendError);
+        }
+      }
+      
       const message =
         res.data?.message || "Tạo hóa đơn từ phiếu xuất kho thành công.";
       onSuccess?.(message);
       onClose?.();
+      
+      // Điều hướng đến trang hóa đơn sau khi tạo thành công
+      setTimeout(() => {
+        navigate('/accountant/invoices');
+      }, 500);
     } catch (error) {
       setAlertState({
         severity: "error",

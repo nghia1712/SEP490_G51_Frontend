@@ -22,9 +22,11 @@ import {
   Card,
   CardContent,
   Grid,
+  Link,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
+import salesQuotationAPI from '../../API/salesQuotationAPI';
 
 const RequestQuotationDetails = () => {
   const { id } = useParams();
@@ -35,6 +37,7 @@ const RequestQuotationDetails = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [requestDetails, setRequestDetails] = useState(null);
   const [customerInfo, setCustomerInfo] = useState(null);
+  const [allQuotations, setAllQuotations] = useState([]);
 
   // Map status enum
   const getStatusLabel = (status) => {
@@ -75,7 +78,19 @@ const RequestQuotationDetails = () => {
     }
   };
 
-  // Fetch request details
+  // Kiểm tra báo giá có hết hạn không
+  const isExpired = (expiredDate) => {
+    if (!expiredDate) return false;
+    try {
+      const expired = new Date(expiredDate);
+      expired.setHours(23, 59, 59, 999);
+      return expired.getTime() < Date.now();
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Fetch request details and quotations
   useEffect(() => {
     const fetchDetails = async () => {
       if (!id) return;
@@ -83,10 +98,13 @@ const RequestQuotationDetails = () => {
       setLoading(true);
       setError(null);
       try {
+        // Fetch request details
         const response = await requestSalesQuotationAPI.viewDetails(parseInt(id));
         
         if (response.data && response.data.data) {
           const data = response.data.data;
+          console.log('RequestQuotationDetails - Full response data:', data);
+          console.log('RequestQuotationDetails - SalesQuotations:', data.SalesQuotations || data.salesQuotations);
           setRequestDetails(data);
           
           // TODO: Fetch customer info from request if available
@@ -97,6 +115,21 @@ const RequestQuotationDetails = () => {
             email: 'nguyenvana@example.com',
             address: '123 Đường ABC, Quận XYZ, TP.HCM',
           });
+        }
+
+        // Fetch all quotations to find related ones
+        try {
+          const quotationsResponse = await salesQuotationAPI.viewList();
+          if (quotationsResponse?.data?.data) {
+            const quotations = Array.isArray(quotationsResponse.data.data) 
+              ? quotationsResponse.data.data 
+              : [];
+            setAllQuotations(quotations);
+            console.log('RequestQuotationDetails - All quotations:', quotations);
+          }
+        } catch (quotationsErr) {
+          console.warn('RequestQuotationDetails - Could not fetch quotations:', quotationsErr);
+          // Không báo lỗi nếu không fetch được quotations, chỉ log warning
         }
       } catch (err) {
         const errorMessage = err.response?.data?.message || 'Không thể tải chi tiết yêu cầu';
@@ -160,26 +193,115 @@ const RequestQuotationDetails = () => {
       )}
 
       {/* Request Information Card */}
-      {requestDetails && (
-        <Card sx={{ mb: 3, boxShadow: 2 }}>
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  <strong>Mã yêu cầu:</strong> {requestDetails.requestCode || requestDetails.RequestCode || ''}
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  <strong>Ngày yêu cầu:</strong> {formatDate(requestDetails.requestDate || requestDetails.RequestDate)}
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  <strong>Trạng thái:</strong>{' '}
-                  <Chip
-                    label={getStatusLabel(requestDetails.status !== undefined ? requestDetails.status : (requestDetails.Status !== undefined ? requestDetails.Status : 0))}
-                    size="small"
-                    sx={getStatusColor(requestDetails.status !== undefined ? requestDetails.status : (requestDetails.Status !== undefined ? requestDetails.Status : 0))}
-                  />
-                </Typography>
-              </Grid>
+      {requestDetails && (() => {
+        // Lấy RequestCode từ requestDetails
+        const requestCode = requestDetails.RequestCode || requestDetails.requestCode || '';
+        
+        // Lấy danh sách SalesQuotations từ requestDetails (nếu có)
+        const salesQuotationsFromDetails = 
+          requestDetails.SalesQuotations || 
+          requestDetails.salesQuotations || 
+          requestDetails.SalesQuotation || 
+          (Array.isArray(requestDetails.SalesQuotation) ? requestDetails.SalesQuotation : []) ||
+          [];
+        
+        // Filter từ allQuotations theo RequestCode (giống như ListRSQ)
+        const relatedQuotationsFromList = requestCode && allQuotations.length > 0
+          ? allQuotations.filter((quotation) => {
+              const qRequestCode = quotation.RequestCode || quotation.requestCode || '';
+              return qRequestCode === requestCode;
+            })
+          : [];
+        
+        // Kết hợp cả hai nguồn và loại bỏ trùng lặp
+        const allRelatedQuotations = [...salesQuotationsFromDetails, ...relatedQuotationsFromList];
+        const uniqueQuotations = allRelatedQuotations.reduce((acc, current) => {
+          const currentId = current.Id || current.id;
+          if (!acc.find(item => (item.Id || item.id) === currentId)) {
+            acc.push(current);
+          }
+          return acc;
+        }, []);
+        
+        console.log('RequestQuotationDetails - requestCode:', requestCode);
+        console.log('RequestQuotationDetails - salesQuotationsFromDetails:', salesQuotationsFromDetails);
+        console.log('RequestQuotationDetails - relatedQuotationsFromList:', relatedQuotationsFromList);
+        console.log('RequestQuotationDetails - uniqueQuotations:', uniqueQuotations);
+        
+        // Sắp xếp theo ngày tạo (mới nhất trước) để xác định mã mới nhất
+        const sortedQuotations = [...uniqueQuotations].sort((a, b) => {
+          const dateA = new Date(a.QuotationDate || a.quotationDate || a.CreatedAt || a.createdAt || a.CreateAt || a.createAt || 0);
+          const dateB = new Date(b.QuotationDate || b.quotationDate || b.CreatedAt || b.createdAt || b.CreateAt || b.createAt || 0);
+          return dateB - dateA; // Mới nhất trước
+        });
+        
+        console.log('RequestQuotationDetails - sortedQuotations:', sortedQuotations);
+
+        return (
+          <Card sx={{ mb: 3, boxShadow: 2 }}>
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Mã yêu cầu báo giá:</strong> {requestDetails.requestCode || requestDetails.RequestCode || ''}
+                  </Typography>
+                  {sortedQuotations.length > 0 && (
+                    <Typography variant="body1" sx={{ mb: 1 }}>
+                      <strong>Mã báo giá:</strong>{' '}
+                      <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+                        {sortedQuotations.map((quotation, index) => {
+                          const quotationCode = quotation.QuotationCode || quotation.quotationCode || '';
+                          const expiredDate = quotation.ExpiredDate || quotation.expiredDate || null;
+                          const quotationId = quotation.Id || quotation.id;
+                          // Nếu chỉ có 1 báo giá thì không hiển thị trạng thái
+                          const showStatus = sortedQuotations.length > 1;
+                          const isLatest = index === 0; // Mã đầu tiên sau khi sort là mới nhất
+                          const hasExpired = isExpired(expiredDate);
+                          // Có hiệu lực nếu là mã mới nhất và chưa hết hạn
+                          // Nếu không phải mã mới nhất thì luôn không hiệu lực
+                          const isValid = isLatest && !hasExpired;
+                          const statusText = isValid ? 'có hiệu lực' : 'không hiệu lực';
+                          
+                          return (
+                            <Typography
+                              key={quotationId || index}
+                              component="span"
+                              variant="body2"
+                              onClick={() => {
+                                if (quotationId) {
+                                  navigate(`/sales-quotation/details/${quotationId}`);
+                                }
+                              }}
+                              sx={{
+                                display: 'block',
+                                textAlign: 'left',
+                                color: '#1976d2',
+                                textDecoration: showStatus && !isValid ? 'line-through' : 'none',
+                                opacity: showStatus && !isValid ? 0.6 : 1,
+                                cursor: quotationId ? 'pointer' : 'default',
+                                textDecorationColor: 'rgba(0, 0, 0, 0.4)',
+                                '&:hover': {
+                                  textDecoration: showStatus && !isValid ? 'line-through' : (quotationId ? 'underline' : 'none'),
+                                  opacity: showStatus && !isValid ? 0.6 : (quotationId ? 0.8 : 1),
+                                },
+                              }}
+                            >
+                              {quotationCode}{showStatus ? ` (${statusText})` : ''}
+                            </Typography>
+                          );
+                        })}
+                      </Box>
+                    </Typography>
+                  )}
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Trạng thái:</strong>{' '}
+                    <Chip
+                      label={getStatusLabel(requestDetails.status !== undefined ? requestDetails.status : (requestDetails.Status !== undefined ? requestDetails.Status : 0))}
+                      size="small"
+                      sx={getStatusColor(requestDetails.status !== undefined ? requestDetails.status : (requestDetails.Status !== undefined ? requestDetails.Status : 0))}
+                    />
+                  </Typography>
+                </Grid>
               <Grid item xs={12} md={6}>
                 {customerInfo && (
                   <>
@@ -201,7 +323,8 @@ const RequestQuotationDetails = () => {
             </Grid>
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Product List Table */}
       {requestDetails && requestDetails.details && (

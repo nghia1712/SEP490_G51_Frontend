@@ -22,6 +22,10 @@ const paymentRemainAPI = {
 
   // 🔹 5. Mark payment success
   markSuccess: (id, data) => authorApi.post(`${API_URL}/${id}/success`, data),
+
+  // 🔹 6. Init VNPay for Invoice
+  initVnPayForInvoice: (invoiceId, data) =>
+    authorApi.post(`${API_URL}/invoices/${invoiceId}/vnpay/init`, data),
 };
 
 export default paymentRemainAPI;

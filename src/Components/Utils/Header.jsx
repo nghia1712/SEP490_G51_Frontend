@@ -180,10 +180,21 @@ function Header() {
       path: "/purchases-dashboard",
       allowedRoles: ["purchases_staff"],
     },
+    // Nhóm trang quản lý tài khoản dành riêng cho ADMIN
+    {
+      label: "Tài khoản nhân viên",
+      path: "/admin/users/staff",
+      allowedRoles: ["admin"],
+    },
     {
       label: "Tài khoản khách hàng",
       path: "/admin/users/customer",
-      allowedRoles: ["manager"],
+      allowedRoles: ["admin", "manager"],
+    },
+    {
+      label: "Tài khoản quản lý",
+      path: "/admin/users/manager",
+      allowedRoles: ["admin"],
     },
     {
       label: "Thuốc",
@@ -203,7 +214,7 @@ function Header() {
     {
       label: "Yêu cầu báo giá nhập",
       path: "/purchase/prfq",
-      allowedRoles: ["purchases_staff", "admin"],
+      allowedRoles: ["purchases_staff"],
     },
     {
       label: "Báo giá nhập",
@@ -326,7 +337,7 @@ function Header() {
             }
             sx={{ fontWeight: "bold", cursor: "pointer" }}
           >
-            Pharmacy
+            Nhà thuốc số 17
           </Typography>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
@@ -359,9 +370,8 @@ function Header() {
                     return (
                       <>
                         <Tooltip
-                          title={`${profile?.fullName || "Tài khoản"} - ${
-                            roleInfo.label
-                          }`}
+                          title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label
+                            }`}
                         >
                           <Chip
                             icon={<IconComponent />}

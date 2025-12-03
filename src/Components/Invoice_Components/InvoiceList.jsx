@@ -53,7 +53,7 @@ const InvoiceList = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -122,16 +122,19 @@ const InvoiceList = () => {
   const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
 
   const sortedInvoices = useMemo(() => {
-    if (!sortConfig.key) return invoices;
+    // Nếu không có sortConfig.key, mặc định sort theo createdAt từ mới nhất đến cũ nhất
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
+      : { key: 'createdAt', direction: 'desc' };
     
     const sorted = [...invoices].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      let aValue = a[effectiveSortConfig.key];
+      let bValue = b[effectiveSortConfig.key];
       
-      if (sortConfig.key === 'createdAt') {
-        aValue = new Date(aValue || 0);
-        bValue = new Date(bValue || 0);
-      } else if (sortConfig.key === 'totalAmount') {
+      if (effectiveSortConfig.key === 'createdAt') {
+        aValue = new Date(aValue || 0).getTime();
+        bValue = new Date(bValue || 0).getTime();
+      } else if (effectiveSortConfig.key === 'totalAmount') {
         aValue = Number(aValue || 0);
         bValue = Number(bValue || 0);
       } else {
@@ -139,8 +142,8 @@ const InvoiceList = () => {
         bValue = String(bValue || '').toLowerCase();
       }
       
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (aValue < bValue) return effectiveSortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return effectiveSortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
     

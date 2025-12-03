@@ -68,7 +68,7 @@ const SalesOrderList = () => {
 
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
 
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
@@ -581,71 +581,43 @@ const SalesOrderList = () => {
   // Sort orders
 
   const sortedOrders = useMemo(() => {
-
-    if (!sortConfig.key) return filteredOrders;
-
-
+    // Nếu không có sortConfig.key, mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
+      : { key: 'createdAt', direction: 'desc' };
 
     return [...filteredOrders].sort((a, b) => {
+      let aValue = a[effectiveSortConfig.key];
+      let bValue = b[effectiveSortConfig.key];
 
-      let aValue = a[sortConfig.key];
-
-      let bValue = b[sortConfig.key];
-
-
-
-      if (sortConfig.key === 'code') {
-
+      if (effectiveSortConfig.key === 'code') {
         aValue = aValue || '';
-
         bValue = bValue || '';
-
-      } else if (sortConfig.key === 'createdAt') {
-
+      } else if (effectiveSortConfig.key === 'createdAt') {
         aValue = aValue ? new Date(aValue).getTime() : 0;
-
         bValue = bValue ? new Date(bValue).getTime() : 0;
-
       } else if (
-
-        sortConfig.key === 'status' ||
-
-        sortConfig.key === 'orderStatus' ||
-
-        sortConfig.key === 'paymentStatus'
-
+        effectiveSortConfig.key === 'status' ||
+        effectiveSortConfig.key === 'orderStatus' ||
+        effectiveSortConfig.key === 'paymentStatus'
       ) {
-
         aValue = aValue !== undefined && aValue !== null ? aValue : -1;
-
         bValue = bValue !== undefined && bValue !== null ? bValue : -1;
-
-      } else if (sortConfig.key === 'totalAmount' || sortConfig.key === 'paidAmount') {
-
+      } else if (effectiveSortConfig.key === 'totalAmount' || effectiveSortConfig.key === 'paidAmount') {
         aValue = Number(aValue) || 0;
-
         bValue = Number(bValue) || 0;
-
       }
 
-
-
       if (aValue < bValue) {
-
-        return sortConfig.direction === 'asc' ? -1 : 1;
-
+        return effectiveSortConfig.direction === 'asc' ? -1 : 1;
       }
 
       if (aValue > bValue) {
-
-        return sortConfig.direction === 'asc' ? 1 : -1;
-
+        return effectiveSortConfig.direction === 'asc' ? 1 : -1;
       }
 
       return 0;
-
     });
-
   }, [filteredOrders, sortConfig]);
 
 

@@ -1,6 +1,7 @@
 //list
 import React, { useEffect, useState } from "react";
 import { Table, Container, Alert, Card, Button, Form, Modal } from "react-bootstrap";
+import { Pagination, Box as MuiBox } from "@mui/material";
 import adminAPI from "../../API/adminAPI";
 import userAPI from "../../API/userAPI";
 import CreateStaff from "./CreateStaff";
@@ -1067,6 +1068,29 @@ const ListAllUsers = ({ roleGroup }) => {
     const customerRoleColStyle = { width: '18%' };
     const customerStatusColStyle = { width: '18%' };
 
+    // Pagination state: áp dụng cho mọi view TRỪ trang quản lý (manager view)
+    const [page, setPage] = useState(1);
+    // Số tài khoản trên mỗi trang
+    const pageSize = 6;
+
+    let totalPages = 1;
+    let paginatedUsers = filteredUsers;
+
+    if (!isManagerView) {
+        totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+        paginatedUsers = filteredUsers.slice(
+            (page - 1) * pageSize,
+            page * pageSize
+        );
+    }
+
+    // Reset về trang 1 khi bộ lọc hoặc dữ liệu thay đổi (không ảnh hưởng manager view)
+    useEffect(() => {
+        if (!isManagerView) {
+            setPage(1);
+        }
+    }, [search, roleFilter, customerStatusFilter, roleGroup, users.length, isManagerView]);
+
     // Render status badge similar to product page
     const renderStatusBadge = (statusOrUser) => {
         const isActive = typeof statusOrUser === 'object' ? getIsActive(statusOrUser) : (
@@ -1219,8 +1243,12 @@ const ListAllUsers = ({ roleGroup }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredUsers.length > 0 ? (
-                                    filteredUsers.map((user, index) => (
+                                {paginatedUsers.length > 0 ? (
+                                    paginatedUsers.map((user, index) => {
+                                        const displayIndex = isManagerView
+                                            ? index + 1
+                                            : (page - 1) * pageSize + index + 1;
+                                        return (
                                         <React.Fragment key={index}>
                                             <tr style={{ borderTop: '10px solid #A8E6CF', cursor: isManagerView ? 'default' : 'pointer' }} onClick={(e) => {
                                                 // Avoid triggering on row click when pressing buttons inside actions
@@ -1230,7 +1258,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                     openDetail(user);
                                                 }
                                             }}>
-                                                <td style={indexColStyle}>{index + 1}</td>
+                                                <td style={indexColStyle}>{displayIndex}</td>
                                                 <td style={isCustomerView ? customerEmailColStyle : equalColStyle}>{truncateEmail(user?.account?.email || user?.email)}</td>
                                                 {isStaffView ? (
                                                     <td style={equalColStyle}>
@@ -1315,7 +1343,8 @@ const ListAllUsers = ({ roleGroup }) => {
 
                                             </tr>
                                         </React.Fragment>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td 
@@ -1339,6 +1368,20 @@ const ListAllUsers = ({ roleGroup }) => {
                             </tbody>
                         </Table>
                         </div>
+
+                        {/* Pagination MUI - giống trang thuốc/danh mục. 
+                            - Không áp dụng cho trang quản lý
+                            - Chỉ hiển thị khi có ít nhất 2 trang */}
+                        {!isManagerView && filteredUsers.length > 0 && totalPages > 1 && (
+                            <MuiBox sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                                <Pagination
+                                    count={totalPages}
+                                    page={page}
+                                    onChange={(_, value) => setPage(value)}
+                                    color="primary"
+                                />
+                            </MuiBox>
+                        )}
                     </Card.Body>
                 </Card>
             )}

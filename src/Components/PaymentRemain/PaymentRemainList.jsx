@@ -225,8 +225,17 @@ const PaymentRemainList = () => {
     setDetailData(null);
   };
 
+  // Sort list by createdAt (newest first) before pagination
+  const sortedList = React.useMemo(() => {
+    return [...list].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.CreatedAt ? new Date(a.CreatedAt).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.CreatedAt ? new Date(b.CreatedAt).getTime() : 0);
+      return dateB - dateA; // Mới nhất trước
+    });
+  }, [list]);
+
   // Pagination FE
-  const paginatedList = list.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedList = sortedList.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <Box p={3}>

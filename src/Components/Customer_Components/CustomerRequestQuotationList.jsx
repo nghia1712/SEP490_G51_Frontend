@@ -60,7 +60,7 @@ const CustomerRequestQuotationList = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'sentDate', direction: 'desc' }); // Mặc định sort theo ngày gửi từ mới nhất đến cũ nhất
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequestDetails, setSelectedRequestDetails] = useState(null);
   const [pendingRsqId, setPendingRsqId] = useState(null);
@@ -552,24 +552,27 @@ const CustomerRequestQuotationList = () => {
   // Sort requests based on sortConfig
   const sortedRequests = React.useMemo(() => {
     const baseData = filteredRequests;
-    if (!sortConfig.key) return baseData.map((req, idx) => ({ ...req, displayIndex: req.displayIndex ?? idx }));
+    // Nếu không có sortConfig.key, mặc định sort theo sentDate từ mới nhất đến cũ nhất
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
+      : { key: 'sentDate', direction: 'desc' };
 
     const sorted = [...baseData].sort((a, b) => {
       let aValue, bValue;
 
-      if (sortConfig.key === 'stt') {
+      if (effectiveSortConfig.key === 'stt') {
         aValue = a.displayIndex ?? 0;
         bValue = b.displayIndex ?? 0;
-      } else if (sortConfig.key === 'code') {
+      } else if (effectiveSortConfig.key === 'code') {
         aValue = (a.code || '').toLowerCase();
         bValue = (b.code || '').toLowerCase();
-      } else if (sortConfig.key === 'createdDate') {
+      } else if (effectiveSortConfig.key === 'createdDate') {
         aValue = a.createdDate ? new Date(a.createdDate).getTime() : 0;
         bValue = b.createdDate ? new Date(b.createdDate).getTime() : 0;
-      } else if (sortConfig.key === 'sentDate') {
+      } else if (effectiveSortConfig.key === 'sentDate') {
         aValue = a.sentDate ? new Date(a.sentDate).getTime() : 0;
         bValue = b.sentDate ? new Date(b.sentDate).getTime() : 0;
-      } else if (sortConfig.key === 'status') {
+      } else if (effectiveSortConfig.key === 'status') {
         aValue = a.status !== undefined && a.status !== null ? a.status : -1;
         bValue = b.status !== undefined && b.status !== null ? b.status : -1;
       } else {
@@ -577,10 +580,10 @@ const CustomerRequestQuotationList = () => {
       }
 
       if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+        return effectiveSortConfig.direction === 'asc' ? -1 : 1;
       }
       if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+        return effectiveSortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;
     });
@@ -1261,7 +1264,8 @@ const CustomerRequestQuotationList = () => {
   };
 
   const handleQuantityChange = (rowId, newQuantity) => {
-    const quantity = Math.max(1, Number(newQuantity) || 1);
+    // Giới hạn số lượng từ 1 đến 3000
+    const quantity = Math.min(3000, Math.max(1, Number(newQuantity) || 1));
     setOrderFormRows(rows =>
       rows.map(row => {
         if (row.id === rowId) {
@@ -2803,9 +2807,17 @@ const CustomerRequestQuotationList = () => {
                               type="number"
                               value={row.quantity}
                               onChange={(e) => handleQuantityChange(row.id, e.target.value)}
-                              inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                              inputProps={{ min: 1, max: 3000, style: { textAlign: 'center' } }}
                               size="small"
                               sx={{ width: '100px' }}
+                              helperText={row.quantity >= 3000 ? 'Số lượng tối đa là 3000' : ''}
+                              FormHelperTextProps={{
+                                sx: {
+                                  margin: 0,
+                                  mt: 0.5,
+                                  fontSize: '0.75rem',
+                                },
+                              }}
                             />
                           </TableCell>
                           <TableCell sx={{ textAlign: 'right' }}>
