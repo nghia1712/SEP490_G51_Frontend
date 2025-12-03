@@ -170,34 +170,48 @@ const SearchMedicine = () => {
           <Box
             sx={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               mb: 2,
+              textAlign: "center",
             }}
           >
-            <LocalHospitalIcon sx={{ fontSize: 40, color: "#48C1A6", mr: 2 }} />
-            <Typography
-              variant="h4"
-              component="h1"
-              color="primary"
-              fontWeight="bold"
-              sx={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
-            >
-              Tìm kiếm thuốc
-            </Typography>
+            {/* Icon + Tiêu đề chính */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <LocalHospitalIcon sx={{ fontSize: 40, color: "#48C1A6" }} />
+              <Typography
+                variant="h4"
+                component="h1"
+                color="primary"
+                fontWeight="bold"
+                sx={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
+              >
+                NHÀ THUỐC DƯỢC PHẨM SỐ 17
+              </Typography>
+            </Box>
           </Box>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{
-              mb: 3,
-              fontSize: "1.1rem",
-              textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
-            }}
-          >
-            Tìm kiếm thông tin thuốc đang bán trong hệ thống của chúng tôi
-          </Typography>
-
+          {/* Link Giới thiệu với dẫn lối */}
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="body1"
+              sx={{ mb: 1, fontSize: "1rem", color: "text.secondary" }}
+            >
+              Nếu bạn muốn tìm hiểu về chúng tôi và dịch vụ, vui lòng xem thêm:
+            </Typography>
+            <Link
+              href="/about-me"
+              underline="hover"
+              sx={{
+                fontWeight: "bold",
+                fontSize: "1.1rem",
+                color: "#48C1A6",
+                "&:hover": { color: "black" },
+              }}
+            >
+              Giới thiệu
+            </Link>
+          </Box>
           {error && (
             <Alert
               severity="error"
@@ -233,194 +247,71 @@ const SearchMedicine = () => {
         </Box>
 
         {/* Search Input */}
-        <Box sx={{ mb: 4 }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Nhập tên thuốc, danh mục hoặc mô tả..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                backgroundColor: "rgba(255, 255, 255, 0.8)",
-                borderRadius: "12px",
-              },
-            }}
-          />
-        </Box>
-
-        {/* Loading */}
-        {loading ? (
+        <Box
+          sx={{
+            mb: 4,
+            p: 4,
+            borderRadius: 3,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            backdropFilter: "blur(5px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+          }}
+        >
           <Box
             sx={{
-              textAlign: "center",
-              py: 4,
-              backgroundColor: "rgba(255, 255, 255, 0.7)",
+              mb: 4,
+              p: 3,
+              borderRadius: 3,
+              backgroundColor: "rgba(255, 255, 255, 0.85)",
               backdropFilter: "blur(5px)",
-              borderRadius: "16px",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
               boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.3)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
             }}
           >
-            <CircularProgress size={60} sx={{ color: "#48C1A6", mb: 2 }} />
+            {/* Mô tả tìm kiếm */}
             <Typography
-              variant="h6"
+              variant="body1"
               color="text.secondary"
-              sx={{ textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}
+              sx={{
+                mb: 3,
+                fontSize: "1.1rem",
+                textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
+                textAlign: "center",
+              }}
             >
-              Đang tải danh sách thuốc...
+              Tìm kiếm thông tin thuốc đang bán trong hệ thống của chúng tôi
             </Typography>
+
+            {/* Ô tìm kiếm */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Nhập tên thuốc, danh mục hoặc mô tả..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  borderRadius: "12px",
+                },
+              }}
+            />
           </Box>
-        ) : (
-          <>
-            {searchResults.length > 0 ? (
-              <Grid container spacing={3}>
-                {searchResults.map((product) => {
-                  const productName =
-                    product.productName ||
-                    product.ProductName ||
-                    "Tên không xác định";
-                  const description =
-                    product.productDescription ||
-                    product.ProductDescription ||
-                    "Không có mô tả";
-                  const categoryName = product.categoryName || "Không có";
-                  const productId =
-                    product.productID ||
-                    product.ProductID ||
-                    product.id ||
-                    product._id;
-                  const productImage = product.image || product.Image;
-                  const imageUrl = productImage
-                    ? `https://api.bbpharmacy.site${productImage}`
-                    : "/images/login_image.jpg";
 
-                  // Lấy ảnh đầu tiên hợp lệ
-                  const firstImage = images[0] || productImage || "";
-
-                  return (
-                    <Grid item xs={12} sm={6} md={4} key={productId}>
-                      <Card
-                        sx={{
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "row",
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          backgroundColor: "rgba(255, 255, 255, 0.8)",
-                          backdropFilter: "blur(5px)",
-                          border: "1px solid rgba(255, 255, 255, 0.3)",
-                          "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
-                            backgroundColor: "rgba(255, 255, 255, 1)",
-                          },
-                        }}
-                        onClick={() => handleMedicineClick(product)}
-                      >
-                        <Box
-                          sx={{
-                            width: "150px",
-                            minWidth: "150px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "#f5f5f5",
-                            p: 1,
-                          }}
-                        >
-                          <CardMedia
-                            component="img"
-                            image={
-                              firstImage.startsWith("http")
-                                ? firstImage
-                                : `https://api.bbpharmacy.site${firstImage}`
-                            }
-                            alt={productName}
-                            sx={{
-                              maxWidth: "100%",
-                              maxHeight: "300px",
-                              objectFit: "contain",
-                              cursor: "pointer",
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedImage(
-                                firstImage.startsWith("http")
-                                  ? firstImage
-                                  : `https://api.bbpharmacy.site${firstImage}`
-                              );
-                              setOpenImageDialog(true);
-                            }}
-                            onError={(e) => {
-                              e.target.src = "/images/login_image.jpg";
-                            }}
-                          />
-                        </Box>
-                        <CardContent
-                          sx={{
-                            flexGrow: 1,
-                            display: "flex",
-                            flexDirection: "column",
-                            p: 2,
-                          }}
-                        >
-                          <Typography
-                            variant="h6"
-                            component="h2"
-                            gutterBottom
-                            sx={{ fontWeight: "bold", mb: 1 }}
-                          >
-                            {productName}
-                          </Typography>
-                          {categoryName && (
-                            <Chip
-                              label={categoryName}
-                              color="primary"
-                              size="small"
-                              sx={{ mb: 1.5, alignSelf: "flex-start" }}
-                            />
-                          )}
-                          <Typography
-                            variant="body2"
-                            sx={{ mb: 2, flexGrow: 1 }}
-                          >
-                            {description}
-                          </Typography>
-                          <Box sx={{ display: "flex", gap: 1, mt: "auto" }}>
-                            <Button
-                              variant="contained"
-                              startIcon={<InfoIcon />}
-                              fullWidth
-                              sx={{
-                                background:
-                                  "linear-gradient(90deg, #48C1A6 0%, #75B39C 100%)",
-                                color: "white",
-                                fontWeight: "bold",
-                                "&:hover": {
-                                  background:
-                                    "linear-gradient(90deg, #3a9d8a 0%, #5a9a7f 100%)",
-                                },
-                              }}
-                            >
-                              XEM CHI TIẾT
-                            </Button>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            ) : (
+          {/* Loading */}
+          <Box sx={{ textAlign: "center", mt: 4 }}>
+            {loading ? (
               <Box
                 sx={{
                   textAlign: "center",
@@ -432,26 +323,193 @@ const SearchMedicine = () => {
                   boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
                 }}
               >
+                <CircularProgress size={60} sx={{ color: "#48C1A6", mb: 2 }} />
                 <Typography
                   variant="h6"
                   color="text.secondary"
-                  sx={{ mb: 1, textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}
-                >
-                  {error
-                    ? "Không thể tải danh sách thuốc"
-                    : "Không tìm thấy thuốc phù hợp"}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
                   sx={{ textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}
                 >
-                  {error ? "Vui lòng thử lại sau" : "Hãy thử với từ khóa khác"}
+                  Đang tải danh sách thuốc...
                 </Typography>
               </Box>
+            ) : (
+              <>
+                {searchResults.length > 0 ? (
+                  <Grid container spacing={3}>
+                    {searchResults.map((product) => {
+                      const productName =
+                        product.productName ||
+                        product.ProductName ||
+                        "Tên không xác định";
+                      const description =
+                        product.productDescription ||
+                        product.ProductDescription ||
+                        "Không có mô tả";
+                      const categoryName = product.categoryName || "Không có";
+                      const productId =
+                        product.productID ||
+                        product.ProductID ||
+                        product.id ||
+                        product._id;
+                      const productImage = product.image || product.Image;
+                      const firstImage = images[0] || productImage || "";
+
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={productId}>
+                          <Card
+                            sx={{
+                              height: "100%",
+                              display: "flex",
+                              flexDirection: "row",
+                              cursor: "pointer",
+                              transition: "all 0.3s ease",
+                              backgroundColor: "rgba(255, 255, 255, 0.8)",
+                              backdropFilter: "blur(5px)",
+                              border: "1px solid rgba(255, 255, 255, 0.3)",
+                              "&:hover": {
+                                transform: "translateY(-4px)",
+                                boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+                                backgroundColor: "rgba(255, 255, 255, 1)",
+                              },
+                            }}
+                            onClick={() => handleMedicineClick(product)}
+                          >
+                            {/* Hình ảnh sản phẩm */}
+                            <Box
+                              sx={{
+                                width: "150px",
+                                minWidth: "150px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f5f5f5",
+                                p: 1,
+                              }}
+                            >
+                              <CardMedia
+                                component="img"
+                                image={
+                                  firstImage.startsWith("http")
+                                    ? firstImage
+                                    : `https://api.bbpharmacy.site${firstImage}`
+                                }
+                                alt={productName}
+                                sx={{
+                                  maxWidth: "100%",
+                                  maxHeight: "300px",
+                                  objectFit: "contain",
+                                  cursor: "pointer",
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedImage(
+                                    firstImage.startsWith("http")
+                                      ? firstImage
+                                      : `https://api.bbpharmacy.site${firstImage}`
+                                  );
+                                  setOpenImageDialog(true);
+                                }}
+                                onError={(e) => {
+                                  e.target.src = "/images/login_image.jpg";
+                                }}
+                              />
+                            </Box>
+
+                            {/* Nội dung sản phẩm */}
+                            <CardContent
+                              sx={{
+                                flexGrow: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                p: 2,
+                              }}
+                            >
+                              <Typography
+                                variant="h6"
+                                component="h2"
+                                gutterBottom
+                                sx={{ fontWeight: "bold", mb: 1 }}
+                              >
+                                {productName}
+                              </Typography>
+
+                              {categoryName && (
+                                <Chip
+                                  label={categoryName}
+                                  color="primary"
+                                  size="small"
+                                  sx={{ mb: 1.5, alignSelf: "flex-center" }}
+                                />
+                              )}
+
+                              <Typography
+                                variant="body2"
+                                sx={{ mb: 2, flexGrow: 1 }}
+                              >
+                                {description}
+                              </Typography>
+
+                              <Box sx={{ display: "flex", gap: 1, mt: "auto" }}>
+                                <Button
+                                  variant="contained"
+                                  startIcon={<InfoIcon />}
+                                  fullWidth
+                                  sx={{
+                                    background:
+                                      "linear-gradient(90deg, #48C1A6 0%, #75B39C 100%)",
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    "&:hover": {
+                                      background:
+                                        "linear-gradient(90deg, #3a9d8a 0%, #5a9a7f 100%)",
+                                    },
+                                  }}
+                                >
+                                  XEM CHI TIẾT
+                                </Button>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                ) : (
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      py: 4,
+                      backgroundColor: "rgba(255, 255, 255, 0.7)",
+                      backdropFilter: "blur(5px)",
+                      borderRadius: "16px",
+                      border: "1px solid rgba(255, 255, 255, 0.3)",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      color="text.secondary"
+                      sx={{ mb: 1, textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}
+                    >
+                      {error
+                        ? "Không thể tải danh sách thuốc"
+                        : "Không tìm thấy thuốc phù hợp"}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ textShadow: "1px 1px 2px rgba(0,0,0,0.2)" }}
+                    >
+                      {error
+                        ? "Vui lòng thử lại sau"
+                        : "Hãy thử với từ khóa khác"}
+                    </Typography>
+                  </Box>
+                )}
+              </>
             )}
-          </>
-        )}
+          </Box>
+        </Box>
 
         {/* Dialog phóng to ảnh */}
         <Dialog

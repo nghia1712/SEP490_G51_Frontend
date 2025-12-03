@@ -39,7 +39,7 @@ export default function PODialogs({
     <>
       {/* Upload Excel Dialog */}
       <Dialog open={openUpload} onClose={handleCloseUpload} fullWidth>
-        <DialogTitle>Tải file Excel</DialogTitle>
+        <DialogTitle>Tạo đơn hàng từ file Excel</DialogTitle>
         <DialogContent>
           <Button variant="outlined" component="label" disabled={uploading}>
             Chọn file Excel
@@ -62,7 +62,7 @@ export default function PODialogs({
             disabled={!excelFile || uploading}
             variant="contained"
           >
-            {uploading ? "Đang tải lên..." : "Tải lên"}
+            {uploading ? "Đang tạo đơn..." : "Tạo đơn"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -85,7 +85,7 @@ export default function PODialogs({
           }}
         >
           <DialogTitle sx={{ m: 0, fontSize: 18, fontWeight: "bold" }}>
-            Xác nhận sản phẩm từ Excel
+            Tạo đơn hàng
           </DialogTitle>
 
           <Button

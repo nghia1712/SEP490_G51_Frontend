@@ -142,7 +142,9 @@ function Header() {
   const shouldHideCustomerNav =
     location.pathname === "/customer-unauthenticated" ||
     location.pathname.startsWith("/customer/additional-info") ||
-    (userRole === "customer" && customerStatus?.needsAdditionalInfo);
+    (userRole === "customer" &&
+      customerStatus &&
+      customerStatus.needsAdditionalInfo);
 
   const isActiveNavItem = (path) => location.pathname.startsWith(path);
 

@@ -1,8 +1,5 @@
 import React from "react";
 import { Box, Container, Typography, Link, IconButton } from "@mui/material";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import TwitterIcon from "@mui/icons-material/Twitter";
-import InstagramIcon from "@mui/icons-material/Instagram";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 import { useLocation } from "react-router-dom";
 
@@ -21,63 +18,70 @@ const Footer = () => {
     return null;
   }
 
+  if (location.pathname === "/login") return null;
+  if (location.pathname === "/register") return null;
+
   return (
     <Box
       component="footer"
       sx={{
         backgroundColor: palette.dark,
         color: palette.white,
-        py: 6,
-        mt: "auto",
+        py: 0.3,
       }}
     >
-      <Container maxWidth="xl">
-        {/* STORE INFO + ABOUT */}
+      <Container
+        maxWidth="xl"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {/* Bên trái: tên, địa chỉ, hotline */}
+        <Box sx={{ display: "flex", flexDirection: "column" }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12 }}>
+            NHÀ THUỐC DƯỢC PHẨM SỐ 17
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: 12 }}>
+            <strong>Địa chỉ:</strong> 165 Dư Hàng Kênh, Tp Hải Phòng
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: 12 }}>
+            <strong>Hotline:</strong> 0398233047
+          </Typography>
+        </Box>
+
+        {/* Bên phải: link Giới thiệu + copyright */}
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-            gap: 2,
-            mb: 4,
+            alignItems: "flex-end",
+            height: "100%",
+            justifyContent: "space-between",
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            NHÀ THUỐC DƯỢC PHẨM SỐ 17
-          </Typography>
-          <Typography variant="body2">
-            <strong>Địa chỉ:</strong> 165 Dư Hàng Kênh, Tp Hải Phòng
-          </Typography>
-          <Typography variant="body2">
-            <strong>Hotline:</strong> 0398233047
-          </Typography>
-
-          {/* ABOUT LINK */}
           <Link
             href="/about-me"
             underline="hover"
             sx={{
               color: palette.accent,
               fontWeight: 500,
-              fontSize: 16,
-              mt: 2,
+              fontSize: 12,
               "&:hover": { color: "#ffffff" },
             }}
           >
             ➤ Giới thiệu
           </Link>
-        </Box>
 
-        {/* COPYRIGHT */}
-        <Typography
-          variant="body2"
-          align="center"
-          sx={{ opacity: 0.8, mt: 3 }}
-        >
-          © {new Date().getFullYear()} Pharmacy Management System. All Rights
-          Reserved.
-        </Typography>
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.8, fontSize: 10, mt: 1.5 }}
+          >
+            © {new Date().getFullYear()} Pharmacy Management System. All Rights
+            Reserved.
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );
