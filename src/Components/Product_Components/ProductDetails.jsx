@@ -114,7 +114,7 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
     : [];
 
   const getImageUrl = (img) => {
-    if (!img) return "/images/login_image.jpg";
+    if (!img) return "/images/login_image.png";
     return `https://api.bbpharmacy.site/${img.replace(/^\/+/, "")}`;
   };
 

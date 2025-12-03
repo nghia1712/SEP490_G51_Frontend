@@ -229,7 +229,7 @@ const Login = () => {
                  animate="visible"
                  style={{height: '100%'}}
               >
-                <Card.Img src={"/images/login_image.jpg"} alt="Login" style={{ objectFit: "cover", height: '100%' }}/>
+                <Card.Img src={"/images/login_image.png"} alt="Login" style={{ objectFit: "cover", height: '100%' }}/>
               </motion.div>
             </Col>
           </Row>

@@ -338,7 +338,7 @@ const Register = () => {
             <Col md={6} className="d-none d-md-block p-0">
               <motion.div variants={imageVariants} initial="hidden" animate="visible" style={{ height: '100%' }}>
                 <Card.Img
-                  src={"/images/login_image.jpg"}
+                  src={"/images/login_image.png"}
                   alt="Register"
                   style={{ objectFit: "cover", height: '100%' }}
                 />

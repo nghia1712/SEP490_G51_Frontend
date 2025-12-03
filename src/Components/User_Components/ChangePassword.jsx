@@ -334,7 +334,7 @@ function ChangePassword() {
                    animate="visible"
                    style={{height: '100%'}}
                 >
-                  <Card.Img src={"/images/login_image.jpg"} alt="Change Password" style={{ objectFit: "cover", height: '100%' }}/>
+                  <Card.Img src={"/images/login_image.png"} alt="Change Password" style={{ objectFit: "cover", height: '100%' }}/>
                 </motion.div>
               </Col>
             </Row>

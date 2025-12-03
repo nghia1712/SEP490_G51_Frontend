@@ -422,7 +422,7 @@ const SearchMedicine = () => {
                                   setOpenImageDialog(true);
                                 }}
                                 onError={(e) => {
-                                  e.target.src = "/images/login_image.jpg";
+                                  e.target.src = "/images/login_image.png";
                                 }}
                               />
                             </Box>
@@ -601,7 +601,7 @@ const SearchMedicine = () => {
                               ? images[currentImageIndex].startsWith("http")
                                 ? images[currentImageIndex]
                                 : `https://api.bbpharmacy.site${images[currentImageIndex]}`
-                              : "/images/login_image.jpg"
+                              : "/images/login_image.png"
                           }
                           alt={selectedMedicine?.productName || ""}
                           sx={{
@@ -621,7 +621,7 @@ const SearchMedicine = () => {
                             setOpenImageDialog(true);
                           }}
                           onError={(e) => {
-                            e.target.src = "/images/login_image.jpg";
+                            e.target.src = "/images/login_image.png";
                           }}
                         />
                         {images.length > 1 && (
