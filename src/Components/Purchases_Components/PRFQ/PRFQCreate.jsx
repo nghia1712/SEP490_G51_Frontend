@@ -350,7 +350,8 @@ export default function PRFQCreate() {
                     <strong>Mã số thuế:</strong> 030203002865
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Địa chỉ:</strong> 165 Dư Hàng Kênh, Tp Hải Phòng
+                    <strong>Địa chỉ:</strong> Kiot số 17, Phường Lê Thanh Nghị,
+                    TP Hải Phòng
                   </Typography>
                   <Typography variant="body2">
                     <strong>Hotline:</strong> 0398233047
@@ -541,51 +542,54 @@ export default function PRFQCreate() {
               </TableBody>
             </Table>
           </TableContainer>
+          {/* BUTTONS */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 2,
+              mt: 2,
+            }}
+          >
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => setOpenPreview(true)}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={20} sx={{ color: "white" }} />
+              ) : (
+                "Xem trước"
+              )}
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => handleSubmit("Draft")}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={20} sx={{ color: "white" }} />
+              ) : (
+                "Lưu nháp"
+              )}
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={() => handleSubmit("Submit")}
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={20} sx={{ color: "white" }} />
+              ) : (
+                "Gửi yêu cầu"
+              )}
+            </Button>
+          </Box>
         </Paper>
-
-        {/* BUTTONS */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 2,
-            mt: 2,
-          }}
-        >
-          <Button
-            variant="outlined"
-            color="inherit"
-            onClick={() => setOpenPreview(true)}
-            disabled={loading}
-          >
-            Xem trước
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => handleSubmit("Draft")}
-            disabled={loading}
-          >
-            {loading ? (
-              <CircularProgress size={20} sx={{ color: "white" }} />
-            ) : (
-              "Lưu nháp"
-            )}
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={() => handleSubmit("Submit")}
-            disabled={loading}
-          >
-            {loading ? (
-              <CircularProgress size={20} sx={{ color: "white" }} />
-            ) : (
-              "Gửi yêu cầu"
-            )}
-          </Button>
-        </Box>
 
         <Dialog
           open={openPreview}
@@ -646,8 +650,8 @@ export default function PRFQCreate() {
 
                     <TableRow>
                       <TableCell>Người gửi:</TableCell>
-                      <TableCell>purchases</TableCell>
-                      <TableCell>Số PRFQID:</TableCell>
+                      <TableCell>Nhà cung cấp</TableCell>
+                      <TableCell>Mã yêu cầu:</TableCell>
                       <TableCell>{id || "-"}</TableCell>
                       <TableCell>Tên NCC:</TableCell>
                       <TableCell>{selectedSupplier?.name || "-"}</TableCell>
@@ -671,7 +675,7 @@ export default function PRFQCreate() {
                     <TableRow>
                       <TableCell>Địa chỉ:</TableCell>
                       <TableCell colSpan={3}>
-                        165 Dư Hàng Kênh Tp Hải Phòng
+                        Kiot số 17, Phường Lê Thanh Nghị, TP Hải Phòng
                       </TableCell>
                       <TableCell>Ngày gửi:</TableCell>
                       <TableCell colSpan={3}>
@@ -774,7 +778,7 @@ export default function PRFQCreate() {
                   borderTop: "1px solid #000",
                 }}
               >
-                (Khởi tạo từ CÔNG TY TNHH DƯỢC PHẨM SỐ 17 – MST: 030203002865 –
+                (Khởi tạo từ NHÀ THUỐC DƯỢC PHẨM SỐ 17 – MST: 030203002865 –
                 Hotline: 0398233047)
               </Box>
             </Box>

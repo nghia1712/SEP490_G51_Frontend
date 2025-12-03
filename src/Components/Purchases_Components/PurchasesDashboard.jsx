@@ -88,6 +88,8 @@ const StatCard = ({ title, value, icon, color, onClick, subText }) => (
 
 function PurchasesDashboard() {
   const navigate = useNavigate();
+  const scrollableBodyStyle = { maxHeight: "400px", overflowY: "auto" };
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [nearestLots, setNearestLots] = useState([]);
@@ -117,8 +119,23 @@ function PurchasesDashboard() {
     suppliers,
     loading: suppliersLoading,
     fetchSuppliers,
+    fetchSupplierById,
   } = useSupplier();
+  const supplierCache = {};
 
+  const getSupplierName = async (id) => {
+    if (!id) return "Unknown";
+    if (supplierCache[id]) return supplierCache[id];
+    try {
+      const data = await fetchSupplierById(id);
+      const name = data?.name || "Unknown";
+      supplierCache[id] = name;
+      return name;
+    } catch (err) {
+      console.error("Failed to fetch supplier", err);
+      return "Unknown";
+    }
+  };
   useEffect(() => {
     if (!poList || !poList.length) return;
 
@@ -164,28 +181,36 @@ function PurchasesDashboard() {
     const data = await fetchPOByYear(selectedYear);
     if (!data || !Array.isArray(data)) return;
 
-    const monthlyData = Array.from({ length: 12 }, (_, i) => {
-      const monthItem = data.find((m) => {
-        const rawMonth = m.month;
-        const parsed =
-          typeof rawMonth === "string"
-            ? parseInt(rawMonth.replace(/[^0-9]/g, ""))
-            : Number(rawMonth);
-        return parsed === i + 1;
-      });
+    const monthlyData = await Promise.all(
+      Array.from({ length: 12 }, async (_, i) => {
+        const monthItem = data.find((m) => m.month === i + 1);
 
-      return {
-        month: `T${i + 1}`,
-        total: monthItem
-          ? monthItem.orders?.reduce((sum, o) => sum + Number(o.total || 0), 0)
-          : 0,
-        orders: monthItem?.orders || [],
-      };
-    });
+        const ordersWithName = await Promise.all(
+          (monthItem?.orders || []).map(async (order) => {
+            const name = await getSupplierName(order.supname);
+            console.log("Order POID:", order.poid, "Supplier Name:", name); // <-- log ở đây
+            return {
+              ...order,
+              supname: name,
+            };
+          })
+        );
 
-    console.log("monthlyData:", monthlyData);
+        return {
+          month: `T${i + 1}`,
+          total: ordersWithName.reduce(
+            (sum, o) => sum + Number(o.total || 0),
+            0
+          ),
+          orders: ordersWithName,
+        };
+      })
+    );
 
     setYearlyChartData(monthlyData);
+
+    // Hoặc log toàn bộ monthlyData
+    console.log("Monthly data with supplier names:", monthlyData);
   };
 
   useEffect(() => {
@@ -376,6 +401,7 @@ function PurchasesDashboard() {
               icon={<Warning />}
               color="danger"
               subText="Cần nhập thêm"
+              onClick={() => setShowLowStockModal(true)}
             />
           </Col>
         </Row>
@@ -393,20 +419,77 @@ function PurchasesDashboard() {
               setShowMonthlyChartModal={setShowMonthlyChartModal}
             />
           </Col>
+          <Modal
+            show={showLowStockModal}
+            onHide={() => setShowLowStockModal(false)}
+            size="lg"
+            centered
+            contentClassName="border-0 rounded-4 shadow-lg"
+          >
+            <Modal.Header className="border-0 pb-0">
+              <Modal.Title className="fw-bold">
+                Sản phẩm tồn kho thấp
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
+              <Table hover responsive className="table-borderless align-middle">
+                <thead className="bg-light text-muted">
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th className="text-center">Hiện tại</th>
+                    <th className="text-center">Tối thiểu</th>
+                    <th className="text-center">Tỉ lệ tồn kho</th>
+                    <th className="text-center">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowStockProducts.length > 0 ? (
+                    lowStockProducts.map((p) => (
+                      <tr key={p.productID || p._pid}>
+                        <td>{p.productName}</td>
+                        <td className="text-center">
+                          {p.totalCurrentQuantity}
+                        </td>
+                        <td className="text-center">{p.minQuantity}</td>
+                        <td className="text-center">
+                          {p.percentQuantity}%
+                        </td>{" "}
+                        {/* Hiển thị percentQuantity */}
+                        <td className="text-center">
+                          {getStockAlert(p.totalCurrentQuantity, p.minQuantity)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="text-center py-3 text-muted">
+                        Không có sản phẩm tồn kho thấp
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </Modal.Body>
+            <Modal.Footer className="border-0 pt-0">
+              <Button
+                variant="light"
+                onClick={() => setShowLowStockModal(false)}
+              >
+                Đóng
+              </Button>
+            </Modal.Footer>
+          </Modal>
 
           {/* Right Column (lg=4): Cảnh báo */}
           <Col lg={4}>
-            {/* Low Stock Alert (Tồn kho thấp) */}
+            {/* Low Stock Alert */}
             <Card className="border-0 shadow-sm rounded-4 mb-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                 <h5 className="fw-bold mb-3 text-danger d-flex align-items-center">
                   <Warning className="me-2" /> Tồn kho thấp
                 </h5>
               </Card.Header>
-              <Card.Body
-                className="p-0"
-                style={{ maxHeight: "400px", overflowY: "auto" }}
-              >
+              <Card.Body className="p-0" style={scrollableBodyStyle}>
                 <div className="table-responsive">
                   <Table hover className="table-borderless align-middle mb-0">
                     <thead className="bg-light text-muted sticky-top">
@@ -446,7 +529,6 @@ function PurchasesDashboard() {
                                 Tối thiểu: {p.minQuantity}
                               </div>
                             </td>
-
                             <td className="pe-4 text-end">
                               {getStockAlert(
                                 p.totalCurrentQuantity,
@@ -471,17 +553,14 @@ function PurchasesDashboard() {
               </Card.Body>
             </Card>
 
-            {/* Near Expiry (Lô hàng gần hết hạn) */}
+            {/* Near Expiry */}
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                 <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
                   <DateRange className="me-2" /> Lô hàng gần hết hạn
                 </h5>
               </Card.Header>
-              <Card.Body
-                className="p-0"
-                style={{ maxHeight: "400px", overflowY: "auto" }}
-              >
+              <Card.Body className="p-0" style={scrollableBodyStyle}>
                 <div className="table-responsive">
                   <Table hover className="table-borderless align-middle mb-0">
                     <thead className="bg-light text-muted sticky-top">
@@ -491,25 +570,29 @@ function PurchasesDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {nearestLots.map((lot, index) => (
-                        <tr
-                          key={lot._lotID || `${lot.productName}-${index}`}
-                          style={{ borderBottom: "1px solid #f0f0f0" }}
-                        >
-                          <td className="ps-4">
-                            <div className="fw-semibold">{lot.productName}</div>
-                            <small className="text-muted">
-                              Mã lô: {lot._lotID} • Số lượng: {lot.lotQuantity}
-                            </small>
-                          </td>
-                          <td className="pe-4 text-end text-danger fw-semibold">
-                            {new Date(lot.expiredDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {nearestLots.length === 0 && (
+                      {nearestLots.length > 0 ? (
+                        nearestLots.map((lot, index) => (
+                          <tr
+                            key={lot._lotID || `${lot.productName}-${index}`}
+                            style={{ borderBottom: "1px solid #f0f0f0" }}
+                          >
+                            <td className="ps-4">
+                              <div className="fw-semibold">
+                                {lot.productName}
+                              </div>
+                              <small className="text-muted">
+                                Mã lô: {lot._lotID} • Số lượng:{" "}
+                                {lot.lotQuantity}
+                              </small>
+                            </td>
+                            <td className="pe-4 text-end text-danger fw-semibold">
+                              {new Date(lot.expiredDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
                         <tr>
                           <td
                             colSpan={2}

@@ -404,16 +404,16 @@ const PaymentRemainList = () => {
                             {renderPaymentMethod(item.paymentMethod)}
                           </TableCell>
                           <TableCell align="right">
-                            {item.amount.toLocaleString("vi-VN")} ₫
+                            {item.amount.toLocaleString()} ₫
                           </TableCell>
                           <TableCell>
                             {renderStatus(item.vnPayStatus)}
                           </TableCell>
-                          <TableCell>
-                            {item.paidAt
-                              ? new Date(item.paidAt).toLocaleDateString(
-                                  "vi-VN"
-                                )
+                          <TableCell align="center">
+                            {item.requestCreatedAt
+                              ? new Date(
+                                  item.requestCreatedAt
+                                ).toLocaleDateString("vi-VN")
                               : "-"}
                           </TableCell>
                           <TableCell align="center">

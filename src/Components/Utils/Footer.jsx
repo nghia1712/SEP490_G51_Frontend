@@ -44,7 +44,7 @@ const Footer = () => {
             NHÀ THUỐC DƯỢC PHẨM SỐ 17
           </Typography>
           <Typography variant="caption" sx={{ fontSize: 12 }}>
-            <strong>Địa chỉ:</strong> 165 Dư Hàng Kênh, Tp Hải Phòng
+            <strong>Địa chỉ:</strong> Kiot số 17, Phường Lê Thanh Nghị, TP Hải Phòng
           </Typography>
           <Typography variant="caption" sx={{ fontSize: 12 }}>
             <strong>Hotline:</strong> 0398233047

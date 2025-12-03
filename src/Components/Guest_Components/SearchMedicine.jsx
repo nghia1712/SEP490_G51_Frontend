@@ -60,6 +60,18 @@ const SearchMedicine = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await guestAPI.getCategories();
+        setCategories(res.data?.data || []);
+      } catch (err) {
+        console.error("Lỗi load danh mục:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   // Fetch products
   useEffect(() => {
     const fetchData = async () => {

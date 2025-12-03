@@ -319,6 +319,32 @@ export default function usePRFQ(prfqId = null) {
     }
   };
 
+  // ===== Import Supplier Quotation Excel =====
+  const [importLoading, setImportLoading] = useState(false);
+
+  const handleImportQuotation = async (file) => {
+    if (!file) {
+      showSnackbar("Vui lòng chọn file để tải lên!", "warning");
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const res = await prfqApi.importQuotation(file);
+
+      if (res?.data?.data) {
+        setPrfqs(res.data.data);
+      }
+
+      return res;
+    } catch (err) {
+      console.error("Lỗi import PRFQ:", err);
+      throw err;
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return {
     // List
     prfqs,
@@ -357,5 +383,7 @@ export default function usePRFQ(prfqId = null) {
     showSnackbar,
     handleCloseSnackbar,
     statusMap,
+    importLoading,
+    handleImportQuotation,
   };
 }
