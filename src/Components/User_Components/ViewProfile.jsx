@@ -32,12 +32,12 @@ const Profile = () => {
 			console.log("Avatar path has extension:", hasExtension);
 			
 			if (hasExtension) {
-				const fullUrl = `https://api.bbpharmacy.site/${avatarPath}`;
+				const fullUrl = `https://api.bbpharmacy.site${avatarPath}`;
 				console.log("Generated avatar URL:", fullUrl);
 				return fullUrl;
 			} else {
 				// Try with .jpg extension
-				const fullUrl = `https://api.bbpharmacy.site/${avatarPath}.jpg`;
+				const fullUrl = `https://api.bbpharmacy.site${avatarPath}.jpg`;
 				console.log("Using default extension .jpg:", fullUrl);
 				return fullUrl;
 			}
@@ -45,7 +45,7 @@ const Profile = () => {
 		
 		// Ảnh do backend trả về (đường dẫn tĩnh), bổ sung host
 		const normalized = typeof avatarPath === "string" && avatarPath.startsWith("/") ? avatarPath : `/${avatarPath || ""}`;
-		const fullUrl = `https://api.bbpharmacy.site/${normalized}`;
+		const fullUrl = `https://api.bbpharmacy.site${normalized}`;
 		console.log("Normalized path:", fullUrl);
 		return fullUrl;
 	};

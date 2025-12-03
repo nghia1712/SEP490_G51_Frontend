@@ -86,7 +86,7 @@ const EditProduct = ({
           status: normalizeStatus(product.status),
           productImage: null,
         });
-        const imageUrl = product.image ? `https://api.bbpharmacy.site/${product.image}` : null;
+        const imageUrl = product.image ? `https://api.bbpharmacy.site${product.image}` : null;
         setCurrentImageUrl(imageUrl);
         setImagePreview(imageUrl);
       }

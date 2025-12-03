@@ -39,7 +39,7 @@ const EditProfile = () => {
 		const extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 		
 		for (const ext of extensions) {
-			const url = `https://api.bbpharmacy.site/${basePath}${ext}`;
+			const url = `https://api.bbpharmacy.site${basePath}${ext}`;
 			try {
 				const response = await fetch(url, { method: 'HEAD' });
 				console.log(`Testing ${url} - Status: ${response.status}`);
@@ -101,7 +101,7 @@ const EditProfile = () => {
 			
 			let fullUrl;
 			if (hasExtension) {
-				fullUrl = `https://api.bbpharmacy.site/${avatarPath}`;
+				fullUrl = `https://api.bbpharmacy.site${avatarPath}`;
 			} else {
 				// Try common extensions if missing
 				console.log("Avatar path missing extension, trying common extensions...");
@@ -116,7 +116,7 @@ const EditProfile = () => {
 				});
 				
 				// For now, default to .jpg
-				fullUrl = `https://api.bbpharmacy.site/${avatarPath}.jpg`;
+				fullUrl = `https://api.bbpharmacy.site${avatarPath}.jpg`;
 				console.log("Using default extension .jpg");
 			}
 			
@@ -129,7 +129,7 @@ const EditProfile = () => {
 		}
 		
 		const normalized = typeof avatarPath === "string" && avatarPath.startsWith("/") ? avatarPath : `/${avatarPath || ""}`;
-		const fullUrl = `https://api.bbpharmacy.site/${normalized}`;
+		const fullUrl = `https://api.bbpharmacy.site${normalized}`;
 		console.log("Normalized path:", fullUrl);
 		return fullUrl;
 	};

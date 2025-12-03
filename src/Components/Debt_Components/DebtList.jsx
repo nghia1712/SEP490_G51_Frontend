@@ -60,6 +60,8 @@ export default function DebtList() {
     secretLoading,
     fetchPharmacySecretInfo,
   } = usePO();
+  const approvedStatuses = [0, 3, 4]; // trạng thái approved nhưng chưa thanh toán hết
+  const fullyPaidStatus = 5; // trạng thái đã thanh toán hết
 
   const [openDetail, setOpenDetail] = useState(false);
   const [page, setPage] = useState(1);
@@ -129,10 +131,10 @@ export default function DebtList() {
                   <Button variant="outlined">
                     Tổng chi: {secretInfo?.totalPaid?.toLocaleString() || "0"} đ
                   </Button>
-                  <Button variant="outlined">
+                  {/* <Button variant="outlined">
                     Nợ trần: {secretInfo?.debtCeiling?.toLocaleString() || "0"}{" "}
                     đ
-                  </Button>
+                  </Button> */}
                 </Stack>
               )}
               <Paper
@@ -175,7 +177,7 @@ export default function DebtList() {
                       {/* <TableCell align="center">Thể loại nợ</TableCell> */}
                       <TableCell align="center">Thuộc về</TableCell>
                       <TableCell align="right">Phải trả</TableCell>
-                      <TableCell align="center">Dư nợ</TableCell>
+                      {/* <TableCell align="center">Dư nợ</TableCell> */}
                       <TableCell align="center">Ngày trả gần nhất</TableCell>
                       <TableCell align="center">Hành động</TableCell>
                     </TableRow>
@@ -204,9 +206,9 @@ export default function DebtList() {
                           <TableCell align="right">
                             {item.payables.toLocaleString()} đ
                           </TableCell>
-                          <TableCell align="center">
+                          {/* <TableCell align="center">
                             {item.currentDebt.toLocaleString()} đ
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell align="center">
                             {item.payday
                               ? new Date(item.payday).toLocaleDateString(
@@ -281,12 +283,12 @@ export default function DebtList() {
                     </Typography>
                   </Stack>
 
-                  <Stack direction="row" justifyContent="space-between">
+                  {/* <Stack direction="row" justifyContent="space-between">
                     <Typography>Dư nợ:</Typography>
                     <Typography>
                       {selectedDebt.currentDebt?.toLocaleString()} đ
                     </Typography>
-                  </Stack>
+                  </Stack> */}
                   <Stack direction="row" justifyContent="space-between">
                     <Typography>Ngày thanh toán gần nhất:</Typography>
                     <Typography>
@@ -330,14 +332,28 @@ export default function DebtList() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {selectedDebt.viewDebtPODTOs.map((po) => (
-                        <TableRow key={po.poid}>
-                          <TableCell align="center">{`PO-${po.poid}`}</TableCell>
-                          <TableCell align="right">
-                            {po.toatlPo?.toLocaleString()} đ
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {selectedDebt.viewDebtPODTOs
+                        .filter(
+                          (po) =>
+                            approvedStatuses.includes(po.status) ||
+                            po.status === fullyPaidStatus
+                        )
+                        .map((po) => (
+                          <TableRow key={po.poid}>
+                            <TableCell align="center">{`PO-${po.poid}`}</TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{
+                                color:
+                                  po.status === fullyPaidStatus
+                                    ? "green"
+                                    : "inherit",
+                              }}
+                            >
+                              {po.toatlPo?.toLocaleString()} đ
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </Paper>

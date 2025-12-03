@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Descriptions, Spin, Image, Typography, Row, Col, Tag, Divider, Card, Alert } from "antd";
+import {
+  Modal,
+  Descriptions,
+  Spin,
+  Image,
+  Typography,
+  Row,
+  Col,
+  Tag,
+  Divider,
+  Card,
+  Alert,
+} from "antd";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { motion, AnimatePresence } from "framer-motion";
 import { EnvironmentOutlined } from "@ant-design/icons";
 import productAPI from "../../API/productAPI";
@@ -19,17 +33,18 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [categoryNameFromApi, setCategoryNameFromApi] = useState("");
-
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [previewVisible, setPreviewVisible] = useState(false);
   // Fetch product details by ID when modal opens
   useEffect(() => {
     const fetchProductDetail = async () => {
       if (!show || !product) return;
-      
+
       setLoading(true);
       setError("");
       setProductDetail(product);
       if (product.categoryName) setCategoryName(product.categoryName);
-      
+
       try {
         const resolvedProductId =
           productId ||
@@ -38,18 +53,19 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
           product.ProductId ||
           product.productId ||
           product._pid;
-        
+
         if (!resolvedProductId) {
           throw new Error("Không tìm thấy ID sản phẩm");
         }
 
         const response = await productAPI.getById(resolvedProductId);
-        
+
         if (response.data && response.data.success) {
           setProductDetail(response.data.data);
-          
+
           if (response.data.data.categoryID || response.data.data.CategoryID) {
-            const categoryId = response.data.data.categoryID || response.data.data.CategoryID;
+            const categoryId =
+              response.data.data.categoryID || response.data.data.CategoryID;
             try {
               const catResp = await categoryAPI.get(categoryId);
               const catData = catResp?.data?.data || catResp?.data || {};
@@ -58,7 +74,7 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
                 catData?.name ||
                 catData?.CategoryName ||
                 catData?.categoryName ||
-                '';
+                "";
               setCategoryName(name || "Danh mục không xác định");
             } catch (error) {
               console.warn("Không thể load danh mục:", error);
@@ -68,10 +84,15 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
             setCategoryName("Không có danh mục");
           }
         } else {
-          throw new Error(response.data?.message || "Không thể tải thông tin sản phẩm");
+          throw new Error(
+            response.data?.message || "Không thể tải thông tin sản phẩm"
+          );
         }
       } catch (err) {
-        console.warn("Error fetching product detail, dùng dữ liệu có sẵn:", err);
+        console.warn(
+          "Error fetching product detail, dùng dữ liệu có sẵn:",
+          err
+        );
         setError("");
       } finally {
         setLoading(false);
@@ -80,6 +101,34 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
 
     fetchProductDetail();
   }, [show, product, productId]);
+
+  const imageList = productDetail
+    ? [
+        productDetail.image,
+        productDetail.imageA,
+        productDetail.imageB,
+        productDetail.imageC,
+        productDetail.imageD,
+        productDetail.imageE,
+      ].filter((img) => !!img)
+    : [];
+
+  const getImageUrl = (img) => {
+    if (!img) return "/images/login_image.jpg";
+    return `https://api.bbpharmacy.site/${img.replace(/^\/+/, "")}`;
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? imageList.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === imageList.length - 1 ? 0 : prev + 1
+    );
+  };
 
   return (
     <AnimatePresence>
@@ -102,65 +151,216 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
             style={{ padding: 32, background: "#fff", borderRadius: 16 }}
           >
             {loading ? (
-              <Spin size="large" style={{ display: "block", margin: "60px auto" }} />
+              <Spin
+                size="large"
+                style={{ display: "block", margin: "60px auto" }}
+              />
             ) : error ? (
               <Alert message="Lỗi" description={error} type="error" showIcon />
             ) : productDetail ? (
               <Row gutter={[32, 16]} align="middle" justify="center">
                 <Col xs={24} md={9} style={{ textAlign: "center" }}>
-                  <Image
-                    src={productDetail.image || productDetail.Image ? `https://api.bbpharmacy.site/${productDetail.image || productDetail.Image}` : "/images/login_image.jpg"}
-                    alt="Product"
-                    width={180}
-                    height={180}
-                    style={{ borderRadius: 12, objectFit: "cover", boxShadow: "0 4px 16px #0001" }}
-                    preview={false}
-                  />
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      textAlign: "center",
+                    }}
+                  >
+                    <Image
+                      src={getImageUrl(imageList[currentImageIndex])}
+                      alt="Product"
+                      width={180}
+                      height={180}
+                      style={{
+                        borderRadius: 12,
+                        objectFit: "cover",
+                        boxShadow: "0 4px 16px #0001",
+                        cursor: "pointer",
+                      }}
+                      preview={false}
+                      onClick={() => setPreviewVisible(true)}
+                    />
+
+                    {/* Nút trái */}
+                    {imageList.length > 1 && (
+                      <button
+                        onClick={handlePrevImage}
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: 0,
+                          transform: "translateY(-50%)",
+                          background: "#0007",
+                          border: "none",
+                          color: "white",
+                          fontSize: 18,
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ArrowBackIosIcon sx={{ fontSize: 18 }} />
+                      </button>
+                    )}
+
+                    {/* Nút phải */}
+                    {imageList.length > 1 && (
+                      <button
+                        onClick={handleNextImage}
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          right: 0,
+                          transform: "translateY(-50%)",
+                          background: "#0007",
+                          border: "none",
+                          color: "white",
+                          fontSize: 18,
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <ArrowForwardIosIcon sx={{ fontSize: 18 }} />
+                      </button>
+                    )}
+                  </div>
+
                   <div style={{ marginTop: 12 }}>
-                    <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
-                      {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
+                    <Tag
+                      color={
+                        productDetail.status || productDetail.Status
+                          ? "green"
+                          : "red"
+                      }
+                    >
+                      {productDetail.status || productDetail.Status
+                        ? "Đang bán"
+                        : "Ngừng bán"}
                     </Tag>
                   </div>
                 </Col>
                 <Col xs={24} md={15}>
-                  <Title level={4} style={{ marginBottom: 16 }}>{productDetail.productName || productDetail.ProductName}</Title>
-          <Descriptions column={1} size="middle" bordered>
-            <Descriptions.Item label="Mã sản phẩm">
-              {productDetail.productID || productDetail.ProductID}
-            </Descriptions.Item>
-            <Descriptions.Item label="Tên sản phẩm">
-              <strong>{productDetail.productName || productDetail.ProductName}</strong>
-            </Descriptions.Item>
-            <Descriptions.Item label="Mô tả">
-              {productDetail.productDescription || productDetail.ProductDescription || "Không có mô tả"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Đơn vị">
-              {productDetail.unit || productDetail.Unit}
-            </Descriptions.Item>
-            <Descriptions.Item label="Số lượng tối thiểu">
-              <strong>{productDetail.minQuantity || productDetail.MinQuantity}</strong> {productDetail.unit || productDetail.Unit}
-            </Descriptions.Item>
-            <Descriptions.Item label="Số lượng tối đa">
-              <strong>{productDetail.maxQuantity || productDetail.MaxQuantity}</strong> {productDetail.unit || productDetail.Unit}
-            </Descriptions.Item>
-            <Descriptions.Item label="Tổng số lượng hiện tại">
-              <strong style={{ color: (productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) ? '#ff4d4f' : '#52c41a' }}>
-                {productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity}
-              </strong> {productDetail.unit || productDetail.Unit}
-              {(productDetail.totalCurrentQuantity || productDetail.TotalCurrentQuantity) < (productDetail.minQuantity || productDetail.MinQuantity) && (
-                <Tag color="red" style={{ marginLeft: 8 }}>Cảnh báo: Dưới mức tối thiểu</Tag>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="Trạng thái">
-              <Tag color={(productDetail.status || productDetail.Status) ? "green" : "red"}>
-                {(productDetail.status || productDetail.Status) ? "Đang bán" : "Ngừng bán"}
-              </Tag>
-            </Descriptions.Item>
-          </Descriptions>
+                  <Title level={4} style={{ marginBottom: 16 }}>
+                    {productDetail.productName || productDetail.ProductName}
+                  </Title>
+                  <Descriptions column={1} size="middle" bordered>
+                    <Descriptions.Item key="product-id" label="Mã sản phẩm">
+                      {productDetail.productID || productDetail.ProductID}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="product-name" label="Tên sản phẩm">
+                      <strong>
+                        {productDetail.productName || productDetail.ProductName}
+                      </strong>
+                    </Descriptions.Item>
+                    <Descriptions.Item key="description" label="Mô tả">
+                      {productDetail.productDescription ||
+                        productDetail.ProductDescription ||
+                        "Không có mô tả"}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="unit" label="Đơn vị">
+                      {productDetail.unit || productDetail.Unit}
+                    </Descriptions.Item>
+                    <Descriptions.Item
+                      key="min-quantity"
+                      label="Số lượng tối thiểu"
+                    >
+                      <strong>
+                        {productDetail.minQuantity || productDetail.MinQuantity}
+                      </strong>{" "}
+                      {productDetail.unit || productDetail.Unit}
+                    </Descriptions.Item>
+                    <Descriptions.Item
+                      key="max-quantity"
+                      label="Số lượng tối đa"
+                    >
+                      <strong>
+                        {productDetail.maxQuantity || productDetail.MaxQuantity}
+                      </strong>{" "}
+                      {productDetail.unit || productDetail.Unit}
+                    </Descriptions.Item>
+                    <Descriptions.Item
+                      key="current-quantity"
+                      label="Tổng số lượng hiện tại"
+                    >
+                      <strong
+                        style={{
+                          color:
+                            (productDetail.totalCurrentQuantity ||
+                              productDetail.TotalCurrentQuantity) <
+                            (productDetail.minQuantity ||
+                              productDetail.MinQuantity)
+                              ? "#ff4d4f"
+                              : "#52c41a",
+                        }}
+                      >
+                        {productDetail.totalCurrentQuantity ||
+                          productDetail.TotalCurrentQuantity}
+                      </strong>{" "}
+                      {productDetail.unit || productDetail.Unit}
+                      {(productDetail.totalCurrentQuantity ||
+                        productDetail.TotalCurrentQuantity) <
+                        (productDetail.minQuantity ||
+                          productDetail.MinQuantity) && (
+                        <Tag
+                          key={`low-stock-${
+                            productDetail.ProductID || productDetail.productID
+                          }`}
+                          color="red"
+                          style={{ marginLeft: 8 }}
+                        >
+                          Cảnh báo: Dưới mức tối thiểu
+                        </Tag>
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="status" label="Trạng thái">
+                      <Tag
+                        color={
+                          productDetail.status || productDetail.Status
+                            ? "green"
+                            : "red"
+                        }
+                      >
+                        {productDetail.status || productDetail.Status
+                          ? "Đang bán"
+                          : "Ngừng bán"}
+                      </Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
                 </Col>
               </Row>
             ) : null}
           </motion.div>
+        </Modal>
+      )}
+      {previewVisible && (
+        <Modal
+          key={`preview-${
+            productDetail?.ProductID || productDetail?.productID
+          }-${currentImageIndex}`}
+          open={previewVisible}
+          onCancel={() => setPreviewVisible(false)}
+          footer={null}
+          centered
+          width="auto"
+          // styles={{ body: { padding: 0, textAlign: "center", background: "#000" } }}
+        >
+          <Image
+            key={`preview-image-${currentImageIndex}`}
+            src={getImageUrl(imageList[currentImageIndex])}
+            alt="Product"
+            style={{ maxHeight: "80vh", objectFit: "contain" }}
+            preview={false}
+          />
         </Modal>
       )}
     </AnimatePresence>

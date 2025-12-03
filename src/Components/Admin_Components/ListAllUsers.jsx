@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import EditUser from "./EditUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 
-const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || "https://api.bbpharmacy.site/";
+const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || "https://api.bbpharmacy.site";
 
 const resolveMediaUrl = (path) => {
     if (!path || typeof path !== "string") return null;
@@ -795,17 +795,17 @@ const ListAllUsers = ({ roleGroup }) => {
                 // Check if path has extension
                 const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatar);
                 if (hasExtension) {
-                    return `https://api.bbpharmacy.site/${avatar}`;
+                    return `https://api.bbpharmacy.site${avatar}`;
                 } else {
                     // Try with .jpg extension
-                    return `https://api.bbpharmacy.site/${avatar}.jpg`;
+                    return `https://api.bbpharmacy.site${avatar}.jpg`;
                 }
             }
             // If it's just a filename, assume it's in the images folder
             if (avatar.startsWith('/')) {
-                return `https://api.bbpharmacy.site/${avatar}`;
+                return `https://api.bbpharmacy.site${avatar}`;
             }
-            return `https://api.bbpharmacy.site//images/${avatar}`;
+            return `https://api.bbpharmacy.site/images/${avatar}`;
         }
         
         return null; // No avatar found

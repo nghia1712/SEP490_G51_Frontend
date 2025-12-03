@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import useCategory from "../../Hooks/useCategory";
+import DeleteIcon from "@mui/icons-material/Delete";
 // import useInventory from "../../Hooks/useInventory"; // Commented out - will be developed later
 import useSupplier from "../../Hooks/useSupplier";
 import {
@@ -43,9 +44,9 @@ const AddProduct = ({
     maxQuantity: 0,
     totalCurrentQuantity: 0,
     status: true,
-    productImage: null,
-    // imageUrl: "", // (commented) reserved for future URL paste feature
+    productImages: [],
   });
+  const [imagePreviews, setImagePreviews] = useState([]);
   // const [selectedInventory, setSelectedInventory] = useState(""); // Commented out - will be developed later
   // const [inventoryStock, setInventoryStock] = useState(""); // Commented out - will be developed later
   const [imagePreview, setImagePreview] = useState(null);
@@ -53,7 +54,8 @@ const AddProduct = ({
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [hasSupplier, setHasSupplier] = useState(false);
-
+  const [openImageDialog, setOpenImageDialog] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   // Use category hook
   const { categories, getAllCategories } = useCategory();
   // Use inventory hook
@@ -77,7 +79,7 @@ const AddProduct = ({
         maxQuantity: 0,
         totalCurrentQuantity: 0,
         status: true,
-        productImage: null,
+        productImages: [],
         // imageUrl: "", // (commented)
       });
       // setSelectedInventory(""); // Commented out - will be developed later
@@ -91,7 +93,9 @@ const AddProduct = ({
   }, [open]);
 
   const normalizeName = (value = "") =>
-    String(value ?? "").trim().toLowerCase();
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,84 +113,16 @@ const AddProduct = ({
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProductData((prev) => ({ ...prev, productImage: file }));
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      // clear url input when selecting file
-      setProductData((prev) => ({ ...prev, imageUrl: "" }));
-    } else {
-      setProductData((prev) => ({ ...prev, productImage: null }));
-      setImagePreview(null);
-    }
-    if (errors.productImage) {
-      setErrors((prev) => ({ ...prev, productImage: "" }));
+    const files = Array.from(e.target.files);
+    const newFiles = [...productData.productImages, ...files];
+
+    setProductData((prev) => ({ ...prev, productImages: newFiles }));
+    setImagePreviews(newFiles.map((file) => URL.createObjectURL(file)));
+
+    if (errors.productImages) {
+      setErrors((prev) => ({ ...prev, productImages: "" }));
     }
   };
-
-  // Handle inventory selection and stock input
-  // const handleInventorySelect = (e) => { // Commented out - will be developed later
-  //     setSelectedInventory(e.target.value);
-  //     setInventoryStock("");
-  //     setErrors((prev) => ({ ...prev, location: "" }));
-  // };
-
-  // const handleInventoryStockInput = (e) => { // Commented out - will be developed later
-  //     setInventoryStock(e.target.value);
-  //     setErrors((prev) => ({ ...prev, location: "" }));
-  // };
-
-  // const handleAddInventory = () => { // Commented out - will be developed later
-  //     if (!selectedInventory || inventoryStock === "" || Number(inventoryStock) < 0) {
-  //         setErrors((prev) => ({
-  //             ...prev,
-  //             location: "Vui lòng chọn kệ và nhập số lượng tồn kho hợp lệ."
-  //         }));
-  //         return;
-  //     }
-  //     // Prevent duplicate inventory
-  //     if (productData.location.some(inv => inv.inventoryId === selectedInventory)) {
-  //         setErrors((prev) => ({
-  //             ...prev,
-  //             location: "Kệ đã được thêm."
-  //         }));
-  //         return;
-  //     }
-
-  //     // Kiểm tra sức chứa định lượng của kệ
-  //     const inventoryObj = inventories.find(i => i._id === selectedInventory);
-  //     if (inventoryObj) {
-  //         const productQuantitative = Number(productData.quantitative) || 0;
-  //         const addQuantitative = Number(inventoryStock) * productQuantitative;
-  //         const availableQuantitative = (Number(inventoryObj.maxQuantitative) || 0) - (Number(inventoryObj.currentQuantitative) || 0);
-
-  //         if (addQuantitative > availableQuantitative) {
-  //             setErrors((prev) => ({
-  //                 ...prev,
-  //                 location: `Kệ này chỉ còn sức chứa định lượng tối đa là ${availableQuantitative}. Sản phẩm bạn thêm vượt quá sức chứa.`
-  //             }));
-  //             return;
-  //         }
-  //     }
-
-  //     setProductData((prev) => ({
-  //         ...prev,
-  //         location: [
-  //             ...prev.location,
-  //             { inventoryId: selectedInventory, stock: Number(inventoryStock) }
-  //         ]
-  //     }));
-  //     setSelectedInventory("");
-  //     setInventoryStock("");
-  // };
-
-  // const handleRemoveInventory = (inventoryId) => { // Commented out - will be developed later
-  //     setProductData((prev) => ({
-  //         ...prev,
-  //         location: prev.location.filter(inv => inv.inventoryId !== inventoryId)
-  //     }));
-  // };
 
   const handleSupplierCheck = (e) => {
     setHasSupplier(e.target.checked);
@@ -216,7 +152,20 @@ const AddProduct = ({
     } else {
       tempErrors.productName = "";
     }
-
+    if (!productData.productImages || productData.productImages.length < 4) {
+      tempErrors.productImages = "Vui lòng chọn ít nhất 4 hình ảnh.";
+    } else if (productData.productImages.length > 6) {
+      tempErrors.productImages = "Chỉ được chọn tối đa 6 hình ảnh.";
+    } else if (
+      !productData.productImages.every((file) =>
+        ["image/jpeg", "image/png"].includes(file.type)
+      )
+    ) {
+      tempErrors.productImages =
+        "Tất cả hình ảnh phải là định dạng JPEG hoặc PNG.";
+    } else {
+      tempErrors.productImages = "";
+    }
     if (!tempErrors.productName && productData.productName) {
       const normalizedNewName = normalizeName(productData.productName);
       const isDuplicate = (existingProducts || []).some((prod) => {
@@ -270,19 +219,6 @@ const AddProduct = ({
       tempErrors.productDescription = "";
     }
 
-    // Bỏ validate số lượng (ẩn khỏi form), giữ giá trị mặc định 0
-
-    // Validate Image (file is required for now)
-    if (!productData.productImage) {
-      tempErrors.productImage = "Vui lòng chọn hình ảnh thuốc.";
-    } else if (
-      !["image/jpeg", "image/png"].includes(productData.productImage.type)
-    ) {
-      tempErrors.productImage = "Hình ảnh phải là định dạng JPEG hoặc PNG.";
-    } else {
-      tempErrors.productImage = "";
-    }
-
     setErrors(tempErrors);
     const isFormValid = Object.values(tempErrors).every((x) => x === "");
     return isFormValid;
@@ -296,14 +232,20 @@ const AddProduct = ({
         const formData = new FormData();
         formData.append("ProductName", productData.productName.trim());
         formData.append("CategoryID", Number(productData.categoryId));
-        formData.append("ProductDescription", productData.productDescription || "");
+        formData.append(
+          "ProductDescription",
+          productData.productDescription || ""
+        );
         formData.append("Unit", productData.unit);
         formData.append("MinQuantity", Number(productData.minQuantity));
         formData.append("MaxQuantity", Number(productData.maxQuantity));
         formData.append("Status", productData.status ? "true" : "false");
-        if (productData.productImage) {
-          formData.append("Image", productData.productImage);
-        }
+        formData.append("Image", productData.productImages[0] || null);
+        formData.append("ImageA", productData.productImages[1] || null);
+        formData.append("ImageB", productData.productImages[2] || null);
+        formData.append("ImageC", productData.productImages[3] || null);
+        formData.append("ImageD", productData.productImages[4] || null);
+        formData.append("ImageE", productData.productImages[5] || null);
 
         const { default: productAPI2 } = await import("../../API/productAPI");
         await productAPI2.create(formData);
@@ -495,7 +437,7 @@ const AddProduct = ({
               <Button
                 variant="outlined"
                 component="label"
-                color={errors.productImage ? "error" : "primary"}
+                color={errors.productImages ? "error" : "primary"}
                 sx={{ mb: 2 }}
               >
                 Chọn Hình Ảnh
@@ -506,36 +448,60 @@ const AddProduct = ({
                   onChange={handleFileChange}
                 />
               </Button>
-              {/** URL image input (commented for later use)
-                            <TextField
-                                name="imageUrl"
-                                label="URL Hình Ảnh (tùy chọn)"
-                                value={productData.imageUrl}
-                                onChange={handleChange}
-                                fullWidth
-                                size="small"
-                                placeholder="https://.../image.png"
-                                sx={{ mb: 2 }}
-                            />
-                            */}
-              {errors.productImage && (
+              {errors.productImages && (
                 <FormHelperText error sx={{ mb: 2 }}>
-                  {errors.productImage}
+                  {errors.productImages}
                 </FormHelperText>
               )}
-              {imagePreview ? (
-                <Box sx={{ textAlign: "center" }}>
-                  <img
-                    src={imagePreview}
-                    alt="Xem trước thuốc"
-                    style={{
-                      maxWidth: "250px",
-                      height: "auto",
-                      borderRadius: "8px",
-                      border: "1px solid #e0e0e0",
-                    }}
-                  />
-                </Box>
+
+              {imagePreviews.length > 0 ? (
+                imagePreviews.map((img, index) => (
+                  <Box key={index} sx={{ mb: 1, position: "relative" }}>
+                    <Button
+                      onClick={() => {
+                        setSelectedImage(img);
+                        setOpenImageDialog(true);
+                      }}
+                      sx={{
+                        width: "250px",
+                        p: 1,
+                        borderRadius: "8px",
+                        border: "1px solid #e0e0e0",
+                        textTransform: "none",
+                        justifyContent: "flex-start",
+                      }}
+                    >
+                      {`Ảnh ${index + 1}`}
+                    </Button>
+
+                    <IconButton
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: 5,
+                        right: 5,
+                        background: "#fff",
+                        border: "1px solid #ccc",
+                      }}
+                      onClick={() => {
+                        const newImages = productData.productImages.filter(
+                          (_, i) => i !== index
+                        );
+
+                        setProductData((prev) => ({
+                          ...prev,
+                          productImages: newImages,
+                        }));
+
+                        setImagePreviews(
+                          newImages.map((file) => URL.createObjectURL(file))
+                        );
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" sx={{ color: "#d32f2f" }} />
+                    </IconButton>
+                  </Box>
+                ))
               ) : (
                 <Box
                   sx={{
@@ -552,6 +518,24 @@ const AddProduct = ({
                   <Typography variant="body2">Chưa có hình ảnh</Typography>
                 </Box>
               )}
+
+              <Dialog
+                open={openImageDialog}
+                onClose={() => setOpenImageDialog(false)}
+                maxWidth="lg"
+              >
+                <Box
+                  component="img"
+                  src={selectedImage}
+                  alt="Xem ảnh"
+                  sx={{
+                    maxWidth: "90vw",
+                    maxHeight: "90vh",
+                    m: "auto",
+                    display: "block",
+                  }}
+                />
+              </Dialog>
             </Box>
           </Box>
         </Box>
