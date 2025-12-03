@@ -78,13 +78,21 @@ const SearchMedicine = () => {
       try {
         setLoading(true);
         setError("");
+
+        // 1. Lấy categories trước
+        const categoriesResponse = await guestAPI.getCategories();
+        const categoryData = categoriesResponse.data?.data || [];
+        setCategories(categoryData);
+
+        // 2. Lấy products
         const productsResponse = await guestAPI.getActiveProducts();
         const productsData = productsResponse.data?.data || [];
         const activeProducts = productsData.filter((p) => p.status === true);
 
+        // 3. Map products với categoryName
         const mappedProducts = activeProducts.map((product) => {
           const categoryId = product.categoryID || product.CategoryID;
-          const category = categories.find(
+          const category = categoryData.find(
             (cat) =>
               cat.categoryID === categoryId || cat.CategoryID === categoryId
           );
@@ -93,6 +101,7 @@ const SearchMedicine = () => {
             categoryName: category ? category.name || category.Name : "",
           };
         });
+
         setAllProducts(mappedProducts);
         setSearchResults(mappedProducts);
       } catch (err) {
@@ -102,6 +111,7 @@ const SearchMedicine = () => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
