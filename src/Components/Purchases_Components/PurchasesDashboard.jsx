@@ -367,7 +367,7 @@ function PurchasesDashboard() {
           </Col>
           <Col md={6} lg={3}>
             <StatCard
-              title="Sản phẩm sắp hết"
+              title="Sản phẩm tồn kho thấp"
               value={
                 lowStockProducts.length > 0
                   ? lowStockProducts.length
@@ -417,41 +417,45 @@ function PurchasesDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {lowStockProducts.map((p, index) => (
-                        <tr
-                          key={p._id || p.productName || index}
-                          style={{ borderBottom: "1px solid #f0f0f0" }}
-                        >
-                          <td className="ps-4">
-                            <div
-                              className="fw-semibold text-truncate"
-                              style={{ maxWidth: "120px" }}
-                              title={p.productName || p.name}
-                            >
-                              {p.productName || p.name}
-                            </div>
-                            <small className="text-muted">
-                              {p.supplierName || p.supplier || "-"}
-                            </small>
-                          </td>
-                          <td className="text-center">
-                            <span className="fw-bold text-dark">
-                              {p.totalCurrentQuantity || p.current}
-                            </span>
-                            <span className="text-muted small mx-1">/</span>
-                            <span className="text-muted small">
-                              {p.minQuantity || p.min}
-                            </span>
-                          </td>
-                          <td className="pe-4 text-end">
-                            {getStockAlert(
-                              p.totalCurrentQuantity || p.current,
-                              p.minQuantity || p.min
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {lowStockProducts.length === 0 && (
+                      {lowStockProducts.length > 0 ? (
+                        lowStockProducts.map((p) => (
+                          <tr key={p._pid}>
+                            <td className="ps-4">
+                              <div
+                                className="fw-semibold text-truncate"
+                                style={{ maxWidth: "120px" }}
+                                title={p.productName}
+                              >
+                                {p.productName}
+                              </div>
+                            </td>
+                            <td className="text-center">
+                              <div
+                                className={`fw-bold ${
+                                  p.totalCurrentQuantity <= p.minQuantity
+                                    ? "text-danger"
+                                    : p.totalCurrentQuantity <=
+                                      p.minQuantity * 1.5
+                                    ? "text-warning"
+                                    : "text-success"
+                                }`}
+                              >
+                                Hiện tại: {p.totalCurrentQuantity}
+                              </div>
+                              <div className="text-muted small">
+                                Tối thiểu: {p.minQuantity}
+                              </div>
+                            </td>
+
+                            <td className="pe-4 text-end">
+                              {getStockAlert(
+                                p.totalCurrentQuantity,
+                                p.minQuantity
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
                         <tr>
                           <td
                             colSpan={3}
