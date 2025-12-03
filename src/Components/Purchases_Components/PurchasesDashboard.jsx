@@ -175,8 +175,6 @@ function PurchasesDashboard() {
     const data = await fetchPOByYear(selectedYear);
     if (!data || !Array.isArray(data)) return;
 
-    console.log("Raw year data:", data);
-
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
       const monthItem = data.find((m) => {
         const rawMonth = m.month;
@@ -207,10 +205,13 @@ function PurchasesDashboard() {
   useEffect(() => {
     if (!poList || !poList.length) return;
 
-    const monthlySpending = poList.reduce(
-      (sum, po) => sum + (po.total || 0),
-      0
-    );
+    // Chỉ tính các đơn đã được duyệt (status = 0, 3, 4, 5)
+    const approvedStatuses = [0, 3, 4, 5];
+
+    const monthlySpending = poList
+      .filter((po) => approvedStatuses.includes(po.status))
+      .reduce((sum, po) => sum + (po.total || 0), 0);
+
     const pendingOrders = poList.filter((po) => po.status === 6).length;
     const suppliersCount = new Set(poList.map((po) => po.supplierName)).size;
 
@@ -337,9 +338,9 @@ function PurchasesDashboard() {
               />
               Thống kê Mua hàng
             </h2>
-            <p className="text-muted mb-0">
-              Tổng quan hoạt động nhập kho và nhà cung cấp
-            </p>
+            <h4 className="text-muted mb-0">
+              Tổng quan hoạt động mua hàng và nhà cung cấp
+            </h4>
           </div>
         </div>
 
@@ -352,7 +353,7 @@ function PurchasesDashboard() {
               icon={<AttachMoney />}
               color="primary"
               onClick={() => setShowMonthlyOrdersModal(true)}
-              subText="Tổng chi thực tế"
+              subText="Tổng chi trong tháng"
             />
           </Col>
           <Col md={6} lg={3}>
@@ -476,7 +477,7 @@ function PurchasesDashboard() {
               </Card.Body>
             </Card>
 
-            {/* Pie Chart (Đơn hàng theo trạng thái) - DI CHUYỂN VÀO ĐÂY */}
+            {/* Pie Chart (Đơn hàng theo trạng thái)*/}
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4">
                 <h5 className="fw-bold mb-0">Đơn hàng theo trạng thái</h5>
@@ -520,7 +521,7 @@ function PurchasesDashboard() {
 
           {/* Right Column (lg=4): Cảnh báo */}
           <Col lg={4}>
-            {/* Low Stock Alert (Tồn kho thấp) (Giữ nguyên) */}
+            {/* Low Stock Alert (Tồn kho thấp) */}
             <Card className="border-0 shadow-sm rounded-4 mb-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                 <h5 className="fw-bold mb-3 text-danger d-flex align-items-center">
@@ -591,7 +592,7 @@ function PurchasesDashboard() {
               </Card.Body>
             </Card>
 
-            {/* Near Expiry (Lô hàng gần hết hạn) (Giữ nguyên) */}
+            {/* Near Expiry (Lô hàng gần hết hạn) */}
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                 <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
@@ -652,7 +653,7 @@ function PurchasesDashboard() {
         {/* ========================================================== */}
         <Row className="g-4 mb-5">
           <Col lg={12}>
-            {/* Recent Orders (Đơn hàng gần đây) - DI CHUYỂN XUỐNG ĐÂY */}
+            {/* Recent Orders (Đơn hàng gần đây)*/}
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 className="fw-bold mb-0">Đơn hàng gần đây</h5>
@@ -741,9 +742,8 @@ function PurchasesDashboard() {
         </Row>
       </Container>
 
-      {/* ================= MODALS (Giữ nguyên) ================= */}
+      {/* ================= MODALS ================= */}
       {/* 1. Pending Orders Modal */}
-      {/* ... (Giữ nguyên code Modal 1) */}
       <Modal
         show={showPendingOrdersModal}
         onHide={() => setShowPendingOrdersModal(false)}
@@ -804,7 +804,6 @@ function PurchasesDashboard() {
       </Modal>
 
       {/* 2. Monthly Orders Modal */}
-      {/* ... (Giữ nguyên code Modal 2) */}
       <Modal
         show={showMonthlyOrdersModal}
         onHide={() => setShowMonthlyOrdersModal(false)}
@@ -833,16 +832,19 @@ function PurchasesDashboard() {
               </tr>
             </thead>
             <tbody>
-              {/* Lọc các đơn hàng trong tháng hiện tại (nếu cần) - Giả định poList hiện tại là của tháng này */}
               {poList.length > 0 ? (
-                poList.map((order) => (
-                  <tr key={order.poid}>
-                    <td className="fw-bold text-primary">{`PO-${order.poid}`}</td>
-                    <td>{order.supplierName}</td>
-                    <td className="fw-bold">{formatCurrency(order.total)}</td>
-                    <td className="text-end">{getStatusBadge(order.status)}</td>
-                  </tr>
-                ))
+                poList
+                  .filter((order) => [0, 3, 4, 5].includes(order.status))
+                  .map((order) => (
+                    <tr key={order.poid}>
+                      <td className="fw-bold text-primary">{`PO-${order.poid}`}</td>
+                      <td>{order.supplierName}</td>
+                      <td className="fw-bold">{formatCurrency(order.total)}</td>
+                      <td className="text-end">
+                        {getStatusBadge(order.status)}
+                      </td>
+                    </tr>
+                  ))
               ) : (
                 <tr>
                   <td colSpan={4} className="text-center py-3 text-muted">
