@@ -91,6 +91,11 @@ const InvoiceCreationDialog = ({
       const normalized = Array.isArray(codes) ? codes : [];
       setGoodsIssueCodes(normalized);
 
+      // Nếu lấy được danh sách phiếu xuất kho hợp lệ thì ẩn thông báo lỗi trước đó (nếu có)
+      if (normalized.length > 0) {
+        setAlertState(null);
+      }
+
       // Giữ lại những code đang chọn vẫn còn trong list
       setSelectedGoodsCodes((prev) => {
         const filtered = prev.filter((code) => normalized.includes(code));

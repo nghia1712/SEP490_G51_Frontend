@@ -167,12 +167,18 @@ export default function GRNList() {
                 direction={{ xs: "column", md: "row" }}
                 spacing={2}
                 alignItems="center"
+                justifyContent="space-between"
+                sx={{ width: "100%" }}
               >
                 <TextField
                   placeholder="Tìm kiếm..."
                   size="small"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  sx={{
+                    flexGrow: 1,
+                    maxWidth: { xs: "100%", md: 400 },
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -186,6 +192,11 @@ export default function GRNList() {
                     variant="contained"
                     startIcon={<ReceiptLong />}
                     onClick={() => handleOpenInvoiceDialog()}
+                    sx={{
+                      ml: { xs: 0, md: 2 },
+                      alignSelf: { xs: "stretch", md: "center" },
+                      whiteSpace: "nowrap",
+                    }}
                   >
                     Tạo hóa đơn
                   </Button>

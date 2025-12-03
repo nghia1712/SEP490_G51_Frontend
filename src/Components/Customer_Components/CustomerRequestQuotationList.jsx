@@ -1341,11 +1341,12 @@ const CustomerRequestQuotationList = () => {
       setSnackbarMessage('Tạo đơn hàng nháp thành công.');
       setSnackbarOpen(true);
 
-      // Navigate to orders page and auto-open order details
+      // Sau khi tạo đơn nháp, quay về danh sách đơn hàng cho khách
+      // và đánh dấu để hiển thị đơn mới ở đầu danh sách (không mở thanh toán)
       if (orderId) {
         navigate('/customer/orders', {
           state: {
-            openOrderId: orderId,
+            highlightOrderId: orderId,
             fromQuotation: true,
           },
         });
@@ -1394,10 +1395,11 @@ const CustomerRequestQuotationList = () => {
       setSnackbarMessage('Gửi đơn hàng thành công.');
       setSnackbarOpen(true);
 
-      // Navigate to orders page and auto-open order details
+      // Sau khi gửi đơn, quay về danh sách đơn hàng
+      // và đánh dấu để hiển thị đơn mới ở đầu danh sách (không mở thanh toán)
       navigate('/customer/orders', {
         state: {
-          openOrderId: orderId,
+          highlightOrderId: orderId,
           fromQuotation: true,
         },
       });
