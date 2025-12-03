@@ -114,7 +114,7 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentToken = localStorage.getItem("authToken");
-  const userRole = getUserRole();
+  const userRole = getUserRole() || "guest";
 
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
@@ -163,6 +163,11 @@ function Header() {
   };
 
   const navItems = [
+    {
+      label: "Giới thiệu",
+      path: "/about-me",
+      allowedRoles: ["customer"],
+    },
     {
       label: "Tổng quan",
       path: "/sales-dashboard",

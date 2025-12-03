@@ -72,6 +72,7 @@ import GINList from "./Components/Warehouse_Components/GIN/GINList.jsx";
 import DebtList from "./Components/Debt_Components/DebtList.jsx";
 import PaymentRemainList from "./Components/PaymentRemain/PaymentRemainList.jsx";
 import CustomerDebtList from "./Components/Debt_Components/CustomerDebtList.jsx";
+import AboutPharmacy from "./Components/Guest_Components/AboutPharmacy.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -1032,6 +1033,8 @@ function App() {
                         path="/list-transaction"
                         element={<div>Giao dịch - Đang phát triển</div>}
                       />
+
+                      <Route path="/about-me" element={<AboutPharmacy />} />
 
                       {/* Removed legacy /admin/users route */}
                       <Route

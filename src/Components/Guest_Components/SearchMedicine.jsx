@@ -24,6 +24,7 @@ import {
   CircularProgress,
   TableRow,
   IconButton,
+  Link,
 } from "@mui/material";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
@@ -457,29 +458,18 @@ const SearchMedicine = () => {
           open={openImageDialog}
           onClose={() => setOpenImageDialog(false)}
           maxWidth="lg"
-          fullWidth
         >
-          <DialogContent
+          <Box
+            component="img"
+            src={selectedImage}
+            alt="Xem ảnh"
             sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "rgba(0,0,0,0.9)",
-              p: 0,
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              m: "auto",
+              display: "block",
             }}
-          >
-            <img
-              src={selectedImage}
-              alt="Phóng to"
-              style={{
-                width: "100%",
-                maxHeight: "90vh",
-                objectFit: "contain",
-                cursor: "pointer",
-              }}
-              onClick={() => setOpenImageDialog(false)}
-            />
-          </DialogContent>
+          />
         </Dialog>
 
         {/* Dialog chi tiết */}
@@ -626,6 +616,30 @@ const SearchMedicine = () => {
                         "Không có mô tả"}
                     </Typography>
                   </Box>
+                  {selectedMedicine && !isAuthenticated && (
+                    <Alert
+                      severity="info"
+                      sx={{
+                        mt: 4,
+                        textAlign: "center",
+                        backgroundColor: "rgba(72, 193, 166, 0.1)",
+                        border: "1px solid rgba(72, 193, 166, 0.3)",
+                        borderRadius: "12px",
+                      }}
+                    >
+                      <Typography variant="body2">
+                        <strong>Lưu ý:</strong> Bạn chưa đăng nhập. Vui lòng{" "}
+                        <Link
+                          href="/login"
+                          underline="hover"
+                          sx={{ fontWeight: "bold" }}
+                        >
+                          đăng nhập
+                        </Link>{" "}
+                        để mua hàng và nhận ưu đãi.
+                      </Typography>
+                    </Alert>
+                  )}
                 </Grid>
               </Grid>
             )}

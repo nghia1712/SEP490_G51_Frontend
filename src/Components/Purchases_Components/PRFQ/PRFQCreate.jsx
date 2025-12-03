@@ -344,7 +344,7 @@ export default function PRFQCreate() {
                     Thông tin Nhà Thuốc
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Tên:</strong> CÔNG TY TNHH DƯỢC PHẨM SỐ 17
+                    <strong>Tên:</strong> NHÀ THUỐC DƯỢC PHẨM SỐ 17
                   </Typography>
                   <Typography variant="body2">
                     <strong>Mã số thuế:</strong> 030203002865

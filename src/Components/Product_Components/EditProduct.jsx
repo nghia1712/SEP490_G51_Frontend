@@ -227,10 +227,15 @@ const EditProduct = ({
 
     // Description
     if (
-      productData.productDescription &&
-      productData.productDescription.length > 300
-    )
+      !productData.productDescription ||
+      productData.productDescription.trim() === ""
+    ) {
+      tempErrors.productDescription = "Mô tả thuốc là bắt buộc.";
+    } else if (productData.productDescription.length > 300) {
       tempErrors.productDescription = "Mô tả không được vượt quá 300 ký tự.";
+    } else {
+      tempErrors.productDescription = "";
+    }
 
     // Quantities
     if (productData.minQuantity < 0)
