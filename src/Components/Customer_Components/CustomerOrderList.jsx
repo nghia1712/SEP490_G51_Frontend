@@ -83,6 +83,7 @@ const CustomerOrderList = () => {
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState('');
   const [pendingRejectOrderId, setPendingRejectOrderId] = useState(null);
+  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const detailOrderStatus = orderDetails?.status ?? orderDetails?.Status ?? null;
   const detailPaymentStatus = orderDetails?.paymentStatus ?? orderDetails?.PaymentStatus ?? null;
   const detailQuotationCode =
@@ -451,10 +452,19 @@ const CustomerOrderList = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Auto-open payment dialog hoặc dialog lý do từ chối nếu được điều hướng từ màn khác
+  // Auto-open payment dialog hoặc dialog lý do từ chối / highlight đơn nếu được điều hướng từ màn khác
   useEffect(() => {
-    const { openOrderId, openRejectOrderId } = location.state || {};
-    if (openOrderId || openRejectOrderId) {
+    const { openOrderId, openRejectOrderId, highlightOrderId } = location.state || {};
+
+    // Nếu có đơn cần highlight (vừa tạo xong), lưu lại id để sắp xếp đưa lên đầu
+    if (highlightOrderId) {
+      const normalizedId = Number(highlightOrderId);
+      if (!Number.isNaN(normalizedId)) {
+        setHighlightedOrderId(normalizedId);
+      }
+    }
+
+    if (openOrderId || openRejectOrderId || highlightOrderId) {
       navigate(location.pathname, { replace: true, state: {} });
     }
 
@@ -471,6 +481,30 @@ const CustomerOrderList = () => {
       }
     }
   }, [location.state, navigate]);
+
+  // Sắp xếp lại danh sách để đơn được highlight xuất hiện ở đầu
+  useEffect(() => {
+    if (!highlightedOrderId || allOrders.length === 0) return;
+
+    const index = allOrders.findIndex(
+      (order) => Number(order.id) === Number(highlightedOrderId),
+    );
+
+    if (index <= 0) {
+      return;
+    }
+
+    const highlightedOrder = allOrders[index];
+    const reordered = [
+      highlightedOrder,
+      ...allOrders.slice(0, index),
+      ...allOrders.slice(index + 1),
+    ];
+
+    setAllOrders(reordered);
+    // Không reset highlightedOrderId, để khi reload lại data từ backend (đã được order theo CreateAt desc)
+    // vẫn không gây loop vì index sẽ là 0.
+  }, [highlightedOrderId, allOrders]);
 
   useEffect(() => {
     if (!pendingRejectOrderId || orders.length === 0) return;
@@ -894,7 +928,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         
         const salesOrderId = data.salesOrderId ?? data.SalesOrderId;
 
-        setPaymentOrderDetails({
+        const normalizedOrder = {
           id: salesOrderId,
           code: data.salesOrderCode ?? data.SalesOrderCode,
           status: orderStatus,
@@ -909,12 +943,14 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
           createBy: data.createBy ?? data.CreateBy,
           depositExpiredDate,
           depositDueDays,
-        });
+        };
 
-        if (normalizedRemainingDeposit > 0) {
-          // Chỉ tự động khởi tạo VNPay nếu chọn VNPay
-          // Các phương thức khác sẽ khởi tạo khi người dùng chọn
-        } else {
+        setPaymentOrderDetails(normalizedOrder);
+
+        // Nếu còn tiền cần cọc và phương thức hiện tại là VNPay thì tự động khởi tạo phiên thanh toán VNPay
+        if (normalizedRemainingDeposit > 0 && selectedPaymentMethod === 'vnpay') {
+          await initVnPayDeposit(salesOrderId);
+        } else if (normalizedRemainingDeposit <= 0) {
           setVnPayInitError('Đơn hàng này không còn số tiền cần cọc.');
         }
       }
@@ -949,7 +985,8 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       return;
     }
     setRedirectingPayment(true);
-    window.location.href = vnPayInitData.paymentUrl;
+    // Mở cổng thanh toán VNPay ở tab mới để khách không mất màn hình đơn hàng
+    window.open(vnPayInitData.paymentUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleConfirmPayment = async () => {
@@ -2255,35 +2292,8 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                                 {formatCurrency(vnPayInitData?.amount ?? paymentOrderDetails.remainingDeposit)}
                               </Typography>
                             </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                              <Box
-                                sx={{
-                                  width: 280,
-                                  height: 280,
-                                  border: '1px solid #e0e0e0',
-                                  borderRadius: 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  backgroundColor: '#f5f5f5',
-                                  p: 1,
-                                }}
-                              >
-                                {vnPayInitData?.qrBase64 ? (
-                                  <img
-                                    src={`data:image/png;base64,${vnPayInitData.qrBase64}`}
-                                    alt="VNPay QR"
-                                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                                  />
-                                ) : (
                                   <Typography variant="body2" color="text.secondary" textAlign="center">
-                                    Chưa có mã QR VNPay khả dụng
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                            <Typography variant="body2" color="text.secondary" textAlign="center">
-                              Quét mã QR hoặc nhấn nút thanh toán để chuyển đến cổng VNPay
+                            Nhấn nút thanh toán để chuyển đến cổng VNPay
                             </Typography>
                           </>
                         )}
