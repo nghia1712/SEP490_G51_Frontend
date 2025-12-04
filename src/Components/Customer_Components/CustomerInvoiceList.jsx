@@ -481,7 +481,7 @@ const CustomerInvoiceList = () => {
       // Với Chuyển khoản và Tiền mặt, hiển thị thông báo
       const methodName = selectedPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
       setSnackbarMessage(`Vui lòng liên hệ với nhân viên để xác nhận thanh toán bằng ${methodName}.`);
-      setSnackbarOpen(true);
+    setSnackbarOpen(true);
     }
   };
 
@@ -738,7 +738,7 @@ const CustomerInvoiceList = () => {
       <Dialog
         open={paymentDialogOpen}
         onClose={handleClosePaymentDialog}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
@@ -750,51 +750,51 @@ const CustomerInvoiceList = () => {
               <CircularProgress />
             </Box>
           ) : paymentInvoiceDetails ? (
-            <Box>
+              <Box>
               {/* Thông tin hóa đơn - Layout 2 cột */}
-              <Box sx={{ display: 'flex', gap: 3 }}>
+              <Box sx={{ display: 'flex', gap: 4 }}>
                 {/* Cột trái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Mã hóa đơn:
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã hóa đơn:
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {paymentInvoiceDetails.invoiceCode || '-'}
-                    </Typography>
-                  </Box>
+                </Typography>
+              </Box>
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Typography variant="subtitle2" color="text.secondary">
                       Tổng Trị Giá Hóa Đơn:
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {formatCurrency(paymentInvoiceDetails.totalAmount)}
-                    </Typography>
-                  </Box>
+                  </Typography>
+                </Box>
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Typography variant="subtitle2" color="text.secondary">
                       Đã Thanh Toán:
-                    </Typography>
-                    <Typography variant="body1">
+                  </Typography>
+                  <Typography variant="body1">
                       {formatCurrency(paymentInvoiceDetails.totalPaid)}
-                    </Typography>
-                  </Box>
+                  </Typography>
+                </Box>
                   <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Typography variant="subtitle2" color="text.secondary">
                       Số Tiền Cần Thanh Toán:
-                    </Typography>
+                  </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {formatCurrency(paymentInvoiceDetails.totalRemain)}
-                    </Typography>
-                  </Box>
+                  </Typography>
                 </Box>
-                
+              </Box>
+
                 {/* Cột phải */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 1.5 }}>
                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                       Phương thức thanh toán:
-                    </Typography>
+                </Typography>
                     <FormControl fullWidth size="small">
                       <InputLabel>Chọn phương thức thanh toán</InputLabel>
                       <Select
@@ -823,8 +823,8 @@ const CustomerInvoiceList = () => {
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                 {formatCurrency(vnPayInitData?.amount ?? paymentInvoiceDetails.totalRemain)}
-                              </Typography>
-                            </Box>
+                </Typography>
+              </Box>
                             <Typography variant="body2" color="text.secondary" textAlign="center">
                               Nhấn nút thanh toán để chuyển đến cổng VNPay
                             </Typography>
@@ -857,7 +857,7 @@ const CustomerInvoiceList = () => {
                           </Typography>
                           <Typography variant="body2" sx={{ mt: 1 }}>
                             Vui lòng liên hệ với nhân viên để thực hiện thanh toán bằng tiền mặt.
-                          </Typography>
+                </Typography>
                         </Alert>
                       </Box>
                     )}

@@ -627,6 +627,48 @@ const CustomerOrderList = () => {
   }, [page, totalPages]);
 
   // Hàm lấy label cho trạng thái đơn hàng
+  // Hàm tính toán trạng thái đơn hàng hiệu quả dựa trên payment status và số tiền
+  const getEffectiveOrderStatus = (orderStatus, paymentStatus, orderData = null) => {
+    if (!orderData) {
+      // Nếu không có orderData, chỉ kiểm tra payment status
+      if (paymentStatus === 2) { // PartiallyPaid
+        return 4; // PartiallyDelivered
+      }
+      return orderStatus;
+    }
+
+    const totalAmount = toNumberOrNull(
+      orderData.totalAmount ??
+      orderData.TotalAmount ??
+      orderData.totalPrice ??
+      orderData.TotalPrice ??
+      orderData.grandTotal ??
+      0
+    ) ?? 0;
+
+    const paidAmount = toNumberOrNull(
+      orderData.paidAmount ??
+      orderData.PaidAmount ??
+      orderData.depositPaidAmount ??
+      orderData.DepositPaidAmount ??
+      0
+    ) ?? 0;
+
+    // Nếu tổng tiền = tiền đã trả → "Giao toàn bộ hàng" (Delivered = 5)
+    if (totalAmount > 0 && paidAmount >= totalAmount) {
+      return 5; // Delivered
+    }
+
+    // Nếu payment status là "Đã thanh toán 1 phần" (PartiallyPaid = 2)
+    // thì hiển thị order status là "Giao hàng 1 phần" (PartiallyDelivered = 4)
+    if (paymentStatus === 2) { // PartiallyPaid
+      return 4; // PartiallyDelivered
+    }
+
+    // Trả về order status gốc
+    return orderStatus;
+  };
+
   // Hàm lấy label cho trạng thái đơn hàng (đầy đủ)
   const getOrderStatusLabel = (status, short = false) => {
     // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, PartiallyDelivered=4, Delivered=5, Complete=6, NotComplete=7
@@ -741,10 +783,9 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       ? Number(paymentStatus)
       : paymentStatus;
 
-  // Ưu tiên kiểm tra paymentStatus từ backend trước
-  // Nếu paymentStatus = 1 (Deposited), luôn hiển thị "Đã cọc"
-  if (normalizedPayment === 1) {
-    return 'Đã cọc';
+  // ƯU TIÊN: Nếu trạng thái đơn hàng là "Giao hàng 1 phần" (4) → trạng thái thanh toán là "Đã thanh toán 1 phần"
+  if (normalizedStatus === 4) { // PartiallyDelivered
+    return short ? '... toán 1 phần' : 'Đã thanh toán 1 phần';
   }
 
   let paidAmount = 0;
@@ -767,7 +808,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         depositInfo?.amount ?? orderData.depositAmount ?? orderData.DepositAmount ?? null,
       ) ?? 0;
 
-    // Nếu đã thanh toán đủ tổng tiền
+    // ƯU TIÊN: Nếu đã thanh toán đủ tổng tiền → "Đã thanh toán toàn bộ"
     if (totalAmount > 0 && paidAmount >= totalAmount) {
       return short ? '... toán toàn bộ' : 'Đã thanh toán toàn bộ';
     }
@@ -781,6 +822,12 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       // Nếu đã thanh toán một phần nhưng chưa đủ cọc
       return short ? '... toán 1 phần' : 'Đã thanh toán 1 phần';
     }
+  }
+
+  // Nếu không có orderData, kiểm tra paymentStatus từ backend
+  // Nếu paymentStatus = 1 (Deposited), hiển thị "Đã cọc"
+  if (normalizedPayment === 1) {
+    return 'Đã cọc';
   }
 
   // Nếu backend đã set trạng thái thanh toán cụ thể (Đã thanh toán, ...)
@@ -822,7 +869,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       case 0: // Chờ thanh toán (Pending)
         return { backgroundColor: '#fff3cd', color: '#856404' };
       case 1: // Đã cọc (Deposited)
-        return { backgroundColor: '#e1bee7', color: '#4a148c' };
+        return { backgroundColor: '#9c27b0', color: '#ffffff' }; // Màu tím đậm
       case 2: // Đã thanh toán 1 phần (PartiallyPaid)
         return { backgroundColor: '#fff9c4', color: '#f57f17' }; // Màu vàng nhạt để phân biệt với đã cọc
       case 3: // Đã thanh toán toàn bộ (Paid)
@@ -1963,13 +2010,16 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     <TableCell sx={{ fontWeight: 500 }}>{order.quotationCode || order.quotationId || '-'}</TableCell>
                     <TableCell>{formatDate(order.createdAt || order.createAt || order.createdDate)}</TableCell>
                     <TableCell>
-                      {order.orderStatus !== undefined && order.orderStatus !== null ? (
-                        <Chip
-                          label={getOrderStatusLabel(order.orderStatus, false)}
-                          size="small"
-                          sx={getOrderStatusColor(order.orderStatus)}
-                        />
-                      ) : (
+                      {order.orderStatus !== undefined && order.orderStatus !== null ? (() => {
+                        const effectiveStatus = getEffectiveOrderStatus(order.orderStatus, order.paymentStatus, order);
+                        return (
+                          <Chip
+                            label={getOrderStatusLabel(effectiveStatus, false)}
+                            size="small"
+                            sx={getOrderStatusColor(effectiveStatus)}
+                          />
+                        );
+                      })() : (
                         '-'
                       )}
                     </TableCell>
@@ -1978,14 +2028,22 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                       {order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3 ? (
                         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>-</Typography>
                       ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (
-                        <Chip
-                          label={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
+                        <Tooltip
+                          title={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
                             percent: order.depositPercent,
                             amount: order.depositAmount,
                           }, order, false)}
-                          size="small"
-                          sx={getPaymentStatusColor(order.paymentStatus)}
-                        />
+                          arrow
+                        >
+                          <Chip
+                            label={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
+                              percent: order.depositPercent,
+                              amount: order.depositAmount,
+                            }, order, true)}
+                            size="small"
+                            sx={getPaymentStatusColor(order.paymentStatus)}
+                          />
+                        </Tooltip>
                       ) : (
                         '-'
                       )}
@@ -2069,13 +2127,20 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái đơn hàng:
                     </Typography>
-                    {detailOrderStatus !== null ? (
-                      <Chip
-                        label={orderDetails.statusName || getStatusLabel(detailOrderStatus)}
-                        sx={getOrderStatusColor(detailOrderStatus)}
-                        size="small"
-                      />
-                    ) : (
+                    {detailOrderStatus !== null ? (() => {
+                      const effectiveStatus = getEffectiveOrderStatus(
+                        detailOrderStatus,
+                        detailPaymentStatus,
+                        orderDetails
+                      );
+                      return (
+                        <Chip
+                          label={orderDetails.statusName || getStatusLabel(effectiveStatus)}
+                          sx={getOrderStatusColor(effectiveStatus)}
+                          size="small"
+                        />
+                      );
+                    })() : (
                       <Typography variant="body1">-</Typography>
                     )}
                   </Box>
@@ -2083,23 +2148,78 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     <Typography variant="subtitle2" color="text.secondary">
                       Trạng thái thanh toán:
                     </Typography>
-                    {detailPaymentLabel ? (
-                      <Chip
-                        label={detailPaymentLabel}
-                        sx={getPaymentStatusColor(
-                          detailPaymentStatus !== null && detailPaymentStatus !== undefined
-                            ? detailPaymentStatus
-                            : detailPaymentLabel === 'Đã thanh toán'
-                            ? 2
-                            : detailPaymentLabel === 'Đã cọc'
-                            ? 1
-                            : 0,
-                        )}
-                        size="small"
-                      />
-                    ) : (
-                      <Typography variant="body1">-</Typography>
-                    )}
+                    {(() => {
+                      if (!orderDetails) return <Typography variant="body1">-</Typography>;
+                      
+                      // Tính toán payment status để hiển thị dựa trên order status và số tiền (giống màn list)
+                      const totalAmountValue = toNumberOrNull(
+                        orderDetails.totalAmount ??
+                        orderDetails.TotalAmount ??
+                        orderDetails.totalPrice ??
+                        orderDetails.TotalPrice ??
+                        0
+                      ) ?? 0;
+                      
+                      const paidAmountValue = toNumberOrNull(
+                        orderDetails.paidAmount ??
+                        orderDetails.PaidAmount ??
+                        0
+                      ) ?? 0;
+                      
+                      // Tính effective order status (có thể bị override bởi payment status)
+                      const effectiveOrderStatus = getEffectiveOrderStatus(
+                        detailOrderStatus,
+                        detailPaymentStatus,
+                        orderDetails
+                      );
+                      
+                      // Nếu đã thanh toán đủ tổng tiền, payment status = 3 (Paid)
+                      let paymentStatusForDisplay = detailPaymentStatus !== null && detailPaymentStatus !== undefined
+                        ? detailPaymentStatus
+                        : 0;
+                      
+                      if (totalAmountValue > 0 && paidAmountValue >= totalAmountValue) {
+                        paymentStatusForDisplay = 3; // Paid
+                      } else if (effectiveOrderStatus === 4) {
+                        // Nếu trạng thái đơn hàng là "Giao hàng 1 phần" → trạng thái thanh toán là "Đã thanh toán 1 phần"
+                        paymentStatusForDisplay = 2; // PartiallyPaid
+                      } else if (totalAmountValue > 0 && paidAmountValue > 0 && paidAmountValue < totalAmountValue) {
+                        // Nếu đã thanh toán một phần
+                        const depositAmountValue = toNumberOrNull(
+                          orderDetails.depositAmount ??
+                          orderDetails.DepositAmount ??
+                          0
+                        ) ?? 0;
+                        // Nếu đã cọc đủ hoặc hơn số tiền cọc yêu cầu
+                        if (depositAmountValue > 0 && paidAmountValue >= depositAmountValue) {
+                          paymentStatusForDisplay = 1; // Deposited
+                        } else {
+                          paymentStatusForDisplay = 2; // PartiallyPaid
+                        }
+                      }
+                      
+                      // Truyền effectiveOrderStatus vào để getPaymentStatusLabelByContext có thể kiểm tra
+                      const paymentLabel = getPaymentStatusLabelByContext(
+                        paymentStatusForDisplay,
+                        effectiveOrderStatus, // Truyền effectiveOrderStatus thay vì detailOrderStatus
+                        {
+                          percent: orderDetails.depositPercent,
+                          amount: orderDetails.depositAmount,
+                        },
+                        orderDetails,
+                        false
+                      );
+                      
+                      return paymentLabel ? (
+                        <Chip
+                          label={paymentLabel}
+                          sx={getPaymentStatusColor(paymentStatusForDisplay)}
+                          size="small"
+                        />
+                      ) : (
+                        <Typography variant="body1">-</Typography>
+                      );
+                    })()}
                   </Box>
                 </Box>
                 
@@ -2141,11 +2261,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                   </Box>
                 </Box>
                 
-                {/* Phần 3 - Bên phải: Số tiền đã cọc, Số tiền cần cọc, Số tiền sau cọc */}
+                {/* Phần 3 - Bên phải: Số tiền đã trả, Số tiền cần cọc, Số tiền sau cọc */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Số tiền đã cọc:
+                      Số tiền đã trả:
                     </Typography>
                     <Typography variant="body1">
                       {formatCurrency(orderDetails.paidAmount)}
