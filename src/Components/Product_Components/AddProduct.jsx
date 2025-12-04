@@ -437,6 +437,7 @@ const AddProduct = ({
               <Button
                 variant="outlined"
                 component="label"
+                disabled={loading}
                 color={errors.productImages ? "error" : "primary"}
                 sx={{ mb: 2 }}
               >
@@ -454,70 +455,81 @@ const AddProduct = ({
                 </FormHelperText>
               )}
 
-              {imagePreviews.length > 0 ? (
-                imagePreviews.map((img, index) => (
-                  <Box key={index} sx={{ mb: 1, position: "relative" }}>
-                    <Button
-                      onClick={() => {
-                        setSelectedImage(img);
-                        setOpenImageDialog(true);
-                      }}
-                      sx={{
-                        width: "250px",
-                        p: 1,
-                        borderRadius: "8px",
-                        border: "1px solid #e0e0e0",
-                        textTransform: "none",
-                        justifyContent: "flex-start",
-                      }}
-                    >
-                      {`Ảnh ${index + 1}`}
-                    </Button>
+<Box
+  sx={{
+    display: "flex",
+    flexDirection: "column",
+    gap: 1,
+    pointerEvents: loading ? "none" : "auto", // disable toàn bộ khi loading
+    opacity: loading ? 0.6 : 1, // làm mờ khi loading (tuỳ chọn)
+  }}
+>
+  {imagePreviews.length > 0 ? (
+    imagePreviews.map((img, index) => (
+      <Box key={index} sx={{ mb: 1, position: "relative" }}>
+        <Button
+          onClick={() => {
+            setSelectedImage(img);
+            setOpenImageDialog(true);
+          }}
+          sx={{
+            width: "250px",
+            p: 1,
+            borderRadius: "8px",
+            border: "1px solid #e0e0e0",
+            textTransform: "none",
+            justifyContent: "flex-start",
+          }}
+        >
+          {`Ảnh ${index + 1}`}
+        </Button>
 
-                    <IconButton
-                      size="small"
-                      sx={{
-                        position: "absolute",
-                        top: 5,
-                        right: 5,
-                        background: "#fff",
-                        border: "1px solid #ccc",
-                      }}
-                      onClick={() => {
-                        const newImages = productData.productImages.filter(
-                          (_, i) => i !== index
-                        );
+        <IconButton
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 5,
+            right: 5,
+            background: "#fff",
+            border: "1px solid #ccc",
+          }}
+          onClick={() => {
+            const newImages = productData.productImages.filter(
+              (_, i) => i !== index
+            );
 
-                        setProductData((prev) => ({
-                          ...prev,
-                          productImages: newImages,
-                        }));
+            setProductData((prev) => ({
+              ...prev,
+              productImages: newImages,
+            }));
 
-                        setImagePreviews(
-                          newImages.map((file) => URL.createObjectURL(file))
-                        );
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" sx={{ color: "#d32f2f" }} />
-                    </IconButton>
-                  </Box>
-                ))
-              ) : (
-                <Box
-                  sx={{
-                    width: "250px",
-                    height: "200px",
-                    border: "2px dashed #e0e0e0",
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#999",
-                  }}
-                >
-                  <Typography variant="body2">Chưa có hình ảnh</Typography>
-                </Box>
-              )}
+            setImagePreviews(
+              newImages.map((file) => URL.createObjectURL(file))
+            );
+          }}
+        >
+          <DeleteIcon fontSize="small" sx={{ color: "#d32f2f" }} />
+        </IconButton>
+      </Box>
+    ))
+  ) : (
+    <Box
+      sx={{
+        width: "250px",
+        height: "200px",
+        border: "2px dashed #e0e0e0",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#999",
+      }}
+    >
+      <Typography variant="body2">Chưa có hình ảnh</Typography>
+    </Box>
+  )}
+</Box>
+
 
               <Dialog
                 open={openImageDialog}
