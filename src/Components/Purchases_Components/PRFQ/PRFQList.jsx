@@ -285,7 +285,7 @@ export default function PRFQList() {
                               <>
                                 <Tooltip title="Tiếp tục chỉnh sửa">
                                   <IconButton
-                                    color="success"
+                                    color="warning"
                                     onClick={() => handleContinue(row.prfqid)}
                                   >
                                     <EditIcon />

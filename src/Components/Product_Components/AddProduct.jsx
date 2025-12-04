@@ -252,19 +252,18 @@ const AddProduct = ({
         await productAPI2.create(formData);
         // success flow: show message and close after 3s
         setSuccessMessage("Thêm thuốc thành công!");
-        setLoading(false);
+        setSelectedImage(null);
         setTimeout(() => {
           onSaveSuccess();
           handleClose();
         }, 3000);
         return;
       } catch (error) {
+        setLoading(false);
         setErrors((prev) => ({
           ...prev,
           general: error?.message || "Có lỗi xảy ra.",
         }));
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -273,7 +272,7 @@ const AddProduct = ({
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Thêm Thuốc Mới</DialogTitle>
       <Divider sx={{ opacity: 0.5 }} />
-      <DialogContent>
+      <DialogContent sx={{ overflowY: "hidden", maxHeight: "none" }}>
         <Box sx={{ mt: 1 }}>
           {errors.general && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -544,7 +543,10 @@ const AddProduct = ({
       <Divider sx={{ opacity: 0.5 }} />
       <DialogActions sx={{ p: "16px 24px" }}>
         <Button
-          onClick={handleClose}
+          onClick={() => {
+            setSelectedImage(null);
+            handleClose();
+          }}
           disabled={loading || !!successMessage}
           color="secondary"
         >

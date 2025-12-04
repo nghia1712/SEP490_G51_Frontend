@@ -1255,7 +1255,7 @@ const SupplierList = () => {
                                 </Tooltip>
 
                                 {/* Nút kích hoạt/ngừng cung cấp */}
-                                {supplier.status === "active" ||
+                                {/* {supplier.status === "active" ||
                                 supplier.status === 1 ? (
                                   <Button
                                     variant="contained"
@@ -1296,7 +1296,7 @@ const SupplierList = () => {
                                   >
                                     Kích hoạt
                                   </Button>
-                                )}
+                                )} */}
                               </Stack>
                             </TableCell>
                           </TableRow>
@@ -1666,16 +1666,14 @@ const SupplierList = () => {
                           variant="body1"
                           sx={{ fontFamily: "monospace" }}
                         >
-                          {supplierDetails.bankAccountNumber ||
-                            supplierDetails.BankAccountNumber ||
-                            supplierDetails.bankAccountNumberMasked ||
+                          {supplierDetails.bankAccountNumberMasked ||
                             "Chưa cập nhật"}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">
+                        {/* <Typography variant="body2" color="text.secondary">
                           Số nợ
-                        </Typography>
+                        </Typography> */}
                         <Typography
                           variant="body1"
                           sx={{ fontFamily: "monospace" }}

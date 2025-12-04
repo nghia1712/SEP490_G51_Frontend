@@ -298,7 +298,7 @@ const EditProduct = ({
       const productId = getProductIdValue(product);
       await updateProduct(productId, formData);
       setSuccessMessage("Cập nhật thành công!");
-      setLoading(false);
+      setSelectedImage(null);
       setTimeout(() => {
         onUpdateSuccess();
         handleClose();
@@ -521,7 +521,10 @@ const EditProduct = ({
       <Divider sx={{ opacity: 0.5 }} />
       <DialogActions sx={{ p: "16px 24px" }}>
         <Button
-          onClick={handleClose}
+          onClick={() => {
+            setSelectedImage(null);
+            handleClose();
+          }}
           disabled={loading || Boolean(successMessage)}
           color="secondary"
         >

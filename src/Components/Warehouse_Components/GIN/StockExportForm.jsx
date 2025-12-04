@@ -21,6 +21,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Card,
+  CardContent,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -309,210 +311,222 @@ export default function StockExportForm() {
 
   return (
     <Box p={3}>
-      <Typography variant="h4" mb={3}>
-        {id ? "Cập nhật yêu cầu xuất kho" : "Tạo yêu cầu xuất kho"}
-      </Typography>
+      <Card elevation={3} sx={{ borderRadius: 2 }}>
+        <CardContent>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+          >
+            {id ? "Cập nhật yêu cầu xuất kho" : "Tạo yêu cầu xuất kho"}
+          </Typography>
 
-      <Paper sx={{ p: 3 }}>
-        {loading || loadingStock ? (
-          <Stack alignItems="center">
-            <CircularProgress />
-          </Stack>
-        ) : (
-          <Stack spacing={3}>
-            {/* Chọn Sales Order & Due Date */}
-            <Stack direction="row" spacing={3}>
-              <FormControl
-                size="small"
-                sx={{ width: 260 }}
-                error={!!errors.salesOrderId}
-              >
-                <InputLabel>Đơn hàng</InputLabel>
-                <Select
-                  value={form.salesOrderId || ""}
-                  label="Đơn hàng"
-                  onChange={(e) => handleSelectOrder(e.target.value)}
-                  renderValue={(selected) => {
-                    if (!selected) {
-                      return "Chọn đơn hàng";
-                    }
-                    const selectedOrder = salesOrderList.find(
-                      (s) => s.salesOrderId === selected
-                    );
-                    return selectedOrder ? selectedOrder.salesOrderCode : "";
-                  }}
-                >
-                  {salesOrderList.length === 0 ? (
-                    <MenuItem value="" disabled>
-                      Không có đơn hàng nào
-                    </MenuItem>
-                  ) : (
-                    salesOrderList.map((s) => (
-                      <MenuItem key={s.salesOrderId} value={s.salesOrderId}>
-                        {s.salesOrderCode}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
+          <Paper sx={{ p: 3 }}>
+            {loading || loadingStock ? (
+              <Stack alignItems="center">
+                <CircularProgress />
+              </Stack>
+            ) : (
+              <Stack spacing={3}>
+                {/* Chọn Sales Order & Due Date */}
+                <Stack direction="row" spacing={3}>
+                  <FormControl
+                    size="small"
+                    sx={{ width: 260 }}
+                    error={!!errors.salesOrderId}
+                  >
+                    <InputLabel>Đơn hàng</InputLabel>
+                    <Select
+                      value={form.salesOrderId || ""}
+                      label="Đơn hàng"
+                      onChange={(e) => handleSelectOrder(e.target.value)}
+                      renderValue={(selected) => {
+                        if (!selected) {
+                          return "Chọn đơn hàng";
+                        }
+                        const selectedOrder = salesOrderList.find(
+                          (s) => s.salesOrderId === selected
+                        );
+                        return selectedOrder
+                          ? selectedOrder.salesOrderCode
+                          : "";
+                      }}
+                    >
+                      {salesOrderList.length === 0 ? (
+                        <MenuItem value="" disabled>
+                          Không có đơn hàng nào
+                        </MenuItem>
+                      ) : (
+                        salesOrderList.map((s) => (
+                          <MenuItem key={s.salesOrderId} value={s.salesOrderId}>
+                            {s.salesOrderCode}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
 
-                {errors.salesOrderId && (
-                  <FormHelperText>{errors.salesOrderId}</FormHelperText>
-                )}
-              </FormControl>
+                    {errors.salesOrderId && (
+                      <FormHelperText>{errors.salesOrderId}</FormHelperText>
+                    )}
+                  </FormControl>
 
-              <LocalizationProvider
-                dateAdapter={AdapterDateFns}
-                locale={viLocale}
-              >
-                <DatePicker
-                  label="Ngày xuất"
-                  value={form.dueDate ? new Date(form.dueDate) : null}
-                  onChange={(newValue) => {
-                    if (!newValue) return;
-                    const value = newValue.toISOString().split("T")[0];
-                    setForm((prev) => ({ ...prev, dueDate: value }));
-                  }}
-                  minDate={new Date()}
-                  maxDate={
-                    form.apiDueDate ? new Date(form.apiDueDate) : undefined
-                  }
-                  format="dd/MM/yyyy"
-                  slotProps={{
-                    textField: { size: "small", fullWidth: false },
-                  }}
-                />
-              </LocalizationProvider>
-            </Stack>
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    locale={viLocale}
+                  >
+                    <DatePicker
+                      label="Ngày xuất"
+                      value={form.dueDate ? new Date(form.dueDate) : null}
+                      onChange={(newValue) => {
+                        if (!newValue) return;
+                        const value = newValue.toISOString().split("T")[0];
+                        setForm((prev) => ({ ...prev, dueDate: value }));
+                      }}
+                      minDate={new Date()}
+                      maxDate={
+                        form.apiDueDate ? new Date(form.apiDueDate) : undefined
+                      }
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: { size: "small", fullWidth: false },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </Stack>
 
-            {/* Chi tiết lô */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography fontWeight={"bold"} variant="h6">
-                Chi tiết lô hàng
-              </Typography>
-              <Button
-                color="primary"
-                disabled={loading}
-                onClick={() =>
-                  setForm((prev) => ({ ...prev, details: originalDetails }))
-                }
-              >
-                Tải lại
-              </Button>
-            </Box>
-            <TableContainer>
-              <Table size="small">
-                <TableHead
+                {/* Chi tiết lô */}
+                <Box
                   sx={{
-                    backgroundColor: "#f5f5f5",
-                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 2,
                   }}
                 >
-                  <TableRow>
-                    <TableCell>STT</TableCell>
-                    <TableCell>Sản phẩm</TableCell>
-                    <TableCell>Đơn vị</TableCell>
-                    {/* <TableCell>Lô</TableCell>
+                  <Typography fontWeight={"bold"} variant="h6">
+                    Chi tiết lô hàng
+                  </Typography>
+                  <Button
+                    color="primary"
+                    disabled={loading}
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, details: originalDetails }))
+                    }
+                  >
+                    Tải lại
+                  </Button>
+                </Box>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        "& .MuiTableCell-root": { fontWeight: "bold" },
+                      }}
+                    >
+                      <TableRow>
+                        <TableCell>STT</TableCell>
+                        <TableCell>Sản phẩm</TableCell>
+                        <TableCell>Đơn vị</TableCell>
+                        {/* <TableCell>Lô</TableCell>
                     <TableCell>Kho</TableCell> */}
-                    <TableCell>Hạn dùng</TableCell>
-                    <TableCell>Số lượng</TableCell>
-                    <TableCell align="center">Số lượng có thể xuất</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {form.details.map((d, i) => (
-                    <TableRow key={d.lotId || i}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{d.productName}</TableCell>
-                      <TableCell>{d.unit}</TableCell>
-                      {/* <TableCell>{d.lotId}</TableCell>
+                        <TableCell>Hạn dùng</TableCell>
+                        <TableCell>Số lượng</TableCell>
+                        <TableCell align="center">
+                          Số lượng có thể xuất
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {form.details.map((d, i) => (
+                        <TableRow key={d.lotId || i}>
+                          <TableCell>{i + 1}</TableCell>
+                          <TableCell>{d.productName}</TableCell>
+                          <TableCell>{d.unit}</TableCell>
+                          {/* <TableCell>{d.lotId}</TableCell>
                       <TableCell>{d.warehouse}</TableCell> */}
-                      <TableCell>
-                        {d.expiredDate
-                          ? new Date(d.expiredDate).toLocaleDateString("vi-VN")
-                          : ""}
-                      </TableCell>
-                      <TableCell sx={{ width: 110, minWidth: 110 }}>
-                        <FormControl
-                          error={!!errors[`q_${i}`]}
-                          fullWidth
-                          size="small"
-                        >
-                          <TextField
-                            type="number"
-                            size="small"
-                            value={d.quantity}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const newValue =
-                                value === "" ? "" : Number(value);
-                              handleChangeQuantity(i, newValue);
+                          <TableCell>
+                            {d.expiredDate
+                              ? new Date(d.expiredDate).toLocaleDateString(
+                                  "vi-VN"
+                                )
+                              : ""}
+                          </TableCell>
+                          <TableCell sx={{ width: 110, minWidth: 110 }}>
+                            <FormControl
+                              error={!!errors[`q_${i}`]}
+                              fullWidth
+                              size="small"
+                            >
+                              <TextField
+                                type="number"
+                                size="small"
+                                value={d.quantity}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const newValue =
+                                    value === "" ? "" : Number(value);
+                                  handleChangeQuantity(i, newValue);
 
-                              if (newValue > d.available) {
-                                setSnack({
-                                  open: true,
-                                  severity: "warning",
-                                  message: `Số lượng "${d.productName}" vượt quá số lượng có thể xuất (${d.available})`,
-                                });
-                              }
-                            }}
-                            variant="outlined"
-                          />
-                        </FormControl>
-                      </TableCell>
+                                  if (newValue > d.available) {
+                                    setSnack({
+                                      open: true,
+                                      severity: "warning",
+                                      message: `Số lượng "${d.productName}" vượt quá số lượng có thể xuất (${d.available})`,
+                                    });
+                                  }
+                                }}
+                                variant="outlined"
+                              />
+                            </FormControl>
+                          </TableCell>
 
-                      <TableCell align="center">{d.available}</TableCell>
-                      <TableCell>
-                        <IconButton
-                          color="error"
-                          disabled={loading}
-                          onClick={() => handleDeleteLot(i)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                          <TableCell align="center">{d.available}</TableCell>
+                          <TableCell>
+                            <IconButton
+                              color="error"
+                              disabled={loading}
+                              onClick={() => handleDeleteLot(i)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
 
-            {/* Buttons */}
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button
-                disabled={loading}
-                onClick={() => navigate("/stock-export")}
-              >
-                Hủy
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                disabled={loading}
-                onClick={() => handlleSubmit("Draft")}
-              >
-                Lưu nháp
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                disabled={loading}
-                onClick={() => handleSubmit("Send")}
-              >
-                Gửi
-              </Button>
-            </Stack>
-          </Stack>
-        )}
-      </Paper>
-
+                {/* Buttons */}
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button
+                    disabled={loading}
+                    onClick={() => navigate("/stock-export")}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    disabled={loading}
+                    onClick={() => handleSubmit("Draft")}
+                  >
+                    Lưu nháp
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    disabled={loading}
+                    onClick={() => handleSubmit("Send")}
+                  >
+                    Gửi
+                  </Button>
+                </Stack>
+              </Stack>
+            )}
+          </Paper>
+        </CardContent>
+      </Card>
       {/* Snackbar */}
       <Snackbar
         open={snack.open}

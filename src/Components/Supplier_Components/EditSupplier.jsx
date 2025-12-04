@@ -74,9 +74,9 @@ const EditSupplier = ({
       validationErrors.email = "Email không hợp lệ.";
     }
 
-    if (myDebt.trim() && !/^\d+$/.test(myDebt)) {
-      validationErrors.myDebt = "Số nợ chỉ được chứa số";
-    }
+    // if (myDebt.trim() && !/^\d+$/.test(myDebt)) {
+    //   validationErrors.myDebt = "Số nợ chỉ được chứa số";
+    // }
 
     // Validation trùng lặp email và số điện thoại
     if (email.trim()) {
@@ -393,7 +393,7 @@ const EditSupplier = ({
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          {/* <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="Số nợ"
@@ -420,7 +420,7 @@ const EditSupplier = ({
                 },
               }}
             />
-          </Grid>
+          </Grid> */}
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: 3, backgroundColor: "#f8fafc" }}>
