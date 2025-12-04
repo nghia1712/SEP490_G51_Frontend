@@ -523,7 +523,8 @@ const EditProduct = ({
         <Button
           onClick={handleClose}
           disabled={loading || Boolean(successMessage)}
-          color="secondary"
+          sx={{ color: "#000" }}
+          variant="text"
         >
           Đóng
         </Button>

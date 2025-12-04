@@ -293,7 +293,7 @@ const AddProduct = ({
                 <TextField
                   autoFocus
                   name="productName"
-                  label="Tên Thuốc"
+                  label="Tên Thuốc *"
                   value={productData.productName}
                   onChange={handleChange}
                   error={!!errors.productName}
@@ -302,12 +302,12 @@ const AddProduct = ({
                   placeholder="Nhập tên thuốc (10-100 ký tự)"
                 />
                 <FormControl fullWidth error={!!errors.categoryId}>
-                  <InputLabel id="category-select-label">Danh Mục</InputLabel>
+                  <InputLabel id="category-select-label">Danh Mục *</InputLabel>
                   <Select
                     labelId="category-select-label"
                     name="categoryId"
                     value={productData.categoryId}
-                    label="Danh Mục"
+                    label="Danh Mục *"
                     onChange={handleChange}
                   >
                     <MenuItem value="">
@@ -351,7 +351,7 @@ const AddProduct = ({
                 </FormControl>
                 <TextField
                   name="productDescription"
-                  label="Mô tả thuốc"
+                  label="Mô tả thuốc *"
                   value={productData.productDescription}
                   onChange={handleChange}
                   error={!!errors.productDescription}
@@ -362,12 +362,12 @@ const AddProduct = ({
                   placeholder="Nhập mô tả thuốc (tối đa 300 ký tự)"
                 />
                 <FormControl fullWidth error={!!errors.unit}>
-                  <InputLabel id="unit-select-label">Đơn Vị</InputLabel>
+                  <InputLabel id="unit-select-label">Đơn Vị *</InputLabel>
                   <Select
                     labelId="unit-select-label"
                     name="unit"
                     value={productData.unit}
-                    label="Đơn Vị"
+                    label="Đơn Vị *"
                     onChange={handleChange}
                   >
                     <MenuItem value="">
@@ -546,7 +546,8 @@ const AddProduct = ({
         <Button
           onClick={handleClose}
           disabled={loading || !!successMessage}
-          color="secondary"
+          sx={{ color: "#000" }}
+          variant="text"
         >
           Hủy
         </Button>

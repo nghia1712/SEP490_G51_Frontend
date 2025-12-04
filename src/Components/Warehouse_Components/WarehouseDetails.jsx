@@ -113,9 +113,6 @@ export default function WarehouseDetailPage() {
       }}
     >
       <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, pt: 4 }}>
-        <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
-          <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
-        </Box>
         <Card
           elevation={3}
           sx={{ borderRadius: 2, backgroundColor: "rgba(255,255,255,0.95)" }}
@@ -129,12 +126,22 @@ export default function WarehouseDetailPage() {
               <Typography color="error">{error}</Typography>
             ) : warehouse ? (
               <>
-                <Typography
-                  variant="h4"
-                  sx={{ mb: 3, color: "#1976d2", fontWeight: "bold" }}
-                >
-                  Chi tiết kho: {warehouse.name}
-                </Typography>
+                <Box sx={{ mb: 3, display: "flex", flexDirection: "column" }}>
+                  <Button
+                    onClick={() => navigate(-1)}
+                    variant="contained"
+                    color="primary"
+                    sx={{ alignSelf: "flex-start", mb: 1 }}
+                  >
+                    QUAY LẠI
+                  </Button>
+                  <Typography
+                    variant="h4"
+                    sx={{ color: "#1976d2", fontWeight: "bold" }}
+                  >
+                    Chi tiết kho: {warehouse.name}
+                  </Typography>
+                </Box>
 
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                   <Grid item xs={12} sm={6}>

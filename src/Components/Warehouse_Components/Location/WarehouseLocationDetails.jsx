@@ -196,10 +196,6 @@ export default function WarehouseLocationDetailPage() {
 
   return (
     <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
-        <Button onClick={() => navigate(-1)}>🔙 Quay lại</Button>
-      </Box>
-
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress />
@@ -220,6 +216,14 @@ export default function WarehouseLocationDetailPage() {
                 }}
               >
                 <Box>
+                  <Button
+                    onClick={() => navigate(-1)}
+                    variant="contained"
+                    color="primary"
+                    sx={{ mb: 1, mr: 2 }}
+                  >
+                    QUAY LẠI
+                  </Button>
                   <Typography variant="h4" sx={{ mb: 1, color: "#1976d2" }}>
                     Chi tiết vị trí: {location.locationName}
                   </Typography>

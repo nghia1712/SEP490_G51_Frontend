@@ -20,10 +20,6 @@ import {
   Pagination,
   Chip,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   IconButton,
   Tooltip,
   Dialog,
@@ -35,6 +31,9 @@ import {
   CardContent,
   Stack,
   InputAdornment,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CategoryIcon from "@mui/icons-material/Category";
@@ -74,7 +73,10 @@ function ListCategory() {
     direction: "asc",
   });
   const [statusFirst, setStatusFirst] = useState("active"); // 'active' hoặc 'inactive'
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'active' | 'inactive'
+  const [statusFilter, setStatusFilter] = useState({
+    "Còn cung cấp": false,
+    "Ngừng cung cấp": false,
+  });
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -281,15 +283,20 @@ function ListCategory() {
       });
     }
 
-    // Lọc theo status
-    if (statusFilter !== "all") {
+    // Lọc theo status (sử dụng 2 checkbox giống trang nhà cung cấp)
+    const hasStatusFilter =
+      statusFilter["Còn cung cấp"] || statusFilter["Ngừng cung cấp"];
+
+    if (hasStatusFilter) {
       sortableItems = sortableItems.filter((item) => {
-        // Sử dụng trạng thái thực từ backend, không phụ thuộc vào productCount
         const backendStatus =
           item?.status !== undefined ? item.status : item?.isActive;
-        const status = backendStatus ? "active" : "inactive";
+        const isActive = !!backendStatus;
 
-        return status === statusFilter;
+        if (isActive) {
+          return statusFilter["Còn cung cấp"];
+        }
+        return statusFilter["Ngừng cung cấp"];
       });
     }
 
@@ -482,20 +489,37 @@ function ListCategory() {
                   sx={{ width: 300 }}
                 />
 
-                {/* LỌC TRẠNG THÁI */}
-                <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel id="status-filter-label">Trạng thái</InputLabel>
-                  <Select
-                    labelId="status-filter-label"
-                    value={statusFilter}
-                    label="Trạng thái"
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <MenuItem value="all">Tất cả</MenuItem>
-                    <MenuItem value="active">Hoạt động</MenuItem>
-                    <MenuItem value="inactive">Ngừng hoạt động</MenuItem>
-                  </Select>
-                </FormControl>
+                {/* LỌC TRẠNG THÁI - giống trang nhà cung cấp, label: Hoạt động / Ngừng hoạt động */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <FormGroup row>
+                    {[
+                      { key: "Còn cung cấp", label: "Hoạt động" },
+                      { key: "Ngừng cung cấp", label: "Ngừng hoạt động" },
+                    ].map(({ key, label }) => (
+                      <FormControlLabel
+                        key={key}
+                        control={
+                          <Checkbox
+                            name={key}
+                            checked={statusFilter[key]}
+                            onChange={(e) => {
+                              const { name, checked } = e.target;
+                              setStatusFilter((prev) => ({
+                                ...prev,
+                                [name]: checked,
+                              }));
+                            }}
+                            size="small"
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Typography variant="body2">{label}</Typography>
+                        }
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
 
                 {/* CLEAR FILTER */}
                 <Button
@@ -503,7 +527,10 @@ function ListCategory() {
                   color="secondary"
                   onClick={() => {
                     setFilterText("");
-                    setStatusFilter("all");
+                    setStatusFilter({
+                      "Còn cung cấp": false,
+                      "Ngừng cung cấp": false,
+                    });
                   }}
                 >
                   Xóa lọc
@@ -1030,7 +1057,7 @@ function ListCategory() {
                   )}
                 </TableBody>
               </Table>
-              {filteredCategories.length > 0 && (
+              {filteredCategories.length > 0 && totalPages > 1 && (
                 <Box
                   sx={{
                     pt: 2,
