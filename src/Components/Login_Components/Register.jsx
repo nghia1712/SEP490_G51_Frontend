@@ -81,8 +81,9 @@ const Register = () => {
 
       if (response) {
         setSuccess(true);
-        // Chỉ hiển thị thông báo thành công, không chuyển hướng
-        // Người dùng sẽ chuyển hướng sau khi xác thực email
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
       }
     } catch (err) {
       setLoading(false);

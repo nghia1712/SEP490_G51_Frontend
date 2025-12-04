@@ -372,7 +372,7 @@ export default function StockExportList() {
                               <>
                                 <Tooltip title="Sửa">
                                   <IconButton
-                                    color="info"
+                                    color="warning"
                                     onClick={() =>
                                       navigate(
                                         `/stock-export/edit/${item.id}`,

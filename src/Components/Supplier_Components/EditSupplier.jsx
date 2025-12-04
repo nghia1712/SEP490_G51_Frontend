@@ -39,6 +39,8 @@ const EditSupplier = ({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('active');
   const [errors, setErrors] = useState({});
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [myDebt, setMyDebt] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -54,6 +56,8 @@ const EditSupplier = ({
       setEmail(user.email || user.Email || '');
       setDescription(user.description || user.Description || '');
       setStatus(user.status === 1 || user.status === 'active' ? 'active' : 'inactive');
+      setBankAccountNumber(user.bankAccountNumber || user.BankAccountNumber || user.bankAccountNumberMasked || '');
+      setMyDebt(user.myDebt || user.MyDebt || '');
     }
   }, [user]);
 
@@ -69,6 +73,10 @@ const EditSupplier = ({
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       validationErrors.email = "Email không hợp lệ.";
     }
+
+    // if (myDebt.trim() && !/^\d+$/.test(myDebt)) {
+    //   validationErrors.myDebt = "Số nợ chỉ được chứa số";
+    // }
 
     // Validation trùng lặp email và số điện thoại
     if (email.trim()) {
@@ -161,6 +169,7 @@ const EditSupplier = ({
         PhoneNumber: contact && contact.trim() ? contact.trim() : (user.contact || user.phoneNumber || user.PhoneNumber || ''),
         Address: address && address.trim() ? address.trim() : (user.address || user.Address || ''),
         Status: statusValue,
+        MyDebt: myDebt && myDebt.trim() ? myDebt.trim() : (user.myDebt || user.MyDebt || '0'),
       };
       
       console.log("Update payload:", payload);
@@ -358,34 +367,6 @@ const EditSupplier = ({
               }}
             />
           </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Mô tả (tùy chọn)"
-              placeholder="Nhập mô tả (tùy chọn)"
-              value={formData?.description || description}
-              onChange={(e) => {
-                if (formData && setFormData) {
-                  setFormData({ ...formData, description: e.target.value });
-                } else {
-                  setDescription(e.target.value);
-                }
-              }}
-              multiline
-              rows={3}
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
-            />
-          </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel sx={{ "&.Mui-focused": { color: currentPalette.dark } }}>
@@ -412,21 +393,61 @@ const EditSupplier = ({
               </Select>
             </FormControl>
           </Grid>
+          {/* <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Số nợ"
+              placeholder="Nhập số nợ (tùy chọn)"
+              value={formData?.myDebt || myDebt}
+              onChange={(e) => {
+                if (formData && setFormData) {
+                  setFormData({ ...formData, myDebt: e.target.value });
+                } else {
+                  setMyDebt(e.target.value);
+                }
+              }}
+              error={!!(formErrors?.myDebt || errors.myDebt)}
+              helperText={formErrors?.myDebt || errors.myDebt}
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "&.Mui-focused fieldset": {
+                    borderColor: currentPalette.dark,
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: currentPalette.dark,
+                },
+              }}
+            />
+          </Grid> */}
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: "16px 24px" }}>
+      <DialogActions sx={{ p: 3, backgroundColor: "#f8fafc" }}>
         <Button
           onClick={handleClose}
-          disabled={loading}
-          sx={{ color: "#000" }}
-          variant="text"
+          sx={{
+            color: "text.secondary",
+            "&:hover": { backgroundColor: "grey.100" },
+          }}
         >
           Hủy
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          startIcon={<SaveIcon />}
           disabled={loading}
+          sx={{
+            backgroundColor: currentPalette.medium,
+            color: currentPalette.dark,
+            "&:hover": {
+              backgroundColor: currentPalette.dark,
+              color: currentPalette.white,
+            },
+            borderRadius: 2,
+            px: 3,
+          }}
         >
           {loading ? "Đang cập nhật..." : "Cập nhật"}
         </Button>

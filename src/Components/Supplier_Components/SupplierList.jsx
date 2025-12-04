@@ -31,6 +31,8 @@ import {
   MenuItem,
   Divider,
   Skeleton,
+  Collapse,
+  Grid,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -40,7 +42,6 @@ import {
   Select,
   Pagination,
   TableFooter,
-  Grid,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -95,7 +96,7 @@ const SupplierList = () => {
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccessMessage, setAddSuccessMessage] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(5);
+  const [rowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState("name");
   const [order, setOrder] = useState("asc");
   const [anchorEl, setAnchorEl] = useState(null);
@@ -104,11 +105,10 @@ const SupplierList = () => {
   const [supplierDetails, setSupplierDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // States for product expansion
+  const [expandedRows, setExpandedRows] = useState(new Set());
   const [supplierProducts, setSupplierProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [openProductsModal, setOpenProductsModal] = useState(false);
-  const [productsPage, setProductsPage] = useState(1);
-  const productsPerPage = 6;
 
   useEffect(() => {
     fetchSuppliers();
@@ -310,27 +310,129 @@ const SupplierList = () => {
     }
   };
 
-  // Cập nhật trạng thái nhà cung cấp (kích hoạt / ngừng cung cấp)
+  // Cập nhật trạng thái nhà cung cấp
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      if (!id) return;
+      console.log("Updating status for supplier ID:", id, "to:", newStatus);
+      console.log(
+        "Supplier data:",
+        suppliers.find((s) => s._id === id || s.id === id)
+      );
+      console.log("ID type:", typeof id);
+      console.log("ID value:", id);
 
-        const supplier = suppliers.find((s) => s._id === id || s.id === id);
-      if (!supplier) return;
-
-      if (newStatus === "active") {
-        // Gọi đúng API enable trên backend
-        await supplierAPI.enable(id, supplier);
-      } else {
-        // Gọi đúng API disable trên backend
-        await supplierAPI.disable(id, supplier);
+      // Kiểm tra ID có tồn tại không
+      if (!id) {
+        console.error("ID is undefined or null");
+        return;
       }
 
-      // Sau khi backend cập nhật, refresh lại danh sách để thấy thay đổi
-      await fetchSuppliers();
+      if (newStatus === "active") {
+        console.log("Calling enable API with ID:", id);
+        const supplier = suppliers.find((s) => s._id === id || s.id === id);
+        // Thử sử dụng update API thay vì enable
+        const payload = {
+          Name: supplier?.name || "",
+          Email: supplier?.email || "",
+          PhoneNumber: supplier?.contact || supplier?.phoneNumber || "",
+          Address: supplier?.address || "",
+          Status: 1, // Active
+          BankAccountNumber: supplier?.bankAccountNumber || "",
+          MyDebt: supplier?.myDebt || 0,
+        };
+        const response = await supplierAPI.update(id, payload);
+        console.log("Enable response:", response);
+
+        // Cập nhật state với dữ liệu từ API response
+        if (response?.data?.success) {
+          const updatedSupplier = response.data.data;
+          const updatedSuppliers = suppliers.map((s) =>
+            s._id === id || s.id === id
+              ? {
+                  ...s,
+                  status: "active",
+                  bankAccountNumber:
+                    updatedSupplier?.BankAccountNumber ||
+                    updatedSupplier?.bankAccountNumber ||
+                    s.bankAccountNumber,
+                  name:
+                    updatedSupplier?.Name || updatedSupplier?.name || s.name,
+                  email:
+                    updatedSupplier?.Email || updatedSupplier?.email || s.email,
+                  contact:
+                    updatedSupplier?.PhoneNumber ||
+                    updatedSupplier?.phoneNumber ||
+                    s.contact,
+                  address:
+                    updatedSupplier?.Address ||
+                    updatedSupplier?.address ||
+                    s.address,
+                  myDebt:
+                    updatedSupplier?.MyDebt ||
+                    updatedSupplier?.myDebt ||
+                    s.myDebt,
+                }
+              : s
+          );
+          setSuppliers(updatedSuppliers);
+        }
+      } else {
+        console.log("Calling disable API with ID:", id);
+        const supplier = suppliers.find((s) => s._id === id || s.id === id);
+        // Thử sử dụng update API thay vì disable
+        const payload = {
+          Name: supplier?.name || "",
+          Email: supplier?.email || "",
+          PhoneNumber: supplier?.contact || supplier?.phoneNumber || "",
+          Address: supplier?.address || "",
+          Status: 0, // Inactive
+          BankAccountNumber: supplier?.bankAccountNumber || "",
+          MyDebt: supplier?.myDebt || 0,
+        };
+        const response = await supplierAPI.update(id, payload);
+        console.log("Disable response:", response);
+
+        // Cập nhật state với dữ liệu từ API response
+        if (response?.data?.success) {
+          const updatedSupplier = response.data.data;
+          const updatedSuppliers = suppliers.map((s) =>
+            s._id === id || s.id === id
+              ? {
+                  ...s,
+                  status: "inactive",
+                  bankAccountNumber:
+                    updatedSupplier?.BankAccountNumber ||
+                    updatedSupplier?.bankAccountNumber ||
+                    s.bankAccountNumber,
+                  name:
+                    updatedSupplier?.Name || updatedSupplier?.name || s.name,
+                  email:
+                    updatedSupplier?.Email || updatedSupplier?.email || s.email,
+                  contact:
+                    updatedSupplier?.PhoneNumber ||
+                    updatedSupplier?.phoneNumber ||
+                    s.contact,
+                  address:
+                    updatedSupplier?.Address ||
+                    updatedSupplier?.address ||
+                    s.address,
+                  myDebt:
+                    updatedSupplier?.MyDebt ||
+                    updatedSupplier?.myDebt ||
+                    s.myDebt,
+                }
+              : s
+          );
+          setSuppliers(updatedSuppliers);
+        }
+      }
       setAnchorEl(null);
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
+      console.error("Error details:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error config:", error.config);
+      console.error("Request data:", error.config?.data);
     }
   };
 
@@ -382,7 +484,7 @@ const SupplierList = () => {
   const validateForm = (data) => {
     const errors = {};
 
-    // Required fields: Name, PhoneNumber, Email, Address
+    // Required fields: Name, PhoneNumber, Email, Address, Status, BankAccountNumber, MyDebt
     if (!data.name.trim()) errors.name = "Tên nhà cung cấp là bắt buộc";
 
     if (!data.contact.trim()) {
@@ -401,16 +503,16 @@ const SupplierList = () => {
       errors.address = "Địa chỉ là bắt buộc";
     }
 
-    if (data.bankAccountNumber && data.bankAccountNumber.trim()) {
-      if (!/^\d{8,20}$/.test(data.bankAccountNumber)) {
+    if (!data.bankAccountNumber.trim()) {
+      errors.bankAccountNumber = "Số tài khoản ngân hàng là bắt buộc";
+    } else if (!/^\d{8,20}$/.test(data.bankAccountNumber)) {
       errors.bankAccountNumber = "Số tài khoản chỉ gồm số và dài 8–20 ký tự";
-      }
     }
 
-    if (data.myDebt && data.myDebt.trim()) {
-      if (!/^\d+$/.test(data.myDebt)) {
+    if (!data.myDebt.trim()) {
+      errors.myDebt = "Số nợ là bắt buộc";
+    } else if (!/^\d+$/.test(data.myDebt)) {
       errors.myDebt = "Số nợ chỉ được chứa số";
-      }
     }
 
     // Validation trùng lặp email và số điện thoại khi thêm mới
@@ -685,17 +787,6 @@ const SupplierList = () => {
   const activeFiltersCount =
     Object.values(filterStatus).filter(Boolean).length + (search ? 1 : 0);
 
-  const totalProductPages = Math.max(
-    1,
-    Math.ceil(supplierProducts.length / productsPerPage)
-  );
-  const productPageStart = (productsPage - 1) * productsPerPage;
-  const productPageEnd = productsPage * productsPerPage;
-  const paginatedProducts = supplierProducts.slice(
-    productPageStart,
-    productPageEnd
-  );
-
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ mt: 4 }}>
@@ -716,23 +807,62 @@ const SupplierList = () => {
   const fetchSupplierProducts = async (supplierId) => {
     try {
       setLoadingProducts(true);
-      const response = await supplierProductAPI.getProductsBySupplier(supplierId);
-      const products = response.data?.data || [];
+      console.log("=== SupplierList fetchSupplierProducts ===");
+      console.log("Fetching products for supplier:", supplierId);
+
+      const response = await supplierProductAPI.getProductsBySupplier(
+        supplierId
+      );
+
+      console.log("API Response:", response);
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+
+      // Handle new standardized response structure with cache-busting
+      let products = [];
+      if (response.data?.success && response.data?.data) {
+        // New format: { success: true, data: [...], total: x, timestamp: y }
+        products = response.data.data;
+        console.log("Using new format - found", products.length, "products");
+        console.log("Total products:", response.data.total);
+        console.log("Response timestamp:", response.data.timestamp);
+      } else if (Array.isArray(response.data)) {
+        // Legacy format: directly array
+        products = response.data;
+        console.log("Using legacy format - found", products.length, "products");
+      } else {
+        console.warn("Unexpected response format:", response.data);
+        products = [];
+      }
+
       setSupplierProducts(products);
+
+      if (products.length === 0) {
+        console.log("No products found for supplier:", supplierId);
+      }
+
+      console.log("=== End fetchSupplierProducts ===");
     } catch (error) {
+      console.error("=== SupplierList fetchSupplierProducts Error ===");
+      console.error("Error fetching supplier products:", error);
+      console.error("Error details:", error.response?.data);
+      console.error("=== End Error ===");
       setSupplierProducts([]);
     } finally {
       setLoadingProducts(false);
     }
   };
 
-  const handleOpenProductsModal = async (supplier) => {
-    const supplierId = supplier._id || supplier.id;
-    if (!supplierId) return;
-    setSelectedSupplier(supplier);
-    setProductsPage(1);
-    setOpenProductsModal(true);
-    await fetchSupplierProducts(supplierId);
+  const handleExpandRow = (supplierId) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(supplierId)) {
+      newExpanded.delete(supplierId);
+    } else {
+      newExpanded.add(supplierId);
+      // Fetch products for this supplier
+      fetchSupplierProducts(supplierId);
+    }
+    setExpandedRows(newExpanded);
   };
 
   return (
@@ -850,18 +980,23 @@ const SupplierList = () => {
                       </FormGroup>
                     </Box>
 
-                    {/* Nút xóa lọc giống trang thuốc */}
-                    <Button
-                      variant="outlined"
+                    {/* Nút làm mới và xóa bộ lọc */}
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      {activeFiltersCount > 0 && (
+                        <Tooltip title="Xóa tất cả bộ lọc">
+                          <IconButton
+                            onClick={handleClearFilters}
                             color="secondary"
-                      onClick={handleClearFilters}
-                    >
-                      Xóa lọc
-                    </Button>
+                          >
+                            <ClearIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </Stack>
 
-                  {/* Nút thêm nhà cung cấp (bên phải) - style giống trang thuốc */}
-                  <Box sx={{ marginLeft: "auto" }}>
+                  {/* Nút thêm nhà cung cấp (bên phải) */}
+                  <Box>
                     <Button
                       variant="contained"
                       startIcon={<AddIcon />}
@@ -870,19 +1005,26 @@ const SupplierList = () => {
                         setOpenAddModal(true);
                       }}
                       sx={{
-                        backgroundColor: "#155E64",
-                        "&:hover": { backgroundColor: "#0D4F52" },
-                        borderRadius: "8px",
+                        backgroundColor: "#1976d2",
+                        "&:hover": { backgroundColor: "#1565c0" },
+                        borderRadius: 2,
                         px: 3,
-                        py: 1.5,
-                        fontWeight: "600",
                       }}
                     >
-                      THÊM NHÀ CUNG CẤP
+                      Thêm nhà cung cấp
                     </Button>
                   </Box>
                 </Stack>
               </Paper>
+            </Box>
+
+            {/* Thông tin kết quả */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="textSecondary">
+                Hiển thị {filteredSuppliers.length} kết quả
+                {search && ` cho "${search}"`}
+                {activeFiltersCount > 0 && ` với ${activeFiltersCount} bộ lọc`}
+              </Typography>
             </Box>
 
             {/* Bảng danh sách */}
@@ -1001,6 +1143,31 @@ const SupplierList = () => {
                                 >
                                   {supplier.name}
                                 </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color:
+                                      supplier.status === "active" ||
+                                      supplier.status === 1
+                                        ? green[700]
+                                        : red[700],
+                                    backgroundColor:
+                                      supplier.status === "active" ||
+                                      supplier.status === 1
+                                        ? green[50]
+                                        : red[50],
+                                    px: 1,
+                                    py: 0.5,
+                                    borderRadius: 1,
+                                    fontSize: "0.75rem",
+                                    fontWeight: "medium",
+                                  }}
+                                >
+                                  {supplier.status === "active" ||
+                                  supplier.status === 1
+                                    ? "Cung cấp"
+                                    : "Ngừng cung cấp"}
+                                </Typography>
                               </Box>
                             </TableCell>
                             <TableCell>
@@ -1042,9 +1209,13 @@ const SupplierList = () => {
                                 <Tooltip title="Xem sản phẩm" arrow>
                                   <IconButton
                                     size="small"
-                                    onClick={() => handleOpenProductsModal(supplier)}
+                                    onClick={() =>
+                                      handleExpandRow(supplier._id)
+                                    }
                                     sx={{
-                                      color: blue[600],
+                                      color: expandedRows.has(supplier._id)
+                                        ? green[600]
+                                        : blue[600],
                                       "&:hover": {
                                         backgroundColor: blue[50],
                                         transform: "scale(1.1)",
@@ -1052,7 +1223,11 @@ const SupplierList = () => {
                                       transition: "all 0.2s",
                                     }}
                                   >
+                                    {expandedRows.has(supplier._id) ? (
+                                      <ExpandLessIcon fontSize="small" />
+                                    ) : (
                                       <InventoryIcon fontSize="small" />
+                                    )}
                                   </IconButton>
                                 </Tooltip>
 
@@ -1080,7 +1255,7 @@ const SupplierList = () => {
                                 </Tooltip>
 
                                 {/* Nút kích hoạt/ngừng cung cấp */}
-                                {supplier.status === "active" ||
+                                {/* {supplier.status === "active" ||
                                 supplier.status === 1 ? (
                                   <Button
                                     variant="contained"
@@ -1093,7 +1268,7 @@ const SupplierList = () => {
                                       )
                                     }
                                     sx={{
-                                      minWidth: 130,
+                                      minWidth: "auto",
                                       px: 1.5,
                                       py: 0.5,
                                       fontSize: "0.75rem",
@@ -1113,7 +1288,7 @@ const SupplierList = () => {
                                       )
                                     }
                                     sx={{
-                                      minWidth: 130,
+                                      minWidth: "auto",
                                       px: 1.5,
                                       py: 0.5,
                                       fontSize: "0.75rem",
@@ -1121,11 +1296,137 @@ const SupplierList = () => {
                                   >
                                     Kích hoạt
                                   </Button>
-                                )}
+                                )} */}
                               </Stack>
                             </TableCell>
                           </TableRow>
                         </Tooltip>
+
+                        {/* Expanded row for products */}
+                        <TableRow>
+                          <TableCell colSpan={8} sx={{ p: 0, border: "none" }}>
+                            <Collapse in={expandedRows.has(supplier._id)}>
+                              <Box
+                                sx={{
+                                  p: 2,
+                                  backgroundColor: "#e3f2fd20",
+                                }}
+                              >
+                                <Typography
+                                  variant="h6"
+                                  sx={{ mb: 2, color: blue[700] }}
+                                >
+                                  <InventoryIcon
+                                    sx={{ mr: 1, verticalAlign: "middle" }}
+                                  />
+                                  Sản phẩm của nhà cung cấp
+                                  <Typography
+                                    component="span"
+                                    variant="body2"
+                                    sx={{ ml: 1, color: "text.secondary" }}
+                                  >
+                                    (ID: {supplier._id})
+                                  </Typography>
+                                </Typography>
+                                {loadingProducts ? (
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "center",
+                                      p: 2,
+                                    }}
+                                  >
+                                    <CircularProgress
+                                      size={24}
+                                      sx={{ color: blue[600] }}
+                                    />
+                                  </Box>
+                                ) : supplierProducts.length > 0 ? (
+                                  <>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ mb: 2 }}
+                                    >
+                                      Debug: Tìm thấy {supplierProducts.length}{" "}
+                                      sản phẩm
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                      {supplierProducts
+                                        .slice(0, 6)
+                                        .map((product) => (
+                                          <Grid
+                                            item
+                                            xs={12}
+                                            sm={6}
+                                            md={4}
+                                            key={product.supplierProductId}
+                                          >
+                                            <Card
+                                              variant="outlined"
+                                              sx={{
+                                                p: 2,
+                                                height: "100%",
+                                                "&:hover": {
+                                                  boxShadow: 2,
+                                                  transform: "translateY(-2px)",
+                                                },
+                                                transition: "all 0.2s",
+                                              }}
+                                            >
+                                              <Typography
+                                                variant="subtitle2"
+                                                sx={{
+                                                  fontWeight: "bold",
+                                                  color: blue[700],
+                                                }}
+                                              >
+                                                {product.productName}
+                                              </Typography>
+                                              <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                sx={{ mb: 1 }}
+                                              >
+                                                {product.categoryName}
+                                              </Typography>
+                                              <Typography
+                                                variant="body2"
+                                                sx={{
+                                                  color: green[600],
+                                                  fontWeight: "medium",
+                                                }}
+                                              >
+                                                Giá:{" "}
+                                                {new Intl.NumberFormat(
+                                                  "vi-VN"
+                                                ).format(product.price)}{" "}
+                                                VNĐ
+                                              </Typography>
+                                              <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                              >
+                                                Tồn kho: {product.stock}
+                                              </Typography>
+                                            </Card>
+                                          </Grid>
+                                        ))}
+                                    </Grid>
+                                  </>
+                                ) : (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ textAlign: "center", py: 2 }}
+                                  >
+                                    Chưa có sản phẩm nào
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
                       </React.Fragment>
                     ))
                   ) : (
@@ -1162,20 +1463,15 @@ const SupplierList = () => {
                     </TableRow>
                   )}
                 </TableBody>
-                {/* Pagination - ẩn khi chỉ có 1 trang, canh phải, giống layout trang thuốc */}
-                {filteredSuppliers.length > 0 && totalPages > 1 && (
+              </Table>
+            </TableContainer>
+
+            {/* Pagination - giống thuốc */}
+            {filteredSuppliers.length > 0 && (
               <TableFooter>
                 <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        sx={{ borderBottom: "none", p: 2 }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                          }}
-                        >
+                  <TableCell colSpan={8} sx={{ borderBottom: "none", p: 1 }}>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                       <Pagination
                         count={totalPages}
                         page={page}
@@ -1187,8 +1483,6 @@ const SupplierList = () => {
                 </TableRow>
               </TableFooter>
             )}
-              </Table>
-            </TableContainer>
           </CardContent>
         </Card>
 
@@ -1366,6 +1660,33 @@ const SupplierList = () => {
                       </Box>
                       <Box>
                         <Typography variant="body2" color="text.secondary">
+                          Số tài khoản ngân hàng
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ fontFamily: "monospace" }}
+                        >
+                          {supplierDetails.bankAccountNumberMasked ||
+                            "Chưa cập nhật"}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        {/* <Typography variant="body2" color="text.secondary">
+                          Số nợ
+                        </Typography> */}
+                        <Typography
+                          variant="body1"
+                          sx={{ fontFamily: "monospace" }}
+                        >
+                          {supplierDetails.myDebt || supplierDetails.MyDebt
+                            ? new Intl.NumberFormat("vi-VN").format(
+                                supplierDetails.myDebt || supplierDetails.MyDebt
+                              ) + " VNĐ"
+                            : "0 VNĐ"}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
                           Mô tả
                         </Typography>
                         <Typography variant="body1">
@@ -1386,117 +1707,6 @@ const SupplierList = () => {
               </Box>
             )}
           </DialogContent>
-        </Dialog>
-
-        {/* Modal sản phẩm của nhà cung cấp */}
-        <Dialog
-          open={openProductsModal}
-          onClose={() => setOpenProductsModal(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              backgroundColor: "#1976d2",
-              color: "white",
-              display: "flex",
-              alignItems: "center",
-              pb: 2,
-            }}
-          >
-            <InventoryIcon sx={{ mr: 1 }} />
-            Sản phẩm của nhà cung cấp
-            {selectedSupplier && (
-              <Typography
-                component="span"
-                variant="subtitle2"
-                sx={{ ml: 1, opacity: 0.9 }}
-              >
-                – {selectedSupplier.name}
-              </Typography>
-            )}
-            <IconButton
-              onClick={() => setOpenProductsModal(false)}
-              sx={{
-                ml: "auto",
-                color: "white",
-                "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ p: 3 }}>
-            {loadingProducts ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : supplierProducts.length > 0 ? (
-              <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
-                <Table stickyHeader size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>#</TableCell>
-                      <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell>Danh mục</TableCell>
-                      <TableCell align="right">Giá</TableCell>
-                      <TableCell align="right">Tồn kho</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedProducts.map((product, index) => (
-                      <TableRow key={product.supplierProductId || index}>
-                        <TableCell>
-                          {productPageStart + index + 1}
-                        </TableCell>
-                        <TableCell>{product.productName}</TableCell>
-                        <TableCell>{product.categoryName}</TableCell>
-                        <TableCell align="right">
-                          {new Intl.NumberFormat("vi-VN").format(
-                            product.price || 0
-                          )}{" "}
-                          VNĐ
-                        </TableCell>
-                        <TableCell align="right">
-                          {product.stock ?? 0}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 4 }}>
-                <Typography variant="body1" color="textSecondary">
-                  Nhà cung cấp này chưa có sản phẩm nào.
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-          {supplierProducts.length > 0 && totalProductPages > 1 && (
-            <DialogActions
-              sx={{
-                px: 3,
-                pb: 2,
-                pt: 1,
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <Pagination
-                count={totalProductPages}
-                page={productsPage}
-                onChange={(_, value) => setProductsPage(value)}
-                color="primary"
-              />
-            </DialogActions>
-          )}
         </Dialog>
       </Container>
     </Box>
