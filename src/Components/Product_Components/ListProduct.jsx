@@ -19,10 +19,6 @@ import {
   Avatar,
   Pagination,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
   IconButton,
   Tooltip,
@@ -31,6 +27,10 @@ import {
   CardContent,
   Stack,
   InputAdornment,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  FormControl,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -90,7 +90,10 @@ const ListProduct = () => {
 
   // States for filtering and sorting
   const [filterText, setFilterText] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null);
+  const [statusFilter, setStatusFilter] = useState({
+    "Còn cung cấp": false,
+    "Ngừng cung cấp": false,
+  });
   const [sortBy, setSortBy] = useState("productName");
   const [sortDirection, setSortDirection] = useState("asc");
 
@@ -137,13 +140,18 @@ const ListProduct = () => {
 
   const filteredProducts = useMemo(() => {
     let updatedProducts = [...products];
+
     if (filterText) {
       updatedProducts = updatedProducts.filter((product) => {
         const name = product.productName || product.ProductName || "";
         return String(name).toLowerCase().includes(filterText.toLowerCase());
       });
     }
-    if (statusFilter !== null) {
+
+    const hasStatusFilter =
+      statusFilter["Còn cung cấp"] || statusFilter["Ngừng cung cấp"];
+
+    if (hasStatusFilter) {
       updatedProducts = updatedProducts.filter((product) => {
         const normalized =
           product.status === true ||
@@ -151,7 +159,11 @@ const ListProduct = () => {
           product.Status === true
             ? "active"
             : "inactive";
-        return normalized === (statusFilter ? "active" : "inactive");
+        const isActive = normalized === "active";
+        if (isActive) {
+          return statusFilter["Còn cung cấp"];
+        }
+        return statusFilter["Ngừng cung cấp"];
       });
     }
     updatedProducts.sort((a, b) => {
@@ -180,16 +192,6 @@ const ListProduct = () => {
     setPage(1);
   }, [filterText, statusFilter]);
 
-  // Refetch from BE when toggling status filter to active-only
-  useEffect(() => {
-    if (statusFilter === true) {
-      fetchProducts({ onlyActive: true });
-    } else {
-      // For both 'Ngừng bán' (false) and 'Tất cả' (null), load full list then filter client-side
-      fetchProducts({ onlyActive: false });
-    }
-  }, [statusFilter]);
-
   const handleSort = (column) => {
     // For productId: define ascending = 1->5, descending = 5->1
     const isCurrentlyAsc = sortBy === column && sortDirection === "asc";
@@ -212,6 +214,19 @@ const ListProduct = () => {
     setSelectedProduct(product);
     setSelectedProductId(productId);
     setShowProductDetailsModal(true);
+  };
+
+  const handleStatusFilterChange = (event) => {
+    const { name, checked } = event.target;
+    setStatusFilter((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
+  const handleClearFilters = () => {
+    setFilterText("");
+    setStatusFilter({ "Còn cung cấp": false, "Ngừng cung cấp": false });
   };
 
   const handleChangeStatus = async (product, currentStatus) => {
@@ -329,7 +344,7 @@ const ListProduct = () => {
               variant="h4"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
             >
-              Quản lý thuốc
+              Thuốc
             </Typography>
             <Typography variant="h6" color="text.secondary">
               Tổng: {filteredProducts.length} sản phẩm
@@ -407,47 +422,36 @@ const ListProduct = () => {
                     },
                   }}
                 >
-                  <InputLabel id="status-filter-label">
-                    Lọc theo trạng thái
-                  </InputLabel>
-                  <Select
-                    labelId="status-filter-label"
-                    value={
-                      statusFilter === null
-                        ? "all"
-                        : statusFilter === true
-                        ? "active"
-                        : "inactive"
-                    }
-                    label="Lọc theo trạng thái"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setStatusFilter(
-                        value === "all"
-                          ? null
-                          : value === "active"
-                          ? true
-                          : false
-                      );
-                    }}
-                    sx={{
-                      backgroundColor: "#fff",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <MenuItem value="all">Tất cả</MenuItem>
-                    <MenuItem value="active">Đang bán</MenuItem>
-                    <MenuItem value="inactive">Ngừng bán</MenuItem>
-                  </Select>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <FormGroup row>
+                      {[
+                        { key: "Còn cung cấp", label: "Đang bán" },
+                        { key: "Ngừng cung cấp", label: "Ngừng bán" },
+                      ].map(({ key, label }) => (
+                        <FormControlLabel
+                          key={key}
+                          control={
+                            <Checkbox
+                              name={key}
+                              checked={statusFilter[key]}
+                              onChange={handleStatusFilterChange}
+                              size="small"
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2">{label}</Typography>
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </Box>
                 </FormControl>
                 {/* CLEAR FILTER */}
                 <Button
                   variant="outlined"
                   color="secondary"
-                  onClick={() => {
-                    setFilterText("");
-                    setStatusFilter("all");
-                  }}
+                  onClick={handleClearFilters}
                 >
                   Xóa lọc
                 </Button>
@@ -798,7 +802,7 @@ const ListProduct = () => {
                       ))
                   )}
                 </TableBody>
-                {filteredProducts.length > 0 && (
+                {filteredProducts.length > 0 && totalPages > 1 && (
                   <TableFooter>
                     <TableRow>
                       <TableCell

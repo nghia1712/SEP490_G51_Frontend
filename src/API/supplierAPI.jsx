@@ -65,39 +65,13 @@ const supplierAPI = {
     return authorApi.put(`${API_URL}/update?id=${id}`, payload);
   },
   updateStatus: (id, data) => authorApi.put(`${API_URL}/updateStatus?id=${id}`, data),
-  enable: (supplierId, supplierData) => {
-    // Lấy số điện thoại từ nhiều trường có thể có
-    const phoneNumber = supplierData?.contact || supplierData?.phoneNumber || supplierData?.phone || supplierData?.PhoneNumber || supplierData?.Contact || '';
-    
-    const payload = {
-      id: supplierId,
-      name: supplierData?.name || '',
-      email: supplierData?.email || '',
-      phoneNumber: phoneNumber,
-      address: supplierData?.address || '',
-      status: 1, // Active
-      bankAccountNumber: supplierData?.bankAccountNumber || '',
-      myDebt: supplierData?.myDebt || 0
-    };
-    console.log("Enable payload (camelCase):", payload);
-    return authorApi.post(`${API_URL}/enable`, payload);
+  enable: (supplierId) => {
+    // Backend nhận supplierId qua query string: /api/Supplier/enable?supplierId=...
+    return authorApi.post(`${API_URL}/enable?supplierId=${supplierId}`);
   },
-  disable: (supplierId, supplierData) => {
-    // Lấy số điện thoại từ nhiều trường có thể có
-    const phoneNumber = supplierData?.contact || supplierData?.phoneNumber || supplierData?.phone || supplierData?.PhoneNumber || supplierData?.Contact || '';
-    
-    const payload = {
-      id: supplierId,
-      name: supplierData?.name || '',
-      email: supplierData?.email || '',
-      phoneNumber: phoneNumber,
-      address: supplierData?.address || '',
-      status: 0, // Inactive
-      bankAccountNumber: supplierData?.bankAccountNumber || '',
-      myDebt: supplierData?.myDebt || 0
-    };
-    console.log("Disable payload (camelCase):", payload);
-    return authorApi.post(`${API_URL}/disable`, payload);
+  disable: (supplierId) => {
+    // Backend nhận supplierId qua query string: /api/Supplier/disable?supplierId=...
+    return authorApi.post(`${API_URL}/disable?supplierId=${supplierId}`);
   },
 };
 
