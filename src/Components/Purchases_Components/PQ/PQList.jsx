@@ -608,7 +608,7 @@ export default function PQList() {
                           value={item.quantity === 0 ? "" : item.quantity}
                           helperText={
                             item.quantity > item.suggestedQty
-                              ? "Số lượng vượt quá gợi ý"
+                              ? "Số lượng vượt quá số lượng gợi ý"
                               : ""
                           }
                           FormHelperTextProps={{
@@ -623,10 +623,34 @@ export default function PQList() {
                             },
                           }}
                           onChange={(e) => {
-                            let val = e.target.value;
-                            let newQty = val === "" ? "" : Number(val);
-                            if (newQty < 1 && newQty !== "") newQty = 1;
+                            const val = e.target.value;
+                            const newQty = val === "" ? "" : Number(val);
+
+                            const oldQty =
+                              quotationToCreatePo.items[i].quantity;
+                            const limit = item.maxQty * 5;
+
+                            // Không cho nhập < 1 (trừ khi empty)
+                            if (newQty !== "" && newQty < 1) {
+                              changeQuantity(i, 1);
+                              return;
+                            }
+
+                            // Nếu vượt quá LIMIT → reset về oldQty
+                            if (newQty > limit) {
+                              setSnackbar({
+                                open: true,
+                                message: `Số lượng "${item.productName}" chỉ có thể nhập tối đa ${limit} (5 lần số lượng tối đa).`,
+                                severity: "error",
+                              });
+
+                              changeQuantity(i, oldQty);
+
+                              return;
+                            }
+
                             changeQuantity(i, newQty);
+
                             if (newQty > item.suggestedQty) {
                               setSnackbar({
                                 open: true,
