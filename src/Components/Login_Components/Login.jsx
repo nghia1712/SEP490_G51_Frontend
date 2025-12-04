@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../App"; // Dùng context dùng chung cho toàn app
 // Import các thành phần cần thiết từ Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
+import { CircularProgress } from "@mui/material";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const Login = () => {
   const [countdown, setCountdown] = useState(3);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuthContext();
+  const [loading, setLoading] = useState(false);
   // Hiển thị thông báo sau khi bị force logout
   const notice = history.state && history.state.usr && history.state.usr.notice;
 
@@ -32,7 +34,7 @@ const Login = () => {
     e.preventDefault();
     setError("");
     setSuccess(false);
-
+    setLoading(true);
     try {
       const response = await login({ email, password });
       if (response) {
@@ -42,6 +44,7 @@ const Login = () => {
         setTimeout(() => navigate("/"), 3000);
       }
     } catch (err) {
+      setLoading(false);
       setError(err.response?.data?.message || "Đăng nhập thất bại!");
     }
   };
@@ -65,16 +68,20 @@ const Login = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: 'spring', stiffness: 100 }
+      transition: { type: "spring", stiffness: 100 },
     },
   };
-  
+
   // Variants cho hình ảnh bên phải
   const imageVariants = {
-      hidden: { x: 100, opacity: 0},
-      visible: { x: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut"}}
-  }
-  
+    hidden: { x: 100, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+  };
+
   // Variants cho thông báo lỗi/thành công
   const alertVariants = {
     initial: { opacity: 0, y: -20, scale: 0.9 },
@@ -82,30 +89,36 @@ const Login = () => {
     exit: { opacity: 0, x: -100 },
     // Hiệu ứng rung cho lỗi
     shake: {
-        x: [0, -10, 10, -10, 10, 0],
-        transition: { duration: 0.5 }
-    }
+      x: [0, -10, 10, -10, 10, 0],
+      transition: { duration: 0.5 },
+    },
   };
-
 
   // --- KẾT THÚC ĐỊNH NGHĨA ANIMATION ---
 
   return (
-      <Container
-        fluid
-        className="d-flex align-items-center justify-content-center p-3"
-      >
+    <Container
+      fluid
+      className="d-flex align-items-center justify-content-center p-3"
+    >
       {/* Bọc Card trong motion.div để có hiệu ứng xuất hiện ban đầu */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        style={{ maxWidth: '900px', width: '100%' }}
+        style={{ maxWidth: "900px", width: "100%" }}
       >
-        <Card className="shadow-lg" style={{ border: 'none', overflow: 'hidden', borderRadius: '15px' }}>
+        <Card
+          className="shadow-lg"
+          style={{ border: "none", overflow: "hidden", borderRadius: "15px" }}
+        >
           <Row className="g-0">
             {/* Cột Form */}
-            <Col xs={12} md={6  } className="d-flex flex-column justify-content-center">
+            <Col
+              xs={12}
+              md={6}
+              className="d-flex flex-column justify-content-center"
+            >
               {/* Bọc Card.Body bằng motion.div để áp dụng stagger animation */}
               <motion.div
                 className="p-4 p-md-5"
@@ -113,7 +126,11 @@ const Login = () => {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.h2 variants={itemVariants} className="text-center mb-5 fw-bold" style={{ color: '#155E64' }}>
+                <motion.h2
+                  variants={itemVariants}
+                  className="text-center mb-5 fw-bold"
+                  style={{ color: "#155E64" }}
+                >
                   Đăng Nhập
                 </motion.h2>
 
@@ -138,18 +155,20 @@ const Login = () => {
                       animate={["animate", "shake"]}
                       exit="exit"
                     >
-                        <Alert variant="danger">{error}</Alert>
+                      <Alert variant="danger">{error}</Alert>
                     </motion.div>
                   )}
                   {success && (
-                     <motion.div
+                    <motion.div
                       key="success"
                       variants={alertVariants}
                       initial="initial"
                       animate="animate"
                       exit="exit"
                     >
-                        <Alert variant="success">Đăng nhập thành công! Chuyển hướng...</Alert>
+                      <Alert variant="success">
+                        Đăng nhập thành công! Chuyển hướng...
+                      </Alert>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -158,18 +177,24 @@ const Login = () => {
                   <motion.div variants={itemVariants}>
                     <Form.Group className="mb-3">
                       <InputGroup>
-                        <InputGroup.Text><FaEnvelope /></InputGroup.Text>
-                        <Form.Control 
-                          type="email" 
-                          placeholder="Nhập email" 
-                          value={email} 
-                          onChange={(e) => setEmail(e.target.value)} 
-                          required 
+                        <InputGroup.Text>
+                          <FaEnvelope />
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="email"
+                          placeholder="Nhập email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
                           onInvalid={(e) => {
                             if (!e.target.value) {
-                              e.target.setCustomValidity("Vui lòng không để trống");
+                              e.target.setCustomValidity(
+                                "Vui lòng không để trống"
+                              );
                             } else {
-                              e.target.setCustomValidity("Vui lòng nhập đúng email");
+                              e.target.setCustomValidity(
+                                "Vui lòng nhập đúng email"
+                              );
                             }
                           }}
                           onInput={(e) => e.target.setCustomValidity("")}
@@ -181,40 +206,86 @@ const Login = () => {
                   <motion.div variants={itemVariants}>
                     <Form.Group className="mb-4">
                       <InputGroup>
-                        <InputGroup.Text><FaLock /></InputGroup.Text>
-                        <Form.Control 
-                          type={showPassword ? "text" : "password"} 
-                          placeholder="Nhập mật khẩu" 
-                          value={password} 
-                          onChange={(e) => setPassword(e.target.value)} 
-                          required 
-                          onInvalid={(e) => e.target.setCustomValidity("Vui lòng không để trống")}
+                        <InputGroup.Text>
+                          <FaLock />
+                        </InputGroup.Text>
+                        <Form.Control
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Nhập mật khẩu"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          onInvalid={(e) =>
+                            e.target.setCustomValidity(
+                              "Vui lòng không để trống"
+                            )
+                          }
                           onInput={(e) => e.target.setCustomValidity("")}
                         />
-                        <InputGroup.Text style={{ cursor: 'pointer' }} onClick={() => setShowPassword((s) => !s)}>
+                        <InputGroup.Text
+                          style={{ cursor: "pointer" }}
+                          onClick={() => setShowPassword((s) => !s)}
+                        >
                           {showPassword ? <FaEyeSlash /> : <FaEye />}
                         </InputGroup.Text>
                       </InputGroup>
                     </Form.Group>
                   </motion.div>
 
-                  <motion.div variants={itemVariants} className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                    <a href="/forgot-password" className="text-decoration-none" style={{ color: '#155E64' }}>Quên mật khẩu?</a>
+                  <motion.div
+                    variants={itemVariants}
+                    className="d-flex justify-content-between align-items-center gap-3 flex-wrap"
+                  >
+                    <a
+                      href="/forgot-password"
+                      className="text-decoration-none"
+                      style={{ color: "#155E64" }}
+                    >
+                      Quên mật khẩu?
+                    </a>
                     {/* Bọc Button trong motion.div để có hiệu ứng hover/tap */}
                     <motion.div
                       className="d-inline-block"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button type="submit" style={{ backgroundColor: "#48C1A6", border: "none", padding: '10px 25px' }}>
-                        Đăng nhập
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        style={{
+                          backgroundColor: "#48C1A6",
+                          border: "none",
+                          padding: "10px 25px",
+                          minWidth: "120px",
+                        }}
+                      >
+                        {loading ? (
+                          <CircularProgress
+                            size={22}
+                            thickness={4}
+                            sx={{
+                              color: "white",
+                            }}
+                          />
+                        ) : (
+                          "Đăng nhập"
+                        )}
                       </Button>
                     </motion.div>
                   </motion.div>
-                  
-                  <motion.div variants={itemVariants} className="text-center mt-5">
+
+                  <motion.div
+                    variants={itemVariants}
+                    className="text-center mt-5"
+                  >
                     <span className="text-muted">Chưa có tài khoản? </span>
-                    <a href="/register" className="text-decoration-none fw-bold" style={{ color: '#155E64' }}>Đăng ký ngay</a>
+                    <a
+                      href="/register"
+                      className="text-decoration-none fw-bold"
+                      style={{ color: "#155E64" }}
+                    >
+                      Đăng ký ngay
+                    </a>
                   </motion.div>
                 </Form>
               </motion.div>
@@ -222,14 +293,18 @@ const Login = () => {
 
             {/* Cột Hình ảnh */}
             <Col md={6} className="d-none d-md-block">
-                {/* Bọc Card.Img trong motion.div để tạo hiệu ứng */}
+              {/* Bọc Card.Img trong motion.div để tạo hiệu ứng */}
               <motion.div
-                 variants={imageVariants}
-                 initial="hidden"
-                 animate="visible"
-                 style={{height: '100%'}}
+                variants={imageVariants}
+                initial="hidden"
+                animate="visible"
+                style={{ height: "100%" }}
               >
-                <Card.Img src={"/images/login_image.jpg"} alt="Login" style={{ objectFit: "cover", height: '100%' }}/>
+                <Card.Img
+                  src={"/images/login_image.png"}
+                  alt="Login"
+                  style={{ objectFit: "cover", height: "100%" }}
+                />
               </motion.div>
             </Col>
           </Row>

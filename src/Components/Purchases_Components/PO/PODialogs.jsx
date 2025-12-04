@@ -146,56 +146,70 @@ export default function PODialogs({
                     {p.unitPrice.toLocaleString()} ₫
                   </TableCell>
                   <TableCell>{p.tax * 100} %</TableCell>
-
-                    <TableCell
-                      align="center"
-                      sx={{ position: "relative", pb: 3 }}
-                    >
+                  <TableCell
+                    align="center"
+                    sx={{ position: "relative", pb: 3 }}
+                  >
                     <TextField
                       size="small"
                       type="number"
-                      value={p.quantity === 0 ? "" : p.quantity}
+                      value={item.quantity === 0 ? "" : item.quantity}
                       helperText={
-                        p.quantity > p.suggestedQuantity
-                          ? "Vượt quá số lượng gợi ý"
+                        item.quantity > item.suggestedQty
+                          ? "Số lượng vượt quá số lượng gợi ý"
                           : ""
                       }
-                         FormHelperTextProps={{
-                          sx: {
-                            color: "warning.main",
-                            position: "absolute",
-                            whiteSpace: "nowrap",
-                            overflow: "visible",
-                            left: 0,
-                            bottom: -20,
-                            zIndex: 1,
-                          },
-                        }}
+                      FormHelperTextProps={{
+                        sx: {
+                          color: "warning.main",
+                          position: "absolute",
+                          whiteSpace: "nowrap",
+                          overflow: "visible",
+                          left: 0,
+                          bottom: -20,
+                          zIndex: 1,
+                        },
+                      }}
                       onChange={(e) => {
-                        let val = e.target.value;
-                        let newQuantity = val === "" ? "" : Number(val);
-                        if (newQuantity < 1 && newQuantity !== "")
-                          newQuantity = 1;
+                        const val = e.target.value;
+                        const newQty = val === "" ? "" : Number(val);
 
-                        setUploadedProducts((prev) =>
-                          prev.map((item, idx) =>
-                            idx === i
-                              ? { ...item, quantity: newQuantity }
-                              : item
-                          )
-                        );
+                        const oldQty = quotationToCreatePo.items[i].quantity;
+                        const limit = item.maxQty * 5;
 
-                        if (newQuantity > p.suggestedQuantity) {
+                        // Không cho nhập < 1 (trừ khi empty)
+                        if (newQty !== "" && newQty < 1) {
+                          changeQuantity(i, 1);
+                          return;
+                        }
+
+                        // Nếu vượt quá LIMIT → reset về oldQty
+                        if (newQty > limit) {
                           setSnackbar({
                             open: true,
-                            message: `Số lượng "${p.productName}" vượt quá số lượng gợi ý (${p.suggestedQuantity})`,
+                            message: `Số lượng "${item.productName}" chỉ có thể nhập tối đa ${limit} (5 lần số lượng tối đa).`,
+                            severity: "error",
+                          });
+
+                          changeQuantity(i, oldQty);
+
+                          return;
+                        }
+
+                        changeQuantity(i, newQty);
+
+                        if (newQty > item.suggestedQty) {
+                          setSnackbar({
+                            open: true,
+                            message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
                             severity: "warning",
                           });
                         }
                       }}
+                      sx={{ width: 100, position: "relative" }}
+                      disabled={processing}
                     />
                   </TableCell>
-
                   <TableCell>{p.suggestedQuantity}</TableCell>
                   <TableCell>{p.minQuantity}</TableCell>
                   <TableCell>{p.currentQuantity}</TableCell>
@@ -210,6 +224,7 @@ export default function PODialogs({
                   <TableCell>
                     <IconButton
                       color="error"
+                      disabled={sending}
                       onClick={() =>
                         setUploadedProducts((prev) =>
                           prev.filter((_, index) => index !== i)

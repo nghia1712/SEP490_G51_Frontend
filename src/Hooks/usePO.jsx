@@ -243,7 +243,7 @@ export default function usePO() {
       await prfqApi.convertToPo({ excelKey, details, status: 6 });
       setSnackbar({
         open: true,
-        message: "Tạo PO thành công!",
+        message: "Gửi đơn hàng thành công!",
         severity: "success",
       });
       setPreviewOpen(false);

@@ -42,6 +42,7 @@ export default function GRNManualCreatePage({ poId }) {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [locationsLoading, setLocationsLoading] = useState(false);
+const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -305,7 +306,7 @@ export default function GRNManualCreatePage({ poId }) {
     };
 
     console.log("Payload GRN:", JSON.stringify(payload, null, 2));
-
+    setIsSubmitting(true);
     try {
       await grnApi.createManually(selectedPO, payload);
 
@@ -328,7 +329,7 @@ export default function GRNManualCreatePage({ poId }) {
       }, 2000);
     } catch (err) {
       console.error(err);
-
+ setIsSubmitting(false);
       const apiMsg =
         err?.response?.data?.message || err?.message || "Tạo GRN thất bại";
 
@@ -474,7 +475,7 @@ export default function GRNManualCreatePage({ poId }) {
           <Typography variant="subtitle1" fontWeight={600}>
             Danh sách sản phẩm
           </Typography>
-          <Button size="small" onClick={handleReloadProducts}>
+          <Button disabled={isSubmitting} size="small" onClick={handleReloadProducts}>
             Tải lại
           </Button>
         </Box>
@@ -552,7 +553,7 @@ export default function GRNManualCreatePage({ poId }) {
           mt: 3,
         }}
       >
-        <Button variant="contained" size="large" onClick={handleCreateGRN}>
+        <Button disabled={isSubmitting} variant="contained" size="large" onClick={handleCreateGRN}>
           Tạo phiếu nhập kho
         </Button>
       </Box>

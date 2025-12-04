@@ -518,18 +518,68 @@ export default function POActions({ poId, fetchPOs }) {
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>{item.productName}</TableCell>
                       <TableCell>{item.description}</TableCell>
-                      <TableCell align="center">
+                      <TableCell
+                        align="center"
+                        sx={{ position: "relative", pb: 3 }}
+                      >
                         <TextField
-                          type="number"
                           size="small"
-                          inputProps={{ min: 0 }}
-                          value={item.quantity}
-                          onChange={(e) => {
-                            const newData = [...editData];
-                            newData[i].quantity = Number(e.target.value);
-                            setEditData(newData);
+                          type="number"
+                          value={item.quantity === 0 ? "" : item.quantity}
+                          helperText={
+                            item.quantity > item.suggestedQty
+                              ? "Số lượng vượt quá số lượng gợi ý"
+                              : ""
+                          }
+                          FormHelperTextProps={{
+                            sx: {
+                              color: "warning.main",
+                              position: "absolute",
+                              whiteSpace: "nowrap",
+                              overflow: "visible",
+                              left: 0,
+                              bottom: -20,
+                              zIndex: 1,
+                            },
                           }}
-                          sx={{ width: 80 }}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const newQty = val === "" ? "" : Number(val);
+
+                            const oldQty =
+                              quotationToCreatePo.items[i].quantity;
+                            const limit = item.maxQty * 5;
+
+                            // Không cho nhập < 1 (trừ khi empty)
+                            if (newQty !== "" && newQty < 1) {
+                              changeQuantity(i, 1);
+                              return;
+                            }
+
+                            // Nếu vượt quá LIMIT → reset về oldQty
+                            if (newQty > limit) {
+                              setSnackbar({
+                                open: true,
+                                message: `Số lượng "${item.productName}" chỉ có thể nhập tối đa ${limit} (5 lần số lượng tối đa).`,
+                                severity: "error",
+                              });
+
+                              changeQuantity(i, oldQty);
+
+                              return;
+                            }
+
+                            changeQuantity(i, newQty);
+
+                            if (newQty > item.suggestedQty) {
+                              setSnackbar({
+                                open: true,
+                                message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
+                                severity: "warning",
+                              });
+                            }
+                          }}
+                          sx={{ width: 100, position: "relative" }}
                           disabled={processing}
                         />
                       </TableCell>
