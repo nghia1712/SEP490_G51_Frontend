@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Container,
   Box,
@@ -24,18 +24,21 @@ import {
   Switch,
   IconButton,
   Tooltip,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import taxPolicyAPI from '../../API/taxPolicyAPI';
+  Card,
+  CardContent,
+  Stack,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import taxPolicyAPI from "../../API/taxPolicyAPI";
 
 const AccountantTaxPolicy = () => {
   const [taxes, setTaxes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarMessage, setSnackbarMessage] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTax, setEditingTax] = useState(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -43,9 +46,9 @@ const AccountantTaxPolicy = () => {
   const [togglingTaxId, setTogglingTaxId] = useState(null);
   const [formError, setFormError] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
-    rate: '',
-    description: '',
+    name: "",
+    rate: "",
+    description: "",
     status: false,
   });
   const [formValidation, setFormValidation] = useState({});
@@ -61,7 +64,7 @@ const AccountantTaxPolicy = () => {
       const message =
         err.response?.data?.message ||
         err.message ||
-        'Không thể tải danh sách thuế sản phẩm.';
+        "Không thể tải danh sách thuế sản phẩm.";
       setError(message);
       setSnackbarMessage(message);
       setSnackbarOpen(true);
@@ -78,9 +81,9 @@ const AccountantTaxPolicy = () => {
     setEditingTax(null);
     setDialogLoading(false);
     setFormData({
-      name: '',
-      rate: '',
-      description: '',
+      name: "",
+      rate: "",
+      description: "",
       status: false,
     });
     setFormValidation({});
@@ -110,22 +113,22 @@ const AccountantTaxPolicy = () => {
       const data = response.data?.data ?? tax;
       const rateValue = Number(data.Rate ?? data.rate ?? 0) * 100;
       const formattedRate = Number.isFinite(rateValue)
-        ? String(parseFloat(rateValue.toFixed(2))).replace(/\.0+$/, '')
-        : '';
+        ? String(parseFloat(rateValue.toFixed(2))).replace(/\.0+$/, "")
+        : "";
       const statusValue = Boolean(data.Status ?? data.status ?? false);
 
       setEditingTax(data);
       setFormData({
-        name: data.Name ?? data.name ?? '',
+        name: data.Name ?? data.name ?? "",
         rate: formattedRate,
-        description: data.Description ?? data.description ?? '',
+        description: data.Description ?? data.description ?? "",
         status: statusValue,
       });
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.message ||
-        'Không thể lấy thông tin thuế.';
+        "Không thể lấy thông tin thuế.";
       setSnackbarMessage(message);
       setSnackbarOpen(true);
       setCreateDialogOpen(false);
@@ -134,20 +137,21 @@ const AccountantTaxPolicy = () => {
     }
   };
 
-
   const validateForm = () => {
     const errors = {};
 
     if (!formData.name.trim()) {
-      errors.name = 'Vui lòng nhập tên thuế';
+      errors.name = "Vui lòng nhập tên thuế";
     }
 
     const parsedRate =
-      formData.rate === '' ? NaN : Number(String(formData.rate).replace(',', '.'));
+      formData.rate === ""
+        ? NaN
+        : Number(String(formData.rate).replace(",", "."));
     if (Number.isNaN(parsedRate)) {
-      errors.rate = 'Tỷ lệ thuế không hợp lệ';
+      errors.rate = "Tỷ lệ thuế không hợp lệ";
     } else if (parsedRate < 0 || parsedRate > 100) {
-      errors.rate = 'Tỷ lệ thuế phải nằm trong khoảng 0% - 100%';
+      errors.rate = "Tỷ lệ thuế phải nằm trong khoảng 0% - 100%";
     }
 
     setFormValidation(errors);
@@ -161,8 +165,8 @@ const AccountantTaxPolicy = () => {
 
     const payload = {
       Name: formData.name.trim(),
-      Rate: Number(String(formData.rate).replace(',', '.')) / 100,
-      Description: formData.description?.trim() || '',
+      Rate: Number(String(formData.rate).replace(",", ".")) / 100,
+      Description: formData.description?.trim() || "",
       Status: Boolean(formData.status),
     };
 
@@ -178,8 +182,9 @@ const AccountantTaxPolicy = () => {
         await taxPolicyAPI.createTaxPolicy(payload);
       }
 
-      const message =
-        editingTax ? 'Cập nhật thuế thành công!' : 'Tạo thuế thành công!';
+      const message = editingTax
+        ? "Cập nhật thuế thành công!"
+        : "Tạo thuế thành công!";
       setSnackbarMessage(message);
       setSnackbarOpen(true);
       setCreateDialogOpen(false);
@@ -189,7 +194,9 @@ const AccountantTaxPolicy = () => {
       const message =
         err.response?.data?.message ||
         err.message ||
-        (editingTax ? 'Không thể cập nhật thuế.' : 'Không thể tạo thuế sản phẩm.');
+        (editingTax
+          ? "Không thể cập nhật thuế."
+          : "Không thể tạo thuế sản phẩm.");
       setFormError(message);
     } finally {
       setFormSubmitting(false);
@@ -202,14 +209,14 @@ const AccountantTaxPolicy = () => {
     setTogglingTaxId(taxId);
     try {
       await taxPolicyAPI.disableEnableTaxPolicy(taxId);
-      setSnackbarMessage('Đã thay đổi trạng thái thuế');
+      setSnackbarMessage("Đã thay đổi trạng thái thuế");
       setSnackbarOpen(true);
       await fetchTaxes();
     } catch (err) {
       const message =
         err.response?.data?.message ||
         err.message ||
-        'Không thể đổi trạng thái thuế.';
+        "Không thể đổi trạng thái thuế.";
       setSnackbarMessage(message);
       setSnackbarOpen(true);
     } finally {
@@ -219,166 +226,199 @@ const AccountantTaxPolicy = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-          mb: 4,
-        }}
-      >
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, color: '#155E64' }}>
-            Thuế sản phẩm
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Quản lý danh sách thuế áp dụng cho sản phẩm bán hàng
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateDialog}
-            sx={{ backgroundColor: '#155E64', '&:hover': { backgroundColor: '#0D4F52' } }}
+      <Card elevation={3} sx={{ borderRadius: 2 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+            >
+              Thuế sản phẩm
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              my: 2,
+            }}
           >
-            Tạo thuế mới
-          </Button>
-        </Box>
-      </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateDialog}
+              sx={{
+                backgroundColor: "#155E64",
+                "&:hover": { backgroundColor: "#0D4F52" },
+              }}
+            >
+              Tạo thuế mới
+            </Button>
+          </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+          {error && (
+            <Alert
+              severity="error"
+              sx={{ mb: 3 }}
+              onClose={() => setError(null)}
+            >
+              {error}
+            </Alert>
+          )}
 
-      <Paper elevation={2}>
-        <TableContainer sx={{ maxHeight: 540 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: 60, textAlign: 'center' }}>STT</TableCell>
-                <TableCell>Tên thuế</TableCell>
-                <TableCell sx={{ width: 160 }}>Tỷ lệ</TableCell>
-                <TableCell>Mô tả</TableCell>
+          <Paper elevation={2}>
+            <TableContainer sx={{ maxHeight: 540 }}>
+              <Table stickyHeader>
+                <TableHead
+                  sx={{
+                    backgroundColor: "#f5f5f5",
+                    "& .MuiTableCell-root": { fontWeight: "bold" },
+                  }}
+                >
+                  <TableRow>
+                    <TableCell sx={{ width: 60, textAlign: "center" }}>#</TableCell>
+                    <TableCell>Tên thuế</TableCell>
+                    <TableCell sx={{ width: 160 }}>Tỷ lệ</TableCell>
+                    <TableCell>Mô tả</TableCell>
                     <TableCell sx={{ width: 160 }}>Trạng thái</TableCell>
-                    <TableCell sx={{ width: 120, textAlign: 'center' }}>Hành động</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : taxes.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Chưa có thuế nào
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                taxes.map((tax, index) => {
-                  const rateValue = Number(tax.Rate ?? tax.rate ?? 0) * 100;
-                  const formattedRate = Number.isFinite(rateValue)
-                    ? `${parseFloat(rateValue.toFixed(2))}%`
-                    : '-';
-                  const isActive = Boolean(tax.Status ?? tax.status ?? true);
-
-                  return (
-                    <TableRow key={tax.Id ?? tax.id ?? index} hover>
-                      <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {tax.Name ?? tax.name ?? '-'}
-                      </TableCell>
-                      <TableCell>{formattedRate}</TableCell>
-                      <TableCell>{tax.Description ?? tax.description ?? '-'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={isActive ? 'Đang kích hoạt' : 'Đang tắt'}
-                          size="small"
-                          sx={{
-                            backgroundColor: isActive ? '#d4edda' : '#fdecea',
-                            color: isActive ? '#155724' : '#b71c1c',
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 0.5,
-                        }}
-                      >
-                        <Tooltip title={isActive ? 'Tắt thuế' : 'Bật thuế'} arrow>
-                          <span>
-                            <Switch
-                              checked={isActive}
-                              onChange={() => handleToggleStatus(tax)}
-                              size="small"
-                              color="primary"
-                              disabled={togglingTaxId === (tax.Id ?? tax.id)}
-                            />
-                          </span>
-                        </Tooltip>
-                        <Tooltip title="Sửa" arrow>
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditTaxClick(tax)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        <Tooltip title="Xóa" arrow>
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={async () => {
-                                if (
-                                  window.confirm(
-                                    `Bạn có chắc muốn xóa thuế "${tax.Name ?? tax.name}"?`
-                                  )
-                                ) {
-                                  try {
-                                    await taxPolicyAPI.deleteTaxPolicy(tax.Id ?? tax.id);
-                                    setSnackbarMessage('Xóa thuế thành công!');
-                                    setSnackbarOpen(true);
-                                    await fetchTaxes();
-                                  } catch (err) {
-                                    const message =
-                                      err.response?.data?.message ||
-                                      err.message ||
-                                      'Không thể xóa thuế.';
-                                    setSnackbarMessage(message);
-                                    setSnackbarOpen(true);
-                                  }
-                                }
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                    <TableCell sx={{ width: 120, textAlign: "center" }}>
+                      Hành động
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                  ) : taxes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Chưa có thuế áp dụng
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    taxes.map((tax, index) => {
+                      const rateValue = Number(tax.Rate ?? tax.rate ?? 0) * 100;
+                      const formattedRate = Number.isFinite(rateValue)
+                        ? `${parseFloat(rateValue.toFixed(2))}%`
+                        : "-";
+                      const isActive = Boolean(
+                        tax.Status ?? tax.status ?? true
+                      );
+
+                      return (
+                        <TableRow key={tax.Id ?? tax.id ?? index} hover>
+                          <TableCell sx={{ textAlign: "center" }}>
+                            {index + 1}
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 500 }}>
+                            {tax.Name ?? tax.name ?? "-"}
+                          </TableCell>
+                          <TableCell>{formattedRate}</TableCell>
+                          <TableCell>
+                            {tax.Description ?? tax.description ?? "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={isActive ? "Đang kích hoạt" : "Đang tắt"}
+                              size="small"
+                              sx={{
+                                backgroundColor: isActive
+                                  ? "#d4edda"
+                                  : "#fdecea",
+                                color: isActive ? "#155724" : "#b71c1c",
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              textAlign: "center",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Tooltip
+                              title={isActive ? "Tắt thuế" : "Bật thuế"}
+                              arrow
+                            >
+                              <span>
+                                <Switch
+                                  checked={isActive}
+                                  onChange={() => handleToggleStatus(tax)}
+                                  size="small"
+                                  color="primary"
+                                  disabled={
+                                    togglingTaxId === (tax.Id ?? tax.id)
+                                  }
+                                />
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="Sửa" arrow>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditTaxClick(tax)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="Xóa" arrow>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={async () => {
+                                    if (
+                                      window.confirm(
+                                        `Bạn có chắc muốn xóa thuế "${
+                                          tax.Name ?? tax.name
+                                        }"?`
+                                      )
+                                    ) {
+                                      try {
+                                        await taxPolicyAPI.deleteTaxPolicy(
+                                          tax.Id ?? tax.id
+                                        );
+                                        setSnackbarMessage(
+                                          "Xóa thuế thành công!"
+                                        );
+                                        setSnackbarOpen(true);
+                                        await fetchTaxes();
+                                      } catch (err) {
+                                        const message =
+                                          err.response?.data?.message ||
+                                          err.message ||
+                                          "Không thể xóa thuế.";
+                                        setSnackbarMessage(message);
+                                        setSnackbarOpen(true);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </CardContent>
+      </Card>
 
       <Dialog
         open={createDialogOpen}
@@ -388,25 +428,33 @@ const AccountantTaxPolicy = () => {
       >
         <DialogTitle>
           <Typography variant="h6" component="div">
-            {editingTax ? 'Chỉnh sửa thuế' : 'Tạo thuế sản phẩm'}
+            {editingTax ? "Chỉnh sửa thuế" : "Tạo thuế sản phẩm"}
           </Typography>
         </DialogTitle>
         <DialogContent>
           {formError && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setFormError(null)}
+            >
               {formError}
             </Alert>
           )}
           {dialogLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+            >
               <TextField
                 label="Tên thuế"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 required
                 error={Boolean(formValidation.name)}
                 helperText={formValidation.name}
@@ -416,18 +464,23 @@ const AccountantTaxPolicy = () => {
                 label="Tỷ lệ thuế (%)"
                 type="number"
                 value={formData.rate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, rate: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, rate: e.target.value }))
+                }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                 required
                 error={Boolean(formValidation.rate)}
-                helperText={formValidation.rate || 'Nhập giá trị từ 0 đến 100'}
+                helperText={formValidation.rate || "Nhập giá trị từ 0 đến 100"}
                 fullWidth
               />
               <TextField
                 label="Mô tả"
                 value={formData.description}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
                 multiline
                 minRows={3}
@@ -444,14 +497,17 @@ const AccountantTaxPolicy = () => {
             variant="contained"
             onClick={handleSubmitTax}
             disabled={formSubmitting}
-            sx={{ backgroundColor: '#155E64', '&:hover': { backgroundColor: '#0D4F52' } }}
+            sx={{
+              backgroundColor: "#155E64",
+              "&:hover": { backgroundColor: "#0D4F52" },
+            }}
           >
             {formSubmitting ? (
               <CircularProgress size={24} color="inherit" />
             ) : editingTax ? (
-              'Cập nhật'
+              "Cập nhật"
             ) : (
-              'Tạo thuế'
+              "Tạo thuế"
             )}
           </Button>
         </DialogActions>
@@ -468,4 +524,3 @@ const AccountantTaxPolicy = () => {
 };
 
 export default AccountantTaxPolicy;
-

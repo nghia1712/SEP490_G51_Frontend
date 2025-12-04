@@ -132,7 +132,7 @@ export default function POList() {
                 Đơn nhập hàng
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredPOs.length} đơn
+                Tổng: {filteredPOs.length} đơn hàng
               </Typography>
             </Box>
 
@@ -217,7 +217,6 @@ export default function POList() {
               </Stack>
 
               {/* Right group: upload button */}
-              {/* Right group: upload button + create PO */}
               {userRole === "purchases_staff" && (
                 <Stack direction="row" spacing={2}>
                   <Button
