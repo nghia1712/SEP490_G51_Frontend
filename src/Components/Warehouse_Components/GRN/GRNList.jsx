@@ -84,7 +84,7 @@ export default function GRNListPage() {
   );
 
   useEffect(() => {
-    setPage(1); // Reset page khi search thay đổi
+    setPage(1);
   }, [search]);
 
   return (

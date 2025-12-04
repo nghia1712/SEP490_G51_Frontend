@@ -65,9 +65,7 @@ export default function GRNList() {
     renderGINStatus,
     exportedLotProduct,
   } = useGIN();
-  const [filtered, setFiltered] = useState([]).sort(
-    (a, b) => Number(b.ginId) - Number(a.ginId)
-  );
+  const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -79,17 +77,19 @@ export default function GRNList() {
   // =========================
   useEffect(() => {
     const keyword = search.toLowerCase();
-
-    setFiltered(
-      data?.filter(
+    const filteredData = (data || [])
+      .filter(
         (item) =>
           (item.note || "").toLowerCase().includes(keyword) ||
           (item.goodsIssueNoteCode || "").toLowerCase().includes(keyword) ||
           (item.warehouseName || "").toLowerCase().includes(keyword) ||
           (item.createBy || "").toLowerCase().includes(keyword) ||
           (item.stockExportOrderCode || "").toLowerCase().includes(keyword)
-      ) || []
-    );
+      )
+      .slice()
+      .sort((a, b) => Number(b.id) - Number(a.id));
+    setFiltered(filteredData);
+    setPage(1);
   }, [search, data]);
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);

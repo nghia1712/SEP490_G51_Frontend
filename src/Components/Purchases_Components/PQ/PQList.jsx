@@ -30,6 +30,7 @@ import {
   Container,
 } from "@mui/material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { useEffect } from "react";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { vi as viLocale } from "date-fns/locale";
 import {
@@ -126,7 +127,7 @@ export default function PQList() {
       setProcessing(false);
     }
   };
-
+  useEffect(() => setPage(1), [search]);
   const statusMap = {
     InDate: "Còn hiệu lực",
     OutOfDate: "Hết hiệu lực",

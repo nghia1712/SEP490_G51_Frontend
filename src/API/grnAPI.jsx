@@ -24,6 +24,10 @@ const grnApi = {
     authorApi.get(`${API_URL}/exportPdf/${grnId}`, {
       responseType: "blob",
     }),
+
+  // ✅ GET: Lấy thống kê nhập kho theo tháng
+  getImportStatsByMonth: (year) =>
+    authorApi.get(`${API_URL}/ImportStatisticsByMonth/${year}`),
 };
 
 export default grnApi;

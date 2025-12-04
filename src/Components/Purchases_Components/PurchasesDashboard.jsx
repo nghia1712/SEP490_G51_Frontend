@@ -164,8 +164,11 @@ function PurchasesDashboard() {
       try {
         const lowStock = await fetchProductsBelowMinQuantity();
         const nearest = await fetchProductsWithNearestLot();
+        const filteredNearest = nearest.filter(
+          (lot) => (lot.lotQuantity || 0) > 0
+        );
         setLowStockProducts(lowStock);
-        setNearestLots(nearest);
+        setNearestLots(filteredNearest);
       } catch (err) {
         console.error("Failed to fetch product KPIs:", err);
       }
@@ -343,7 +346,7 @@ function PurchasesDashboard() {
     <div className="">
       <Container>
         {/* ===== Header ===== */}
-        <div className="d-flex justify-content-between align-items-center mb-5">
+        <div style={{ marginTop: "20px" }} className="d-flex justify-content-between align-items-center mb-5">
           <div>
             <h2 className="fw-bold text-dark mb-1">
               <ShoppingBag
@@ -557,7 +560,7 @@ function PurchasesDashboard() {
             <Card className="border-0 shadow-sm rounded-4">
               <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
                 <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
-                  <DateRange className="me-2" /> Lô hàng gần hết hạn
+                  <DateRange className="me-2" /> Lô hàng hạn gần nhất
                 </h5>
               </Card.Header>
               <Card.Body className="p-0" style={scrollableBodyStyle}>

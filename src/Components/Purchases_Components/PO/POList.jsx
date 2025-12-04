@@ -44,6 +44,7 @@ import POActions from "./POActions";
 import usePO from "../../../Hooks/usePO";
 import PODialogs from "./PODialogs";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
+import { useEffect } from "react";
 
 export default function POList() {
   const navigate = useNavigate();
@@ -116,7 +117,7 @@ export default function POList() {
     };
     return <Chip label={s.label} color={s.color} size="small" />;
   };
-
+  useEffect(() => setPage(1), [search]);
   return (
     <Box sx={{ p: 3 }}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
