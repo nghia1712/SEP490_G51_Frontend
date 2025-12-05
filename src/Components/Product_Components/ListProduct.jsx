@@ -43,10 +43,12 @@ import useProduct from "../../Hooks/useProduct";
 import ProductLotsModal from "./ProductLotsModal";
 import categoryAPI from "../../API/categoryAPI";
 import MedicationIcon from "@mui/icons-material/Medication";
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 
 const PAGE_SIZE = 5;
 
 const ListProduct = () => {
+  const userRole = getUserRoleFromToken();
   const [snack, setSnack] = useState({
     open: false,
     message: "",
@@ -311,13 +313,13 @@ const ListProduct = () => {
     },
     { id: "productName", label: "Tên Thuốc", sortable: true, width: "15%" },
     { id: "category", label: "Danh Mục", sortable: false, width: "12%" },
-    { id: "unit", label: "Đơn Vị", sortable: true, width: "10%" },
-    { id: "status", label: "Trạng Thái", sortable: true, width: "12%" },
+    { id: "unit", label: "Đơn Vị", sortable: true, width: "3%" },
+    { id: "status", label: "Trạng Thái", sortable: true, width: "10%" },
     {
       id: "actions",
       label: "Hành Động",
       sortable: false,
-      align: "center",
+      align: "right",
       width: "25%",
     },
   ];
@@ -496,19 +498,21 @@ const ListProduct = () => {
                 overflow: "hidden",
               }}
             >
-              <Table sx={{ tableLayout: "fixed" }}>
+              <Table sx={{ tableLayout: "fixed", borderSpacing: 0, borderCollapse: "collapse" }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    {headCells.map((headCell) => (
+                    {headCells.map((headCell, idx) => (
                       <TableCell
                         key={headCell.id}
                         align={headCell.align || "left"}
                         sx={{
                           py: 1.5,
-                          px: 2,
+                          px: idx === 0 ? 2 : idx === 1 ? 0 : idx === 4 ? 0 : idx === 5 ? 0 : 2,
+                          pr: idx === 0 ? 0 : idx === 1 ? 1 : idx === 4 ? 0 : idx === 5 ? 1 : 2,
+                          pl: idx === 4 ? 1 : idx === 5 ? 0 : undefined,
+                          pl: idx === 5 ? 0 : undefined,
                           textAlign: headCell.align || "left",
                           fontWeight: 600,
-                          textTransform: "uppercase",
                           letterSpacing: "0.03em",
                         }}
                         sortDirection={
@@ -527,7 +531,6 @@ const ListProduct = () => {
                             })()}
                             onClick={() => handleSort(headCell.id)}
                             sx={{
-                              textTransform: "uppercase",
                               fontWeight: 600,
                               letterSpacing: "0.03em",
                             }}
@@ -537,7 +540,6 @@ const ListProduct = () => {
                         ) : (
                           <span
                             style={{
-                              textTransform: "uppercase",
                               fontWeight: 600,
                               letterSpacing: "0.03em",
                             }}
@@ -579,6 +581,16 @@ const ListProduct = () => {
                               px: 2,
                               verticalAlign: "middle",
                             },
+                            "& td:nth-of-type(5)": {
+                              px: 0,
+                              pl: 1,
+                              pr: 0,
+                            },
+                            "& td:nth-of-type(6)": {
+                              px: 0,
+                              pl: 0,
+                              pr: 1,
+                            },
                           }}
                         >
                           <TableCell
@@ -586,7 +598,8 @@ const ListProduct = () => {
                               fontWeight: 400,
                               textAlign: "left",
                               width: "3%",
-                              px: 1,
+                              pl: 2,
+                              pr: 0,
                             }}
                           >
                             {pageStart + index + 1}
@@ -595,7 +608,7 @@ const ListProduct = () => {
                             sx={{
                               textAlign: "left",
                               width: "6%",
-                              pl: 0.5,
+                              pl: 0,
                               pr: 1,
                             }}
                           >
@@ -665,12 +678,17 @@ const ListProduct = () => {
                               );
                             })()}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "left", width: "10%" }}>
+                          <TableCell sx={{ textAlign: "left", width: "3%", pr: 0, pl: 1 }}>
                             {product.Unit ?? product.unit}
                           </TableCell>
                           {/* Xóa cột vị trí theo yêu cầu */}
                           <TableCell
-                            sx={{ width: "12%", textAlign: "left", pl: 0.5 }}
+                            sx={{ 
+                              width: "10%", 
+                              textAlign: "left", 
+                              pl: 0, 
+                              pr: 1
+                            }}
                           >
                             <Box
                               sx={{
@@ -726,58 +744,63 @@ const ListProduct = () => {
                                 flexWrap: "nowrap",
                               }}
                             >
-                              <Tooltip title="Sửa" placement="bottom" arrow>
-                                <IconButton
-                                  size="medium"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenEditModal(product);
-                                  }}
-                                  sx={{
-                                    color: "#ed6c02",
-                                    width: "40px",
-                                    height: "40px",
-                                    "&:hover": {
-                                      backgroundColor: "rgba(237, 108, 2, 0.1)",
-                                    },
-                                  }}
-                                >
-                                  <EditIcon fontSize="medium" />
-                                </IconButton>
-                              </Tooltip>
-                              <Button
-                                variant="contained"
-                                color={(() => {
-                                  const status =
-                                    product.status ?? product.Status;
-                                  return status === true || status === "active"
-                                    ? "error"
-                                    : "success";
-                                })()}
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleChangeStatus(
-                                    product,
-                                    product.status ?? product.Status
-                                      ? "active"
-                                      : "inactive"
-                                  );
-                                }}
-                                sx={{
-                                  minWidth: 140,
-                                  width: 140,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {(() => {
-                                  const status =
-                                    product.status ?? product.Status;
-                                  return status === true || status === "active"
-                                    ? "NGỪNG BÁN"
-                                    : "KÍCH HOẠT";
-                                })()}
-                              </Button>
+                              {userRole !== "sales_staff" && (
+                                <>
+                                  <Tooltip title="Sửa" placement="bottom" arrow>
+                                    <IconButton
+                                      size="medium"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenEditModal(product);
+                                      }}
+                                      sx={{
+                                        color: "#ed6c02",
+                                        width: "40px",
+                                        height: "40px",
+                                        "&:hover": {
+                                          backgroundColor: "rgba(237, 108, 2, 0.1)",
+                                        },
+                                      }}
+                                    >
+                                      <EditIcon fontSize="medium" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Button
+                                    variant="contained"
+                                    color={(() => {
+                                      const status =
+                                        product.status ?? product.Status;
+                                      return status === true || status === "active"
+                                        ? "error"
+                                        : "success";
+                                    })()}
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleChangeStatus(
+                                        product,
+                                        product.status ?? product.Status
+                                          ? "active"
+                                          : "inactive"
+                                      );
+                                    }}
+                                    sx={{
+                                      minWidth: 100,
+                                      width: 100,
+                                      whiteSpace: "nowrap",
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
+                                    {(() => {
+                                      const status =
+                                        product.status ?? product.Status;
+                                      return status === true || status === "active"
+                                        ? "NGỪNG BÁN"
+                                        : "KÍCH HOẠT";
+                                    })()}
+                                  </Button>
+                                </>
+                              )}
                               <Button
                                 variant="outlined"
                                 color="info"

@@ -31,28 +31,28 @@ const AddSupplier = ({
       <DialogTitle>Thêm nhà cung cấp mới</DialogTitle>
       <Divider sx={{ opacity: 0.5 }} />
       <DialogContent sx={{ p: 3 }}>
-        {formErrors.submit && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {formErrors.submit}
-          </Alert>
-        )}
-        {successMessage && !formErrors.submit && (
+        {(() => {
+          // Debug: log values để kiểm tra
+          if (successMessage) {
+            console.log('Rendering success message:', successMessage);
+            console.log('formErrors:', formErrors);
+            console.log('formErrors.submit:', formErrors?.submit);
+          }
+          return null;
+        })()}
+        {successMessage && !formErrors?.submit && (
           <Alert 
-            severity="success" 
+            severity="success"
             sx={{ 
               mb: 2,
-              backgroundColor: '#e8f5e8 !important',
-              color: '#2e7d32 !important',
-              border: '1px solid #4caf50 !important',
-              '& .MuiAlert-icon': {
-                color: '#2e7d32 !important'
-              },
-              '& .MuiAlert-message': {
-                color: '#2e7d32 !important'
-              }
             }}
           >
             {successMessage}
+          </Alert>
+        )}
+        {formErrors?.submit && !successMessage && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {formErrors.submit}
           </Alert>
         )}
         <Grid container spacing={3} sx={{ mt: 1 }}>

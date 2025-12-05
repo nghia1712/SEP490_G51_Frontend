@@ -585,7 +585,6 @@ function ListCategory() {
                         px: 2,
                         textAlign: "left",
                         fontWeight: 600,
-                        textTransform: "uppercase",
                         letterSpacing: "0.03em",
                       }}
                     >
@@ -611,7 +610,6 @@ function ListCategory() {
                         }
                         onClick={() => handleSort("categoryName")}
                         sx={{
-                          textTransform: "uppercase",
                           fontWeight: 600,
                           letterSpacing: "0.03em",
                         }}
@@ -626,7 +624,6 @@ function ListCategory() {
                         px: 2,
                         pl: 2,
                         textAlign: "left",
-                        textTransform: "uppercase",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
                       }}
@@ -651,7 +648,6 @@ function ListCategory() {
                         }
                         onClick={() => handleSort("productCount")}
                         sx={{
-                          textTransform: "uppercase",
                           fontWeight: 600,
                           letterSpacing: "0.03em",
                           whiteSpace: "nowrap",
@@ -672,7 +668,6 @@ function ListCategory() {
                         }
                         onClick={() => handleSort("status")}
                         sx={{
-                          textTransform: "uppercase",
                           fontWeight: 600,
                           letterSpacing: "0.03em",
                         }}
@@ -693,7 +688,6 @@ function ListCategory() {
                       >
                         <span
                           style={{
-                            textTransform: "uppercase",
                             fontWeight: 600,
                             letterSpacing: "0.03em",
                           }}

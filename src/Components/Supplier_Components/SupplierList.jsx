@@ -385,7 +385,20 @@ const SupplierList = () => {
     const errors = {};
 
     // Required fields: Name, PhoneNumber, Email, Address, Status, BankAccountNumber, MyDebt
-    if (!data.name.trim()) errors.name = "Tên nhà cung cấp là bắt buộc";
+    if (!data.name.trim()) {
+      errors.name = "Tên nhà cung cấp là bắt buộc";
+    } else {
+      // Validation trùng lặp tên nhà cung cấp (không phân biệt chữ hoa chữ thường)
+      const normalizedNewName = data.name.trim().toLowerCase();
+      const duplicateName = suppliers.find((supplier) => {
+        const supplierName = (supplier.name || supplier.Name || "").trim().toLowerCase();
+        return supplierName === normalizedNewName;
+      });
+
+      if (duplicateName) {
+        errors.name = "Tên nhà cung cấp này đã tồn tại";
+      }
+    }
 
     if (!data.contact.trim()) {
       errors.contact = "Số điện thoại là bắt buộc";
@@ -403,15 +416,12 @@ const SupplierList = () => {
       errors.address = "Địa chỉ là bắt buộc";
     }
 
-    if (!data.bankAccountNumber.trim()) {
-      errors.bankAccountNumber = "Số tài khoản ngân hàng là bắt buộc";
-    } else if (!/^\d{8,20}$/.test(data.bankAccountNumber)) {
+    // bankAccountNumber và myDebt là optional - chỉ validate format nếu có giá trị
+    if (data.bankAccountNumber && data.bankAccountNumber.trim() && !/^\d{8,20}$/.test(data.bankAccountNumber.trim())) {
       errors.bankAccountNumber = "Số tài khoản chỉ gồm số và dài 8–20 ký tự";
     }
 
-    if (!data.myDebt.trim()) {
-      errors.myDebt = "Số nợ là bắt buộc";
-    } else if (!/^\d+$/.test(data.myDebt)) {
+    if (data.myDebt && data.myDebt.trim() && !/^\d+$/.test(data.myDebt.trim())) {
       errors.myDebt = "Số nợ chỉ được chứa số";
     }
 
@@ -482,77 +492,44 @@ const SupplierList = () => {
       console.log("Response status:", response?.status);
       console.log("Response data:", response?.data);
 
-      if (response?.data?.success) {
+      // Check success: status 201/200 hoặc response.data.success === true
+      const isSuccess = (response?.status === 201 || response?.status === 200) || response?.data?.success === true;
+      
+      if (isSuccess) {
         // Hiển thị thông báo thành công
         console.log("=== SUCCESS MESSAGE SET ===");
         console.log("Setting success message...");
         console.log("Create response data:", response.data);
-        console.log("Created supplier data:", response.data.data);
+        console.log("Created supplier data:", response.data?.data);
 
-        // Clear errors first và đợi một chút để đảm bảo state được update
+        // Clear errors ngay lập tức
         setFormErrors({});
         setAddLoading(false);
-
-        // Cập nhật state với dữ liệu từ API response để đảm bảo số tài khoản được cố định
-        if (response.data.data) {
-          const newSupplier = response.data.data;
-          console.log("Adding new supplier to state:", newSupplier);
-          setSuppliers((prevSuppliers) => [
-            ...prevSuppliers,
-            {
-              _id: newSupplier._id || newSupplier.id,
-              name: newSupplier.name || newSupplier.Name,
-              email: newSupplier.email || newSupplier.Email,
-              contact:
-                newSupplier.contact ||
-                newSupplier.phoneNumber ||
-                newSupplier.PhoneNumber,
-              address: newSupplier.address || newSupplier.Address,
-              status: newSupplier.status === 1 ? "active" : "inactive",
-              bankAccountNumber:
-                newSupplier.bankAccountNumber ||
-                newSupplier.BankAccountNumber ||
-                formData.bankAccountNumber,
-              myDebt:
-                newSupplier.myDebt || newSupplier.MyDebt || formData.myDebt,
-              description:
-                newSupplier.description ||
-                newSupplier.Description ||
-                formData.description,
-            },
-          ]);
-        }
-
-        // Delay nhỏ để đảm bảo formErrors được clear trước khi set successMessage
+        setAddSuccessMessage("Tạo nhà cung cấp thành công!");
+        console.log('Success message set');
+        
+        // Đóng modal và refresh danh sách sau 1.5 giây
         setTimeout(() => {
-          setAddSuccessMessage("Tạo nhà cung cấp thành công!");
-          console.log("Success message set, starting timeout...");
-
-          // Đóng modal và refresh danh sách sau 3 giây
-          setTimeout(() => {
-            console.log("=== TIMEOUT TRIGGERED ===");
-            console.log("Closing modal and refreshing...");
-            setOpenAddModal(false);
-            // Reset form
-            setFormData({
-              name: "",
-              address: "",
-              contact: "",
-              email: "",
-              description: "",
-              status: "active",
-              bankAccountNumber: "",
-              myDebt: "",
-            });
-            setFormErrors({});
-            setAddSuccessMessage("");
-            // Refresh danh sách nhà cung cấp để đảm bảo dữ liệu đồng bộ
-            fetchSuppliers();
-            console.log("Modal closed and list refreshed");
-          }, 3000);
-        }, 100); // Delay 100ms để đảm bảo formErrors được clear
+          setOpenAddModal(false);
+          // Reset form
+          setFormData({
+            name: "",
+            address: "",
+            contact: "",
+            email: "",
+            description: "",
+            status: "active",
+            bankAccountNumber: "",
+            myDebt: "",
+          });
+          setFormErrors({});
+          setAddSuccessMessage("");
+          // Refresh danh sách nhà cung cấp để đảm bảo dữ liệu đồng bộ
+          fetchSuppliers();
+        }, 1500);
       } else {
         console.error("Create failed:", response?.data);
+        setAddSuccessMessage(""); // Clear success message nếu có
         setFormErrors({
           submit:
             response?.data?.message || "Có lỗi xảy ra khi tạo nhà cung cấp",
@@ -567,6 +544,7 @@ const SupplierList = () => {
       console.error("Error data:", error.response?.data);
       console.error("=== END ERROR LOGGING ===");
 
+      setAddSuccessMessage(""); // Clear success message nếu có
       setFormErrors({
         submit:
           error?.response?.data?.message ||
@@ -727,20 +705,27 @@ const SupplierList = () => {
       console.log("Response status:", response.status);
       console.log("Response data:", response.data);
 
-      // Handle new standardized response structure with cache-busting
+      // Handle response from /api/Supplier/detail
       let products = [];
-      if (response.data?.success && response.data?.data) {
+      const responseData = response.data?.data || response.data;
+      
+      // Check if response contains products array
+      if (responseData?.products && Array.isArray(responseData.products)) {
+        products = responseData.products;
+        console.log("Found products in supplier detail - found", products.length, "products");
+      } else if (responseData?.supplierProducts && Array.isArray(responseData.supplierProducts)) {
+        products = responseData.supplierProducts;
+        console.log("Found supplierProducts in supplier detail - found", products.length, "products");
+      } else if (response.data?.success && response.data?.data && Array.isArray(response.data.data)) {
         // New format: { success: true, data: [...], total: x, timestamp: y }
         products = response.data.data;
         console.log("Using new format - found", products.length, "products");
-        console.log("Total products:", response.data.total);
-        console.log("Response timestamp:", response.data.timestamp);
       } else if (Array.isArray(response.data)) {
         // Legacy format: directly array
         products = response.data;
         console.log("Using legacy format - found", products.length, "products");
       } else {
-        console.warn("Unexpected response format:", response.data);
+        console.warn("No products found in response. Response structure:", response.data);
         products = [];
       }
 
@@ -1196,22 +1181,16 @@ const SupplierList = () => {
               </Table>
             </TableContainer>
 
-            {/* Pagination - chỉ hiện khi > 1 trang */}
+            {/* Pagination - chỉ hiện khi > 1 trang, căn phải */}
             {filteredSuppliers.length > 0 && totalPages > 1 && (
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={8} sx={{ borderBottom: "none", p: 1 }}>
-                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                      <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={(_, v) => setPage(v)}
-                        color="primary"
-                      />
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, v) => setPage(v)}
+                  color="primary"
+                />
+              </Box>
             )}
           </CardContent>
         </Card>
@@ -1387,33 +1366,6 @@ const SupplierList = () => {
                           Trạng thái
                         </Typography>
                         {getStatusChip(supplierDetails.status)}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Số tài khoản ngân hàng
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontFamily: "monospace" }}
-                        >
-                          {supplierDetails.bankAccountNumberMasked ||
-                            "Chưa cập nhật"}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        {/* <Typography variant="body2" color="text.secondary">
-                          Số nợ
-                        </Typography> */}
-                        <Typography
-                          variant="body1"
-                          sx={{ fontFamily: "monospace" }}
-                        >
-                          {supplierDetails.myDebt || supplierDetails.MyDebt
-                            ? new Intl.NumberFormat("vi-VN").format(
-                                supplierDetails.myDebt || supplierDetails.MyDebt
-                              ) + " VNĐ"
-                            : "0 VNĐ"}
-                        </Typography>
                       </Box>
                       <Box>
                         <Typography variant="body2" color="text.secondary">
