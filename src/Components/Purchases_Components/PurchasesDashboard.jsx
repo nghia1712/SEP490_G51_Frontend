@@ -88,6 +88,11 @@ const StatCard = ({ title, value, icon, color, onClick, subText }) => (
 
 function PurchasesDashboard() {
   const navigate = useNavigate();
+
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [filteredOrdersByStatus, setFilteredOrdersByStatus] = useState([]);
+
   const scrollableBodyStyle = { maxHeight: "400px", overflowY: "auto" };
   const [showLowStockModal, setShowLowStockModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -136,26 +141,33 @@ function PurchasesDashboard() {
       return "Unknown";
     }
   };
+
   useEffect(() => {
     if (!poList || !poList.length) return;
 
     const filteredPOs = poList.filter((po) => po.status !== 7);
 
-    const statusCounts = filteredPOs.reduce((acc, po) => {
+    const statusGroups = filteredPOs.reduce((acc, po) => {
       const label = statusMap[po.status]?.label || "Khác";
-      acc[label] = (acc[label] || 0) + 1;
+
+      if (!acc[label]) {
+        acc[label] = {
+          name: label,
+          value: 0,
+          orders: [],
+          color:
+            Object.values(statusMap).find((s) => s.label === label)?.color ||
+            "secondary",
+        };
+      }
+
+      acc[label].value += 1;
+      acc[label].orders.push(po);
+
       return acc;
     }, {});
 
-    const chartData = Object.entries(statusCounts).map(([name, value]) => ({
-      name,
-      value,
-      color:
-        Object.values(statusMap).find((s) => s.label === name)?.color ||
-        "#8884d8",
-    }));
-
-    setStatusChartData(chartData);
+    setStatusChartData(Object.values(statusGroups));
   }, [poList]);
 
   // ================== DATA FETCHING ==================
@@ -346,7 +358,10 @@ function PurchasesDashboard() {
     <div className="">
       <Container>
         {/* ===== Header ===== */}
-        <div style={{ marginTop: "20px" }} className="d-flex justify-content-between align-items-center mb-5">
+        <div
+          style={{ marginTop: "20px" }}
+          className="d-flex justify-content-between align-items-center mb-5"
+        >
           <div>
             <h2 className="fw-bold text-dark mb-1">
               <ShoppingBag
@@ -410,16 +425,23 @@ function PurchasesDashboard() {
         </Row>
 
         <Row className="g-4 mb-5">
-          <Col lg={8}>
+          <Col lg={12}>
             <DashboardCharts
               yearlyChartData={yearlyChartData}
               statusChartData={statusChartData}
               selectedYear={selectedYear}
               setSelectedYear={setSelectedYear}
+              getStatusBadge={getStatusBadge}
               formatCurrency={formatCurrency}
               setMonthlyOrders={setMonthlyOrders}
               setSelectedMonth={setSelectedMonth}
               setShowMonthlyChartModal={setShowMonthlyChartModal}
+              filteredOrdersByStatus={filteredOrdersByStatus}
+              setFilteredOrdersByStatus={setFilteredOrdersByStatus}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              showStatusModal={showStatusModal}
+              setShowStatusModal={setShowStatusModal}
             />
           </Col>
           <Modal
@@ -482,144 +504,13 @@ function PurchasesDashboard() {
               </Button>
             </Modal.Footer>
           </Modal>
-
-          {/* Right Column (lg=4): Cảnh báo */}
-          <Col lg={4}>
-            {/* Low Stock Alert */}
-            <Card className="border-0 shadow-sm rounded-4 mb-4">
-              <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
-                <h5 className="fw-bold mb-3 text-danger d-flex align-items-center">
-                  <Warning className="me-2" /> Tồn kho thấp
-                </h5>
-              </Card.Header>
-              <Card.Body className="p-0" style={scrollableBodyStyle}>
-                <div className="table-responsive">
-                  <Table hover className="table-borderless align-middle mb-0">
-                    <thead className="bg-light text-muted sticky-top">
-                      <tr>
-                        <th className="ps-4 py-2">Sản phẩm</th>
-                        <th className="text-center py-2">Số lượng</th>
-                        <th className="pe-4 text-end py-2">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lowStockProducts.length > 0 ? (
-                        lowStockProducts.map((p) => (
-                          <tr key={p._pid}>
-                            <td className="ps-4">
-                              <div
-                                className="fw-semibold text-truncate"
-                                style={{ maxWidth: "120px" }}
-                                title={p.productName}
-                              >
-                                {p.productName}
-                              </div>
-                            </td>
-                            <td className="text-center">
-                              <div
-                                className={`fw-bold ${
-                                  p.totalCurrentQuantity <= p.minQuantity
-                                    ? "text-danger"
-                                    : p.totalCurrentQuantity <=
-                                      p.minQuantity * 1.5
-                                    ? "text-warning"
-                                    : "text-success"
-                                }`}
-                              >
-                                Hiện tại: {p.totalCurrentQuantity}
-                              </div>
-                              <div className="text-muted small">
-                                Tối thiểu: {p.minQuantity}
-                              </div>
-                            </td>
-                            <td className="pe-4 text-end">
-                              {getStockAlert(
-                                p.totalCurrentQuantity,
-                                p.minQuantity
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className="text-center py-3 text-muted"
-                          >
-                            Tồn kho ổn định
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </Table>
-                </div>
-              </Card.Body>
-            </Card>
-
-            {/* Near Expiry */}
-            <Card className="border-0 shadow-sm rounded-4">
-              <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
-                <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
-                  <DateRange className="me-2" /> Lô hàng hạn gần nhất
-                </h5>
-              </Card.Header>
-              <Card.Body className="p-0" style={scrollableBodyStyle}>
-                <div className="table-responsive">
-                  <Table hover className="table-borderless align-middle mb-0">
-                    <thead className="bg-light text-muted sticky-top">
-                      <tr>
-                        <th className="ps-4 py-2">Sản phẩm</th>
-                        <th className="pe-4 text-end py-2">Hết hạn</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {nearestLots.length > 0 ? (
-                        nearestLots.map((lot, index) => (
-                          <tr
-                            key={lot._lotID || `${lot.productName}-${index}`}
-                            style={{ borderBottom: "1px solid #f0f0f0" }}
-                          >
-                            <td className="ps-4">
-                              <div className="fw-semibold">
-                                {lot.productName}
-                              </div>
-                              <small className="text-muted">
-                                Mã lô: {lot._lotID} • Số lượng:{" "}
-                                {lot.lotQuantity}
-                              </small>
-                            </td>
-                            <td className="pe-4 text-end text-danger fw-semibold">
-                              {new Date(lot.expiredDate).toLocaleDateString(
-                                "vi-VN"
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={2}
-                            className="text-center py-3 text-muted"
-                          >
-                            Không có cảnh báo
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </Table>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
         </Row>
 
         {/* ========================================================== */}
-        {/* ===== Bottom Area: Recent Orders (Full Width - 12/12) ===== */}
-        {/* ========================================================== */}
-        <Row className="g-4 mb-5">
-          <Col lg={12}>
-            {/* Recent Orders (Đơn hàng gần đây)*/}
-            <Card className="border-0 shadow-sm rounded-4">
+        <Row className="g-4 mb-5 align-items-stretch">
+          {/* LEFT COLUMN — 8 COLUMNS */}
+          <Col lg={8} className="d-flex">
+            <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
               <Card.Header className="bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 className="fw-bold mb-0">Đơn hàng gần đây</h5>
                 <div className="d-flex gap-2">
@@ -634,6 +525,7 @@ function PurchasesDashboard() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </InputGroup>
+
                   <Form.Select
                     size="sm"
                     className="bg-light border-0"
@@ -650,6 +542,7 @@ function PurchasesDashboard() {
                   </Form.Select>
                 </div>
               </Card.Header>
+
               <Card.Body className="p-0">
                 <div className="table-responsive">
                   <Table hover className="table-borderless align-middle mb-0">
@@ -664,6 +557,7 @@ function PurchasesDashboard() {
                         </th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {filteredOrders.length > 0 ? (
                         filteredOrders.map((order, index) => (
@@ -695,6 +589,65 @@ function PurchasesDashboard() {
                             className="text-center py-4 text-muted"
                           >
                             Không tìm thấy đơn hàng
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* RIGHT COLUMN — 4 COLUMNS */}
+          <Col lg={4} className="d-flex">
+            <Card className="border-0 shadow-sm rounded-4 flex-fill">
+              <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
+                <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
+                  <DateRange className="me-2" /> Lô hàng hạn gần nhất
+                </h5>
+              </Card.Header>
+
+              <Card.Body className="p-0" style={scrollableBodyStyle}>
+                <div className="table-responsive">
+                  <Table hover className="table-borderless align-middle mb-0">
+                    <thead className="bg-light text-muted sticky-top">
+                      <tr>
+                        <th className="ps-4 py-2">Sản phẩm</th>
+                        <th className="pe-4 text-end py-2">Hết hạn</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {nearestLots.length > 0 ? (
+                        nearestLots.map((lot, index) => (
+                          <tr
+                            key={lot._lotID || `${lot.productName}-${index}`}
+                            style={{ borderBottom: "1px solid #f0f0f0" }}
+                          >
+                            <td className="ps-4">
+                              <div className="fw-semibold">
+                                {lot.productName}
+                              </div>
+                              <small className="text-muted">
+                                Mã lô: {lot._lotID} • Số lượng:{" "}
+                                {lot.lotQuantity}
+                              </small>
+                            </td>
+                            <td className="pe-4 text-end text-danger fw-semibold">
+                              {new Date(lot.expiredDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={2}
+                            className="text-center py-3 text-muted"
+                          >
+                            Không có cảnh báo
                           </td>
                         </tr>
                       )}

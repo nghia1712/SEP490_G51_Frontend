@@ -306,7 +306,7 @@ export default function WarehouseDashboard() {
 
       <Row className="g-4 mb-5 align-items-stretch">
         <Col lg={8}>
-          <Card className="border-0 shadow-sm rounded-4 h-100">
+          <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
             <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
               <h5 className="fw-bold mb-3 text-danger d-flex align-items-center">
                 <Warning className="me-2" /> Sản phẩm chênh lệch tồn kho
