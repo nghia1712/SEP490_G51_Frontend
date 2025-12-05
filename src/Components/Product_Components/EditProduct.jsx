@@ -41,8 +41,9 @@ const EditProduct = ({
     status: false,
   });
 
-  const [productImages, setProductImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [productImages, setProductImages] = useState([]); // File objects (ảnh mới)
+  const [imagePreviews, setImagePreviews] = useState([]); // URLs để hiển thị
+  const [originalImageUrls, setOriginalImageUrls] = useState([]); // URL ảnh cũ từ backend
   const [selectedImage, setSelectedImage] = useState(null);
   const [openImageDialog, setOpenImageDialog] = useState(false);
   const [errors, setErrors] = useState({});
@@ -62,22 +63,12 @@ const EditProduct = ({
     return false;
   };
 
+  // Không cần fetch ảnh từ URL external (tránh CORS)
+  // Chỉ lưu URL để hiển thị preview, backend sẽ xử lý khi không có File mới
   const fetchImageFileFromUrl = async (url) => {
-    if (!url) return null;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const blob = await response.blob();
-      const extension = blob.type.includes("/")
-        ? `.${blob.type.split("/")[1]}`
-        : ".jpg";
-      return new File([blob], `current-image${extension}`, {
-        type: blob.type || "image/jpeg",
-      });
-    } catch (error) {
-      console.error("Không thể tải ảnh hiện tại:", error);
-      return null;
-    }
+    // Bỏ qua việc fetch để tránh CORS error
+    // URL sẽ được giữ nguyên và backend sẽ xử lý
+    return null;
   };
 
   // ------------------- useEffect để load product + ảnh -------------------
@@ -101,27 +92,30 @@ const EditProduct = ({
           status: normalizeStatus(product.status),
         });
 
-        const urls = [
+        // Xử lý URL ảnh - loại bỏ double slash và tạo full URL
+        const imageFields = [
           product.image,
           product.imageA,
           product.imageB,
           product.imageC,
           product.imageD,
           product.imageE,
-        ]
+        ];
+        
+        const urls = imageFields
           .filter(Boolean)
-          .map((u) => `https://api.bbpharmacy.site${u}`);
+          .map((u) => {
+            // Loại bỏ double slash và tạo full URL
+            const cleanPath = u.startsWith('/') ? u : `/${u}`;
+            return `https://api.bbpharmacy.site${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
+          });
 
         setImagePreviews(urls);
-
-        // Tạo file ảo từ URL để gửi lại nếu không đổi
-        const fetchAllImages = async () => {
-          const files = await Promise.all(
-            urls.map((url) => fetchImageFileFromUrl(url))
-          );
-          setProductImages(files.filter(Boolean)); // loại bỏ null
-        };
-        fetchAllImages();
+        setOriginalImageUrls(urls); // Lưu URL ảnh cũ
+        
+        // Không fetch ảnh cũ để tránh CORS error
+        // Chỉ lưu URL, khi submit sẽ chỉ gửi File mới (nếu có)
+        setProductImages([]);
       }
     } else {
       setProductData({
@@ -136,6 +130,7 @@ const EditProduct = ({
       });
       setProductImages([]);
       setImagePreviews([]);
+      setOriginalImageUrls([]);
       setErrors({});
       setLoading(false);
       setSuccessMessage("");
@@ -289,10 +284,14 @@ const EditProduct = ({
       normalizeStatus(productData.status ?? product.status) ? "true" : "false"
     );
 
+    // Gửi ảnh: chỉ gửi File mới nếu có, backend sẽ giữ nguyên ảnh cũ nếu không có File mới
     const keys = ["Image", "ImageA", "ImageB", "ImageC", "ImageD", "ImageE"];
     for (let i = 0; i < productImages.length; i++) {
-      if (productImages[i]) formData.append(keys[i], productImages[i]);
+      if (productImages[i] && productImages[i] instanceof File) {
+        formData.append(keys[i], productImages[i]);
+      }
     }
+    // Lưu ý: Nếu không có File mới, backend sẽ giữ nguyên ảnh cũ
 
     try {
       const productId = getProductIdValue(product);

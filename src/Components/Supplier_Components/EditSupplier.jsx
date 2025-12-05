@@ -367,6 +367,34 @@ const EditSupplier = ({
               }}
             />
           </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Mô tả (tùy chọn)"
+              placeholder="Nhập mô tả (tùy chọn)"
+              value={formData?.description || description}
+              onChange={(e) => {
+                if (formData && setFormData) {
+                  setFormData({ ...formData, description: e.target.value });
+                } else {
+                  setDescription(e.target.value);
+                }
+              }}
+              multiline
+              rows={3}
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "&.Mui-focused fieldset": {
+                    borderColor: currentPalette.dark,
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: currentPalette.dark,
+                },
+              }}
+            />
+          </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel sx={{ "&.Mui-focused": { color: currentPalette.dark } }}>
@@ -393,43 +421,14 @@ const EditSupplier = ({
               </Select>
             </FormControl>
           </Grid>
-          {/* <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Số nợ"
-              placeholder="Nhập số nợ (tùy chọn)"
-              value={formData?.myDebt || myDebt}
-              onChange={(e) => {
-                if (formData && setFormData) {
-                  setFormData({ ...formData, myDebt: e.target.value });
-                } else {
-                  setMyDebt(e.target.value);
-                }
-              }}
-              error={!!(formErrors?.myDebt || errors.myDebt)}
-              helperText={formErrors?.myDebt || errors.myDebt}
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
-            />
-          </Grid> */}
         </Grid>
       </DialogContent>
       <DialogActions sx={{ p: 3, backgroundColor: "#f8fafc" }}>
         <Button
           onClick={handleClose}
-          sx={{
-            color: "text.secondary",
-            "&:hover": { backgroundColor: "grey.100" },
-          }}
+          disabled={loading || Boolean(successMessage)}
+          sx={{ color: "#000" }}
+          variant="text"
         >
           Hủy
         </Button>
