@@ -69,7 +69,7 @@ export default function PRFQList() {
   const pageSize = 10;
 
   const navigate = useNavigate();
-
+  useEffect(() => setPage(1), [search]);
   useEffect(() => {
     loadData();
   }, []);

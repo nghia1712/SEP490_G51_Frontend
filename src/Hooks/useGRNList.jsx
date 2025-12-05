@@ -149,59 +149,61 @@ export default function useGRNList({ poId, autoOpenCreate }) {
   }, [autoOpenCreate]);
 
   /** ===================== Create GRN ===================== */
-const handleCreateGRN = async () => {
-  if (!selectedWarehouse || !selectedLocation) {
-    return setSnack({
-      open: true,
-      severity: "error",
-      message: "Vui lòng chọn kho và vị trí kho",
-    });
-  }
+  const handleCreateGRN = async () => {
+    if (!selectedWarehouse || !selectedLocation) {
+      return setSnack({
+        open: true,
+        severity: "error",
+        message: "Vui lòng chọn kho và vị trí kho",
+      });
+    }
 
-  if (!poItems || poItems.length === 0) {
-    return setSnack({
-      open: true,
-      severity: "error",
-      message: "Không có sản phẩm còn tồn để tạo GRN",
-    });
-  }
+    if (!poItems || poItems.length === 0) {
+      return setSnack({
+        open: true,
+        severity: "error",
+        message: "Không có sản phẩm còn tồn để tạo GRN",
+      });
+    }
 
-  const hasInvalidQuantity = poItems.some(
-    (item) => !item.quantity || Number(item.quantity) <= 0
-  );
+    const hasInvalidQuantity = poItems.some(
+      (item) => !item.quantity || Number(item.quantity) <= 0
+    );
 
-  if (hasInvalidQuantity) {
-    return setSnack({
-      open: true,
-      severity: "error",
-      message: "Số lượng sản phẩm không được để trống hoặc nhỏ hơn 0!",
-    });
-  }
+    if (hasInvalidQuantity) {
+      return setSnack({
+        open: true,
+        severity: "error",
+        message: "Số lượng sản phẩm không được để trống hoặc nhỏ hơn 0!",
+      });
+    }
 
-  const payload = { warehouseLocationId: selectedLocation };
+    const payload = { warehouseLocationId: selectedLocation };
 
-  try {
-    const res = await grnApi.createFromPO(poId, payload);
-    setSnack({
-      open: true,
-      severity: "success",
-      message: res?.data?.message || "Tạo phiếu nhập kho thành công",
-    });
-    setOpenCreate(false);
-    fetchData();
-  } catch (err) {
-    console.error(err);
-    // Lấy thông báo từ API trả về
-    const apiMessage =
-      err?.response?.data?.message || err?.response?.data?.error || err.message || "Tạo phiếu nhập kho thất bại";
-    setSnack({
-      open: true,
-      severity: "error",
-      message: apiMessage,
-    });
-  }
-};
-
+    try {
+      const res = await grnApi.createFromPO(poId, payload);
+      setSnack({
+        open: true,
+        severity: "success",
+        message: res?.data?.message || "Tạo phiếu nhập kho thành công",
+      });
+      setOpenCreate(false);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      // Lấy thông báo từ API trả về
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err.message ||
+        "Tạo phiếu nhập kho thất bại";
+      setSnack({
+        open: true,
+        severity: "error",
+        message: apiMessage,
+      });
+    }
+  };
 
   /** ===================== Download PDF ===================== */
   const handleDownloadPDF = async (grnId) => {
@@ -223,6 +225,31 @@ const handleCreateGRN = async () => {
       });
     }
   };
+
+  // Thêm vào đầu hook
+  const [importStats, setImportStats] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const fetchImportStats = async (year) => {
+    setStatsLoading(true);
+    try {
+      const res = await grnApi.getImportStatsByMonth(year);
+      setImportStats(res?.data?.monthlyData ?? []);
+    } catch (err) {
+      console.error(err);
+      setSnack({
+        open: true,
+        severity: "error",
+        message: "Không thể lấy thống kê nhập kho",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    fetchImportStats(selectedYear);
+  }, [selectedYear]);
 
   return {
     data,
@@ -251,5 +278,10 @@ const handleCreateGRN = async () => {
     handleDownloadPDF,
     snack,
     handleSnackClose,
+    importStats,
+    statsLoading,
+    selectedYear,
+    setSelectedYear,
+    fetchImportStats,
   };
 }

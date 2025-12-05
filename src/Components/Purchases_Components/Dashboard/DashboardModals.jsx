@@ -39,12 +39,17 @@ export const DashboardModals = ({
           <Modal.Title className="fw-bold">Đơn hàng chờ xử lý</Modal.Title>
         </Modal.Header>
         <Modal.Body style={modalBodyStyle}>
-          <Table striped hover responsive className="table-borderless align-middle">
+          <Table
+            striped
+            hover
+            responsive
+            className="table-borderless align-middle"
+          >
             <thead className="bg-light text-muted">
               <tr>
                 <th>Mã Đơn</th>
                 <th>Nhà cung cấp</th>
-                <th>Tổng tiền</th>
+                <th className="text-end">Tổng tiền</th>
                 <th className="text-end">Trạng thái</th>
               </tr>
             </thead>
@@ -54,7 +59,9 @@ export const DashboardModals = ({
                   <tr key={order.poid || index}>
                     <td className="fw-bold text-primary">{`PO-${order.poid}`}</td>
                     <td>{order.supplierName}</td>
-                    <td className="fw-bold">{formatCurrency(order.total)}</td>
+                    <td className="fw-bold text-end">
+                      {formatCurrency(order.total)}
+                    </td>
                     <td className="text-end">{getStatusBadge(order.status)}</td>
                   </tr>
                 ))
@@ -69,8 +76,15 @@ export const DashboardModals = ({
           </Table>
         </Modal.Body>
         <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" onClick={() => setShowPendingOrdersModal(false)}>Đóng</Button>
-          <Button variant="primary" onClick={() => navigate("/po")}>Quản lý đơn hàng</Button>
+          <Button
+            variant="light"
+            onClick={() => setShowPendingOrdersModal(false)}
+          >
+            Đóng
+          </Button>
+          <Button variant="primary" onClick={() => navigate("/po")}>
+            Quản lý đơn hàng
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -83,10 +97,17 @@ export const DashboardModals = ({
         contentClassName="border-0 rounded-4 shadow-lg"
       >
         <Modal.Header className="border-0 pb-0">
-          <Modal.Title className="fw-bold">Chi tiết chi tiêu tháng này</Modal.Title>
+          <Modal.Title className="fw-bold">
+            Chi tiết chi tiêu tháng này
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body style={modalBodyStyle}>
-          <Table striped hover responsive className="table-borderless align-middle">
+          <Table
+            striped
+            hover
+            responsive
+            className="table-borderless align-middle"
+          >
             <thead className="bg-light text-muted">
               <tr>
                 <th>Mã Đơn</th>
@@ -104,7 +125,9 @@ export const DashboardModals = ({
                       <td className="fw-bold text-primary">{`PO-${order.poid}`}</td>
                       <td>{order.supplierName}</td>
                       <td className="fw-bold">{formatCurrency(order.total)}</td>
-                      <td className="text-end">{getStatusBadge(order.status)}</td>
+                      <td className="text-end">
+                        {getStatusBadge(order.status)}
+                      </td>
                     </tr>
                   ))
               ) : (
@@ -118,7 +141,12 @@ export const DashboardModals = ({
           </Table>
         </Modal.Body>
         <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" onClick={() => setShowMonthlyOrdersModal(false)}>Đóng</Button>
+          <Button
+            variant="light"
+            onClick={() => setShowMonthlyOrdersModal(false)}
+          >
+            Đóng
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -153,14 +181,18 @@ export const DashboardModals = ({
                   .filter((s) => s.status === 1)
                   .map((s, index) => (
                     <tr key={s._id || index}>
-                      <td><div className="fw-bold">{s.name}</div></td>
+                      <td>
+                        <div className="fw-bold">{s.name}</div>
+                      </td>
                       <td>
                         <div>{s.email}</div>
                         <small className="text-muted">{s.phoneNumber}</small>
                       </td>
                       <td>{s.address}</td>
                       <td className="text-end">
-                        <Badge bg="success" pill>Hoạt động</Badge>
+                        <Badge bg="success" pill>
+                          Hoạt động
+                        </Badge>
                       </td>
                     </tr>
                   ))}
@@ -169,8 +201,16 @@ export const DashboardModals = ({
           )}
         </Modal.Body>
         <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" onClick={() => setShowSupplierModal(false)}>Đóng</Button>
-          <Button variant="info" className="text-white" onClick={() => navigate("/supplier")}>Quản lý nhà cung cấp</Button>
+          <Button variant="light" onClick={() => setShowSupplierModal(false)}>
+            Đóng
+          </Button>
+          <Button
+            variant="info"
+            className="text-white"
+            onClick={() => navigate("/supplier")}
+          >
+            Quản lý nhà cung cấp
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -207,17 +247,29 @@ export const DashboardModals = ({
                         <td className="ps-4 fw-bold text-primary">{`PO-${order.poid}`}</td>
                         <td>{order.supname}</td>
                         <td className="text-muted text-center small">
-                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString("vi-VN") : "-"}
+                          {order.orderDate
+                            ? new Date(order.orderDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "-"}
                         </td>
-                        <td className="fw-bold text-end text-danger">{formatCurrency(remaining)}</td>
-                        <td className="fw-bold text-end">{formatCurrency(order.total)}</td>
-                        <td className="pe-4 text-center">{getStatusBadge(order.status)}</td>
+                        <td className="fw-bold text-end text-danger">
+                          {formatCurrency(remaining)}
+                        </td>
+                        <td className="fw-bold text-end">
+                          {formatCurrency(order.total)}
+                        </td>
+                        <td className="pe-4 text-center">
+                          {getStatusBadge(order.status)}
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center py-4 text-muted">Không có đơn hàng</td>
+                    <td colSpan={7} className="text-center py-4 text-muted">
+                      Không có đơn hàng
+                    </td>
                   </tr>
                 )}
               </tbody>

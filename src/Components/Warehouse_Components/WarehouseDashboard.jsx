@@ -1,309 +1,460 @@
-import React, { useState, useEffect } from "react";
+// src/Components/Warehouse_Components/WarehouseDashboard.jsx
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Container,
   Row,
   Col,
   Card,
-  Button,
   Table,
   Badge,
-  Alert,
-  Form,
   Modal,
-  InputGroup,
-  ProgressBar,
+  Spinner,
 } from "react-bootstrap";
 import {
-  Warehouse,
-  TrendingUp,
   Inventory,
+  LocalShipping,
+  ShoppingCart,
   Warning,
-  CheckCircle,
-  Add,
-  Search,
-  FilterList,
-  SwapVert,
+  Storage,
+  DateRange,
 } from "@mui/icons-material";
-import { FaWarehouse, FaBox, FaExclamationTriangle, FaPlus, FaSearch, FaArrowsAltV, FaChartLine } from "react-icons/fa";
 
-function WarehouseDashboard() {
-  const [warehouseData, setWarehouseData] = useState({
-    totalProducts: 0,
-    totalShelves: 0,
-    lowStockItems: 0,
-    expiredItems: 0,
-    shelfUtilization: [],
-    recentMovements: [],
+import useWarehouse from "../../Hooks/useWarehouse";
+import usePO from "../../Hooks/usePO";
+import useGRNList from "../../Hooks/useGRNList";
+import useGIN from "../../Hooks/useGIN";
+import useProduct from "../../Hooks/useProduct";
+import warehouseAPI from "../../API/warehouseAPI";
+import { WarehouseDashboardModals } from "./Dashboard/WarehouseDashboardModals";
+import { WarehouseCharts } from "./Dashboard/WarehouseCharts";
+
+// ================= UI HELPER COMPONENTS =================
+const StatCard = ({ title, value, icon, color, onClick, subText }) => (
+  <Card
+    className="border-0 shadow-sm h-100"
+    onClick={onClick}
+    style={{
+      cursor: onClick ? "pointer" : "default",
+      transition: "transform 0.2s, box-shadow 0.2s",
+    }}
+    onMouseEnter={(e) => {
+      if (onClick) {
+        e.currentTarget.style.transform = "translateY(-5px)";
+        e.currentTarget.style.boxShadow = "0 .5rem 1rem rgba(0,0,0,.15)";
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (onClick) {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 .125rem .25rem rgba(0,0,0,.075)";
+      }
+    }}
+  >
+    <Card.Body className="d-flex align-items-center p-4">
+      <div
+        className={`d-flex align-items-center justify-content-center rounded-circle bg-${color} bg-opacity-10 me-3`}
+        style={{ width: "60px", height: "60px", minWidth: "60px" }}
+      >
+        {React.cloneElement(icon, {
+          className: `text-${color}`,
+          style: { fontSize: "30px" },
+        })}
+      </div>
+      <div>
+        <p
+          className="text-muted mb-1 text-uppercase fw-semibold"
+          style={{ fontSize: "0.8rem" }}
+        >
+          {title}
+        </p>
+        <h4 className="fw-bold mb-0 text-dark">{value}</h4>
+        {subText && <small className="text-muted">{subText}</small>}
+      </div>
+    </Card.Body>
+  </Card>
+);
+
+export default function WarehouseDashboard() {
+  const scrollableBodyStyle = { maxHeight: "400px", overflowY: "auto" };
+  const [nearestLots, setNearestLots] = useState([]);
+  const [discrepancyProducts, setDiscrepancyProducts] = useState([]);
+  // ================= HOOKS =================
+  const { products, loading: loadingWarehouse } = useWarehouse();
+  const { poList, loading: loadingPO, fullyReceivedPOs = [] } = usePO();
+  const [autoOpenCreate] = useState(false);
+  const [showPendingGINModal, setShowPendingGINModal] = useState(false);
+  const [showPendingPOModal, setShowPendingPOModal] = useState(false);
+
+  const { data: grnList, loading: loadingGRN } = useGRNList({
+    poId: null,
+    autoOpenCreate: autoOpenCreate,
   });
+  const { fetchProductsWithNearestLot } = useProduct();
+  const { data: ginList, loading: loadingGIN } = useGIN();
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
-  const [showAddMovementModal, setShowAddMovementModal] = useState(false);
-  const [showStocktakingModal, setShowStocktakingModal] = useState(false);
-  const [searchTerm, setFaSearchTerm] = useState("");
-  const [filterType, setFaFilterType] = useState("all");
+  const handleMonthChange = (e) => {
+    setSelectedMonth(Number(e.target.value));
+  };
 
-  // Mock data - trong thực tế sẽ fetch từ API
+  const loading = loadingWarehouse || loadingPO || loadingGRN || loadingGIN;
+
+  // ================= STATE =================
+  const [showLowStockModal, setShowLowStockModal] = useState(false);
+  const [showNearExpiryModal, setShowNearExpiryModal] = useState(false);
+
+  // ================= SUMMARY VALUES =================
+  const pendingGINCount = useMemo(
+    () => ginList.filter((g) => g.status === 1).length,
+    [ginList]
+  );
+
+  const pendingPOCount = useMemo(
+    () =>
+      poList.filter(
+        (p) =>
+          ![1, 6, 7].includes(p.status) && !fullyReceivedPOs.includes(p.poid)
+      ).length,
+    [poList, fullyReceivedPOs]
+  );
+
+  const pendingGRNQty = useMemo(
+    () => grnList.reduce((sum, grn) => sum + (grn.totalQuantity || 0), 0),
+    [grnList]
+  );
+  const pendingGINQty = useMemo(
+    () => ginList.reduce((sum, gin) => sum + (gin.totalQuantity || 0), 0),
+    [ginList]
+  );
+
   useEffect(() => {
-    setWarehouseData({
-      totalProducts: 156,
-      totalShelves: 24,
-      lowStockItems: 8,
-      expiredItems: 3,
-      shelfUtilization: [
-        { name: "Kệ A1", utilization: 85, products: 12, maxCapacity: 15 },
-        { name: "Kệ A2", utilization: 60, products: 9, maxCapacity: 15 },
-        { name: "Kệ B1", utilization: 95, products: 14, maxCapacity: 15 },
-        { name: "Kệ B2", utilization: 40, products: 6, maxCapacity: 15 },
-        { name: "Kệ C1", utilization: 70, products: 10, maxCapacity: 15 },
-      ],
-      recentMovements: [
-        {
-          id: 1,
-          type: "import",
-          product: "Paracetamol 500mg",
-          quantity: 100,
-          shelf: "Kệ A1",
-          user: "Nguyễn Văn A",
-          date: "2024-01-15 14:30",
-        },
-        {
-          id: 2,
-          type: "export",
-          product: "Amoxicillin 250mg",
-          quantity: 50,
-          shelf: "Kệ B1",
-          user: "Trần Thị B",
-          date: "2024-01-15 15:45",
-        },
-        {
-          id: 3,
-          type: "transfer",
-          product: "Vitamin C 1000mg",
-          quantity: 25,
-          shelf: "Kệ A2 → Kệ C1",
-          user: "Lê Văn C",
-          date: "2024-01-15 16:20",
-        },
-        {
-          id: 4,
-          type: "import",
-          product: "Aspirin 81mg",
-          quantity: 75,
-          shelf: "Kệ B2",
-          user: "Phạm Thị D",
-          date: "2024-01-15 17:10",
-        },
-      ],
-    });
+    const fetchAllDiscrepancyProducts = async () => {
+      try {
+        // 1️⃣ Lấy tất cả phiên kiểm kê
+        const allSessionsRes = await warehouseAPI.getAllSession();
+        const allSessions = allSessionsRes.data?.data || []; // ✅ đảm bảo là array
+
+        if (!Array.isArray(allSessions)) {
+          console.error("allSessions is not an array:", allSessions);
+          return;
+        }
+
+        const allProducts = [];
+
+        // 2️⃣ Duyệt từng session để lấy danh sách chênh lệch
+        for (const session of allSessions) {
+          const compRes = await warehouseAPI.getHistoriesBySessionId(
+            session.inventorySessionID
+          );
+          const products = compRes.data?.data || []; // ✅ đảm bảo là array
+          console.log(
+            "Fetched products for session",
+            session.inventorySessionID,
+            products
+          );
+          const filtered = products
+            .map((p) => ({
+              ...p,
+              discrepancy: p.diff ?? 0,
+            }))
+            .filter((p) => p.discrepancy !== 0);
+
+          allProducts.push(...filtered);
+        }
+
+        setDiscrepancyProducts(allProducts);
+      } catch (err) {
+        console.error("Failed to fetch discrepancy products:", err);
+      }
+    };
+
+    fetchAllDiscrepancyProducts();
   }, []);
 
-  const getMovementBadge = (type) => {
-    const variants = {
-      import: "success",
-      export: "warning",
-      transfer: "info",
-      adjustment: "secondary",
+  const filteredDiscrepancyProducts = useMemo(() => {
+    return discrepancyProducts.filter((p) => {
+      const updatedMonth = new Date(p.lastUpdated).getMonth() + 1;
+      return updatedMonth === selectedMonth;
+    });
+  }, [discrepancyProducts, selectedMonth]);
+
+  useEffect(() => {
+    const loadProductKPIs = async () => {
+      try {
+        const nearest = await fetchProductsWithNearestLot();
+        const filteredNearest = nearest.filter(
+          (lot) => (lot.lotQuantity || 0) > 0
+        );
+        setNearestLots(filteredNearest);
+      } catch (err) {
+        console.error("Failed to fetch product KPIs:", err);
+      }
     };
-    const labels = {
-      import: "Nhập kho",
-      export: "Xuất kho",
-      transfer: "Chuyển kho",
-      adjustment: "Điều chỉnh",
-    };
+    loadProductKPIs();
+  }, []);
+
+  // ================= DISCREPANCY PRODUCTS =================
+  const productsWithDiscrepancy = useMemo(
+    () =>
+      products
+        .filter((p) => p.stock !== p.realStock)
+        .map((p) => ({
+          ...p,
+          discrepancy: Math.abs((p.stock || 0) - (p.realStock || 0)),
+        })),
+    [products]
+  );
+
+  // ================= HELPERS =================
+  const getStockAlert = (current, min) => {
+    if (current <= min)
+      return (
+        <Badge bg="danger" className="text-uppercase">
+          Cảnh báo
+        </Badge>
+      );
+    if (current <= min * 1.5)
+      return (
+        <Badge bg="warning" text="dark" className="text-uppercase">
+          Sắp hết
+        </Badge>
+      );
     return (
-      <Badge bg={variants[type] || "secondary"}>
-        {labels[type] || type}
+      <Badge bg="success" className="text-uppercase">
+        Đủ
       </Badge>
     );
   };
 
-  const getUtilizationColor = (utilization) => {
-    if (utilization >= 90) return "danger";
-    if (utilization >= 70) return "warning";
-    if (utilization >= 50) return "info";
-    return "success";
-  };
-
-  const filteredMovements = warehouseData.recentMovements.filter((movement) => {
-    const matchesFaSearch = movement.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         movement.shelf.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         movement.user.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFaFilter = filterType === "all" || movement.type === filterType;
-    return matchesFaSearch && matchesFaFilter;
-  });
+  // ================= RENDER =================
+  if (loading) {
+    return (
+      <Container
+        className="d-flex justify-content-center align-items-center"
+        style={{ minHeight: "80vh" }}
+      >
+        <Spinner
+          animation="border"
+          variant="primary"
+          style={{ width: "3rem", height: "3rem" }}
+        />
+      </Container>
+    );
+  }
 
   return (
-    <Container className="mt-4">
-      <Row className="mb-4">
-        <Col>
-          <h2 className="text-primary">
-            <FaWarehouse className="me-2" />
-            Dashboard Kho Hàng
-          </h2>
-          <p className="text-muted">Quản lý kho hàng và xuất nhập tồn kho</p>
+    <Container>
+      <div
+        className="d-flex justify-content-between align-items-center mb-5"
+        style={{ marginTop: "20px" }}
+      >
+        <div>
+          <h2 className="fw-bold text-dark mb-1">Thống kê kho</h2>
+          <h4 className="text-muted mb-0">
+            Tổng quan hoạt động nhập và xuất kho
+          </h4>
+        </div>
+      </div>
+
+      <Row className="g-4 mb-5">
+        <Col md={6} lg={3}>
+          <StatCard
+            title="Phiếu xuất chờ xử lý"
+            value={pendingGINCount}
+            icon={<Inventory />}
+            color="warning"
+            onClick={() => setShowPendingGINModal(true)}
+          />
+        </Col>
+        <Col md={6} lg={3}>
+          <StatCard
+            title="Đơn hàng chờ nhập kho"
+            value={pendingPOCount}
+            icon={<ShoppingCart />}
+            color="info"
+            onClick={() => setShowPendingPOModal(true)}
+          />
+        </Col>
+        <Col md={6} lg={3}>
+          <StatCard
+            title="Hàng nhập chờ"
+            value={pendingGRNQty}
+            icon={<LocalShipping />}
+            color="primary"
+          />
+        </Col>
+        <Col md={6} lg={3}>
+          <StatCard
+            title="Hàng xuất chờ"
+            value={pendingGINQty}
+            icon={<Storage />}
+            color="secondary"
+          />
         </Col>
       </Row>
 
-      {/* Thống kê tổng quan */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center h-100">
-            <Card.Body>
-              <FaBox className="text-primary mb-2" size={32} />
-              <h5 className="text-primary">{warehouseData.totalProducts}</h5>
-              <p className="text-muted mb-0">Tổng sản phẩm</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center h-100">
-            <Card.Body>
-              <FaWarehouse className="text-info mb-2" size={32} />
-              <h5 className="text-info">{warehouseData.totalShelves}</h5>
-              <p className="text-muted mb-0">Tổng số kệ</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center h-100">
-            <Card.Body>
-              <FaExclamationTriangle className="text-warning mb-2" size={32} />
-              <h5 className="text-warning">{warehouseData.lowStockItems}</h5>
-              <p className="text-muted mb-0">Sản phẩm sắp hết</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center h-100">
-            <Card.Body>
-              <FaExclamationTriangle className="text-danger mb-2" size={32} />
-              <h5 className="text-danger">{warehouseData.expiredItems}</h5>
-              <p className="text-muted mb-0">Sản phẩm hết hạn</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Sử dụng kệ và hoạt động gần đây */}
-      <Row className="mb-4">
-        <Col md={6}>
-          <Card>
-            <Card.Header>
-              <h5 className="mb-0">Sử dụng kệ hàng</h5>
+      <Row className="g-4 mb-5 align-items-stretch">
+        <Col lg={8}>
+          <Card className="border-0 shadow-sm rounded-4 h-100">
+            <Card.Header className="bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+              <h5 className="fw-bold mb-3 text-danger d-flex align-items-center">
+                <Warning className="me-2" /> Sản phẩm chênh lệch tồn kho
+              </h5>
+              <select
+                className="form-select w-auto"
+                value={selectedMonth}
+                onChange={handleMonthChange}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    Tháng {m}
+                  </option>
+                ))}
+              </select>
             </Card.Header>
-            <Card.Body>
-              <Table striped hover>
-                <thead>
+
+            <Card.Body
+              className="p-0"
+              style={{ ...scrollableBodyStyle, minHeight: "400px" }}
+            >
+              <Table hover className="table-borderless align-middle mb-0">
+                <thead className="bg-light text-muted sticky-top">
                   <tr>
-                    <th>Kệ</th>
-                    <th>Sản phẩm</th>
-                    <th>Sử dụng</th>
-                    <th>Trạng thái</th>
+                    <th className="ps-4 py-2" style={{ width: "25%" }}>
+                      Sản phẩm
+                    </th>
+                    <th className="text-end py-2" style={{ width: "10%" }}>
+                      Tồn kho
+                    </th>
+                    <th className="text-end py-2" style={{ width: "10%" }}>
+                      Thực tế
+                    </th>
+                    <th className="text-end py-2" style={{ width: "15%" }}>
+                      Chênh lệch
+                    </th>
+                    <th className="py-2 text-center" style={{ width: "15%" }}>
+                      Trạng thái
+                    </th>
+                    <th
+                      className="py-2 text-center"
+                      style={{ width: "25%", paddingRight: "2rem" }}
+                    >
+                      Ghi chú
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {warehouseData.shelfUtilization.map((shelf, index) => (
-                    <tr key={index}>
-                      <td>{shelf.name}</td>
-                      <td>
-                        <Badge bg="secondary">{shelf.products}/{shelf.maxCapacity}</Badge>
-                      </td>
-                      <td>
-                        <ProgressBar
-                          now={shelf.utilization}
-                          variant={getUtilizationColor(shelf.utilization)}
-                          style={{ width: "100px" }}
-                        />
-                        <small className="ms-2">{shelf.utilization}%</small>
-                      </td>
-                      <td>
-                        {shelf.utilization >= 90 ? (
-                          <Badge bg="danger">Đầy</Badge>
-                        ) : shelf.utilization >= 70 ? (
-                          <Badge bg="warning">Sắp đầy</Badge>
-                        ) : (
-                          <Badge bg="success">Ổn định</Badge>
-                        )}
+                  {filteredDiscrepancyProducts.length > 0 ? (
+                    filteredDiscrepancyProducts.map((p, index) => {
+                      const diff = p.diff ?? p.discrepancy ?? 0;
+                      const status =
+                        diff < 0 ? "Thiếu" : diff > 0 ? "Thừa" : "Đúng";
+                      const statusColor =
+                        diff < 0
+                          ? "danger"
+                          : diff > 0
+                          ? "success"
+                          : "secondary";
+
+                      return (
+                        <tr key={`${p.productID}-${p.lotID}-${index}`}>
+
+                          <td className="ps-4">
+                            <div className="fw-semibold">{p.productName}</div>
+                            <small className="text-muted">
+                              Mã lô: {p.lotID}
+                            </small>
+                          </td>
+                          <td className="text-end">{p.systemQuantity}</td>
+                          <td className="text-end">{p.actualQuantity}</td>
+                          <td
+                            className={`text-end fw-semibold ${
+                              diff < 0
+                                ? "text-danger"
+                                : diff > 0
+                                ? "text-success"
+                                : "text-muted"
+                            }`}
+                          >
+                            {diff}
+                          </td>
+                          {/* Cột trạng thái */}
+                          <td className="text-center">
+                            <Badge bg={statusColor}>{status}</Badge>
+                          </td>
+                          {/* Cột note */}
+                          <td style={{ paddingRight: "2rem" }}>
+                            <small className="text-muted text-end">
+                              {p.note || "Không có ghi chú"}
+                            </small>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="text-center py-3 text-muted">
+                        Không có sản phẩm chênh lệch
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </Table>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Hoạt động gần đây */}
-        <Col md={6}>
-          <Card>
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Hoạt động gần đây</h5>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setShowAddMovementModal(true)}
-              >
-                <FaPlus size={16} className="me-1" />
-                Thêm hoạt động
-              </Button>
+        <Col lg={4}>
+          <Card className="border-0 shadow-sm rounded-4 h-100">
+            <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
+              <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
+                <DateRange className="me-2" />5 Lô hàng hạn gần nhất
+              </h5>
             </Card.Header>
-            <Card.Body>
-              {/* Tìm kiếm và lọc */}
-              <Row className="mb-3">
-                <Col md={8}>
-                  <InputGroup>
-                    <InputGroup.Text>
-                      <FaSearch size={16} />
-                    </InputGroup.Text>
-                    <Form.Control
-                      placeholder="Tìm kiếm sản phẩm, kệ hoặc người dùng..."
-                      value={searchTerm}
-                      onChange={(e) => setFaSearchTerm(e.target.value)}
-                    />
-                  </InputGroup>
-                </Col>
-                <Col md={4}>
-                  <Form.Select
-                    value={filterType}
-                    onChange={(e) => setFaFilterType(e.target.value)}
-                  >
-                    <option value="all">Tất cả loại</option>
-                    <option value="import">Nhập kho</option>
-                    <option value="export">Xuất kho</option>
-                    <option value="transfer">Chuyển kho</option>
-                    <option value="adjustment">Điều chỉnh</option>
-                  </Form.Select>
-                </Col>
-              </Row>
-
-              <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-                <Table striped hover size="sm">
-                  <thead>
+            <Card.Body
+              className="p-0"
+              style={{ ...scrollableBodyStyle, minHeight: "400px" }}
+            >
+              <div className="table-responsive">
+                <Table hover className="table-borderless align-middle mb-0">
+                  <thead className="bg-light text-muted sticky-top">
                     <tr>
-                      <th>Loại</th>
-                      <th>Sản phẩm</th>
-                      <th>Số lượng</th>
-                      <th>Kệ</th>
-                      <th>Người thực hiện</th>
+                      <th className="ps-4 py-2">Sản phẩm</th>
+                      <th className="text-center py-2">Số lượng</th>
+                      <th className="pe-4 text-end py-2">Hết hạn</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMovements.map((movement) => (
-                      <tr key={movement.id}>
-                        <td>{getMovementBadge(movement.type)}</td>
-                        <td>
-                          <small>{movement.product}</small>
-                        </td>
-                        <td>
-                          <Badge bg="secondary">{movement.quantity}</Badge>
-                        </td>
-                        <td>
-                          <small>{movement.shelf}</small>
-                        </td>
-                        <td>
-                          <small>{movement.user}</small>
+                    {nearestLots.length > 0 ? (
+                      nearestLots.map((lot, index) => (
+                        <tr
+                          key={lot._lotID || `${lot.productName}-${index}`}
+                          style={{ borderBottom: "1px solid #f0f0f0" }}
+                        >
+                          <td className="ps-4">
+                            <div className="fw-semibold">{lot.productName}</div>
+                            <small className="text-muted">
+                              Mã lô: {lot._lotID}
+                            </small>
+                          </td>
+                          <td className="text-end fw-semibold">
+                            {lot.lotQuantity}
+                          </td>
+                          <td className="pe-4 text-end text-danger fw-semibold">
+                            {new Date(lot.expiredDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="text-center py-3 text-muted">
+                          Không có cảnh báo
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </Table>
               </div>
@@ -311,89 +462,22 @@ function WarehouseDashboard() {
           </Card>
         </Col>
       </Row>
-
-      {/* Các hành động nhanh */}
-      <Row>
-        <Col>
-          <Card>
-            <Card.Header>
-              <h5 className="mb-0">Hành động nhanh</h5>
-            </Card.Header>
-            <Card.Body>
-              <Row>
-                <Col md={3}>
-                  <Button
-                    variant="success"
-                    className="w-100 mb-2"
-                    onClick={() => setShowAddMovementModal(true)}
-                  >
-                    <FaArrowsAltV className="me-2" />
-                    Xuất nhập kho
-                  </Button>
-                </Col>
-                <Col md={3}>
-                  <Button
-                    variant="info"
-                    className="w-100 mb-2"
-                    onClick={() => setShowStocktakingModal(true)}
-                  >
-                    <FaCheckCircle className="me-2" />
-                    Kiểm kê kho
-                  </Button>
-                </Col>
-                <Col md={3}>
-                  <Button variant="warning" className="w-100 mb-2">
-                    <FaExclamationTriangle className="me-2" />
-                    Cảnh báo tồn kho
-                  </Button>
-                </Col>
-                <Col md={3}>
-                  <Button variant="primary" className="w-100 mb-2">
-                    <FaChartLine className="me-2" />
-                    Báo cáo kho
-                  </Button>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
+      <WarehouseDashboardModals
+        showPendingGINModal={showPendingGINModal}
+        setShowPendingGINModal={setShowPendingGINModal}
+        showPendingPOModal={showPendingPOModal}
+        setShowPendingPOModal={setShowPendingPOModal}
+        ginList={ginList.filter((g) => g.status === 1)}
+        poList={poList.filter(
+          (p) =>
+            ![1, 6, 7].includes(p.status) && !fullyReceivedPOs.includes(p.poid)
+        )}
+      />
+      <Row className="g-4 mb-5">
+        <Col lg={12}>
+          <WarehouseCharts />
         </Col>
       </Row>
-
-      {/* Modal xuất nhập kho */}
-      <Modal show={showAddMovementModal} onHide={() => setShowAddMovementModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Xuất nhập kho</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Alert variant="info">
-            Tính năng này sẽ được phát triển trong phiên bản tiếp theo.
-          </Alert>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddMovementModal(false)}>
-            Đóng
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Modal kiểm kê kho */}
-      <Modal show={showStocktakingModal} onHide={() => setShowStocktakingModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Kiểm kê kho</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Alert variant="info">
-            Tính năng này sẽ được phát triển trong phiên bản tiếp theo.
-          </Alert>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowStocktakingModal(false)}>
-            Đóng
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 }
-
-export default WarehouseDashboard;

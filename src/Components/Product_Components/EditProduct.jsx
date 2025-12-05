@@ -431,6 +431,7 @@ const EditProduct = ({
             >
               {/* Button thêm ảnh */}
               <Button
+                disabled={loading}
                 variant="outlined"
                 component="label"
                 color={errors.productImage ? "error" : "primary"}
@@ -452,8 +453,15 @@ const EditProduct = ({
                 </FormHelperText>
               )}
 
-              {/* Danh sách ảnh */}
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                  pointerEvents: loading ? "none" : "auto", // disable toàn bộ khi loading
+                  opacity: loading ? 0.6 : 1, // làm mờ khi loading (tuỳ chọn)
+                }}
+              >
                 {imagePreviews.length > 0 ? (
                   imagePreviews.map((img, index) => (
                     <Box
@@ -477,7 +485,6 @@ const EditProduct = ({
                         {`Ảnh ${index + 1}`}
                       </Button>
 
-                      {/* Icon Xóa */}
                       <IconButton
                         size="small"
                         sx={{
