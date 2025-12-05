@@ -521,18 +521,18 @@ function Header() {
               </>
             ) : (
               visibleNavItems.map((item) => (
-                <Button
-                  key={item.path}
-                  color="inherit"
-                  onClick={() => handleNavigate(item.path)}
-                  sx={
-                    isActiveNavItem(item.path)
-                      ? activeNavStyle
-                      : navButtonHoverStyle
-                  }
-                >
-                  {item.label}
-                </Button>
+              <Button
+                key={item.path}
+                color="inherit"
+                onClick={() => handleNavigate(item.path)}
+                sx={
+                  isActiveNavItem(item.path)
+                    ? activeNavStyle
+                    : navButtonHoverStyle
+                }
+              >
+                {item.label}
+              </Button>
               ))
             )}
           </Box>
