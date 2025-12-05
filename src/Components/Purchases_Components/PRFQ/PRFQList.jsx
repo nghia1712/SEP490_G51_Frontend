@@ -66,7 +66,7 @@ export default function PRFQList() {
     prfqId: null,
   });
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   const navigate = useNavigate();
   useEffect(() => setPage(1), [search]);

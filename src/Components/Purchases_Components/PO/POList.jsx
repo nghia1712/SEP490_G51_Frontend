@@ -77,7 +77,7 @@ export default function POList() {
     fetchPOs,
   } = usePO();
   const [page, setPage] = React.useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
   const userRole = getUserRoleFromToken();
   const [receivingStatusFilter, setReceivingStatusFilter] = React.useState("");
   const [orderStatusFilter, setOrderStatusFilter] = React.useState("");
