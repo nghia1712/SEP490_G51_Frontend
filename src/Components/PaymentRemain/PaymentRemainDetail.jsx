@@ -99,13 +99,13 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
   ];
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle
+    <Dialog className="payment-remain-detail-dialog" open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle className="payment-remain-detail-dialog-title"
         sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: "bold" }}
       >
         Chi tiết yêu cầu thanh toán
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 2 }}>
+      <DialogContent className="payment-remain-detail-dialog-content" dividers sx={{ p: 2 }}>
         <Table size="small">
           <TableBody>
             {detailRows.map(([label, value, color, bold], idx) => (

@@ -25,6 +25,7 @@ const Footer = () => {
   return (
     <Box
       component="footer"
+      className="app-footer-mui"
       sx={{
         backgroundColor: palette.medium,
         color: palette.white,

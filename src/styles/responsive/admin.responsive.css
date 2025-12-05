@@ -1,0 +1,191 @@
+/* ============================================
+   Admin Components Responsive Styles (MUI + Bootstrap)
+   ============================================ */
+
+/* Bootstrap Detail Modal Responsive */
+.user-detail-modal .modal-dialog {
+  margin: 10px;
+}
+
+.user-detail-modal .modal-content {
+  border-radius: 12px;
+}
+
+.user-detail-modal .modal-body {
+  padding: 15px;
+}
+
+/* Avatar Column - Mobile */
+@media (max-width: 768px) {
+  .user-detail-modal .col-md-3 {
+    margin-bottom: 20px;
+  }
+
+  .user-detail-modal .col-md-9 {
+    width: 100%;
+  }
+
+  .user-detail-modal .row .col-sm-4,
+  .user-detail-modal .row .col-sm-8 {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .user-detail-modal .row .col-sm-4 {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+}
+
+/* Customer Document Images Responsive */
+.customer-document-image {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+}
+
+.customer-document-container {
+  max-width: 100%;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .customer-document-container {
+    max-width: 100%;
+  }
+
+  .customer-document-image {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+  }
+
+  .customer-document-label {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-document-image {
+    max-height: 150px;
+  }
+}
+
+/* Modal Size Responsive */
+@media (max-width: 768px) {
+  .user-detail-modal.modal-lg {
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 576px) {
+  .user-detail-modal.modal-lg {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .user-detail-modal .modal-content {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}
+
+/* Image Preview Modal Responsive */
+.image-preview-modal .modal-body img {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .image-preview-modal .modal-dialog {
+    margin: 10px;
+  }
+
+  .image-preview-modal .modal-body img {
+    max-height: 60vh;
+  }
+}
+
+@media (max-width: 576px) {
+  .image-preview-modal .modal-dialog {
+    margin: 5px;
+  }
+
+  .image-preview-modal .modal-body img {
+    max-height: 50vh;
+  }
+}
+
+/* Create Staff Modal Responsive */
+.create-staff-modal .modal-xl {
+  max-width: 95%;
+}
+
+@media (max-width: 992px) {
+  .create-staff-modal .modal-xl {
+    max-width: 98%;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-staff-modal .modal-xl {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .create-staff-modal .modal-content {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}
+
+/* Table Responsive */
+@media (max-width: 768px) {
+  .user-list-table {
+    font-size: 0.85rem;
+  }
+
+  .user-list-table th,
+  .user-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .user-list-table {
+    font-size: 0.75rem;
+  }
+
+  .user-list-table th,
+  .user-list-table td {
+    padding: 6px 2px;
+  }
+}
+
+/* Filter Section Responsive */
+@media (max-width: 768px) {
+  .user-filter-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .user-filter-section .form-control,
+  .user-filter-section .form-select {
+    width: 100% !important;
+  }
+}
+
+/* Action Buttons Responsive */
+@media (max-width: 576px) {
+  .user-action-buttons {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .user-action-buttons .btn {
+    width: 100%;
+    font-size: 0.8rem;
+  }
+}
+

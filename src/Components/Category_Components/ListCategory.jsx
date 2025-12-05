@@ -437,21 +437,23 @@ function ListCategory() {
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
           {/* Title */}
-          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <Box className="category-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <CategoryIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
             <Typography
               variant="h4"
+              className="category-list-title"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
             >
               Danh mục thuốc
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" color="text.secondary" className="category-list-count">
               Tổng: {filteredCategories.length} danh mục
             </Typography>
           </Box>
 
           {/* FILTER */}
           <Paper
+            className="category-list-filter-container"
             sx={{
               p: 2,
               mb: 3,
@@ -566,16 +568,17 @@ function ListCategory() {
 
           {/* Table */}
           {!loading && (
+            <div className="category-list-table-container">
             <TableContainer
               component={Paper}
               sx={{
                 boxShadow: 2,
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
                 borderRadius: 2,
-                overflow: "hidden",
+                overflowX: "auto",
               }}
             >
-              <Table sx={{ tableLayout: "fixed" }}>
+              <Table className="category-list-table" sx={{ tableLayout: "fixed", minWidth: 800 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableCell
@@ -1071,6 +1074,7 @@ function ListCategory() {
                 </Box>
               )}
             </TableContainer>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1145,7 +1145,7 @@ const ListAllUsers = ({ roleGroup }) => {
                 <Card className="shadow-sm mt-3" style={{ backgroundColor: "#A8E6CF", padding: '5px', borderRadius: '15px' }}>
                     <Card.Body>
 
-                        <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div className="d-flex justify-content-between align-items-center mb-3 user-filter-section">
                             <Form className="d-flex gap-2 align-items-center" style={{ minHeight: '38px', width: '100%' }}>
                                 {isStaffView ? (
                                     <>
@@ -1215,7 +1215,7 @@ const ListAllUsers = ({ roleGroup }) => {
                         </div>
 
                         <div style={{ overflowY: 'auto', maxHeight: '620px' }}>
-                        <Table striped bordered hover responsive className="text-center" style={{ width: "100%", tableLayout: "fixed", fontSize: '1rem', lineHeight: 1.6 }}>
+                        <Table striped bordered hover responsive className="text-center user-list-table" style={{ width: "100%", tableLayout: "fixed", fontSize: '1rem', lineHeight: 1.6 }}>
                             <thead style={{ backgroundColor: "#A8E6CF", position: "sticky", top: 0, zIndex: 1 }}>
                                 <tr>
                                     <th style={indexColStyle}>#</th>
@@ -1315,7 +1315,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                 )}
                                                 {isStaffView ? (
                                                     <td style={actionColStyle}>
-                                                        <div className="d-flex align-items-center justify-content-center gap-3" data-row-action>
+                                                        <div className="d-flex align-items-center justify-content-center gap-3 user-action-buttons" data-row-action>
                                                             <Button variant="warning" size="sm" onClick={() => setEditingUser(user)} style={{ opacity: (!getIsActive(user)) ? 0.5 : 1, padding: "2px 6px", fontSize: "0.8rem" }} disabled={!getIsActive(user)}>
                                                                 <FaEdit /> Sửa
                                                             </Button>
@@ -1386,7 +1386,7 @@ const ListAllUsers = ({ roleGroup }) => {
                 </Card>
             )}
             {/* Detail Modal */}
-            <Modal show={isDetailOpen} onHide={() => setIsDetailOpen(false)} centered size="lg">
+            <Modal show={isDetailOpen} onHide={() => setIsDetailOpen(false)} centered size="lg" className="user-detail-modal">
                 <Modal.Header closeButton>
                     <Modal.Title>Thông tin tài khoản</Modal.Title>
                 </Modal.Header>
@@ -1489,7 +1489,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                             );
                                                             if (!imageCnkdUrl) return null;
                                                             return (
-                                                                <div style={{ maxWidth: '200px', cursor: 'pointer' }}
+                                                                <div className="customer-document-container" style={{ cursor: 'pointer' }}
                                                                     onClick={() =>
                                                                         setImagePreview({
                                                                             show: true,
@@ -1498,15 +1498,14 @@ const ListAllUsers = ({ roleGroup }) => {
                                                                         })
                                                                     }
                                                                 >
-                                                                    <div className="text-center fw-semibold mb-1">
+                                                                    <div className="text-center fw-semibold mb-1 customer-document-label">
                                                                         Ảnh CNKD
                                                                     </div>
                                                                     <img
                                                                         src={imageCnkdUrl}
                                                                         alt="Ảnh CNKD"
+                                                                        className="customer-document-image"
                                                                         style={{
-                                                                            width: '200px',
-                                                                            height: '150px',
                                                                             objectFit: 'contain',
                                                                             border: '1px solid #e0e0e0',
                                                                             borderRadius: '8px',
@@ -1525,7 +1524,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                                             );
                                                             if (!imageBytUrl) return null;
                                                             return (
-                                                                <div style={{ maxWidth: '200px', cursor: 'pointer' }}
+                                                                <div className="customer-document-container" style={{ cursor: 'pointer' }}
                                                                     onClick={() =>
                                                                         setImagePreview({
                                                                             show: true,
@@ -1534,15 +1533,14 @@ const ListAllUsers = ({ roleGroup }) => {
                                                                         })
                                                                     }
                                                                 >
-                                                                    <div className="text-center fw-semibold mb-1">
+                                                                    <div className="text-center fw-semibold mb-1 customer-document-label">
                                                                         Ảnh BYT
                                                                     </div>
                                                                     <img
                                                                         src={imageBytUrl}
                                                                         alt="Ảnh BYT"
+                                                                        className="customer-document-image"
                                                                         style={{
-                                                                            width: '200px',
-                                                                            height: '150px',
                                                                             objectFit: 'contain',
                                                                             border: '1px solid #e0e0e0',
                                                                             borderRadius: '8px',
@@ -1640,6 +1638,7 @@ const ListAllUsers = ({ roleGroup }) => {
                 onHide={() => setImagePreview({ show: false, url: null, title: "" })}
                 centered
                 size="lg"
+                className="image-preview-modal"
             >
                 <Modal.Header closeButton>
                     <Modal.Title>{imagePreview.title || "Xem ảnh"}</Modal.Title>
@@ -1663,7 +1662,7 @@ const ListAllUsers = ({ roleGroup }) => {
 
             {/* Chỉ cho phép tạo nhân viên trong trang nhân viên */}
             {isStaffView && (
-                <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl" contentClassName="p-0">
+                <Modal show={isCreateOpen} onHide={() => setIsCreateOpen(false)} centered size="xl" contentClassName="p-0" className="create-staff-modal">
                     <Modal.Body className="p-4">
                         <CreateStaff 
                             onClose={() => setIsCreateOpen(false)} 

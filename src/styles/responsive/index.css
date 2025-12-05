@@ -1,0 +1,77 @@
+/* ============================================
+   Responsive Styles Index
+   Import all responsive CSS files
+   ============================================ */
+
+@import './common.responsive.css';
+@import './admin.responsive.css';
+@import './product.responsive.css';
+@import './category.responsive.css';
+@import './sales.responsive.css';
+@import './purchases.responsive.css';
+@import './warehouse.responsive.css';
+@import './customer.responsive.css';
+@import './supplier.responsive.css';
+@import './invoice.responsive.css';
+@import './payment-remain.responsive.css';
+@import './user.responsive.css';
+@import './guest.responsive.css';
+@import './utils.responsive.css';
+
+/* ============================================
+   Global Responsive Utilities
+   ============================================ */
+
+/* Common breakpoints */
+:root {
+  --breakpoint-xs: 576px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1400px;
+}
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* Show only on mobile */
+.show-on-mobile {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .show-on-mobile {
+    display: block !important;
+  }
+}
+
+/* Responsive text */
+@media (max-width: 768px) {
+  .responsive-text {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .responsive-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* Responsive spacing */
+@media (max-width: 768px) {
+  .responsive-padding {
+    padding: 10px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .responsive-padding {
+    padding: 5px !important;
+  }
+}
+

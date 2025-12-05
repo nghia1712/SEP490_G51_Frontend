@@ -1,0 +1,174 @@
+/* ============================================
+   User Components Responsive Styles
+   (EditProfile, ViewProfile, ChangePassword)
+   ============================================ */
+
+/* Edit Profile Form Responsive - Bootstrap */
+.edit-profile-wrapper {
+  padding: 20px !important;
+}
+
+.edit-profile-container {
+  padding: 20px !important;
+}
+
+@media (max-width: 768px) {
+  .edit-profile-wrapper {
+    padding: 10px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .edit-profile-wrapper {
+    padding: 5px !important;
+  }
+}
+
+.edit-profile-form .form-group {
+  margin-bottom: 20px;
+}
+
+.edit-profile-form .form-label {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.edit-profile-form .form-control,
+.edit-profile-form .form-select {
+  width: 100%;
+}
+
+.edit-profile-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.edit-profile-avatar-preview {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ddd;
+}
+
+.edit-profile-avatar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@media (max-width: 1200px) {
+  .edit-profile-container {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .edit-profile-container {
+    padding: 15px 10px;
+  }
+
+  .edit-profile-form .row {
+    margin: 0;
+  }
+
+  .edit-profile-form .col-md-6,
+  .edit-profile-form .col-md-4,
+  .edit-profile-form .col-md-3,
+  .edit-profile-avatar-col,
+  .edit-profile-form-col {
+    width: 100% !important;
+    padding: 0 10px;
+    margin-bottom: 15px;
+  }
+
+  .edit-profile-row {
+    flex-direction: column;
+  }
+
+  .edit-profile-avatar-section {
+    margin-bottom: 20px;
+  }
+
+  .edit-profile-avatar-preview {
+    width: 120px;
+    height: 120px;
+  }
+
+  .edit-profile-avatar-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .edit-profile-avatar-actions .btn {
+    width: 100%;
+  }
+
+  .edit-profile-form .btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .edit-profile-container {
+    padding: 10px 5px;
+  }
+
+  .edit-profile-avatar-preview {
+    width: 100px;
+    height: 100px;
+  }
+
+  .edit-profile-form .form-control,
+  .edit-profile-form .form-select {
+    font-size: 0.9rem;
+  }
+
+  .edit-profile-form .form-label {
+    font-size: 0.9rem;
+  }
+}
+
+/* View Profile Responsive */
+.view-profile-container {
+  padding: 20px;
+}
+
+.view-profile-info-section {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .view-profile-container {
+    padding: 15px 10px;
+  }
+
+  .view-profile-info-section {
+    margin-bottom: 15px;
+  }
+}
+
+/* Change Password Responsive */
+.change-password-container {
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .change-password-container {
+    padding: 15px 10px;
+  }
+
+  .change-password-form .form-group {
+    margin-bottom: 15px;
+  }
+
+  .change-password-form .btn {
+    width: 100%;
+  }
+}
+

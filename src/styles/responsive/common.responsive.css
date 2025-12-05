@@ -1,0 +1,136 @@
+/* ============================================
+   Common Responsive Styles for All List Components
+   ============================================ */
+
+/* Generic List Table Container */
+[class*="-list-table-container"] {
+  width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+[class*="-list-table"] {
+  min-width: 800px;
+}
+
+[class*="-list-title"] {
+  font-size: 2rem;
+}
+
+[class*="-list-title-container"] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+[class*="-list-count"] {
+  white-space: nowrap;
+}
+
+[class*="-list-filter-container"] {
+  width: 100%;
+}
+
+[class*="-list-filter-container"] .MuiStack-root {
+  flex-wrap: wrap;
+}
+
+[class*="-list-filter-container"] .MuiTextField-root,
+[class*="-list-filter-container"] .MuiFormControl-root {
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 1200px) {
+  [class*="-list-table"] {
+    font-size: 0.9rem;
+  }
+
+  [class*="-list-table"] .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  [class*="-list-table-container"] {
+    overflow-x: scroll !important;
+  }
+
+  [class*="-list-table"] {
+    min-width: 1000px !important;
+    font-size: 0.8rem !important;
+  }
+
+  [class*="-list-table"] .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  [class*="-list-table"] .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  [class*="-list-title"] {
+    font-size: 1.5rem !important;
+  }
+
+  [class*="-list-title-container"] {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  [class*="-list-count"] {
+    font-size: 0.9rem !important;
+  }
+
+  [class*="-list-filter-container"] {
+    padding: 12px !important;
+  }
+
+  [class*="-list-filter-container"] .MuiStack-root {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  [class*="-list-filter-container"] .MuiTextField-root,
+  [class*="-list-filter-container"] .MuiFormControl-root {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  [class*="-list-filter-container"] .MuiButton-root {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  [class*="-list-table"] {
+    min-width: 1200px !important;
+    font-size: 0.7rem !important;
+  }
+
+  [class*="-list-table"] .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  [class*="-list-table"] .MuiTableCell-head {
+    font-size: 0.65rem !important;
+  }
+
+  [class*="-list-title"] {
+    font-size: 1.25rem !important;
+  }
+
+  [class*="-list-count"] {
+    font-size: 0.8rem !important;
+  }
+
+  [class*="-list-filter-container"] {
+    padding: 8px !important;
+  }
+}
+

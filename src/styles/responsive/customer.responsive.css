@@ -1,0 +1,575 @@
+/* ============================================
+   Customer Components Responsive Styles
+   ============================================ */
+
+/* Customer Order List - MUI Table Responsive */
+.customer-order-list-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.customer-order-list-title {
+  font-size: 2rem !important;
+}
+
+@media (max-width: 768px) {
+  .customer-order-list-title {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-order-list-title {
+    font-size: 1.25rem !important;
+  }
+}
+
+.customer-order-list-table {
+  min-width: 800px !important;
+}
+
+@media (max-width: 1200px) {
+  .customer-order-list-table {
+    font-size: 0.9rem !important;
+  }
+
+  .customer-order-list-table .MuiTableCell-root {
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-order-list-container {
+    overflow-x: scroll !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .customer-order-list-table {
+    min-width: 1000px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .customer-order-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .customer-order-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-order-list-table {
+    min-width: 1200px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .customer-order-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .customer-order-list-table .MuiTableCell-head {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Customer List Table Responsive (Bootstrap) */
+@media (max-width: 1200px) {
+  .customer-list-table {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-list-table {
+    font-size: 0.85rem;
+  }
+
+  .customer-list-table th,
+  .customer-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-list-table {
+    font-size: 0.75rem;
+  }
+
+  .customer-list-table th,
+  .customer-list-table td {
+    padding: 6px 2px;
+  }
+}
+
+/* Customer Modal Responsive */
+.customer-modal .modal-dialog {
+  margin: 10px;
+}
+
+@media (max-width: 768px) {
+  .customer-modal .modal-lg {
+    max-width: 95%;
+  }
+
+  .customer-modal .modal-xl {
+    max-width: 98%;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-modal .modal-lg,
+  .customer-modal .modal-xl {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .customer-modal .modal-content {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}
+
+/* Customer Form Responsive */
+@media (max-width: 768px) {
+  .customer-form .row {
+    margin: 0;
+  }
+
+  .customer-form .col-md-6,
+  .customer-form .col-md-4,
+  .customer-form .col-md-3 {
+    width: 100%;
+    padding: 0 10px;
+    margin-bottom: 15px;
+  }
+}
+
+/* Customer Dashboard Responsive */
+@media (max-width: 768px) {
+  .customer-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Customer Order/Invoice Details Responsive */
+.customer-details-container {
+  display: flex;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .customer-details-container {
+    flex-direction: column;
+  }
+}
+
+/* Customer Search and Filter Responsive */
+@media (max-width: 768px) {
+  .customer-search-filter {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .customer-search-filter .form-control,
+  .customer-search-filter .form-select {
+    width: 100% !important;
+  }
+}
+
+/* Customer Order Filter - MUI Responsive */
+.customer-order-filter-container {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 768px) {
+  .customer-order-filter-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .customer-order-filter-container .MuiFormControl-root {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .customer-order-filter-container .MuiInputBase-root {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-order-filter-container {
+    gap: 10px !important;
+  }
+}
+
+/* Customer Additional Info Form Responsive */
+@media (max-width: 768px) {
+  .customer-additional-info-form {
+    padding: 15px;
+  }
+
+  .customer-additional-info-form .form-group {
+    margin-bottom: 15px;
+  }
+}
+
+/* Customer Request Quotation List Responsive */
+.customer-request-quotation-list-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.customer-request-quotation-list-title {
+  font-size: 2rem !important;
+}
+
+.customer-request-quotation-list-table {
+  min-width: 1000px !important;
+}
+
+.customer-request-quotation-filter-container {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 768px) {
+  .customer-request-quotation-list-title {
+    font-size: 1.5rem !important;
+  }
+
+  .customer-request-quotation-list-container {
+    overflow-x: scroll !important;
+  }
+
+  .customer-request-quotation-list-table {
+    min-width: 1200px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .customer-request-quotation-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .customer-request-quotation-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .customer-request-quotation-filter-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .customer-request-quotation-filter-container .MuiFormControl-root,
+  .customer-request-quotation-filter-container .MuiButton-root {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-request-quotation-list-title {
+    font-size: 1.25rem !important;
+  }
+
+  .customer-request-quotation-list-table {
+    min-width: 1400px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .customer-request-quotation-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Customer Invoice List Responsive */
+.customer-invoice-list-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.customer-invoice-list-title {
+  font-size: 2rem !important;
+}
+
+.customer-invoice-list-table {
+  min-width: 1000px !important;
+}
+
+.customer-invoice-filter-container {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .customer-invoice-list-title {
+    font-size: 1.5rem !important;
+  }
+
+  .customer-invoice-list-container {
+    overflow-x: scroll !important;
+  }
+
+  .customer-invoice-list-table {
+    min-width: 1200px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .customer-invoice-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .customer-invoice-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .customer-invoice-filter-container {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .customer-invoice-filter-container .MuiFormControl-root {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-invoice-list-title {
+    font-size: 1.25rem !important;
+  }
+
+  .customer-invoice-list-table {
+    min-width: 1400px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .customer-invoice-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Customer Dialog/Modal Responsive - MUI */
+.customer-order-detail-dialog .MuiDialog-paper,
+.customer-order-payment-dialog .MuiDialog-paper,
+.customer-order-reject-reason-dialog .MuiDialog-paper,
+.customer-request-quotation-detail-dialog .MuiDialog-paper,
+.customer-request-quotation-edit-dialog .MuiDialog-paper,
+.customer-request-quotation-create-dialog .MuiDialog-paper,
+.customer-request-quotation-selection-dialog .MuiDialog-paper,
+.customer-request-quotation-quotation-detail-dialog .MuiDialog-paper,
+.customer-request-quotation-order-form-dialog .MuiDialog-paper,
+.customer-invoice-payment-dialog .MuiDialog-paper {
+  margin: 16px;
+}
+
+.customer-order-detail-dialog-content,
+.customer-order-payment-dialog-content,
+.customer-order-reject-reason-dialog-content,
+.customer-request-quotation-detail-dialog-content,
+.customer-request-quotation-edit-dialog-content,
+.customer-request-quotation-create-dialog-content,
+.customer-request-quotation-selection-dialog-content,
+.customer-request-quotation-quotation-detail-dialog-content,
+.customer-request-quotation-order-form-dialog-content,
+.customer-invoice-payment-dialog-content {
+  padding: 16px 24px;
+}
+
+@media (max-width: 768px) {
+  .customer-order-detail-dialog .MuiDialog-paper,
+  .customer-order-payment-dialog .MuiDialog-paper,
+  .customer-order-reject-reason-dialog .MuiDialog-paper,
+  .customer-request-quotation-detail-dialog .MuiDialog-paper,
+  .customer-request-quotation-edit-dialog .MuiDialog-paper,
+  .customer-request-quotation-create-dialog .MuiDialog-paper,
+  .customer-request-quotation-selection-dialog .MuiDialog-paper,
+  .customer-request-quotation-quotation-detail-dialog .MuiDialog-paper,
+  .customer-request-quotation-order-form-dialog .MuiDialog-paper,
+  .customer-invoice-payment-dialog .MuiDialog-paper {
+    margin: 8px !important;
+    max-width: calc(100% - 16px) !important;
+  }
+
+  .customer-order-detail-dialog .MuiDialog-paperWidthXl,
+  .customer-order-payment-dialog .MuiDialog-paperWidthMd,
+  .customer-request-quotation-quotation-detail-dialog .MuiDialog-paperWidthLg,
+  .customer-request-quotation-order-form-dialog .MuiDialog-paperWidthXl {
+    max-width: calc(100% - 16px) !important;
+  }
+
+  .customer-order-detail-dialog-title,
+  .customer-order-payment-dialog-title,
+  .customer-order-reject-reason-dialog-title,
+  .customer-request-quotation-detail-dialog-title,
+  .customer-request-quotation-edit-dialog-title,
+  .customer-request-quotation-create-dialog-title,
+  .customer-request-quotation-selection-dialog-title,
+  .customer-request-quotation-quotation-detail-dialog-title,
+  .customer-request-quotation-order-form-dialog-title,
+  .customer-invoice-payment-dialog-title {
+    padding: 12px 16px !important;
+    font-size: 1.1rem !important;
+  }
+
+  .customer-order-detail-dialog-content,
+  .customer-order-payment-dialog-content,
+  .customer-order-reject-reason-dialog-content,
+  .customer-request-quotation-detail-dialog-content,
+  .customer-request-quotation-edit-dialog-content,
+  .customer-request-quotation-create-dialog-content,
+  .customer-request-quotation-selection-dialog-content,
+  .customer-request-quotation-quotation-detail-dialog-content,
+  .customer-request-quotation-order-form-dialog-content,
+  .customer-invoice-payment-dialog-content {
+    padding: 12px 16px !important;
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Layout columns trong dialog chuyển sang column trên mobile */
+  .customer-order-detail-info-layout,
+  .customer-order-payment-info-layout,
+  .customer-request-quotation-detail-info-layout,
+  .customer-request-quotation-edit-info-layout,
+  .customer-request-quotation-quotation-detail-info-layout,
+  .customer-request-quotation-order-form-info-layout,
+  .customer-invoice-payment-info-layout {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .customer-order-detail-info-layout .MuiBox-root[style*="flex: 1"],
+  .customer-order-payment-info-layout .MuiBox-root[style*="flex: 1"],
+  .customer-request-quotation-detail-info-layout .MuiBox-root[style*="flex: 1"],
+  .customer-request-quotation-edit-info-layout .MuiBox-root[style*="flex: 1"],
+  .customer-invoice-payment-info-layout .MuiBox-root[style*="flex: 1"] {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .customer-order-detail-dialog-content .MuiTableContainer-root,
+  .customer-request-quotation-quotation-detail-dialog-content .MuiTableContainer-root,
+  .customer-request-quotation-order-form-dialog-content .MuiTableContainer-root {
+    overflow-x: auto !important;
+  }
+
+  .customer-order-detail-dialog-content .MuiTable-root,
+  .customer-request-quotation-quotation-detail-dialog-content .MuiTable-root,
+  .customer-request-quotation-order-form-dialog-content .MuiTable-root {
+    min-width: 800px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .customer-order-detail-dialog-content .MuiTableCell-root,
+  .customer-request-quotation-quotation-detail-dialog-content .MuiTableCell-root,
+  .customer-request-quotation-order-form-dialog-content .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .customer-order-detail-dialog .MuiDialogActions-root,
+  .customer-order-payment-dialog .MuiDialogActions-root,
+  .customer-order-reject-reason-dialog .MuiDialogActions-root,
+  .customer-request-quotation-detail-dialog .MuiDialogActions-root,
+  .customer-request-quotation-edit-dialog .MuiDialogActions-root,
+  .customer-request-quotation-create-dialog .MuiDialogActions-root,
+  .customer-request-quotation-selection-dialog .MuiDialogActions-root,
+  .customer-request-quotation-quotation-detail-dialog .MuiDialogActions-root,
+  .customer-request-quotation-order-form-dialog .MuiDialogActions-root,
+  .customer-invoice-payment-dialog .MuiDialogActions-root {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 8px 16px 12px !important;
+  }
+
+  .customer-order-detail-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-order-payment-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-order-reject-reason-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-detail-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-edit-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-create-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-selection-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-quotation-detail-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-request-quotation-order-form-dialog .MuiDialogActions-root .MuiButton-root,
+  .customer-invoice-payment-dialog .MuiDialogActions-root .MuiButton-root {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .customer-order-detail-dialog .MuiDialog-paper,
+  .customer-order-payment-dialog .MuiDialog-paper,
+  .customer-order-reject-reason-dialog .MuiDialog-paper,
+  .customer-request-quotation-detail-dialog .MuiDialog-paper,
+  .customer-request-quotation-edit-dialog .MuiDialog-paper,
+  .customer-request-quotation-create-dialog .MuiDialog-paper,
+  .customer-request-quotation-selection-dialog .MuiDialog-paper,
+  .customer-request-quotation-quotation-detail-dialog .MuiDialog-paper,
+  .customer-request-quotation-order-form-dialog .MuiDialog-paper,
+  .customer-invoice-payment-dialog .MuiDialog-paper {
+    margin: 0 !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  .customer-order-detail-dialog-title,
+  .customer-order-payment-dialog-title,
+  .customer-order-reject-reason-dialog-title,
+  .customer-request-quotation-detail-dialog-title,
+  .customer-request-quotation-edit-dialog-title,
+  .customer-request-quotation-create-dialog-title,
+  .customer-request-quotation-selection-dialog-title,
+  .customer-request-quotation-quotation-detail-dialog-title,
+  .customer-request-quotation-order-form-dialog-title,
+  .customer-invoice-payment-dialog-title {
+    padding: 10px 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .customer-order-detail-dialog-content,
+  .customer-order-payment-dialog-content,
+  .customer-order-reject-reason-dialog-content,
+  .customer-request-quotation-detail-dialog-content,
+  .customer-request-quotation-edit-dialog-content,
+  .customer-request-quotation-create-dialog-content,
+  .customer-request-quotation-selection-dialog-content,
+  .customer-request-quotation-quotation-detail-dialog-content,
+  .customer-request-quotation-order-form-dialog-content,
+  .customer-invoice-payment-dialog-content {
+    padding: 10px 12px !important;
+    max-height: calc(100vh - 120px) !important;
+  }
+
+  .customer-order-detail-dialog-content .MuiTable-root,
+  .customer-request-quotation-quotation-detail-dialog-content .MuiTable-root,
+  .customer-request-quotation-order-form-dialog-content .MuiTable-root {
+    min-width: 1000px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .customer-order-detail-dialog-content .MuiTableCell-root,
+  .customer-request-quotation-quotation-detail-dialog-content .MuiTableCell-root,
+  .customer-request-quotation-order-form-dialog-content .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+}
+

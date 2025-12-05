@@ -1,0 +1,155 @@
+/* ============================================
+   Supplier Components Responsive Styles (MUI)
+   ============================================ */
+
+/* Supplier List Table Responsive - MUI */
+.supplier-list-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.supplier-list-table {
+  min-width: 800px;
+}
+
+.supplier-list-title {
+  font-size: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .supplier-list-table {
+    font-size: 0.9rem;
+  }
+
+  .supplier-list-table .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .supplier-list-table-container {
+    overflow-x: scroll;
+  }
+
+  .supplier-list-table {
+    min-width: 1000px;
+    font-size: 0.8rem;
+  }
+
+  .supplier-list-table .MuiTableCell-root {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .supplier-list-table .MuiTableCell-head {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .supplier-list-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .supplier-list-table {
+    min-width: 1200px;
+    font-size: 0.7rem;
+  }
+
+  .supplier-list-table .MuiTableCell-root {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+  }
+
+  .supplier-list-table .MuiTableCell-head {
+    font-size: 0.65rem;
+  }
+
+  .supplier-list-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Supplier Modal/Dialog Responsive - MUI */
+.supplier-modal-mui .MuiDialog-paper {
+  margin: 16px;
+}
+
+@media (max-width: 768px) {
+  .supplier-modal-mui .MuiDialog-paper {
+    margin: 8px;
+    max-width: calc(100% - 16px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .supplier-modal-mui .MuiDialog-paper {
+    margin: 0;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+  }
+}
+
+/* Supplier Form Responsive - MUI */
+.supplier-form-mui .MuiGrid-container {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .supplier-form-mui .MuiGrid-item {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+}
+
+/* Supplier Search and Filter Responsive - MUI */
+.supplier-search-filter-mui {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .supplier-search-filter-mui {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .supplier-search-filter-mui .MuiTextField-root,
+  .supplier-search-filter-mui .MuiFormControl-root {
+    width: 100% !important;
+  }
+}
+
+/* Bootstrap Legacy Support */
+@media (max-width: 1200px) {
+  .supplier-list-table {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .supplier-list-table {
+    font-size: 0.85rem;
+  }
+
+  .supplier-list-table th,
+  .supplier-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .supplier-list-table {
+    font-size: 0.75rem;
+  }
+
+  .supplier-list-table th,
+  .supplier-list-table td {
+    padding: 6px 2px;
+  }
+}

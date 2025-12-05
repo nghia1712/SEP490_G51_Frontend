@@ -17,6 +17,14 @@ import {
   Chip,
   IconButton,
   Avatar,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
@@ -27,6 +35,7 @@ import WarehouseIcon from "@mui/icons-material/Warehouse";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 
 const palette = {
   dark: "#155E64",
@@ -119,10 +128,16 @@ function Header() {
   const currentToken = localStorage.getItem("authToken");
   const userRole = getUserRole() || "guest";
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
   const [productMenuAnchor, setProductMenuAnchor] = useState(null);
   const [orderMenuAnchor, setOrderMenuAnchor] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileProductMenuOpen, setMobileProductMenuOpen] = useState(false);
+  const [mobileOrderMenuOpen, setMobileOrderMenuOpen] = useState(false);
 
   const { getProfile } = useUser();
 
@@ -393,9 +408,25 @@ function Header() {
   const handleOrderMenuOpen = (e) => setOrderMenuAnchor(e.currentTarget);
   const handleOrderMenuClose = () => setOrderMenuAnchor(null);
 
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleMobileMenuClose = () => {
+    setMobileMenuOpen(false);
+    setMobileProductMenuOpen(false);
+    setMobileOrderMenuOpen(false);
+  };
+
+  const handleMobileNavigate = (path) => {
+    handleNavigate(path);
+    handleMobileMenuClose();
+  };
+
   return (
     <AppBar
       position="sticky"
+      className="app-header-mui"
       sx={{
         top: 0,
         zIndex: 1100,
@@ -415,7 +446,8 @@ function Header() {
             Nhà thuốc số 17
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
+          {/* Desktop Navigation */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: 1, ml: 3 }}>
             {userRole === "purchases_staff" ? (
               <>
                 {/* Tổng quan */}
@@ -583,7 +615,20 @@ function Header() {
 
           <Box sx={{ flexGrow: 1 }} />
 
+          {/* Right Section - Always Visible (Desktop & Mobile) */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Hamburger Menu Button - Mobile Only */}
+            {isMobile && (
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                onClick={handleMobileMenuToggle}
+                sx={{ padding: '4px' }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            
             {currentToken ? (
               <>
                 <NotificationMenu />
@@ -609,8 +654,8 @@ function Header() {
                                 }}
                                 sx={{
                                   cursor: "pointer",
-                                  width: 40,
-                                  height: 40,
+                                  width: { xs: 32, md: 40 },
+                                  height: { xs: 32, md: 40 },
                                   border: `2px solid ${roleInfo.color}`,
                                   "&:hover": {
                                     opacity: 0.8,
@@ -622,20 +667,22 @@ function Header() {
                                 icon={<IconComponent />}
                                 label={roleInfo.label}
                                 onClick={userRole !== "admin" && userRole !== "manager" ? () => navigate("/profile") : undefined}
-                                size="medium"
+                                size={isMobile ? "small" : "medium"}
                                 sx={{
                                   backgroundColor: roleInfo.bgColor,
                                   color: roleInfo.color,
                                   fontWeight: 600,
                                   cursor: userRole !== "admin" && userRole !== "manager" ? "pointer" : "default",
                                   "& .MuiChip-icon": { color: roleInfo.color },
+                                  fontSize: { xs: '0.7rem', md: '0.875rem' },
+                                  height: { xs: 24, md: 32 },
                                 }}
                               />
                             )}
                           </Tooltip>
                           <Tooltip title="Đăng xuất">
                             <IconButton
-                              size="small"
+                              size={isMobile ? "small" : "medium"}
                               onClick={handleLogout}
                               sx={{
                                 color: roleInfo.color,
@@ -644,9 +691,10 @@ function Header() {
                                   backgroundColor: roleInfo.bgColor,
                                   opacity: 0.9,
                                 },
+                                padding: { xs: '4px', md: '8px' },
                               }}
                             >
-                              <LogoutIcon fontSize="small" />
+                              <LogoutIcon fontSize={isMobile ? "small" : "medium"} />
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -658,9 +706,12 @@ function Header() {
               <>
                 <Button
                   variant="contained"
+                  size={isMobile ? "small" : "medium"}
                   sx={{
                     backgroundColor: palette.dark,
                     "&:hover": { backgroundColor: "#104c50" },
+                    fontSize: { xs: '0.75rem', md: '0.875rem' },
+                    padding: { xs: '4px 8px', md: '6px 16px' },
                   }}
                   onClick={() => navigate("/login")}
                 >
@@ -668,10 +719,13 @@ function Header() {
                 </Button>
                 <Button
                   variant="outlined"
+                  size={isMobile ? "small" : "medium"}
                   sx={{
-                    ml: 2,
+                    ml: { xs: 1, md: 2 },
                     color: palette.white,
                     borderColor: palette.white,
+                    fontSize: { xs: '0.75rem', md: '0.875rem' },
+                    padding: { xs: '4px 8px', md: '6px 16px' },
                   }}
                   onClick={() => navigate("/register")}
                 >
@@ -682,6 +736,151 @@ function Header() {
           </Box>
         </Toolbar>
       </Container>
+
+      {/* Mobile Drawer Menu */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={handleMobileMenuClose}
+        className="mobile-header-drawer"
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 220,
+            boxSizing: 'border-box',
+            backgroundColor: '#f5f5f5',
+          },
+        }}
+      >
+        <Box sx={{ width: 220, pt: 2 }}>
+          {/* User Info Section */}
+          {currentToken && profile && (
+            <>
+              <Box sx={{ px: 2, pb: 2, borderBottom: '1px solid #e0e0e0' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {(() => {
+                    const roleInfo = getRoleInfo(userRole);
+                    const IconComponent = roleInfo.IconComponent;
+                    return userRole === "customer" ? (
+                      <Avatar
+                        src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
+                        alt={profile?.fullName || profile?.FullName || "Khách hàng"}
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          border: `2px solid ${roleInfo.color}`,
+                        }}
+                      />
+                    ) : (
+                      <Chip
+                        icon={<IconComponent />}
+                        label={roleInfo.label}
+                        size="small"
+                        sx={{
+                          backgroundColor: roleInfo.bgColor,
+                          color: roleInfo.color,
+                          fontWeight: 600,
+                        }}
+                      />
+                    );
+                  })()}
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {profile?.fullName || profile?.FullName || "Người dùng"}
+                  </Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+
+          {/* Navigation Items */}
+          <List>
+            {userRole === "purchases_staff" ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleMobileNavigate(purchasesStaffMenuItems.overview.path)}
+                    selected={isActiveNavItem(purchasesStaffMenuItems.overview.path)}
+                  >
+                    <ListItemText primary={purchasesStaffMenuItems.overview.label} />
+                  </ListItemButton>
+                </ListItem>
+                
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => setMobileProductMenuOpen(!mobileProductMenuOpen)}
+                  >
+                    <ListItemText primary={purchasesStaffMenuItems.productManagement.label} />
+                    <ArrowDropDownIcon sx={{ transform: mobileProductMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                  </ListItemButton>
+                </ListItem>
+                {mobileProductMenuOpen && (
+                  <List component="div" disablePadding>
+                    {purchasesStaffMenuItems.productManagement.items.map((item) => (
+                      <ListItem key={item.path} disablePadding>
+                        <ListItemButton
+                          sx={{ pl: 4 }}
+                          onClick={() => handleMobileNavigate(item.path)}
+                          selected={isActiveNavItem(item.path)}
+                        >
+                          <ListItemText primary={item.label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => setMobileOrderMenuOpen(!mobileOrderMenuOpen)}
+                  >
+                    <ListItemText primary={purchasesStaffMenuItems.orderManagement.label} />
+                    <ArrowDropDownIcon sx={{ transform: mobileOrderMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                  </ListItemButton>
+                </ListItem>
+                {mobileOrderMenuOpen && (
+                  <List component="div" disablePadding>
+                    {purchasesStaffMenuItems.orderManagement.items.map((item) => (
+                      <ListItem key={item.path} disablePadding>
+                        <ListItemButton
+                          sx={{ pl: 4 }}
+                          onClick={() => handleMobileNavigate(item.path)}
+                          selected={isActiveNavItem(item.path)}
+                        >
+                          <ListItemText primary={item.label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </>
+            ) : (
+              visibleNavItems.map((item) => (
+                <ListItem key={item.path} disablePadding>
+                  <ListItemButton
+                    onClick={() => handleMobileNavigate(item.path)}
+                    selected={isActiveNavItem(item.path)}
+                  >
+                    <ListItemText primary={item.label} />
+                  </ListItemButton>
+                </ListItem>
+              ))
+            )}
+          </List>
+
+          <Divider />
+
+          {/* Actions Section - Only Profile Link (Logout is in header) */}
+          {currentToken && userRole !== "admin" && userRole !== "manager" && (
+            <List>
+              <ListItem disablePadding>
+                <ListItemButton onClick={() => handleMobileNavigate("/profile")}>
+                  <ListItemText primary="Tài khoản" />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          )}
+        </Box>
+      </Drawer>
     </AppBar>
   );
 }

@@ -1,0 +1,218 @@
+/* ============================================
+   Payment Remain Components Responsive Styles
+   ============================================ */
+
+/* Payment Remain List Table Responsive - MUI */
+.payment-remain-list-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payment-remain-list-title {
+  font-size: 2rem !important;
+}
+
+.payment-remain-list-title-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.payment-remain-list-table {
+  min-width: 1000px !important;
+}
+
+.payment-remain-filter-container {
+  width: 100%;
+}
+
+.payment-remain-filter-container .MuiStack-root {
+  flex-wrap: wrap;
+}
+
+.payment-remain-filter-container .MuiTextField-root,
+.payment-remain-filter-container .MuiSelect-root,
+.payment-remain-filter-container .MuiButton-root {
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 1200px) {
+  .payment-remain-list-table {
+    font-size: 0.9rem !important;
+  }
+
+  .payment-remain-list-table .MuiTableCell-root {
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .payment-remain-list-title {
+    font-size: 1.5rem !important;
+  }
+
+  .payment-remain-list-title-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .payment-remain-list-container {
+    overflow-x: scroll !important;
+  }
+
+  .payment-remain-list-table {
+    min-width: 1200px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .payment-remain-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .payment-remain-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .payment-remain-filter-container {
+    padding: 12px !important;
+  }
+
+  .payment-remain-filter-container .MuiStack-root {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .payment-remain-filter-container .MuiTextField-root,
+  .payment-remain-filter-container .MuiSelect-root,
+  .payment-remain-filter-container .MuiButton-root {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .payment-remain-list-title {
+    font-size: 1.25rem !important;
+  }
+
+  .payment-remain-list-table {
+    min-width: 1400px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .payment-remain-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .payment-remain-list-table .MuiTableCell-head {
+    font-size: 0.65rem !important;
+  }
+
+  .payment-remain-filter-container {
+    padding: 8px !important;
+  }
+}
+
+/* Payment Remain Dialog Responsive - MUI */
+.payment-remain-detail-dialog .MuiDialog-paper {
+  margin: 16px;
+}
+
+.payment-remain-detail-dialog-title {
+  padding: 16px 24px;
+}
+
+.payment-remain-detail-dialog-content {
+  padding: 16px 24px;
+}
+
+.payment-remain-detail-dialog-content .MuiTable-root {
+  width: 100%;
+}
+
+.payment-remain-detail-dialog-content .MuiTableCell-root {
+  padding: 12px;
+}
+
+@media (max-width: 768px) {
+  .payment-remain-detail-dialog .MuiDialog-paper {
+    margin: 8px !important;
+    max-width: calc(100% - 16px) !important;
+  }
+
+  .payment-remain-detail-dialog-title {
+    padding: 12px 16px !important;
+    font-size: 1.1rem !important;
+    text-align: center !important;
+  }
+
+  .payment-remain-detail-dialog-content {
+    padding: 12px 16px !important;
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTable-root {
+    font-size: 0.85rem !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTableCell-root {
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTableCell-root:first-of-type {
+    width: 40% !important;
+    font-size: 0.75rem !important;
+  }
+
+  .payment-remain-detail-dialog-content + .MuiDialogActions-root {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 8px 16px 12px !important;
+  }
+
+  .payment-remain-detail-dialog-content + .MuiDialogActions-root .MuiButton-root {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .payment-remain-detail-dialog .MuiDialog-paper {
+    margin: 0 !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  .payment-remain-detail-dialog-title {
+    padding: 10px 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .payment-remain-detail-dialog-content {
+    padding: 10px 12px !important;
+    max-height: calc(100vh - 120px) !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTable-root {
+    font-size: 0.75rem !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTableCell-root {
+    padding: 6px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .payment-remain-detail-dialog-content .MuiTableCell-root:first-of-type {
+    font-size: 0.65rem !important;
+  }
+}
+

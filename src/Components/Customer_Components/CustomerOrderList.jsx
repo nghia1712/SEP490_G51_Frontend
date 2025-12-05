@@ -1807,12 +1807,13 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 } }}>
       {/* Title */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
+      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 }, textAlign: 'center' }}>
         <Typography
           variant="h4"
           component="h1"
+          className="customer-order-list-title"
           sx={{
             fontWeight: 'bold',
             color: '#155E64',
@@ -1830,7 +1831,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       )}
 
       {/* Filter */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+      <Box className="customer-order-filter-container" sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel id="order-status-filter-label">Lọc theo trạng thái đơn hàng</InputLabel>
           <Select
@@ -1879,16 +1880,17 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
       {/* Table */}
       {!loading && (
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            boxShadow: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: 2,
-            overflow: 'hidden',
-          }}
-        >
-          <Table sx={{ tableLayout: 'fixed' }}>
+        <div className="customer-order-list-container">
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              boxShadow: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 2,
+              overflowX: 'auto',
+            }}
+          >
+            <Table className="customer-order-list-table" sx={{ tableLayout: 'fixed', minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell
@@ -2078,21 +2080,23 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
             </Box>
           )}
         </TableContainer>
+        </div>
       )}
 
       {/* Order Detail Dialog */}
       <Dialog
+        className="customer-order-detail-dialog"
         open={detailDialogOpen}
         onClose={handleCloseDetailDialog}
         maxWidth="xl"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-order-detail-dialog-title">
           <Typography variant="h6" component="div">
             Chi tiết đơn hàng
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-order-detail-dialog-content">
           {detailLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -2104,7 +2108,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
           ) : orderDetails ? (
             <Box>
               {/* Thông tin đơn hàng - Layout 3 cột */}
-              <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
+              <Box className="customer-order-detail-info-layout" sx={{ mb: 3, display: 'flex', gap: 4 }}>
                 {/* Phần 1 - Bên trái: Mã đơn hàng, Mã báo giá, Trạng thái đơn hàng, Trạng thái thanh toán */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -2431,15 +2435,16 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
       {/* Payment Dialog */}
       <Dialog
+        className="customer-order-payment-dialog"
         open={paymentDialogOpen}
         onClose={() => setPaymentDialogOpen(false)}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
+        <DialogTitle className="customer-order-payment-dialog-title" sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
           Thanh Toán Tiền Cọc Đơn Hàng
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-order-payment-dialog-content">
           {paymentLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -2447,7 +2452,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
           ) : paymentOrderDetails ? (
             <Box>
               {/* Thông tin đơn hàng - Layout 2 cột */}
-              <Box sx={{ display: 'flex', gap: 4 }}>
+              <Box className="customer-order-payment-info-layout" sx={{ display: 'flex', gap: 4 }}>
                 {/* Cột trái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -2631,13 +2636,14 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
 
       <Dialog
+        className="customer-order-reject-reason-dialog"
         open={reasonDialogOpen}
         onClose={handleCloseRejectReason}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Lý do từ chối đơn hàng</DialogTitle>
-        <DialogContent dividers>
+        <DialogTitle className="customer-order-reject-reason-dialog-title">Lý do từ chối đơn hàng</DialogTitle>
+        <DialogContent className="customer-order-reject-reason-dialog-content" dividers>
           {selectedRejectReason ? (
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
               {selectedRejectReason}

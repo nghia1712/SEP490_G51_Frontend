@@ -494,21 +494,22 @@ const CustomerInvoiceList = () => {
     remainingAmount <= 0;
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 } }}>
       <Typography
         variant="h4"
+        component="h1"
+        className="customer-invoice-list-title"
         sx={{
           textAlign: 'center',
           fontWeight: 600,
-          color: '#2c3e50',
-          textTransform: 'uppercase',
+          color: '#155E64',
           mb: 2,
         }}
       >
         Danh sách hóa đơn
       </Typography>
 
-      <Box sx={{ mb: 3, maxWidth: 220 }}>
+      <Box className="customer-invoice-filter-container" sx={{ mb: 3, maxWidth: 220 }}>
         <FormControl size="small" fullWidth>
           <InputLabel>Trạng Thái</InputLabel>
           <Select
@@ -535,16 +536,17 @@ const CustomerInvoiceList = () => {
           <CircularProgress />
         </Box>
       ) : (
+        <div className="customer-invoice-list-container">
         <TableContainer
           component={Paper}
           sx={{
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
-            overflow: 'hidden',
+            overflowX: 'auto',
           }}
         >
-          <Table sx={{ tableLayout: 'fixed' }}>
+          <Table className="customer-invoice-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell
@@ -721,6 +723,7 @@ const CustomerInvoiceList = () => {
             </Box>
           )}
         </TableContainer>
+        </div>
       )}
 
       <Snackbar
@@ -736,15 +739,16 @@ const CustomerInvoiceList = () => {
 
       {/* Payment Dialog */}
       <Dialog
+        className="customer-invoice-payment-dialog"
         open={paymentDialogOpen}
         onClose={handleClosePaymentDialog}
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
+        <DialogTitle className="customer-invoice-payment-dialog-title" sx={{ textAlign: 'left', fontWeight: 600, fontSize: '1.25rem' }}>
           Thanh Toán Hóa Đơn
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-invoice-payment-dialog-content">
           {paymentLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -752,7 +756,7 @@ const CustomerInvoiceList = () => {
           ) : paymentInvoiceDetails ? (
               <Box>
               {/* Thông tin hóa đơn - Layout 2 cột */}
-              <Box sx={{ display: 'flex', gap: 4 }}>
+              <Box className="customer-invoice-payment-info-layout" sx={{ display: 'flex', gap: 4 }}>
                 {/* Cột trái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 1.5 }}>

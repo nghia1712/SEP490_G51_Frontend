@@ -1,0 +1,236 @@
+/* ============================================
+   Sales Components Responsive Styles (MUI)
+   ============================================ */
+
+/* Sales List Table Responsive - MUI */
+.sales-list-table-container,
+.sales-quotation-list-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sales-list-table,
+.sales-quotation-list-table {
+  min-width: 900px;
+}
+
+.sales-list-title,
+.sales-quotation-list-title {
+  font-size: 2rem;
+}
+
+.sales-quotation-list-title-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sales-quotation-list-count {
+  white-space: nowrap;
+}
+
+.sales-quotation-list-filter-container {
+  width: 100%;
+}
+
+.sales-quotation-list-filter-container .MuiStack-root {
+  flex-wrap: wrap;
+}
+
+.sales-quotation-list-filter-container .MuiFormControl-root {
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 1200px) {
+  .sales-list-table {
+    font-size: 0.9rem;
+  }
+
+  .sales-list-table .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .sales-list-table-container,
+  .sales-quotation-list-table-container {
+    overflow-x: scroll !important;
+  }
+
+  .sales-list-table,
+  .sales-quotation-list-table {
+    min-width: 1100px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .sales-list-table .MuiTableCell-root,
+  .sales-quotation-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .sales-list-table .MuiTableCell-head,
+  .sales-quotation-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .sales-list-title,
+  .sales-quotation-list-title {
+    font-size: 1.5rem !important;
+  }
+
+  .sales-quotation-list-title-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .sales-quotation-list-count {
+    font-size: 0.9rem !important;
+  }
+
+  .sales-quotation-list-filter-container {
+    padding: 12px !important;
+  }
+
+  .sales-quotation-list-filter-container .MuiStack-root {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .sales-quotation-list-filter-container .MuiFormControl-root {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .sales-list-table,
+  .sales-quotation-list-table {
+    min-width: 1300px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .sales-list-table .MuiTableCell-root,
+  .sales-quotation-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .sales-list-table .MuiTableCell-head,
+  .sales-quotation-list-table .MuiTableCell-head {
+    font-size: 0.65rem !important;
+  }
+
+  .sales-list-title,
+  .sales-quotation-list-title {
+    font-size: 1.25rem !important;
+  }
+
+  .sales-quotation-list-count {
+    font-size: 0.8rem !important;
+  }
+
+  .sales-quotation-list-filter-container {
+    padding: 8px !important;
+  }
+}
+
+/* Sales Modal/Dialog Responsive - MUI */
+.sales-modal-mui .MuiDialog-paper {
+  margin: 16px;
+}
+
+@media (max-width: 768px) {
+  .sales-modal-mui .MuiDialog-paper {
+    margin: 8px;
+    max-width: calc(100% - 16px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .sales-modal-mui .MuiDialog-paper {
+    margin: 0;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+  }
+}
+
+/* Sales Form Responsive - MUI */
+.sales-form-mui .MuiGrid-container {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .sales-form-mui .MuiGrid-item {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+}
+
+/* Sales Dashboard Responsive - MUI */
+.sales-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .sales-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Sales Search and Filter Responsive - MUI */
+.sales-search-filter-mui {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .sales-search-filter-mui {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .sales-search-filter-mui .MuiTextField-root,
+  .sales-search-filter-mui .MuiFormControl-root {
+    width: 100% !important;
+  }
+}
+
+/* Bootstrap Legacy Support */
+@media (max-width: 1200px) {
+  .sales-list-table {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .sales-list-table {
+    font-size: 0.85rem;
+  }
+
+  .sales-list-table th,
+  .sales-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sales-list-table {
+    font-size: 0.75rem;
+  }
+
+  .sales-list-table th,
+  .sales-list-table td {
+    padding: 6px 2px;
+  }
+}

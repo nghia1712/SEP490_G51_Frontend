@@ -1493,12 +1493,13 @@ const CustomerRequestQuotationList = () => {
 
   // Render list view
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
+      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 }, textAlign: 'center' }}>
         <Typography
           variant="h4"
           component="h1"
+          className="customer-request-quotation-list-title"
           sx={{
             fontWeight: 'bold',
             color: '#155E64',
@@ -1517,7 +1518,7 @@ const CustomerRequestQuotationList = () => {
       )}
 
       {/* Filter + Create Button */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+      <Box className="customer-request-quotation-filter-container" sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
           <Select
@@ -1560,16 +1561,17 @@ const CustomerRequestQuotationList = () => {
 
       {/* Table */}
       {!loading && (
+        <div className="customer-request-quotation-list-container">
         <TableContainer 
           component={Paper} 
           sx={{ 
             boxShadow: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             borderRadius: 2,
-            overflow: 'hidden',
+            overflowX: 'auto',
           }}
         >
-          <Table sx={{ tableLayout: 'fixed' }}>
+          <Table className="customer-request-quotation-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell
@@ -1792,25 +1794,27 @@ const CustomerRequestQuotationList = () => {
             </Box>
           )}
         </TableContainer>
+        </div>
       )}
 
       {/* Detail Dialog */}
       <Dialog
+        className="customer-request-quotation-detail-dialog"
         open={detailDialogOpen}
         onClose={() => setDetailDialogOpen(false)}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-detail-dialog-title">
           <Typography variant="h6" component="div">
             Chi tiết yêu cầu báo giá
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-detail-dialog-content">
           {selectedRequestDetails && (
             <Box>
               {/* Thông tin yêu cầu - Layout 2 cột */}
-              <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
+              <Box className="customer-request-quotation-detail-info-layout" sx={{ mb: 3, display: 'flex', gap: 4 }}>
                 {/* Bên trái: Mã yêu cầu báo giá và Trạng thái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -1942,21 +1946,22 @@ const CustomerRequestQuotationList = () => {
 
       {/* Edit Dialog */}
       <Dialog
+        className="customer-request-quotation-edit-dialog"
         open={editDialogOpen}
         onClose={handleCloseEditDialog}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-edit-dialog-title">
           <Typography variant="h6" component="div">
             Sửa yêu cầu báo giá
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-edit-dialog-content">
           {editInitialData && (
             <Box>
               {/* Thông tin yêu cầu - Layout 2 cột */}
-              <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
+              <Box className="customer-request-quotation-edit-info-layout" sx={{ mb: 3, display: 'flex', gap: 4 }}>
                 {/* Bên trái: Mã yêu cầu báo giá và Trạng thái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -2145,17 +2150,18 @@ const CustomerRequestQuotationList = () => {
 
       {/* Create Dialog */}
       <Dialog
+        className="customer-request-quotation-create-dialog"
         open={createDialogOpen}
         onClose={handleCloseCreateDialog}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-create-dialog-title">
           <Typography variant="h6" component="div">
             Tạo yêu cầu báo giá
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-create-dialog-content">
           <Box>
             {/* Error Alert - Chỉ hiển thị trong dialog create */}
             {createError && (
@@ -2316,17 +2322,18 @@ const CustomerRequestQuotationList = () => {
 
       {/* Quotation Selection Dialog */}
       <Dialog
+        className="customer-request-quotation-selection-dialog"
         open={quotationSelectionDialogOpen}
         onClose={() => setQuotationSelectionDialogOpen(false)}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-selection-dialog-title">
           <Typography variant="h6" component="div">
             Chọn báo giá để xem
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-selection-dialog-content">
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Nếu muốn đặt đơn, vui lòng xem báo giá mới nhất và tạo đơn hàng.
@@ -2386,21 +2393,22 @@ const CustomerRequestQuotationList = () => {
 
       {/* Quotation Detail Dialog */}
       <Dialog
+        className="customer-request-quotation-quotation-detail-dialog"
         open={quotationDetailDialogOpen}
         onClose={handleCloseQuotationDetailDialog}
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-quotation-detail-dialog-title">
           <Typography variant="h6" component="div">
             Chi tiết báo giá
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-quotation-detail-dialog-content">
           {selectedQuotationDetails && (
             <Box>
               {/* Thông tin báo giá - Layout 2 cột */}
-              <Box sx={{ mb: 3, display: 'flex', gap: 4 }}>
+              <Box className="customer-request-quotation-quotation-detail-info-layout" sx={{ mb: 3, display: 'flex', gap: 4 }}>
                 {/* Bên trái: Mã yêu cầu báo giá, Mã báo giá và Trạng thái */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -2717,17 +2725,18 @@ const CustomerRequestQuotationList = () => {
 
       {/* Order Form Dialog */}
       <Dialog
+        className="customer-request-quotation-order-form-dialog"
         open={orderFormDialogOpen}
         onClose={handleCloseOrderFormDialog}
         maxWidth="xl"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle className="customer-request-quotation-order-form-dialog-title">
           <Typography variant="h6" component="div">
             Tạo đơn hàng
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent className="customer-request-quotation-order-form-dialog-content">
           {orderFormData && (
             <Box>
               {/* Thông tin báo giá */}
@@ -2735,7 +2744,7 @@ const CustomerRequestQuotationList = () => {
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                   Thông tin báo giá:
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <Box className="customer-request-quotation-order-form-info-layout" sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary">
                       Mã báo giá:

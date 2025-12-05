@@ -243,10 +243,11 @@ const PaymentRemainList = () => {
         <Card elevation={3} sx={{ borderRadius: 2 }}>
           <CardContent>
             {/* HEADER */}
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Box className="payment-remain-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
               <RequestQuote sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
               <Typography
                 variant="h4"
+                className="payment-remain-list-title"
                 sx={{ fontWeight: "bold", color: "#1976d2" }}
               >
                 Danh sách yêu cầu thanh toán
@@ -255,6 +256,7 @@ const PaymentRemainList = () => {
 
             {/* FILTER & SEARCH */}
             <Paper
+              className="payment-remain-filter-container"
               sx={{ p: 2, mb: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
               <Stack
@@ -358,11 +360,12 @@ const PaymentRemainList = () => {
                 <CircularProgress />
               </Stack>
             ) : (
+              <div className="payment-remain-list-container">
               <TableContainer
                 component={Paper}
-                sx={{ borderRadius: 2, maxHeight: 500 }}
+                sx={{ borderRadius: 2, maxHeight: 500, overflowX: 'auto' }}
               >
-                <Table stickyHeader>
+                <Table className="payment-remain-list-table" stickyHeader sx={{ minWidth: 1000 }}>
                   <TableHead
                     sx={{
                       backgroundColor: "#f5f5f5",
@@ -452,6 +455,7 @@ const PaymentRemainList = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+              </div>
             )}
 
             {/* PAGINATION */}

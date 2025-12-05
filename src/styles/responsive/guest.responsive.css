@@ -1,0 +1,275 @@
+/* ============================================
+   Guest Components Responsive Styles
+   (SearchMedicine, AboutPharmacy)
+   ============================================ */
+
+/* Search Medicine Container Responsive */
+.search-medicine-container {
+  padding: 16px !important;
+}
+
+.search-medicine-header {
+  padding: 16px !important;
+}
+
+.search-medicine-title {
+  font-size: 2rem !important;
+}
+
+.search-medicine-title-container {
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.search-medicine-search-container {
+  padding: 16px !important;
+}
+
+.search-medicine-search-box {
+  padding: 16px !important;
+}
+
+.search-medicine-search-description {
+  font-size: 1rem !important;
+}
+
+.search-medicine-results-grid {
+  margin: 0 !important;
+}
+
+.search-medicine-product-card {
+  flex-direction: column !important;
+}
+
+.search-medicine-product-image-container {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 200px !important;
+}
+
+.search-medicine-product-image-container .MuiCardMedia-root {
+  max-height: 180px !important;
+}
+
+/* Search Medicine Dialog Responsive */
+.search-medicine-image-dialog .MuiDialog-paper,
+.search-medicine-detail-dialog .MuiDialog-paper {
+  margin: 16px;
+}
+
+.search-medicine-detail-dialog-title {
+  padding: 16px 24px !important;
+}
+
+.search-medicine-detail-title-container {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+.search-medicine-detail-dialog-content {
+  padding: 16px 24px !important;
+}
+
+.search-medicine-detail-grid {
+  margin: 0 !important;
+}
+
+.search-medicine-detail-grid .MuiGrid-item {
+  width: 100% !important;
+}
+
+@media (max-width: 1200px) {
+  .search-medicine-title {
+    font-size: 1.75rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-medicine-container {
+    padding: 12px !important;
+  }
+
+  .search-medicine-header {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .search-medicine-title {
+    font-size: 1.5rem !important;
+  }
+
+  .search-medicine-title-container {
+    gap: 6px !important;
+  }
+
+  .search-medicine-search-container {
+    padding: 12px !important;
+  }
+
+  .search-medicine-search-box {
+    padding: 12px !important;
+  }
+
+  .search-medicine-search-description {
+    font-size: 0.9rem !important;
+    margin-bottom: 16px !important;
+  }
+
+  .search-medicine-results-grid {
+    gap: 16px !important;
+  }
+
+  .search-medicine-product-card {
+    flex-direction: column !important;
+  }
+
+  .search-medicine-product-image-container {
+    width: 100% !important;
+    height: 180px !important;
+  }
+
+  .search-medicine-product-image-container .MuiCardMedia-root {
+    max-height: 160px !important;
+  }
+
+  /* Dialog Responsive */
+  .search-medicine-image-dialog .MuiDialog-paper,
+  .search-medicine-detail-dialog .MuiDialog-paper {
+    margin: 8px !important;
+    max-width: calc(100% - 16px) !important;
+  }
+
+  .search-medicine-detail-dialog-title {
+    padding: 12px 16px !important;
+    font-size: 1.1rem !important;
+  }
+
+  .search-medicine-detail-title {
+    font-size: 1rem !important;
+  }
+
+  .search-medicine-detail-dialog-content {
+    padding: 12px 16px !important;
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+  }
+
+  .search-medicine-detail-grid {
+    gap: 16px !important;
+  }
+
+  .search-medicine-detail-grid .MuiGrid-item {
+    padding: 0 8px !important;
+  }
+
+  .search-medicine-detail-dialog-content .MuiTableContainer-root {
+    overflow-x: auto !important;
+  }
+
+  .search-medicine-detail-dialog-content .MuiTable-root {
+    min-width: 400px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .search-medicine-detail-dialog-content .MuiTableCell-root {
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .search-medicine-detail-dialog-content + .MuiDialogActions-root {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 8px 16px 12px !important;
+  }
+
+  .search-medicine-detail-dialog-content + .MuiDialogActions-root .MuiButton-root {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .search-medicine-container {
+    padding: 8px !important;
+  }
+
+  .search-medicine-header {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .search-medicine-title {
+    font-size: 1.25rem !important;
+  }
+
+  .search-medicine-title-container {
+    gap: 4px !important;
+  }
+
+  .search-medicine-search-container {
+    padding: 10px !important;
+  }
+
+  .search-medicine-search-box {
+    padding: 10px !important;
+  }
+
+  .search-medicine-search-description {
+    font-size: 0.85rem !important;
+    margin-bottom: 12px !important;
+  }
+
+  .search-medicine-results-grid {
+    gap: 12px !important;
+  }
+
+  .search-medicine-product-image-container {
+    height: 150px !important;
+  }
+
+  .search-medicine-product-image-container .MuiCardMedia-root {
+    max-height: 130px !important;
+  }
+
+  /* Dialog Responsive */
+  .search-medicine-image-dialog .MuiDialog-paper,
+  .search-medicine-detail-dialog .MuiDialog-paper {
+    margin: 0 !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  .search-medicine-detail-dialog-title {
+    padding: 10px 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .search-medicine-detail-title {
+    font-size: 0.9rem !important;
+  }
+
+  .search-medicine-detail-dialog-content {
+    padding: 10px 12px !important;
+    max-height: calc(100vh - 120px) !important;
+  }
+
+  .search-medicine-detail-grid {
+    gap: 12px !important;
+  }
+
+  .search-medicine-detail-grid .MuiGrid-item {
+    padding: 0 4px !important;
+  }
+
+  .search-medicine-detail-dialog-content .MuiTable-root {
+    min-width: 500px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .search-medicine-detail-dialog-content .MuiTableCell-root {
+    padding: 6px !important;
+    font-size: 0.7rem !important;
+  }
+}
+

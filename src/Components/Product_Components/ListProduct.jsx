@@ -340,21 +340,23 @@ const ListProduct = () => {
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
           {/* Title */}
-          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <Box className="product-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <MedicationIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
             <Typography
               variant="h4"
+              className="product-list-title"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
             >
               Thuốc
             </Typography>
-            <Typography variant="h6" color="text.secondary">
+            <Typography variant="h6" color="text.secondary" className="product-list-count">
               Tổng: {filteredProducts.length} sản phẩm
             </Typography>
           </Box>
 
           {/* FILTER */}
           <Paper
+            className="product-list-filter-container"
             sx={{
               p: 2,
               mb: 2,
@@ -489,16 +491,17 @@ const ListProduct = () => {
 
           {/* Table */}
           {!loading && (
+            <div className="product-list-table-container">
             <TableContainer
               component={Paper}
               sx={{
                 boxShadow: 2,
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
                 borderRadius: 2,
-                overflow: "hidden",
+                overflowX: "auto",
               }}
             >
-              <Table sx={{ tableLayout: "fixed", borderSpacing: 0, borderCollapse: "collapse" }}>
+              <Table className="product-list-table" sx={{ tableLayout: "fixed", borderSpacing: 0, borderCollapse: "collapse", minWidth: 800 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     {headCells.map((headCell, idx) => (
@@ -848,6 +851,7 @@ const ListProduct = () => {
                 )}
               </Table>
             </TableContainer>
+            </div>
           )}
         </CardContent>
       </Card>

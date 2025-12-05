@@ -435,8 +435,8 @@ const EditProfile = () => {
 	};
 
 	return (
-		<div style={{ background: "url('/images/backgroundMedical2.jpg') no-repeat center center / cover", minHeight: "100vh", padding: "20px" }}>
-			<Container className="mt-4" style={{ backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", padding: "16px" }}>
+		<div className="edit-profile-wrapper" style={{ background: "url('/images/backgroundMedical2.jpg') no-repeat center center / cover", minHeight: "100vh", padding: "20px" }}>
+			<Container className="edit-profile-container mt-4" style={{ backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", padding: "16px" }}>
 				<Button
 					variant="outline-secondary"
 					className="mb-3 d-flex align-items-center gap-2"
@@ -470,15 +470,15 @@ const EditProfile = () => {
 				</Button>
 				{statusMessage && <Alert variant={isError ? "danger" : "success"}>{statusMessage}</Alert>}
 
-				<Row className="d-flex align-items-stretch">
-					<Col md={4}>
+				<Row className="edit-profile-row d-flex align-items-stretch">
+					<Col md={4} className="edit-profile-avatar-col">
 						<Card className="text-center p-4 shadow-sm h-100">
 							{console.log("Rendering Card.Img with avatarPreview:", avatarPreview)}
 							<Card.Img
 								variant="top"
 								src={avatarPreview}
 								alt="User Avatar"
-								className="rounded-circle mx-auto"
+								className="edit-profile-avatar-preview rounded-circle mx-auto"
 								style={{ width: "250px", height: "250px", objectFit: "cover" }}
 								onError={(e) => {
 									console.log("Image load error:", e);
@@ -527,13 +527,13 @@ const EditProfile = () => {
 						</Card>
 					</Col>
 
-					<Col md={8}>
+					<Col md={8} className="edit-profile-form-col">
 						<Card className="p-4 shadow-sm h-100">
 							{/*edit section*/}
 							<Card.Body>
 								<h3 className="mb-3">Chỉnh sửa thông tin cá nhân</h3>
 								<hr />
-								<Form onSubmit={handleSubmit} encType="multipart/form-data">
+								<Form className="edit-profile-form" onSubmit={handleSubmit} encType="multipart/form-data">
 									<Row className="mb-3">
 										<Col md={6}>
 											<Form.Label><strong>Tên đầy đủ</strong></Form.Label>

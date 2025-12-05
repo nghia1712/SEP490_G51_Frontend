@@ -159,6 +159,7 @@ const SimpleHeader = () => {
 
   return (
     <AppBar
+      className="simple-header-appbar"
       position="sticky"
       sx={{
         top: 0,
@@ -167,10 +168,11 @@ const SimpleHeader = () => {
         color: palette.white,
       }}
     >
-      <Container maxWidth="xl">
-        <Toolbar disableGutters>
+      <Container className="simple-header-container" maxWidth="xl">
+        <Toolbar className="simple-header-toolbar" disableGutters>
           {/* Logo */}
           <MuiTypography
+            className="simple-header-logo"
             variant="h6"
             onClick={() => navigate("/")}
             sx={{
@@ -188,7 +190,7 @@ const SimpleHeader = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Profile menu nếu đã đăng nhập, Login/Register nếu chưa */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box className="simple-header-actions" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {currentToken ? (
             <>
                 {/* Notification bell */}
@@ -199,12 +201,13 @@ const SimpleHeader = () => {
                   const roleInfo = getRoleInfo(userRole);
                   const IconComponent = roleInfo.IconComponent;
                   return (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box className="simple-header-user-menu" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Tooltip
                 title={`${profile?.fullName || profile?.FullName || "Tài khoản"} - ${roleInfo.label}`}
               >
                 {userRole === "customer" ? (
                   <Avatar
+                    className="simple-header-avatar"
                     src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
                     alt={profile?.fullName || profile?.FullName || "Khách hàng"}
                     onClick={() => navigate("/profile")}
@@ -214,8 +217,8 @@ const SimpleHeader = () => {
                     }}
                     sx={{
                       cursor: "pointer",
-                      width: 40,
-                      height: 40,
+                      width: { xs: 32, sm: 36, md: 40 },
+                      height: { xs: 32, sm: 36, md: 40 },
                       border: `2px solid ${roleInfo.color}`,
                       "&:hover": {
                         opacity: 0.8,
@@ -224,6 +227,7 @@ const SimpleHeader = () => {
                   />
                 ) : (
                   <Chip
+                    className="simple-header-role-chip"
                     icon={<IconComponent />}
                     label={roleInfo.label}
                     onClick={userRole !== "admin" && userRole !== "manager" ? () => navigate("/profile") : undefined}
@@ -240,6 +244,7 @@ const SimpleHeader = () => {
               </Tooltip>
                       <Tooltip title="Đăng xuất">
                         <IconButton
+                          className="simple-header-logout-button"
                           size="small"
                           onClick={handleLogout}
                           sx={{
@@ -259,27 +264,33 @@ const SimpleHeader = () => {
                 })()}
               </>
             ) : (
-              <Box sx={{ display: "flex" }}>
+              <Box className="simple-header-auth-buttons" sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 } }}>
                 <Button
+                  className="simple-header-login-button"
                   variant="contained"
                   sx={{ 
                     backgroundColor: palette.dark, 
                     "&:hover": { backgroundColor: "#104c50" }, 
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" } 
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    padding: { xs: "4px 8px", sm: "6px 16px" },
+                    minWidth: { xs: "auto", sm: "64px" }
                   }}
                   onClick={() => navigate("/login")}
                 >
                   Đăng nhập
                 </Button>
                 <Button
+                  className="simple-header-register-button"
                   variant="outlined"
                   onClick={() => navigate("/register")}
                   sx={{ 
-                    ml: { xs: 1, sm: 2 }, 
+                    ml: { xs: 0.5, sm: 1 }, 
                     color: palette.white, 
                     borderColor: palette.white, 
                     "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" }, 
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" } 
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    padding: { xs: "4px 8px", sm: "6px 16px" },
+                    minWidth: { xs: "auto", sm: "64px" }
                   }}
                 >
                   Đăng ký

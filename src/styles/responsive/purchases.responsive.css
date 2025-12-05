@@ -1,0 +1,169 @@
+/* ============================================
+   Purchases Components Responsive Styles (MUI)
+   ============================================ */
+
+/* Purchases List Table Responsive - MUI */
+.purchases-list-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.purchases-list-table {
+  min-width: 1000px;
+}
+
+.purchases-list-title {
+  font-size: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .purchases-list-table {
+    font-size: 0.9rem;
+  }
+
+  .purchases-list-table .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .purchases-list-table-container {
+    overflow-x: scroll;
+  }
+
+  .purchases-list-table {
+    min-width: 1200px;
+    font-size: 0.8rem;
+  }
+
+  .purchases-list-table .MuiTableCell-root {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .purchases-list-table .MuiTableCell-head {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .purchases-list-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .purchases-list-table {
+    min-width: 1400px;
+    font-size: 0.7rem;
+  }
+
+  .purchases-list-table .MuiTableCell-root {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+  }
+
+  .purchases-list-table .MuiTableCell-head {
+    font-size: 0.65rem;
+  }
+
+  .purchases-list-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Purchases Modal/Dialog Responsive - MUI */
+.purchases-modal-mui .MuiDialog-paper {
+  margin: 16px;
+}
+
+@media (max-width: 768px) {
+  .purchases-modal-mui .MuiDialog-paper {
+    margin: 8px;
+    max-width: calc(100% - 16px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .purchases-modal-mui .MuiDialog-paper {
+    margin: 0;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+  }
+}
+
+/* Purchases Form Responsive - MUI */
+.purchases-form-mui .MuiGrid-container {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .purchases-form-mui .MuiGrid-item {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+}
+
+/* Purchases Dashboard Responsive - MUI */
+.purchases-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .purchases-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Purchases Search and Filter Responsive - MUI */
+.purchases-search-filter-mui {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .purchases-search-filter-mui {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .purchases-search-filter-mui .MuiTextField-root,
+  .purchases-search-filter-mui .MuiFormControl-root {
+    width: 100% !important;
+  }
+}
+
+/* Bootstrap Legacy Support */
+@media (max-width: 1200px) {
+  .purchases-list-table {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .purchases-list-table {
+    font-size: 0.85rem;
+  }
+
+  .purchases-list-table th,
+  .purchases-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .purchases-list-table {
+    font-size: 0.75rem;
+  }
+
+  .purchases-list-table th,
+  .purchases-list-table td {
+    padding: 6px 2px;
+  }
+}

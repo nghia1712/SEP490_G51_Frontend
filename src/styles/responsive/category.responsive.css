@@ -1,0 +1,216 @@
+/* ============================================
+   Category Components Responsive Styles (MUI)
+   ============================================ */
+
+/* Category List Table Responsive - MUI */
+.category-list-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-list-table {
+  min-width: 600px;
+}
+
+.category-list-title {
+  font-size: 2rem;
+}
+
+.category-list-title-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.category-list-count {
+  white-space: nowrap;
+}
+
+.category-list-filter-container {
+  width: 100%;
+}
+
+.category-list-filter-container .MuiStack-root {
+  flex-wrap: wrap;
+}
+
+.category-list-filter-container .MuiTextField-root,
+.category-list-filter-container .MuiFormControl-root {
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 1200px) {
+  .category-list-table {
+    font-size: 0.9rem;
+  }
+
+  .category-list-table .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .category-list-table-container {
+    overflow-x: scroll !important;
+  }
+
+  .category-list-table {
+    min-width: 800px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .category-list-table .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .category-list-table .MuiTableCell-head {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+  }
+
+  .category-list-title {
+    font-size: 1.5rem !important;
+  }
+
+  .category-list-title-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .category-list-count {
+    font-size: 0.9rem !important;
+  }
+
+  .category-list-filter-container {
+    padding: 12px !important;
+  }
+
+  .category-list-filter-container .MuiStack-root {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .category-list-filter-container .MuiTextField-root,
+  .category-list-filter-container .MuiFormControl-root {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .category-list-filter-container .MuiButton-root {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .category-list-table {
+    min-width: 900px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .category-list-table .MuiTableCell-root {
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .category-list-table .MuiTableCell-head {
+    font-size: 0.65rem !important;
+  }
+
+  .category-list-title {
+    font-size: 1.25rem !important;
+  }
+
+  .category-list-count {
+    font-size: 0.8rem !important;
+  }
+
+  .category-list-filter-container {
+    padding: 8px !important;
+  }
+}
+
+/* Category Modal/Dialog Responsive - MUI */
+.category-modal-mui .MuiDialog-paper {
+  margin: 16px;
+}
+
+@media (max-width: 768px) {
+  .category-modal-mui .MuiDialog-paper {
+    margin: 8px;
+    max-width: calc(100% - 16px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .category-modal-mui .MuiDialog-paper {
+    margin: 0;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+  }
+}
+
+/* Category Form Responsive - MUI */
+.category-form-mui .MuiGrid-container {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .category-form-mui .MuiGrid-item {
+    width: 100% !important;
+    padding: 8px !important;
+  }
+}
+
+/* Category Search and Filter Responsive - MUI */
+.category-search-filter-mui {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .category-search-filter-mui {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .category-search-filter-mui .MuiTextField-root,
+  .category-search-filter-mui .MuiFormControl-root {
+    width: 100% !important;
+  }
+}
+
+/* Bootstrap Legacy Support */
+@media (max-width: 1200px) {
+  .category-list-table {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .category-list-table {
+    font-size: 0.85rem;
+  }
+
+  .category-list-table th,
+  .category-list-table td {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .category-list-table {
+    font-size: 0.75rem;
+  }
+
+  .category-list-table th,
+  .category-list-table td {
+    padding: 6px 2px;
+  }
+}

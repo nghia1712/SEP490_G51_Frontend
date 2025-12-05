@@ -175,21 +175,23 @@ const SearchMedicine = () => {
         },
       }}
     >
-      <Container maxWidth="lg" sx={{ py: 4, position: "relative", zIndex: 2 }}>
+      <Container className="search-medicine-container" maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 }, position: "relative", zIndex: 2 }}>
         {/* Header */}
         <Box
+          className="search-medicine-header"
           sx={{
-            mb: 4,
+            mb: { xs: 2, sm: 3, md: 4 },
             textAlign: "center",
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(5px)",
             borderRadius: "20px",
-            padding: 4,
+            padding: { xs: 2, sm: 3, md: 4 },
             border: "1px solid rgba(255, 255, 255, 0.3)",
             boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
           }}
         >
           <Box
+            className="search-medicine-header-content"
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -200,11 +202,12 @@ const SearchMedicine = () => {
             }}
           >
             {/* Icon + Tiêu đề chính */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <LocalHospitalIcon sx={{ fontSize: 40, color: "#48C1A6" }} />
+            <Box className="search-medicine-title-container" sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
+              <LocalHospitalIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 }, color: "#48C1A6" }} />
               <Typography
                 variant="h4"
                 component="h1"
+                className="search-medicine-title"
                 color="primary"
                 fontWeight="bold"
                 sx={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
@@ -270,9 +273,10 @@ const SearchMedicine = () => {
 
         {/* Search Input */}
         <Box
+          className="search-medicine-search-container"
           sx={{
-            mb: 4,
-            p: 4,
+            mb: { xs: 2, sm: 3, md: 4 },
+            p: { xs: 2, sm: 3, md: 4 },
             borderRadius: 3,
             backgroundColor: "rgba(255, 255, 255, 0.8)",
             backdropFilter: "blur(5px)",
@@ -281,9 +285,10 @@ const SearchMedicine = () => {
           }}
         >
           <Box
+            className="search-medicine-search-box"
             sx={{
-              mb: 4,
-              p: 3,
+              mb: { xs: 2, sm: 3, md: 4 },
+              p: { xs: 2, sm: 2.5, md: 3 },
               borderRadius: 3,
               backgroundColor: "rgba(255, 255, 255, 0.85)",
               backdropFilter: "blur(5px)",
@@ -297,10 +302,11 @@ const SearchMedicine = () => {
             {/* Mô tả tìm kiếm */}
             <Typography
               variant="body1"
+              className="search-medicine-search-description"
               color="text.secondary"
               sx={{
-                mb: 3,
-                fontSize: "1.1rem",
+                mb: { xs: 2, sm: 2.5, md: 3 },
+                fontSize: { xs: "0.9rem", sm: "1rem", md: "1.1rem" },
                 textShadow: "1px 1px 2px rgba(0,0,0,0.2)",
                 textAlign: "center",
               }}
@@ -310,6 +316,7 @@ const SearchMedicine = () => {
 
             {/* Ô tìm kiếm */}
             <TextField
+              className="search-medicine-search-input"
               fullWidth
               variant="outlined"
               placeholder="Nhập tên thuốc, danh mục hoặc mô tả..."
@@ -357,7 +364,7 @@ const SearchMedicine = () => {
             ) : (
               <>
                 {searchResults.length > 0 ? (
-                  <Grid container spacing={3}>
+                  <Grid className="search-medicine-results-grid" container spacing={{ xs: 2, sm: 2, md: 3 }}>
                     {searchResults.map((product) => {
                       const productName =
                         product.productName ||
@@ -379,10 +386,11 @@ const SearchMedicine = () => {
                       return (
                         <Grid item xs={12} sm={6} md={4} key={productId}>
                           <Card
+                            className="search-medicine-product-card"
                             sx={{
                               height: "100%",
                               display: "flex",
-                              flexDirection: "row",
+                              flexDirection: { xs: "column", sm: "row" },
                               cursor: "pointer",
                               transition: "all 0.3s ease",
                               backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -398,9 +406,10 @@ const SearchMedicine = () => {
                           >
                             {/* Hình ảnh sản phẩm */}
                             <Box
+                              className="search-medicine-product-image-container"
                               sx={{
-                                width: "150px",
-                                minWidth: "150px",
+                                width: { xs: "100%", sm: "150px" },
+                                minWidth: { xs: "100%", sm: "150px" },
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -535,6 +544,7 @@ const SearchMedicine = () => {
 
         {/* Dialog phóng to ảnh */}
         <Dialog
+          className="search-medicine-image-dialog"
           open={openImageDialog}
           onClose={() => setOpenImageDialog(false)}
           maxWidth="lg"
@@ -554,24 +564,25 @@ const SearchMedicine = () => {
 
         {/* Dialog chi tiết */}
         <Dialog
+          className="search-medicine-detail-dialog"
           open={openDialog}
           onClose={handleCloseDialog}
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <LocalHospitalIcon color="primary" />
-              <Typography variant="h6">
+          <DialogTitle className="search-medicine-detail-dialog-title">
+            <Box className="search-medicine-detail-title-container" sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <LocalHospitalIcon color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              <Typography className="search-medicine-detail-title" variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}>
                 {selectedMedicine?.productName ||
                   selectedMedicine?.ProductName ||
                   "Tên không xác định"}
               </Typography>
             </Box>
           </DialogTitle>
-          <DialogContent>
+          <DialogContent className="search-medicine-detail-dialog-content">
             {selectedMedicine && (
-              <Grid container spacing={3}>
+              <Grid className="search-medicine-detail-grid" container spacing={{ xs: 2, sm: 3 }}>
                 <Grid item xs={12} md={4}>
                   <Box
                     sx={{
