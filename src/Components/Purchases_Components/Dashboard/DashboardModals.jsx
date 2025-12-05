@@ -182,7 +182,7 @@ export const DashboardModals = ({
                   .map((s, index) => (
                     <tr key={s._id || index}>
                       <td>
-                        <div className="fw-bold">{s.name}</div>
+                        <div className="">{s.name}</div>
                       </td>
                       <td>
                         <div>{s.email}</div>
@@ -229,12 +229,12 @@ export const DashboardModals = ({
             <Table hover className="table-borderless align-middle mb-0">
               <thead className="bg-light text-muted">
                 <tr>
-                  <th className="ps-4 py-3 fw-semibold">Mã Đơn</th>
-                  <th className="fw-semibold">Nhà cung cấp</th>
-                  <th className="fw-semibold text-center">Ngày đặt hàng</th>
-                  <th className="fw-semibold text-end">Còn nợ</th>
-                  <th className="fw-semibold text-end">Tổng tiền</th>
-                  <th className="pe-4 fw-semibold text-center">Trạng thái</th>
+                  <th className="ps-4 fw-semibold text-nowrap">Mã Đơn</th>
+                  <th className="fw-semibold text-nowrap">Nhà cung cấp</th>
+                  <th className="fw-semibold text-nowrap text-center">Ngày đặt hàng</th>
+                  <th className="fw-semibold text-nowrap text-end">Còn nợ</th>
+                  <th className="fw-semibold text-nowrap text-end">Tổng tiền</th>
+                  <th className="pe-4 fw-semibold text-nowrap text-center">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>

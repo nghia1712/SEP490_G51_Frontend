@@ -180,6 +180,11 @@ function Header() {
       path: "/purchases-dashboard",
       allowedRoles: ["purchases_staff"],
     },
+        {
+      label: "Tổng quan",
+      path: "/warehouse-dashboard",
+      allowedRoles: ["warehouse_staff"],
+    },
     // Nhóm trang quản lý tài khoản dành riêng cho ADMIN
     {
       label: "Tài khoản nhân viên",

@@ -193,7 +193,12 @@ export const WarehouseDashboardModals = ({
                 notExportedStats.products.map((p, index) => (
                   <tr key={p.productID || index}>
                     <td>{index + 1}</td>
-                    <td className="fw-semibold">{p.productName}</td>
+                    <td className="ps-2">
+                      <div className="fw-semibold">{p.productName}</div>
+                      <small className="text-muted">
+                        Mã lô: {p.lotId || "—"}
+                      </small>
+                    </td>
                     <td className="text-end">{p.quatity}</td>
                     <td className="text-center">{p.percentage}%</td>
                   </tr>
