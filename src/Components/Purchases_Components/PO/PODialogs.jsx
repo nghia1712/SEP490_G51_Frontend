@@ -153,9 +153,9 @@ export default function PODialogs({
                     <TextField
                       size="small"
                       type="number"
-                      value={item.quantity === 0 ? "" : item.quantity}
+                      value={p.quantity === 0 ? "" : p.quantity}
                       helperText={
-                        item.quantity > item.suggestedQty
+                        p.quantity > p.suggestedQty
                           ? "Số lượng vượt quá số lượng gợi ý"
                           : ""
                       }
@@ -171,15 +171,19 @@ export default function PODialogs({
                         },
                       }}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        const newQty = val === "" ? "" : Number(val);
+                        let val = e.target.value;
+                        let newQty = val === "" ? "" : Number(val);
 
-                        const oldQty = quotationToCreatePo.items[i].quantity;
-                        const limit = item.maxQty * 5;
+                        const oldQty = p.quantity; // dùng quantity hiện tại
+                        const limit = p.maxQuantity * 5;
 
                         // Không cho nhập < 1 (trừ khi empty)
                         if (newQty !== "" && newQty < 1) {
-                          changeQuantity(i, 1);
+                          setUploadedProducts((prev) =>
+                            prev.map((item, idx) =>
+                              idx === i ? { ...item, quantity: 1 } : item
+                            )
+                          );
                           return;
                         }
 
@@ -187,27 +191,36 @@ export default function PODialogs({
                         if (newQty > limit) {
                           setSnackbar({
                             open: true,
-                            message: `Số lượng "${item.productName}" chỉ có thể nhập tối đa ${limit} (5 lần số lượng tối đa).`,
+                            message: `Số lượng "${p.productName}" chỉ có thể nhập tối đa ${limit}`,
                             severity: "error",
                           });
 
-                          changeQuantity(i, oldQty);
-
+                          setUploadedProducts((prev) =>
+                            prev.map((item, idx) =>
+                              idx === i ? { ...item, quantity: oldQty } : item
+                            )
+                          );
                           return;
                         }
 
-                        changeQuantity(i, newQty);
+                        // Cập nhật số lượng mới
+                        setUploadedProducts((prev) =>
+                          prev.map((item, idx) =>
+                            idx === i ? { ...item, quantity: newQty } : item
+                          )
+                        );
 
-                        if (newQty > item.suggestedQty) {
+                        // Cảnh báo vượt số lượng gợi ý
+                        if (newQty > p.suggestedQuantity) {
                           setSnackbar({
                             open: true,
-                            message: `Số lượng "${item.productName}" vượt quá số lượng gợi ý (${item.suggestedQty})`,
+                            message: `Số lượng "${p.productName}" vượt quá số lượng gợi ý (${p.suggestedQuantity})`,
                             severity: "warning",
                           });
                         }
                       }}
                       sx={{ width: 100, position: "relative" }}
-                      disabled={processing}
+                      disabled={sending}
                     />
                   </TableCell>
                   <TableCell>{p.suggestedQuantity}</TableCell>

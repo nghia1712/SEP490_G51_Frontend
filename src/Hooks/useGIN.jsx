@@ -200,6 +200,46 @@ export default function useGIN() {
     }
   };
 
+  // =========================
+  // STATISTICS
+  // =========================
+  const [exportedStats, setExportedStats] = useState([]);
+  const [notExportedStats, setNotExportedStats] = useState([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const fetchExportedStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await ginApi.exportedStatistic();
+      setExportedStats(res.data?.data?.monthlyData || []);
+    } catch (err) {
+      setSnack({
+        open: true,
+        message: err?.response?.message || "Lấy thống kê xuất kho thất bại",
+        severity: "error",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchNotExportedStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await ginApi.notExportedStatistic();
+      setNotExportedStats(res.data?.data || {});
+    } catch (err) {
+      setSnack({
+        open: true,
+        message:
+          err?.response?.data?.message || "Lấy thống kê chưa xuất kho thất bại",
+        severity: "error",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   return {
     data,
     loading,
@@ -220,6 +260,11 @@ export default function useGIN() {
     sendGIN,
     notEnoughGIN,
     exportedLotProduct,
+
+    exportedStats,
+    notExportedStats,
+    fetchExportedStats,
+    fetchNotExportedStats,
 
     setSnack,
     snack,

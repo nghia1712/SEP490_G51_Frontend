@@ -45,6 +45,13 @@ const ginAPI = {
     authorApi.post(`${API_URL}/exported-lot-product`, null, {
       params: { goodsIssueNoteId },
     }),
+
+  // ✅ GET: Thống kê phiếu xuất kho đã xuất
+  exportedStatistic: () => authorApi.get(`${API_URL}/exported-statistic`),
+
+  // ✅ GET: Thống kê phiếu xuất kho chưa xuất
+  notExportedStatistic: () =>
+    authorApi.get(`${API_URL}/not-exported-statistic`),
 };
 
 export default ginAPI;
