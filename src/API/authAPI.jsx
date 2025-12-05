@@ -9,12 +9,35 @@ import authorApi from "./baseAPI/authorAPI";
 const authAPI = {
   login: (credentials) => {
     const payload = {
-      UsernameOrEmail: credentials.email || credentials.username || credentials.UsernameOrEmail,
+      UsernameOrEmail:
+        credentials.email ||
+        credentials.username ||
+        credentials.UsernameOrEmail,
       Password: credentials.password,
     };
     return unauthorApi
       .post("/Login/login", payload)
-      .then((response) => response.data?.accessToken || response.data?.AccessToken);
+      .then(
+        (response) =>
+          response.data?.accessToken || response.data?.AccessToken
+      );
+  },
+
+  // Đăng nhập cho staff/manager/admin (dùng lại endpoint chung nếu backend chưa tách)
+  loginStaff: (credentials) => {
+    const payload = {
+      UsernameOrEmail:
+        credentials.email ||
+        credentials.username ||
+        credentials.UsernameOrEmail,
+      Password: credentials.password,
+    };
+    return unauthorApi
+      .post("/Login/login", payload)
+      .then(
+        (response) =>
+          response.data?.accessToken || response.data?.AccessToken
+      );
   },
 
   register: (form) => {

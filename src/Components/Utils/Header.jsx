@@ -15,6 +15,8 @@ import {
   MenuItem,
   Tooltip,
   Chip,
+  IconButton,
+  Avatar,
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
@@ -24,6 +26,7 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import PersonIcon from "@mui/icons-material/Person";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 const palette = {
   dark: "#155E64",
@@ -70,25 +73,25 @@ const getRoleInfo = (role) => {
       IconComponent: SupervisorAccountIcon,
     },
     sales_staff: {
-      label: "Bán Hàng",
+      label: "Nhân viên Bán Hàng",
       color: "#388e3c",
       bgColor: "#e8f5e9",
       IconComponent: ShoppingCartIcon,
     },
     purchases_staff: {
-      label: "Mua Hàng",
+      label: "Nhân viên Mua Hàng",
       color: "#f57c00",
       bgColor: "#fff3e0",
       IconComponent: InventoryIcon,
     },
     warehouse_staff: {
-      label: "Kho",
+      label: "Nhân viên Kho",
       color: "#7b1fa2",
       bgColor: "#f3e5f5",
       IconComponent: WarehouseIcon,
     },
     accountant_staff: {
-      label: "Kế Toán",
+      label: "Nhân viên Kế Toán",
       color: "#0288d1",
       bgColor: "#e1f5fe",
       IconComponent: AccountBalanceIcon,
@@ -118,7 +121,6 @@ function Header() {
 
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const [productMenuAnchor, setProductMenuAnchor] = useState(null);
   const [orderMenuAnchor, setOrderMenuAnchor] = useState(null);
 
@@ -127,7 +129,11 @@ function Header() {
   useEffect(() => {
     if (currentToken) {
       getProfile()
-        .then((response) => setProfile(response?.data || response))
+        .then((response) => {
+          // useUser.getProfile trả về { data: { data: {...} } }
+          const profileData = response?.data?.data || response?.data || response;
+          setProfile(profileData);
+        })
         .catch(console.error);
     }
   }, [currentToken, getProfile]);
@@ -141,6 +147,41 @@ function Header() {
     }
   }, [currentToken, userRole]);
 
+  // Helper để lấy avatar URL - giống với ViewProfile
+  const getAvatarUrl = (avatarPath) => {
+    console.log("Header getAvatarUrl called with:", avatarPath);
+    
+    if (!avatarPath) {
+      console.log("No avatar path, returning default");
+      return "/images/avatar/image1.png";
+    }
+    
+    if (typeof avatarPath === "string" && (avatarPath.startsWith("http://") || avatarPath.startsWith("https://"))) {
+      console.log("Full URL detected:", avatarPath);
+      return avatarPath;
+    }
+    
+    if (typeof avatarPath === "string" && avatarPath.startsWith("/images/")) {
+      console.log("Local images path detected:", avatarPath);
+      const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatarPath);
+      if (hasExtension) {
+        const fullUrl = `https://api.bbpharmacy.site${avatarPath}`;
+        console.log("Generated avatar URL:", fullUrl);
+        return fullUrl;
+      } else {
+        const fullUrl = `https://api.bbpharmacy.site${avatarPath}.jpg`;
+        console.log("Using default extension .jpg:", fullUrl);
+        return fullUrl;
+      }
+    }
+    
+    // Ảnh do backend trả về (đường dẫn tĩnh), bổ sung host
+    const normalized = typeof avatarPath === "string" && avatarPath.startsWith("/") ? avatarPath : `/${avatarPath || ""}`;
+    const fullUrl = `https://api.bbpharmacy.site${normalized}`;
+    console.log("Normalized path:", fullUrl);
+    return fullUrl;
+  };
+
   const shouldHideCustomerNav =
     location.pathname === "/customer-unauthenticated" ||
     location.pathname.startsWith("/customer/additional-info") ||
@@ -150,20 +191,18 @@ function Header() {
 
   const isActiveNavItem = (path) => location.pathname.startsWith(path);
 
-  const handleProfileMenuOpen = (e) => setProfileMenuAnchor(e.currentTarget);
-  const handleProfileMenuClose = () => setProfileMenuAnchor(null);
-
   const handleNavigate = (path) => {
     navigate(path);
-    handleProfileMenuClose();
   };
 
   const handleLogout = () => {
+    // Lưu role trước khi xóa token
+    const currentRole = getUserRole();
     localStorage.removeItem("authToken");
     setProfile(null);
-    handleProfileMenuClose();
-    navigate("/");
-    setTimeout(() => window.location.replace("/"), 0);
+    // Điều hướng theo role: customer về trang chủ, các role khác về login-staff
+    const redirectPath = currentRole === "customer" ? "/" : "/login-staff";
+    window.location.href = redirectPath;
   };
 
   const navItems = [
@@ -554,52 +593,63 @@ function Header() {
                     const IconComponent = roleInfo.IconComponent;
                     return (
                       <>
-                        <Tooltip
-                          title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label
-                            }`}
-                        >
-                          <Chip
-                            icon={<IconComponent />}
-                            label={roleInfo.label}
-                            onClick={handleProfileMenuOpen}
-                            deleteIcon={<ArrowDropDownIcon />}
-                            onDelete={handleProfileMenuOpen}
-                            size="medium"
-                            sx={{
-                              backgroundColor: roleInfo.bgColor,
-                              color: roleInfo.color,
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              "& .MuiChip-icon": { color: roleInfo.color },
-                              "& .MuiChip-deleteIcon": {
-                                color: roleInfo.color,
-                              },
-                            }}
-                          />
-                        </Tooltip>
-                        <Menu
-                          anchorEl={profileMenuAnchor}
-                          open={Boolean(profileMenuAnchor)}
-                          onClose={handleProfileMenuClose}
-                          anchorOrigin={{
-                            vertical: "bottom",
-                            horizontal: "right",
-                          }}
-                          transformOrigin={{
-                            vertical: "top",
-                            horizontal: "right",
-                          }}
-                        >
-                          <MenuItem
-                            onClick={() => {
-                              handleProfileMenuClose();
-                              navigate("/profile");
-                            }}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Tooltip
+                            title={`${profile?.fullName || profile?.FullName || "Tài khoản"} - ${roleInfo.label
+                              }`}
                           >
-                            Tài khoản
-                          </MenuItem>
-                          <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
-                        </Menu>
+                            {userRole === "customer" ? (
+                              <Avatar
+                                src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
+                                alt={profile?.fullName || profile?.FullName || "Khách hàng"}
+                                onClick={() => navigate("/profile")}
+                                onError={(e) => {
+                                  console.log("Failed to load avatar:", getAvatarUrl(profile?.avatar || profile?.Avatar));
+                                  e.target.src = "/images/avatar/image1.png";
+                                }}
+                                sx={{
+                                  cursor: "pointer",
+                                  width: 40,
+                                  height: 40,
+                                  border: `2px solid ${roleInfo.color}`,
+                                  "&:hover": {
+                                    opacity: 0.8,
+                                  },
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                icon={<IconComponent />}
+                                label={roleInfo.label}
+                                onClick={userRole !== "admin" && userRole !== "manager" ? () => navigate("/profile") : undefined}
+                                size="medium"
+                                sx={{
+                                  backgroundColor: roleInfo.bgColor,
+                                  color: roleInfo.color,
+                                  fontWeight: 600,
+                                  cursor: userRole !== "admin" && userRole !== "manager" ? "pointer" : "default",
+                                  "& .MuiChip-icon": { color: roleInfo.color },
+                                }}
+                              />
+                            )}
+                          </Tooltip>
+                          <Tooltip title="Đăng xuất">
+                            <IconButton
+                              size="small"
+                              onClick={handleLogout}
+                              sx={{
+                                color: roleInfo.color,
+                                backgroundColor: roleInfo.bgColor,
+                                "&:hover": {
+                                  backgroundColor: roleInfo.bgColor,
+                                  opacity: 0.9,
+                                },
+                              }}
+                            >
+                              <LogoutIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </>
                     );
                   })()}

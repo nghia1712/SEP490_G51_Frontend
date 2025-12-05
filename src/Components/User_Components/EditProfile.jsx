@@ -371,6 +371,17 @@ const EditProfile = () => {
 			console.log("Edit profile response:", response);
 			setStatusMessage(response?.data?.message || response?.message || "Cập nhật thông tin thành công!");
 			
+			// Nếu là customer và có upload avatar mới, refresh và chuyển hướng ngay
+			if (userRole === 'customer' && (newAvatarFile || shouldDeleteAvatar)) {
+				setNewAvatarFile(null);
+				setShouldDeleteAvatar(false);
+				// Refresh và chuyển hướng về profile
+				setTimeout(() => {
+					window.location.href = "/profile";
+				}, 1000);
+				return;
+			}
+			
 			const refreshResponse = await getProfile();
 			const userData = refreshResponse?.data?.data || refreshResponse?.data || refreshResponse;
 			console.log("Refreshed profile data:", userData);
@@ -393,9 +404,16 @@ const EditProfile = () => {
 			setNewAvatarFile(null);
 			setShouldDeleteAvatar(false);
 			
-			setTimeout(() => {
-				navigate("/profile");
-			}, 2000);
+			// Nếu là customer, refresh và chuyển hướng về profile
+			if (userRole === 'customer') {
+				setTimeout(() => {
+					window.location.href = "/profile";
+				}, 1000);
+			} else {
+				setTimeout(() => {
+					navigate("/profile");
+				}, 2000);
+			}
 		} catch (error) {
 			console.error("Edit profile error:", error);
 			console.error("Error response:", error.response);

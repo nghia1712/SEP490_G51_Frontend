@@ -10,14 +10,14 @@ import {
   Card,
 } from "react-bootstrap";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../App"; // Dùng context dùng chung cho toàn app
+import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 // Import các thành phần cần thiết từ Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
 import { CircularProgress } from "@mui/material";
 
-const Login = () => {
+const Login = ({ mode = "customer" }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,10 +25,11 @@ const Login = () => {
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuthContext();
+  const { login, loginStaff } = useAuthContext();
   const [loading, setLoading] = useState(false);
   // Hiển thị thông báo sau khi bị force logout
   const notice = history.state && history.state.usr && history.state.usr.notice;
+  const isStaffLogin = mode === "staff";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,16 +37,55 @@ const Login = () => {
     setSuccess(false);
     setLoading(true);
     try {
-      const response = await login({ email, password });
+      const handler = isStaffLogin && loginStaff ? loginStaff : login;
+      const response = await handler({ email, password });
       if (response) {
         const { token } = response;
         localStorage.setItem("authToken", token);
+
+        // Chặn đăng nhập sai cổng
+        const roleFromToken = getUserRoleFromToken();
+        if (!isStaffLogin && roleFromToken !== "customer") {
+          localStorage.removeItem("authToken");
+          setLoading(false);
+          setError("Email hoặc mật khẩu không chính xác");
+          return;
+        }
+        if (isStaffLogin && roleFromToken === "customer") {
+          localStorage.removeItem("authToken");
+          setLoading(false);
+          setError("Email hoặc mật khẩu không chính xác");
+          return;
+        }
+
         setSuccess(true);
         setTimeout(() => navigate("/"), 3000);
       }
     } catch (err) {
       setLoading(false);
-      setError(err.response?.data?.message || "Đăng nhập thất bại!");
+      const backendMsg = err.response?.data?.message || "";
+      const normalized = backendMsg.toLowerCase();
+
+      // Staff login: luôn hiển thị thông báo chung
+      if (isStaffLogin) {
+        setError("Email hoặc mật khẩu không chính xác");
+        return;
+      }
+
+      if (normalized.includes("không tồn tại") || normalized.includes("not exist")) {
+        setError("Tài khoản không tồn tại");
+        return;
+      }
+      if (
+        normalized.includes("mật khẩu") ||
+        normalized.includes("password") ||
+        err.response?.status === 401
+      ) {
+        setError("Email hoặc mật khẩu không chính xác");
+        return;
+      }
+
+      setError(backendMsg || "Đăng nhập thất bại!");
     }
   };
 
@@ -128,11 +168,20 @@ const Login = () => {
               >
                 <motion.h2
                   variants={itemVariants}
-                  className="text-center mb-5 fw-bold"
+                  className="text-center mb-3 fw-bold"
                   style={{ color: "#155E64" }}
                 >
-                  Đăng Nhập
+                  {isStaffLogin ? "Đăng nhập hệ thống" : "Đăng Nhập"}
                 </motion.h2>
+                {isStaffLogin && (
+                  <motion.p
+                    variants={itemVariants}
+                    className="text-center text-muted mb-4"
+                    style={{ fontSize: "0.95rem" }}
+                  >
+                    Đăng nhập với tư cách quản trị viên hoặc nhân viên
+                  </motion.p>
+                )}
 
                 {/* Sử dụng AnimatePresence để tạo hiệu ứng exit cho Alert */}
                 <AnimatePresence>
@@ -274,19 +323,21 @@ const Login = () => {
                     </motion.div>
                   </motion.div>
 
-                  <motion.div
-                    variants={itemVariants}
-                    className="text-center mt-5"
-                  >
-                    <span className="text-muted">Chưa có tài khoản? </span>
-                    <a
-                      href="/register"
-                      className="text-decoration-none fw-bold"
-                      style={{ color: "#155E64" }}
+                  {!isStaffLogin && (
+                    <motion.div
+                      variants={itemVariants}
+                      className="text-center mt-5"
                     >
-                      Đăng ký ngay
-                    </a>
-                  </motion.div>
+                      <span className="text-muted">Chưa có tài khoản? </span>
+                      <a
+                        href="/register"
+                        className="text-decoration-none fw-bold"
+                        style={{ color: "#155E64" }}
+                      >
+                        Đăng ký ngay
+                      </a>
+                    </motion.div>
+                  )}
                 </Form>
               </motion.div>
             </Col>

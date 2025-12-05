@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import authAPI from "../API/authAPI";
 import tokenManager from "../Utils/tokenManager";
 import sessionManager from "../Utils/sessionManager";
+import getUserRoleFromToken from "../Utils/getUserRoleFromToken.jsx";
 
 const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -79,6 +80,26 @@ const useAuth = () => {
     }
   };
 
+  const loginStaff = async (credentials) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const accessToken = await authAPI.loginStaff(credentials);
+      localStorage.setItem("authToken", accessToken);
+
+      tokenManager.setupAutoRefresh();
+      sessionManager.updateActivity();
+
+      await getCurrentUser();
+      setLoading(false);
+      return { token: accessToken };
+    } catch (err) {
+      setError(err.message || "Login failed");
+      setLoading(false);
+      throw err;
+    }
+  };
+
   const register = async (form) => {
     setLoading(true);
     setError(null);
@@ -112,19 +133,21 @@ const useAuth = () => {
   const logout = async () => {
     setLoading(true);
     setError(null);
+    // Lưu role trước khi xóa token
+    const currentRole = getUserRoleFromToken();
     try {
-      const data = await authAPI.logout();
-      setUser(null);
-
-      // Sử dụng TokenManager để clear tokens
-      tokenManager.clearTokens();
-
-      setLoading(false);
-      return data;
+      await authAPI.logout();
     } catch (err) {
+      // Không chặn logout nếu API lỗi
+      console.error("Logout API error:", err);
       setError(err.message || "Logout failed");
+    } finally {
+      setUser(null);
+      tokenManager.clearTokens();
       setLoading(false);
-      throw err;
+      // Điều hướng theo role: customer về trang chủ, các role khác về login-staff
+      const redirectPath = currentRole === "customer" ? "/" : "/login-staff";
+      window.location.replace(redirectPath);
     }
   };
 
@@ -147,6 +170,7 @@ const useAuth = () => {
     loading,
     error,
     login,
+    loginStaff,
     register,
     refreshToken,
     logout,

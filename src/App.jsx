@@ -20,6 +20,7 @@ import {
   ForgotPasswordWithSimpleHeader,
   GuestPageWithSimpleHeader,
   LoginWithSimpleHeader,
+  StaffLoginBare,
   RegisterWithSimpleHeader,
   ConfirmEmailWithSimpleHeader,
 } from "./Components/Utils/SimpleHeaderWrapper";
@@ -326,6 +327,7 @@ function App() {
               }
             />
             <Route path="/login" element={<LoginWithSimpleHeader />} />
+            <Route path="/login-staff" element={<StaffLoginBare />} />
             <Route path="/register" element={<RegisterWithSimpleHeader />} />
             <Route
               path="/confirm-email"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Avatar, IconButton, Tooltip, Menu, MenuItem, Chip, Typography, Divider } from "@mui/material";
+import { Box, Avatar, IconButton, Tooltip, Chip, Typography } from "@mui/material";
 import {
   AppBar,
   Toolbar,
@@ -8,7 +8,6 @@ import {
   Button,
   Container,
 } from "@mui/material";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
@@ -16,6 +15,7 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import PersonIcon from "@mui/icons-material/Person";
+import LogoutIcon from "@mui/icons-material/Logout";
 import useUser from "../../Hooks/useUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 import ResetPassword from "../Login_Components/ResetPassword";
@@ -51,25 +51,25 @@ const getRoleInfo = (role) => {
       IconComponent: SupervisorAccountIcon,
     },
     sales_staff: {
-      label: "Bán Hàng",
+      label: "Nhân viên Bán Hàng",
       color: "#388e3c", // Xanh lá
       bgColor: "#e8f5e9",
       IconComponent: ShoppingCartIcon,
     },
     purchases_staff: {
-      label: "Mua Hàng",
+      label: "Nhân viên Mua Hàng",
       color: "#f57c00", // Cam
       bgColor: "#fff3e0",
       IconComponent: InventoryIcon,
     },
     warehouse_staff: {
-      label: "Kho",
+      label: "Nhân viên Kho",
       color: "#7b1fa2", // Tím
       bgColor: "#f3e5f5",
       IconComponent: WarehouseIcon,
     },
     accountant_staff: {
-      label: "Kế Toán",
+      label: "Nhân viên Kế Toán",
       color: "#0288d1", // Xanh nhạt
       bgColor: "#e1f5fe",
       IconComponent: AccountBalanceIcon,
@@ -96,15 +96,15 @@ const SimpleHeader = () => {
   const currentToken = localStorage.getItem("authToken");
   const userRole = getUserRoleFromToken();
   const [profile, setProfile] = useState(null);
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const { getProfile } = useUser();
 
   useEffect(() => {
     if (currentToken) {
       getProfile()
         .then((response) => {
-          const data = response?.data || response;
-          setProfile(data);
+          // useUser.getProfile trả về { data: { data: {...} } }
+          const profileData = response?.data?.data || response?.data || response;
+          setProfile(profileData);
         })
         .catch((error) => {
           console.error("Error fetching profile:", error);
@@ -112,23 +112,50 @@ const SimpleHeader = () => {
     }
   }, [currentToken, getProfile]);
 
-  const handleProfileMenuOpen = (event) =>
-    setProfileMenuAnchor(event.currentTarget);
-  const handleProfileMenuClose = () => setProfileMenuAnchor(null);
-
   const handleLogout = () => {
+    // Lưu role trước khi xóa token
+    const currentRole = userRole;
     localStorage.removeItem("authToken");
     setProfile(null);
-    handleProfileMenuClose();
-    navigate("/");
-    setTimeout(() => {
-      window.location.replace("/");
-    }, 0);
+    // Điều hướng theo role: customer về trang chủ, các role khác về login-staff
+    const redirectPath = currentRole === "customer" ? "/" : "/login-staff";
+    window.location.href = redirectPath;
   };
 
-  const avatarUrl = profile?.profile?.avatar
-    ? `http://localhost:9999${profile.profile.avatar}`
-    : "/images/avatar/default.png";
+  // Helper để lấy avatar URL - giống với ViewProfile
+  const getAvatarUrl = (avatarPath) => {
+    console.log("SimpleHeader getAvatarUrl called with:", avatarPath);
+    
+    if (!avatarPath) {
+      console.log("No avatar path, returning default");
+      return "/images/avatar/image1.png";
+    }
+    
+    if (typeof avatarPath === "string" && (avatarPath.startsWith("http://") || avatarPath.startsWith("https://"))) {
+      console.log("Full URL detected:", avatarPath);
+      return avatarPath;
+    }
+    
+    if (typeof avatarPath === "string" && avatarPath.startsWith("/images/")) {
+      console.log("Local images path detected:", avatarPath);
+      const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatarPath);
+      if (hasExtension) {
+        const fullUrl = `https://api.bbpharmacy.site${avatarPath}`;
+        console.log("Generated avatar URL:", fullUrl);
+        return fullUrl;
+      } else {
+        const fullUrl = `https://api.bbpharmacy.site${avatarPath}.jpg`;
+        console.log("Using default extension .jpg:", fullUrl);
+        return fullUrl;
+      }
+    }
+    
+    // Ảnh do backend trả về (đường dẫn tĩnh), bổ sung host
+    const normalized = typeof avatarPath === "string" && avatarPath.startsWith("/") ? avatarPath : `/${avatarPath || ""}`;
+    const fullUrl = `https://api.bbpharmacy.site${normalized}`;
+    console.log("Normalized path:", fullUrl);
+    return fullUrl;
+  };
 
   return (
     <AppBar
@@ -172,58 +199,64 @@ const SimpleHeader = () => {
                   const roleInfo = getRoleInfo(userRole);
                   const IconComponent = roleInfo.IconComponent;
                   return (
-                    <Tooltip
-                      title={`${profile?.fullName || "Tài khoản"} - ${roleInfo.label}`}
-                    >
-                      <Chip
-                        icon={<IconComponent />}
-                        label={roleInfo.label}
-                        onClick={handleProfileMenuOpen}
-                        deleteIcon={<ArrowDropDownIcon />}
-                        onDelete={handleProfileMenuOpen}
-                        size="medium"
-                        sx={{
-                          backgroundColor: roleInfo.bgColor,
-                          color: roleInfo.color,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          "& .MuiChip-icon": { color: roleInfo.color },
-                          "& .MuiChip-deleteIcon": {
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Tooltip
+                title={`${profile?.fullName || profile?.FullName || "Tài khoản"} - ${roleInfo.label}`}
+              >
+                {userRole === "customer" ? (
+                  <Avatar
+                    src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
+                    alt={profile?.fullName || profile?.FullName || "Khách hàng"}
+                    onClick={() => navigate("/profile")}
+                    onError={(e) => {
+                      console.log("Failed to load avatar:", getAvatarUrl(profile?.avatar || profile?.Avatar));
+                      e.target.src = "/images/avatar/image1.png";
+                    }}
+                    sx={{
+                      cursor: "pointer",
+                      width: 40,
+                      height: 40,
+                      border: `2px solid ${roleInfo.color}`,
+                      "&:hover": {
+                        opacity: 0.8,
+                      },
+                    }}
+                  />
+                ) : (
+                  <Chip
+                    icon={<IconComponent />}
+                    label={roleInfo.label}
+                    onClick={userRole !== "admin" && userRole !== "manager" ? () => navigate("/profile") : undefined}
+                    size="medium"
+                    sx={{
+                      backgroundColor: roleInfo.bgColor,
+                      color: roleInfo.color,
+                      fontWeight: 600,
+                      cursor: userRole !== "admin" && userRole !== "manager" ? "pointer" : "default",
+                      "& .MuiChip-icon": { color: roleInfo.color },
+                    }}
+                  />
+                )}
+              </Tooltip>
+                      <Tooltip title="Đăng xuất">
+                        <IconButton
+                          size="small"
+                          onClick={handleLogout}
+                          sx={{
                             color: roleInfo.color,
-                          },
-                        }}
-                      />
-                    </Tooltip>
+                            backgroundColor: roleInfo.bgColor,
+                            "&:hover": {
+                              backgroundColor: roleInfo.bgColor,
+                              opacity: 0.9,
+                            },
+                          }}
+                        >
+                          <LogoutIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   );
                 })()}
-                <Menu
-                  anchorEl={profileMenuAnchor}
-                  open={Boolean(profileMenuAnchor)}
-                  onClose={handleProfileMenuClose}
-                >
-                  {/* Hiển thị role trong menu */}
-                  {(() => {
-                    const roleInfo = getRoleInfo(userRole);
-                    const IconComponent = roleInfo.IconComponent;
-                    return (
-                      <MenuItem disabled sx={{ opacity: 1, cursor: "default" }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
-                          <IconComponent sx={{ fontSize: 16, color: roleInfo.color }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: roleInfo.color }}>
-                            {roleInfo.label}
-                          </Typography>
-                        </Box>
-                      </MenuItem>
-                    );
-                  })()}
-                  <Divider />
-                  {userRole !== "admin" && userRole !== "manager" && (
-                    <MenuItem onClick={() => navigate("/profile")}>
-                      Tài khoản
-                    </MenuItem>
-                  )}
-                  <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
-                </Menu>
               </>
             ) : (
               <Box sx={{ display: "flex" }}>
@@ -341,6 +374,35 @@ export const LoginWithSimpleHeader = () => (
       <Login />
     </Box>
     <Footer />
+  </Box>
+);
+
+// Login staff wrapper KHÔNG header/footer
+export const StaffLoginBare = () => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      backgroundImage: "url('/images/backgroundLogin.jpg')",
+      backgroundSize: "cover",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "center",
+      backgroundAttachment: "fixed",
+    }}
+  >
+    <Box
+      component="main"
+      sx={{
+        flexGrow: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "60px 0",
+      }}
+    >
+      <Login mode="staff" />
+    </Box>
   </Box>
 );
 
