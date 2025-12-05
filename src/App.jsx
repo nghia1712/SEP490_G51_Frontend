@@ -192,7 +192,7 @@ const ConditionalHome = () => {
 
     // User đã đăng nhập: redirect về trang phù hợp với role
     if (roleFromToken === "purchases_staff") {
-      return <Navigate to="/purchase-staff" replace />;
+      return <Navigate to="/purchases-dashboard" replace />;
     } else if (roleFromToken === "customer") {
       // Customer: kiểm tra status và redirect phù hợp
       return <CustomerHomeRedirect />;
@@ -441,7 +441,6 @@ function App() {
                       />
 
                       {/* Role-specific landing pages */}
-                      <Route path="/purchase-staff" element={<Landing />} />
                       <Route
                         path="/customer"
                         element={

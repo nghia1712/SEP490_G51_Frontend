@@ -11,12 +11,10 @@ import {
   Select,
   MenuItem,
   Button,
-  IconButton,
   Alert,
+  CircularProgress,
 } from "@mui/material";
-import { Edit as EditIcon, Close as CloseIcon, Save as SaveIcon } from "@mui/icons-material";
 import supplierAPI from "../../API/supplierAPI";
-import palette from "../../constants/palette";
 
 const EditSupplier = ({ 
   user, 
@@ -30,7 +28,6 @@ const EditSupplier = ({
   setFormData,
   formErrors,
   onSubmit,
-  palette: customPalette
 }) => {
   const [name, setSupplierName] = useState('');
   const [address, setAddress] = useState('');
@@ -43,9 +40,6 @@ const EditSupplier = ({
   const [myDebt, setMyDebt] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-
-  // Sử dụng customPalette nếu có, nếu không thì dùng palette mặc định
-  const currentPalette = customPalette || palette;
 
   useEffect(() => {
     if (user) {
@@ -63,6 +57,23 @@ const EditSupplier = ({
 
   const handleSaveChanges = async () => {
     let validationErrors = {};
+
+    // Validation trùng lặp tên nhà cung cấp (không phân biệt chữ hoa chữ thường)
+    if (name.trim()) {
+      const normalizedNewName = name.trim().toLowerCase();
+      const currentUserId = user._id || user.id;
+      
+      const duplicateName = users.find(supplier => {
+        const supplierId = supplier._id || supplier.id;
+        const isDifferentSupplier = supplierId !== currentUserId;
+        const supplierName = (supplier.name || supplier.Name || "").trim().toLowerCase();
+        return isDifferentSupplier && supplierName === normalizedNewName;
+      });
+
+      if (duplicateName) {
+        validationErrors.name = "Tên nhà cung cấp này đã tồn tại";
+      }
+    }
 
     // Validation nhẹ nhàng - chỉ validate format nếu có giá trị
     const contactStr = contact.toString().trim();
@@ -181,18 +192,18 @@ const EditSupplier = ({
       );
       setUsers(updatedSuppliers);
       
-      // Hiển thị thông báo thành công
+      // Hiển thị thông báo thành công và đóng modal ngay
       setSuccessMessage("Cập nhật thành công!");
       setLoading(false);
       
-      // Đóng modal và refresh danh sách sau 3 giây
+      // Đóng modal và refresh danh sách sau 1.5 giây
       setTimeout(() => {
         closeModal();
         // Gọi callback để refresh danh sách
         if (onUpdateSuccess) {
           onUpdateSuccess();
         }
-      }, 3000);
+      }, 1500);
       
     } catch (err) {
       setErrors({ general: err.response?.data?.message || "Lỗi khi cập nhật thông tin." });
@@ -211,46 +222,17 @@ const EditSupplier = ({
       onClose={handleClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-        },
-      }}
     >
-      <DialogTitle
-        sx={{
-          backgroundColor: "#ffffff",
-          color: "#000000",
-          display: "flex",
-          alignItems: "center",
-          pb: 2,
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
-        <EditIcon sx={{ mr: 1, color: "#000000" }} />
-        Chỉnh sửa nhà cung cấp
-        <IconButton
-          onClick={handleClose}
-          sx={{
-            ml: "auto",
-            color: "#000000",
-            "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent sx={{ p: 3 }}>
+      <DialogTitle>Chỉnh Sửa Nhà Cung Cấp</DialogTitle>
+      <DialogContent dividers>
         {errors.general && <Alert severity="error" sx={{ mb: 2 }}>{errors.general}</Alert>}
         {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
         
-        <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid container spacing={3} sx={{ pt: 1 }}>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="Tên nhà cung cấp"
-              placeholder="Nhập tên nhà cung cấp (tùy chọn)"
               value={formData?.name || name}
               onChange={(e) => {
                 if (formData && setFormData) {
@@ -262,23 +244,12 @@ const EditSupplier = ({
               error={!!(formErrors?.name || errors.name)}
               helperText={formErrors?.name || errors.name}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="Số điện thoại"
-              placeholder="Nhập số điện thoại (tùy chọn)"
               value={formData?.contact || contact}
               onChange={(e) => {
                 if (formData && setFormData) {
@@ -293,23 +264,12 @@ const EditSupplier = ({
               error={!!(formErrors?.contact || errors.contact)}
               helperText={formErrors?.contact || errors.contact}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
             />
           </Grid>
           <Grid item xs={12}>
             <TextField
               fullWidth
               label="Email"
-              placeholder="Nhập email (tùy chọn)"
               type="email"
               value={formData?.email || email}
               onChange={(e) => {
@@ -325,23 +285,12 @@ const EditSupplier = ({
               error={!!(formErrors?.email || errors.email)}
               helperText={formErrors?.email || errors.email}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
             />
           </Grid>
           <Grid item xs={12}>
             <TextField
               fullWidth
               label="Địa chỉ"
-              placeholder="Nhập địa chỉ (tùy chọn)"
               value={formData?.address || address}
               onChange={(e) => {
                 if (formData && setFormData) {
@@ -355,23 +304,12 @@ const EditSupplier = ({
               multiline
               rows={2}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
             />
           </Grid>
           <Grid item xs={12}>
             <TextField
               fullWidth
               label="Mô tả (tùy chọn)"
-              placeholder="Nhập mô tả (tùy chọn)"
               value={formData?.description || description}
               onChange={(e) => {
                 if (formData && setFormData) {
@@ -383,72 +321,16 @@ const EditSupplier = ({
               multiline
               rows={3}
               variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "&.Mui-focused fieldset": {
-                    borderColor: currentPalette.dark,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: currentPalette.dark,
-                },
-              }}
             />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ "&.Mui-focused": { color: currentPalette.dark } }}>
-                Trạng thái
-              </InputLabel>
-              <Select
-                value={formData?.status || status}
-                onChange={(e) => {
-                  if (formData && setFormData) {
-                    setFormData({ ...formData, status: e.target.value });
-                  } else {
-                    setStatus(e.target.value);
-                  }
-                }}
-                label="Trạng thái"
-                sx={{
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: currentPalette.dark,
-                  },
-                }}
-              >
-                <MenuItem value="active">Còn cung cấp</MenuItem>
-                <MenuItem value="inactive">Ngừng cung cấp</MenuItem>
-              </Select>
-            </FormControl>
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: 3, backgroundColor: "#f8fafc" }}>
-        <Button
-          onClick={handleClose}
-          disabled={loading || Boolean(successMessage)}
-          sx={{ color: "#000" }}
-          variant="text"
-        >
+      <DialogActions sx={{ p: '16px 24px' }}>
+        <Button onClick={handleClose} disabled={loading} color="inherit">
           Hủy
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          startIcon={<SaveIcon />}
-          disabled={loading}
-          sx={{
-            backgroundColor: currentPalette.medium,
-            color: currentPalette.dark,
-            "&:hover": {
-              backgroundColor: currentPalette.dark,
-              color: currentPalette.white,
-            },
-            borderRadius: 2,
-            px: 3,
-          }}
-        >
-          {loading ? "Đang cập nhật..." : "Cập nhật"}
+        <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+          {loading ? <CircularProgress size={24} /> : "Lưu Thay Đổi"}
         </Button>
       </DialogActions>
     </Dialog>

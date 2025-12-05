@@ -188,10 +188,10 @@ const ListRSQ = () => {
     const data = error.response?.data ?? {};
     const errorsObj = data.errors || data.Errors;
     const errorsArray = Array.isArray(errorsObj)
-      ? errorsObj
+        ? errorsObj
       : typeof errorsObj === "object"
-      ? Object.values(errorsObj).flat()
-      : null;
+          ? Object.values(errorsObj).flat()
+          : null;
 
     const candidates = [
       typeof data === "string" ? data : null,
@@ -283,7 +283,7 @@ const ListRSQ = () => {
         month: "2-digit",
         day: "2-digit",
       });
-
+      
       return `Từ ${minFormatted} đến ${maxFormatted}`;
     } catch (error) {
       return null;
@@ -371,7 +371,7 @@ const ListRSQ = () => {
         if (!requestCode) {
           return acc;
         }
-
+        
         if (!acc[requestCode]) {
           acc[requestCode] = {
             quotations: [],
@@ -381,10 +381,10 @@ const ListRSQ = () => {
             time: 0,
           };
         }
-
+        
         const incomingTime = quotationDate ? Date.parse(quotationDate) : 0;
         const existing = acc[requestCode];
-
+        
         // Thêm báo giá vào danh sách
         existing.quotations.push({
           quotationDate,
@@ -392,7 +392,7 @@ const ListRSQ = () => {
           quotationId,
           time: Number.isNaN(incomingTime) ? 0 : incomingTime,
         });
-
+        
         // Cập nhật báo giá mới nhất (để tương thích với code cũ)
         if (
           (incomingTime && (!existing.time || incomingTime > existing.time)) ||
@@ -407,26 +407,26 @@ const ListRSQ = () => {
         return acc;
       }, {});
 
-      // Chỉ giữ các yêu cầu đã gửi từ customer (status != 0) và có trạng thái hợp lệ
+        // Chỉ giữ các yêu cầu đã gửi từ customer (status != 0) và có trạng thái hợp lệ
       const filteredData = requestData.filter((item) => {
-        const status = item.Status !== undefined ? item.Status : item.status;
-        return status !== undefined && status !== null && status !== 0;
-      });
+          const status = item.Status !== undefined ? item.Status : item.status;
+          return status !== undefined && status !== null && status !== 0;
+        });
 
-      const mappedData = filteredData.map((item) => {
-        const status = item.Status !== undefined ? item.Status : item.status;
-        const requestDate = item.RequestDate || item.requestDate || null;
-        const createdDate = item.CreatedDate || item.createdDate || requestDate;
+        const mappedData = filteredData.map((item) => {
+          const status = item.Status !== undefined ? item.Status : item.status;
+          const requestDate = item.RequestDate || item.requestDate || null;
+          const createdDate = item.CreatedDate || item.createdDate || requestDate;
         const requestCode = item.RequestCode || item.requestCode || "";
         const customerName = resolveCustomerName(item);
         const quotationInfo = requestCode
           ? quotationInfoMap[requestCode]
           : null;
-
+        
         // Tính toán ngày báo giá hiển thị
         let quotationDate = null;
         let quotationDateRange = null; // Khoảng ngày nếu có nhiều báo giá với ngày khác nhau
-
+        
         if (
           quotationInfo &&
           quotationInfo.quotations &&
@@ -436,15 +436,15 @@ const ListRSQ = () => {
           const validQuotations = quotationInfo.quotations.filter(
             (q) => q.quotationDate
           );
-
+          
           if (validQuotations.length > 0) {
             // Sắp xếp theo ngày
             validQuotations.sort((a, b) => a.time - b.time);
-
+            
             const minDate = validQuotations[0].quotationDate;
             const maxDate =
               validQuotations[validQuotations.length - 1].quotationDate;
-
+            
             // So sánh ngày (chỉ so sánh phần ngày, không so sánh giờ)
             const minDateObj = new Date(minDate);
             const maxDateObj = new Date(maxDate);
@@ -459,7 +459,7 @@ const ListRSQ = () => {
               maxDateObj.getDate()
             );
             const isSameDate = minDateOnly.getTime() === maxDateOnly.getTime();
-
+            
             // Nếu tất cả cùng ngày hoặc chỉ có 1 báo giá
             if (isSameDate || validQuotations.length === 1) {
               quotationDate = maxDate;
@@ -476,25 +476,25 @@ const ListRSQ = () => {
           // Không có báo giá, dùng ngày từ quotationInfo (tương thích với code cũ)
           quotationDate = quotationInfo?.quotationDate || null;
         }
-
+        
         const quotationCode = quotationInfo?.quotationCode || null;
         const quotationId = quotationInfo?.quotationId || null;
 
-        return {
-          id: item.Id || item.id,
+          return {
+            id: item.Id || item.id,
           code: requestCode,
           customerName,
-          createdDate,
-          sentDate: status === 1 || status === 2 ? requestDate : null,
+            createdDate,
+            sentDate: status === 1 || status === 2 ? requestDate : null,
           quotationDate,
           quotationDateRange, // Thêm khoảng ngày
           quotationId,
           quotationCode,
-          status,
-        };
-      });
+            status,
+          };
+        });
 
-      setRequests(mappedData);
+        setRequests(mappedData);
     } catch (err) {
       const errorMessage = extractErrorMessage(
         err,
@@ -521,20 +521,20 @@ const ListRSQ = () => {
       location.state
     );
     console.log("ListRSQ - rsqId:", rsqId);
-
+    
     if (rsqId) {
       const normalizedRsqId = Number(rsqId);
       console.log("ListRSQ - Normalized rsqId:", normalizedRsqId);
-
+      
       if (isNaN(normalizedRsqId)) {
         console.error("ListRSQ - Invalid rsqId:", rsqId);
         navigate(location.pathname, { replace: true, state: {} });
         return;
       }
-
+      
       // Clear state ngay lập tức để tránh re-trigger
       navigate(location.pathname, { replace: true, state: {} });
-
+      
       // Mở dialog chi tiết
       const openRequestDetailsDialog = async () => {
         try {
@@ -546,7 +546,7 @@ const ListRSQ = () => {
             normalizedRsqId
           );
           console.log("ListRSQ - Request details response:", response);
-
+          
           if (response?.data?.data) {
             console.log("ListRSQ - Setting request details and opening dialog");
             setSelectedRequestDetails(response.data.data);
@@ -568,7 +568,7 @@ const ListRSQ = () => {
           setSnackbarOpen(true);
         }
       };
-
+      
       // Đợi một chút để đảm bảo component đã render xong
       setTimeout(() => {
         openRequestDetailsDialog();
@@ -627,7 +627,7 @@ const ListRSQ = () => {
       if (response.data && response.data.data) {
         const formData = response.data.data;
         setQuotationFormData(formData);
-
+        
         // Lấy details từ selectedRequestDetails hoặc từ formData
         const details =
           selectedRequestDetails?.Details ||
@@ -636,7 +636,7 @@ const ListRSQ = () => {
         const lotProducts = formData.lotProducts || formData.LotProducts || [];
         const taxes = formData.taxes || formData.Taxes || [];
         const notes = formData.notes || formData.Notes || [];
-
+        
         // Set noteId mặc định
         if (notes.length > 0) {
           const firstNote = notes[0];
@@ -645,7 +645,7 @@ const ListRSQ = () => {
             noteId: firstNote.id || firstNote.Id || 1,
           }));
         }
-
+        
         // Map lot products by productId
         const lotsByProduct = lotProducts.reduce((acc, lot) => {
           const productId = lot.productID || lot.ProductID;
@@ -710,14 +710,14 @@ const ListRSQ = () => {
         const defaultTaxId =
           defaultTaxInfo.id ||
           (taxes.length > 0 ? taxes[0].id || taxes[0].Id || null : null);
-
+        
         // Tạo rows từ details
         const initialRows = details.map((detail, index) => {
           const productId = detail.productId || detail.ProductId;
           const productName = detail.productName || detail.ProductName || "";
           const productLots = lotsByProduct[productId] || [];
           const defaultLot = productLots[0] || null;
-
+          
           // Lấy unit từ lotProducts - tìm lot đầu tiên có unit (không phải lot "Hết lô hàng")
           let productUnit = "-";
           const lotWithUnit = lotProducts.find(
@@ -735,7 +735,7 @@ const ListRSQ = () => {
           ) {
             productUnit = defaultLot.unit;
           }
-
+          
           const minQuantity = 1;
           const unitPrice = defaultLot ? defaultLot.salePrice ?? 0 : 0;
           const { beforeTax, afterTax } = calculateTotals(
@@ -743,7 +743,7 @@ const ListRSQ = () => {
             unitPrice,
             defaultTaxInfo.rate
           );
-
+          
           return {
             id: index + 1,
             productId,
@@ -761,7 +761,7 @@ const ListRSQ = () => {
             taxRate: defaultTaxInfo.rate,
           };
         });
-
+        
         setQuotationRows(initialRows);
         setDetailDialogOpen(false);
         setCreateQuotationDialogOpen(true);
@@ -794,110 +794,110 @@ const ListRSQ = () => {
     setQuotationAction(null);
   };
 
-  const handleLotChange = (rowId, lotId) => {
+const handleLotChange = (rowId, lotId) => {
     const normalizedLotId = lotId === "NONE" ? null : Number(lotId);
     setQuotationRows(
       quotationRows.map((row) => {
-        if (row.id === rowId) {
-          if (!normalizedLotId) {
-            const defaultTax = getDefaultTaxInfo(row.taxOptions || []);
+      if (row.id === rowId) {
+      if (!normalizedLotId) {
+        const defaultTax = getDefaultTaxInfo(row.taxOptions || []);
             const { beforeTax, afterTax } = calculateTotals(
               1,
               0,
               defaultTax.rate || 0
             );
-            return {
-              ...row,
-              lotId: null,
-              minQuantity: 1,
-              unitPrice: 0,
+        return {
+          ...row,
+          lotId: null,
+          minQuantity: 1,
+          unitPrice: 0,
               productUnit: row.productUnit || "-",
-              totalBeforeTax: beforeTax,
-              totalAfterTax: afterTax,
-              taxId: defaultTax.id,
-              taxRate: defaultTax.rate,
-            };
-          }
+          totalBeforeTax: beforeTax,
+          totalAfterTax: afterTax,
+          taxId: defaultTax.id,
+          taxRate: defaultTax.rate,
+        };
+      }
           const selectedLot = (row.lotOptions || []).find(
             (lot) => lot.lotId === normalizedLotId
           );
-          if (selectedLot) {
-            const minQuantity = 1;
-            const unitPrice = selectedLot.salePrice ?? 0;
+      if (selectedLot) {
+        const minQuantity = 1;
+        const unitPrice = selectedLot.salePrice ?? 0;
             const { beforeTax, afterTax } = calculateTotals(
               minQuantity,
               unitPrice,
               row.taxRate || 0
             );
-            return {
-              ...row,
-              lotId: normalizedLotId,
-              minQuantity,
-              unitPrice,
+        return {
+          ...row,
+          lotId: normalizedLotId,
+          minQuantity,
+          unitPrice,
               productUnit: selectedLot.unit || row.productUnit || "-",
-              totalBeforeTax: beforeTax,
-              totalAfterTax: afterTax,
-            };
-          }
-          return { ...row, lotId: normalizedLotId };
-        }
-        return row;
+          totalBeforeTax: beforeTax,
+          totalAfterTax: afterTax,
+        };
+      }
+      return { ...row, lotId: normalizedLotId };
+      }
+      return row;
       })
     );
   };
 
-  const handleDepositPercentChange = (value) => {
+const handleDepositPercentChange = (value) => {
     const normalizedInput = (value || "").replace(",", ".");
     if (normalizedInput === "") {
       setQuotationForm((prev) => ({ ...prev, depositPercent: "" }));
-      return;
-    }
+    return;
+  }
 
-    let parsed = parseFloat(normalizedInput);
-    if (isNaN(parsed)) {
+  let parsed = parseFloat(normalizedInput);
+  if (isNaN(parsed)) {
       setQuotationForm((prev) => ({ ...prev, depositPercent: "" }));
-      return;
-    }
-    parsed = Math.max(0, Math.min(70, parsed));
+    return;
+  }
+  parsed = Math.max(0, Math.min(70, parsed));
     const display = Number.isInteger(parsed)
       ? String(parsed)
       : parsed.toFixed(1).replace(/\.0+$/, "");
     setQuotationForm((prev) => ({ ...prev, depositPercent: display }));
-  };
+};
 
   const handleTaxChange = (rowId, taxId) => {
     const normalizedTaxId = taxId ? Number(taxId) : null;
     setQuotationRows(
       quotationRows.map((row) => {
-        if (row.id !== rowId) return row;
+    if (row.id !== rowId) return row;
 
-        if (!normalizedTaxId) {
-          const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, 0);
-          return {
-            ...row,
-            taxId: null,
-            taxRate: 0,
-            totalBeforeTax: beforeTax,
-            totalAfterTax: afterTax,
-          };
-        }
+    if (!normalizedTaxId) {
+        const { beforeTax, afterTax } = calculateTotals(1, row.unitPrice, 0);
+      return {
+        ...row,
+        taxId: null,
+        taxRate: 0,
+        totalBeforeTax: beforeTax,
+        totalAfterTax: afterTax,
+      };
+    }
 
-        const selectedTax = (row.taxOptions || []).find(
+    const selectedTax = (row.taxOptions || []).find(
           (tax) => (tax.id || tax.Id) === normalizedTaxId
-        );
-        const taxRate = getTaxRateValue(selectedTax);
+    );
+    const taxRate = getTaxRateValue(selectedTax);
         const { beforeTax, afterTax } = calculateTotals(
           1,
           row.unitPrice,
           taxRate
         );
-        return {
-          ...row,
-          taxId: normalizedTaxId,
-          taxRate,
-          totalBeforeTax: beforeTax,
-          totalAfterTax: afterTax,
-        };
+    return {
+      ...row,
+      taxId: normalizedTaxId,
+      taxRate,
+      totalBeforeTax: beforeTax,
+      totalAfterTax: afterTax,
+    };
       })
     );
   };
@@ -953,9 +953,9 @@ const ListRSQ = () => {
         status: shouldSend ? 1 : 0,
         details: detailPayload,
       };
-
+      
       console.log("Submitting quotation payload:", payload);
-
+      
       const response = await salesQuotationAPI.createSalesQuotation(payload);
       const serverMessage =
         response.data?.message ||
@@ -970,11 +970,11 @@ const ListRSQ = () => {
             ? "Gửi báo giá thành công!"
             : "Lưu nháp báo giá thành công!")
       );
-      setSnackbarOpen(true);
-      handleCloseCreateQuotationDialog();
-      setTimeout(() => {
-        fetchRequests();
-      }, 500);
+        setSnackbarOpen(true);
+        handleCloseCreateQuotationDialog();
+        setTimeout(() => {
+          fetchRequests();
+        }, 500);
     } catch (err) {
       console.error("Submit quotation error:", err.response?.data || err);
       const errorMessage = extractErrorMessage(err, "Không thể xử lý báo giá");
@@ -1002,7 +1002,7 @@ const ListRSQ = () => {
       const searchTerm = searchRequestCode.trim().toLowerCase();
       filtered = filtered.filter(
         (request) =>
-          request.code && request.code.toLowerCase().includes(searchTerm)
+        request.code && request.code.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -1057,28 +1057,28 @@ const ListRSQ = () => {
       selectedRequestDetails.requestCode ||
       "";
     if (!requestCode) return [];
-
+    
     // Filter tất cả báo giá có RequestCode trùng với request code hiện tại
     return allQuotations
       .filter((quotation) => {
         const qRequestCode =
           quotation.RequestCode || quotation.requestCode || "";
-        return qRequestCode === requestCode;
+      return qRequestCode === requestCode;
       })
       .map((quotation) => ({
-        id: quotation.Id || quotation.id,
+      id: quotation.Id || quotation.id,
         code: quotation.QuotationCode || quotation.quotationCode || "",
-        date: quotation.QuotationDate || quotation.quotationDate || null,
-        expiredDate: quotation.ExpiredDate || quotation.expiredDate || null,
+      date: quotation.QuotationDate || quotation.quotationDate || null,
+      expiredDate: quotation.ExpiredDate || quotation.expiredDate || null,
         status:
           quotation.Status !== undefined ? quotation.Status : quotation.status,
       }))
       .sort((a, b) => {
-        // Sắp xếp theo ngày giảm dần (mới nhất trước)
-        const dateA = a.date ? new Date(a.date).getTime() : 0;
-        const dateB = b.date ? new Date(b.date).getTime() : 0;
-        return dateB - dateA;
-      });
+      // Sắp xếp theo ngày giảm dần (mới nhất trước)
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
   }, [selectedRequestDetails, allQuotations]);
 
   const detailQuotationCode = useMemo(() => {
@@ -1119,8 +1119,8 @@ const ListRSQ = () => {
   // Sort requests
   const sortedRequests = useMemo(() => {
     // Nếu không có sortConfig.key, mặc định sort theo ngày gửi từ mới nhất đến cũ nhất
-    const effectiveSortConfig = sortConfig.key
-      ? sortConfig
+    const effectiveSortConfig = sortConfig.key 
+      ? sortConfig 
       : { key: "sentDate", direction: "desc" };
 
     return [...filteredRequests].sort((a, b) => {
@@ -1180,81 +1180,81 @@ const ListRSQ = () => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
-          {/* Title */}
+      {/* Title */}
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <RequestQuote sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
-            <Typography
-              variant="h4"
+        <Typography
+          variant="h4"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
             >
               Yêu cầu báo giá từ khách hàng
             </Typography>
             <Typography variant="h6" color="text.secondary">
               Tổng: {filteredRequests.length} yêu cầu
-            </Typography>
-          </Box>
+        </Typography>
+      </Box>
 
-          {/* Error Alert */}
-          {error && (
+      {/* Error Alert */}
+      {error && (
             <Alert
               severity="error"
               sx={{ mb: 3 }}
               onClose={() => setError(null)}
             >
-              {error}
-            </Alert>
-          )}
+          {error}
+        </Alert>
+      )}
 
-          {/* Filter */}
-          <Box
-            sx={{
-              mb: 3,
+      {/* Filter */}
+      <Box
+        sx={{
+          mb: 3,
               display: "flex",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: 2,
-            }}
-          >
+          gap: 2,
+        }}
+      >
             {/* LEFT: Bộ lọc và tìm kiếm */}
-            <Box
-              sx={{
+        <Box
+          sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 2,
+            gap: 2,
                 flexWrap: "wrap",
                 flexGrow: 1,
-              }}
-            >
+          }}
+        >
               {/* Tìm kiếm */}
-              <TextField
-                size="small"
-                label="Tìm kiếm mã yêu cầu"
-                value={searchRequestCode}
-                onChange={(e) => setSearchRequestCode(e.target.value)}
-                sx={{
-                  minWidth: 200,
+          <TextField
+            size="small"
+            label="Tìm kiếm mã yêu cầu"
+            value={searchRequestCode}
+            onChange={(e) => setSearchRequestCode(e.target.value)}
+            sx={{ 
+              minWidth: 200,
                   backgroundColor: "white",
                   "& .MuiOutlinedInput-root": {
                     backgroundColor: "white",
-                  },
-                }}
-                placeholder="Nhập mã yêu cầu..."
-              />
+              },
+            }}
+            placeholder="Nhập mã yêu cầu..."
+          />
 
-              <TextField
-                size="small"
-                label="Tìm kiếm tên khách hàng"
-                value={searchCustomerName}
-                onChange={(e) => setSearchCustomerName(e.target.value)}
-                sx={{
-                  minWidth: 200,
+          <TextField
+            size="small"
+            label="Tìm kiếm tên khách hàng"
+            value={searchCustomerName}
+            onChange={(e) => setSearchCustomerName(e.target.value)}
+            sx={{ 
+              minWidth: 200,
                   backgroundColor: "white",
                   "& .MuiOutlinedInput-root": {
                     backgroundColor: "white",
-                  },
-                }}
-                placeholder="Nhập tên khách hàng..."
-              />
+              },
+            }}
+            placeholder="Nhập tên khách hàng..."
+          />
               {/* Lọc trạng thái */}
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <InputLabel id="status-filter-label">
@@ -1284,45 +1284,45 @@ const ListRSQ = () => {
               >
                 Xóa lọc
               </Button>
-            </Box>
-          </Box>
+        </Box>
+      </Box>
 
-          {/* Loading */}
-          {loading && (
+      {/* Loading */}
+      {loading && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress />
-            </Box>
-          )}
+          <CircularProgress />
+        </Box>
+      )}
 
-          {/* Table */}
-          {!loading && (
-            <TableContainer
-              component={Paper}
-              sx={{
-                boxShadow: 2,
+      {/* Table */}
+      {!loading && (
+        <TableContainer
+          component={Paper}
+          sx={{
+            boxShadow: 2,
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 2,
+            borderRadius: 2,
                 overflow: "hidden",
-              }}
-            >
+          }}
+        >
               <Table sx={{ tableLayout: "fixed" }}>
-                <TableHead>
+            <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableCell
-                      sx={{
+                <TableCell
+                  sx={{
                         width: "8%",
-                        py: 1.5,
-                        px: 2,
+                    py: 1.5,
+                    px: 2,
                         textAlign: "left",
-                        fontWeight: 600,
+                    fontWeight: 600,
                         textTransform: "uppercase",
                         letterSpacing: "0.03em",
-                      }}
-                    >
-                      STT
-                    </TableCell>
+                  }}
+                >
+                  STT
+                </TableCell>
                     <TableCell sx={{ width: "22%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
+                  <TableSortLabel
                         active={sortConfig.key === "code"}
                         direction={
                           sortConfig.key === "code"
@@ -1330,14 +1330,14 @@ const ListRSQ = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("code")}
-                        hideSortIcon
-                        sx={headerTextSx}
-                      >
-                        Mã yêu cầu báo giá
-                      </TableSortLabel>
-                    </TableCell>
+                    hideSortIcon
+                    sx={headerTextSx}
+                  >
+                    Mã yêu cầu báo giá
+                  </TableSortLabel>
+                </TableCell>
                     <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
+                  <TableSortLabel
                         active={sortConfig.key === "customerName"}
                         direction={
                           sortConfig.key === "customerName"
@@ -1345,11 +1345,11 @@ const ListRSQ = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("customerName")}
-                        sx={headerTextSx}
-                      >
-                        Khách hàng
-                      </TableSortLabel>
-                    </TableCell>
+                    sx={headerTextSx}
+                  >
+                    Khách hàng
+                  </TableSortLabel>
+                </TableCell>
                     <TableCell
                       sx={{
                         width: "20%",
@@ -1358,7 +1358,7 @@ const ListRSQ = () => {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      <TableSortLabel
+                  <TableSortLabel
                         active={sortConfig.key === "sentDate"}
                         direction={
                           sortConfig.key === "sentDate"
@@ -1366,13 +1366,13 @@ const ListRSQ = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("sentDate")}
-                        sx={headerTextSx}
-                      >
-                        Ngày khách hàng gửi
-                      </TableSortLabel>
-                    </TableCell>
+                    sx={headerTextSx}
+                  >
+                    Ngày khách hàng gửi
+                  </TableSortLabel>
+                </TableCell>
                     <TableCell sx={{ width: "17%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
+                  <TableSortLabel
                         active={sortConfig.key === "quotationDate"}
                         direction={
                           sortConfig.key === "quotationDate"
@@ -1380,13 +1380,13 @@ const ListRSQ = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("quotationDate")}
-                        sx={headerTextSx}
-                      >
-                        Ngày báo giá
-                      </TableSortLabel>
-                    </TableCell>
+                    sx={headerTextSx}
+                  >
+                    Ngày báo giá
+                  </TableSortLabel>
+                </TableCell>
                     <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
+                  <TableSortLabel
                         active={sortConfig.key === "status"}
                         direction={
                           sortConfig.key === "status"
@@ -1394,11 +1394,11 @@ const ListRSQ = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("status")}
-                        sx={headerTextSx}
-                      >
-                        Trạng thái
-                      </TableSortLabel>
-                    </TableCell>
+                    sx={headerTextSx}
+                  >
+                    Trạng thái
+                  </TableSortLabel>
+                </TableCell>
                     <TableCell
                       sx={{ width: "16%", textAlign: "right", py: 1.5, px: 2 }}
                     >
@@ -1417,31 +1417,31 @@ const ListRSQ = () => {
                             letterSpacing: "0.03em",
                           }}
                         >
-                          Hành động
-                        </span>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedRequests.map((request, index) => (
-                    <TableRow
-                      key={request.id || index}
-                      hover
-                      sx={{
+                      Hành động
+                    </span>
+                  </Box>
+                </TableCell>
+            </TableRow>
+          </TableHead>
+            <TableBody>
+              {paginatedRequests.map((request, index) => (
+                <TableRow 
+                  key={request.id || index} 
+                  hover
+                  sx={{
                         "&:nth-of-type(even)": {
                           backgroundColor: "#f9f9f9",
-                        },
+                    },
                         "& td": {
-                          py: 1.5,
-                          px: 2,
+                      py: 1.5,
+                      px: 2,
                           verticalAlign: "middle",
                         },
-                      }}
-                    >
+                  }}
+                >
                       <TableCell sx={{ textAlign: "left" }}>
-                        {(page - 1) * pageSize + index + 1}
-                      </TableCell>
+                    {(page - 1) * pageSize + index + 1}
+                  </TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>
                         {request.code}
                       </TableCell>
@@ -1449,22 +1449,22 @@ const ListRSQ = () => {
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
                         {formatDate(request.sentDate)}
                       </TableCell>
-                      <TableCell>
-                        {/* Luôn hiển thị ngày báo giá mới nhất */}
-                        {formatDate(request.quotationDate)}
-                      </TableCell>
-                      <TableCell>
+                <TableCell>
+                  {/* Luôn hiển thị ngày báo giá mới nhất */}
+                  {formatDate(request.quotationDate)}
+                </TableCell>
+                <TableCell>
                         {request.status !== undefined &&
                         request.status !== null ? (
-                          <Chip
-                            label={getStatusLabel(request.status)}
-                            size="small"
-                            sx={getStatusColor(request.status)}
-                          />
-                        ) : (
+                    <Chip
+                      label={getStatusLabel(request.status)}
+                      size="small"
+                      sx={getStatusColor(request.status)}
+                    />
+                  ) : (
                           "-"
-                        )}
-                      </TableCell>
+                  )}
+                </TableCell>
                       <TableCell
                         sx={{ textAlign: "right", verticalAlign: "middle" }}
                       >
@@ -1482,10 +1482,10 @@ const ListRSQ = () => {
                             placement="bottom"
                             arrow
                           >
-                            <IconButton
-                              size="medium"
-                              onClick={() => handleViewDetails(request.id)}
-                              sx={{
+                        <IconButton
+                          size="medium"
+                    onClick={() => handleViewDetails(request.id)}
+                    sx={{
                                 color: "#1976d2",
                                 width: "40px",
                                 height: "40px",
@@ -1494,49 +1494,49 @@ const ListRSQ = () => {
                                 justifyContent: "center",
                                 "&:hover": {
                                   backgroundColor: "rgba(25, 118, 210, 0.1)",
-                                },
-                              }}
-                            >
-                              <VisibilityIcon fontSize="medium" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {sortedRequests.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Chưa có yêu cầu báo giá nào
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              {sortedRequests.length > 0 && (
-                <Box
-                  sx={{
-                    mt: 0,
-                    pt: 2,
-                    pb: 2,
+                      },
+                    }}
+                  >
+                          <VisibilityIcon fontSize="medium" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+              {sortedRequests.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Chưa có yêu cầu báo giá nào
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+          </TableBody>
+        </Table>
+          {sortedRequests.length > 0 && (
+            <Box
+              sx={{
+                mt: 0,
+                pt: 2,
+                pb: 2,
                     borderTop: "1px solid #e0e0e0",
                     display: "flex",
                     justifyContent: "flex-end",
                     backgroundColor: "#fff",
-                  }}
-                >
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={(_, value) => setPage(value)}
-                    color="primary"
-                  />
-                </Box>
-              )}
-            </TableContainer>
+              }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
           )}
+        </TableContainer>
+      )}
         </CardContent>
       </Card>
       {/* Snackbar for notifications */}
@@ -1566,22 +1566,22 @@ const ListRSQ = () => {
               <Box sx={{ mb: 3, display: "flex", gap: 4 }}>
                 {/* Bên trái: Mã yêu cầu báo giá, Mã báo giá và Trạng thái */}
                 <Box sx={{ flex: 1 }}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Mã yêu cầu báo giá:
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã yêu cầu báo giá:
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {selectedRequestDetails.RequestCode ||
                         selectedRequestDetails.requestCode ||
                         "-"}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Mã báo giá:
-                    </Typography>
-                    <Box sx={{ fontWeight: 500 }}>
-                      {relatedQuotations.length > 0 ? (
+                </Typography>
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã báo giá:
+                </Typography>
+                <Box sx={{ fontWeight: 500 }}>
+                  {relatedQuotations.length > 0 ? (
                         <Box
                           sx={{
                             display: "flex",
@@ -1589,27 +1589,27 @@ const ListRSQ = () => {
                             gap: 0.5,
                           }}
                         >
-                          {relatedQuotations.map((quotation, index) => {
-                            // Nếu chỉ có 1 báo giá thì không hiển thị trạng thái
-                            const showStatus = relatedQuotations.length > 1;
-                            const isLatest = index === 0; // Mã đầu tiên sau khi sort là mới nhất
-                            const hasExpired = isExpired(quotation.expiredDate);
-                            const isValid = isLatest && !hasExpired; // Có hiệu lực nếu là mã mới nhất và chưa hết hạn
+                      {relatedQuotations.map((quotation, index) => {
+                        // Nếu chỉ có 1 báo giá thì không hiển thị trạng thái
+                        const showStatus = relatedQuotations.length > 1;
+                        const isLatest = index === 0; // Mã đầu tiên sau khi sort là mới nhất
+                        const hasExpired = isExpired(quotation.expiredDate);
+                        const isValid = isLatest && !hasExpired; // Có hiệu lực nếu là mã mới nhất và chưa hết hạn
                             const statusText = isValid
                               ? "có hiệu lực"
                               : "không hiệu lực";
-
-                            return (
-                              <Typography
-                                key={quotation.id || index}
-                                component="span"
-                                variant="body2"
-                                onClick={() => {
-                                  if (quotation.id) {
-                                    handleOpenQuotationDetail(quotation.id);
-                                  }
-                                }}
-                                sx={{
+                        
+                        return (
+                          <Typography
+                            key={quotation.id || index}
+                            component="span"
+                            variant="body2"
+                            onClick={() => {
+                              if (quotation.id) {
+                                handleOpenQuotationDetail(quotation.id);
+                              }
+                            }}
+                            sx={{
                                   display: "block",
                                   textAlign: "left",
                                   color: quotation.id
@@ -1619,7 +1619,7 @@ const ListRSQ = () => {
                                     showStatus && !isValid
                                       ? "line-through"
                                       : "none",
-                                  opacity: showStatus && !isValid ? 0.6 : 1,
+                              opacity: showStatus && !isValid ? 0.6 : 1,
                                   cursor: quotation.id ? "pointer" : "default",
                                   textDecorationColor: "rgba(0, 0, 0, 0.4)",
                                   "&:hover": {
@@ -1633,40 +1633,40 @@ const ListRSQ = () => {
                                         ? 0.6
                                         : 0.8
                                       : 0.6,
-                                  },
-                                }}
-                              >
+                              },
+                            }}
+                          >
                                 {quotation.code || "-"}
                                 {showStatus ? ` (${statusText})` : ""}
-                              </Typography>
-                            );
-                          })}
-                        </Box>
-                      ) : (
-                        "-"
-                      )}
+                          </Typography>
+                        );
+                      })}
                     </Box>
-                  </Box>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Trạng thái:
-                    </Typography>
-                    <Chip
+                  ) : (
+                        "-"
+                  )}
+                </Box>
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Trạng thái:
+                </Typography>
+                <Chip
                       label={getStatusLabel(
                         selectedRequestDetails.Status !== undefined
                           ? selectedRequestDetails.Status
                           : selectedRequestDetails.status
                       )}
-                      size="small"
+                  size="small"
                       sx={getStatusColor(
                         selectedRequestDetails.Status !== undefined
                           ? selectedRequestDetails.Status
                           : selectedRequestDetails.status
                       )}
-                    />
+                />
                   </Box>
                 </Box>
-
+                
                 {/* Bên phải: Khách hàng và ngày gửi */}
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -1695,8 +1695,8 @@ const ListRSQ = () => {
                     <Typography variant="body1">
                       {formatDate(detailQuotationDate)}
                     </Typography>
-                  </Box>
                 </Box>
+              </Box>
               </Box>
               <Box
                 sx={{
@@ -1789,30 +1789,30 @@ const ListRSQ = () => {
                 selectedRequestDetails.Status !== undefined
                   ? selectedRequestDetails.Status
                   : selectedRequestDetails.status;
-              // Hiển thị nút "Tạo báo giá" khi trạng thái là "Chưa báo giá" (status = 1) hoặc "Đã báo giá" (status = 2)
-              if (status === 1 || status === 2) {
-                return (
-                  <Button
+            // Hiển thị nút "Tạo báo giá" khi trạng thái là "Chưa báo giá" (status = 1) hoặc "Đã báo giá" (status = 2)
+            if (status === 1 || status === 2) {
+              return (
+            <Button
                     onClick={() =>
                       handleCreateQuotation(
                         selectedRequestDetails.Id || selectedRequestDetails.id
                       )
                     }
-                    disabled={generateLoading}
-                    variant="contained"
-                    sx={{
+              disabled={generateLoading}
+                  variant="contained"
+                  sx={{
                       backgroundColor: "#155E64",
                       "&:hover": {
                         backgroundColor: "#0D4F52",
-                      },
-                    }}
-                  >
+                    },
+                  }}
+            >
                     {generateLoading ? "Đang xử lý..." : "Tạo báo giá"}
-                  </Button>
-                );
-              }
-              return null;
-            })()}
+            </Button>
+              );
+            }
+            return null;
+          })()}
           <Button onClick={() => setDetailDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
@@ -1908,7 +1908,7 @@ const ListRSQ = () => {
                     variant="outlined"
                     size="medium"
                     fullWidth
-                    sx={{
+                    sx={{ 
                       "& .MuiInputBase-input": {
                         fontSize: "1rem",
                         py: 1.5,
@@ -2032,26 +2032,26 @@ const ListRSQ = () => {
                               {row.lotOptions && row.lotOptions.length > 0 ? (
                                 <FormControl fullWidth size="small">
                                   <Select
-                                    value={
+                            value={
                                       row.lotId !== null &&
                                       row.lotId !== undefined
-                                        ? row.lotId
+                                ? row.lotId
                                         : "NONE"
-                                    }
+                            }
                                     onChange={(e) =>
                                       handleLotChange(row.id, e.target.value)
                                     }
                                   >
                                     {row.lotOptions.map((lot, idx) => (
-                                      <MenuItem
-                                        key={`${row.id}-${idx}`}
-                                        value={
+                              <MenuItem
+                                key={`${row.id}-${idx}`}
+                                value={
                                           lot.lotId !== null &&
                                           lot.lotId !== undefined
-                                            ? lot.lotId
+                                    ? lot.lotId
                                             : "NONE"
-                                        }
-                                      >
+                                }
+                              >
                                         {lot.displayLabel ||
                                           (lot.lotId
                                             ? `Lô ${lot.lotId}`

@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 
 const palette = {
   dark: "#155E64",
+  medium: "#5A9B7F",
   white: "#FFFFFF",
   accent: "#A0E4D0",
 };
@@ -25,7 +26,7 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        backgroundColor: palette.dark,
+        backgroundColor: palette.medium,
         color: palette.white,
         py: 0.3,
       }}

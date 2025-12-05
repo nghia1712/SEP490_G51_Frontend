@@ -29,7 +29,7 @@ import NotificationMenu from "./NotificationMenu";
 // Bảng màu của bạn
 const palette = {
   dark: "#155E64",
-  medium: "#75B39C",
+  medium: "#5A9B7F",
   light: "#A0E4D0",
   white: "#FFFFFF",
   black: "#000000",

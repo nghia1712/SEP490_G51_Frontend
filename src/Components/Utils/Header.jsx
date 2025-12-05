@@ -27,7 +27,7 @@ import PersonIcon from "@mui/icons-material/Person";
 
 const palette = {
   dark: "#155E64",
-  medium: "#75B39C",
+  medium: "#5A9B7F",
   light: "#A0E4D0",
   white: "#FFFFFF",
   black: "#000000",
@@ -119,6 +119,8 @@ function Header() {
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const [productMenuAnchor, setProductMenuAnchor] = useState(null);
+  const [orderMenuAnchor, setOrderMenuAnchor] = useState(null);
 
   const { getProfile } = useUser();
 
@@ -323,6 +325,35 @@ function Header() {
     (item) => item.allowedRoles.includes(userRole) && !shouldHideCustomerNav
   );
 
+  // Menu items cho PURCHASES_STAFF với dropdown
+  const purchasesStaffMenuItems = {
+    overview: {
+      label: "Tổng quan",
+      path: "/purchases-dashboard",
+    },
+    productManagement: {
+      label: "Quản lý thuốc",
+      items: [
+        { label: "Thuốc", path: "/product" },
+        { label: "Danh mục thuốc", path: "/category" },
+        { label: "Nhà cung cấp", path: "/supplier" },
+      ],
+    },
+    orderManagement: {
+      label: "Quản lý đơn hàng nhập",
+      items: [
+        { label: "Yêu cầu báo giá nhập", path: "/purchase/prfq" },
+        { label: "Báo giá nhập", path: "/purchase/pq" },
+        { label: "Đơn hàng nhập", path: "/po" },
+      ],
+    },
+  };
+
+  const handleProductMenuOpen = (e) => setProductMenuAnchor(e.currentTarget);
+  const handleProductMenuClose = () => setProductMenuAnchor(null);
+  const handleOrderMenuOpen = (e) => setOrderMenuAnchor(e.currentTarget);
+  const handleOrderMenuClose = () => setOrderMenuAnchor(null);
+
   return (
     <AppBar
       position="sticky"
@@ -346,7 +377,155 @@ function Header() {
           </Typography>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 3 }}>
-            {visibleNavItems.map((item) => (
+            {userRole === "purchases_staff" ? (
+              <>
+                {/* Tổng quan */}
+                <Button
+                  color="inherit"
+                  onClick={() => handleNavigate(purchasesStaffMenuItems.overview.path)}
+                  sx={
+                    isActiveNavItem(purchasesStaffMenuItems.overview.path)
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  {purchasesStaffMenuItems.overview.label}
+                </Button>
+
+                {/* Quản lý thuốc - Dropdown */}
+                <Button
+                  color="inherit"
+                  onClick={handleProductMenuOpen}
+                  endIcon={<ArrowDropDownIcon />}
+                  sx={
+                    purchasesStaffMenuItems.productManagement.items.some(item =>
+                      isActiveNavItem(item.path)
+                    )
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  {purchasesStaffMenuItems.productManagement.label}
+                </Button>
+                <Menu
+                  anchorEl={productMenuAnchor}
+                  open={Boolean(productMenuAnchor)}
+                  onClose={handleProductMenuClose}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "left",
+                  }}
+                  PaperProps={{
+                    sx: {
+                      minWidth: 180,
+                      mt: 1,
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                      borderRadius: 2,
+                      "& .MuiMenuItem-root": {
+                        px: 2.5,
+                        py: 1.5,
+                        fontSize: "0.95rem",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: "#e3f2fd",
+                          color: "#1976d2",
+                          fontWeight: 500,
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {purchasesStaffMenuItems.productManagement.items.map((item) => (
+                    <MenuItem
+                      key={item.path}
+                      onClick={() => {
+                        handleNavigate(item.path);
+                        handleProductMenuClose();
+                      }}
+                      selected={isActiveNavItem(item.path)}
+                    >
+                      {item.label}
+                    </MenuItem>
+                  ))}
+                </Menu>
+
+                {/* Quản lý đơn hàng nhập - Dropdown */}
+                <Button
+                  color="inherit"
+                  onClick={handleOrderMenuOpen}
+                  endIcon={<ArrowDropDownIcon />}
+                  sx={
+                    purchasesStaffMenuItems.orderManagement.items.some(item =>
+                      isActiveNavItem(item.path)
+                    )
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  {purchasesStaffMenuItems.orderManagement.label}
+                </Button>
+                <Menu
+                  anchorEl={orderMenuAnchor}
+                  open={Boolean(orderMenuAnchor)}
+                  onClose={handleOrderMenuClose}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "left",
+                  }}
+                  PaperProps={{
+                    sx: {
+                      width: orderMenuAnchor ? `${orderMenuAnchor.offsetWidth}px` : 'auto',
+                      mt: 1,
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                      borderRadius: 2,
+                      "& .MuiMenuItem-root": {
+                        px: 2.5,
+                        py: 1.5,
+                        fontSize: "0.95rem",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: "#e3f2fd",
+                          color: "#1976d2",
+                          fontWeight: 500,
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {purchasesStaffMenuItems.orderManagement.items.map((item) => (
+                    <MenuItem
+                      key={item.path}
+                      onClick={() => {
+                        handleNavigate(item.path);
+                        handleOrderMenuClose();
+                      }}
+                      selected={isActiveNavItem(item.path)}
+                    >
+                      {item.label}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
+            ) : (
+              visibleNavItems.map((item) => (
               <Button
                 key={item.path}
                 color="inherit"
@@ -359,7 +538,8 @@ function Header() {
               >
                 {item.label}
               </Button>
-            ))}
+              ))
+            )}
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
