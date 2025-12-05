@@ -70,7 +70,7 @@ export default function PQList() {
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(1);
 
-  const pageSize = 10;
+  const pageSize = 5;
   const { prfqs, showSnackbar, handleImportQuotation, importLoading } =
     usePRFQ();
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
