@@ -303,17 +303,17 @@ export default function PRFQCreate() {
       />
 
       <Box sx={{ p: 3 }}>
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 700, mb: 2, color: palette.primary.main }}
-        >
-          {isUpdate
-            ? "Chỉnh sửa Yêu Cầu Báo Giá (Bản nháp)"
-            : "Tạo Yêu Cầu Báo Giá Nhập"}
-        </Typography>
-
         {/* THÔNG TIN NCC */}
         <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography
+            variant="h4"
+            align="center"
+            sx={{ fontWeight: 700, mb: 2, color: palette.primary }}
+          >
+            {isUpdate
+              ? "Chỉnh sửa Yêu Cầu Báo Giá (Bản nháp)"
+              : "Tạo Yêu Cầu Báo Giá Nhập"}
+          </Typography>
           <Grid
             container
             spacing={2}

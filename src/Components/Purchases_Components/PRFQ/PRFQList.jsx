@@ -145,7 +145,7 @@ export default function PRFQList() {
                 Yêu cầu báo giá mua hàng
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredData.length} yêu cầu
+                Tổng: {prfqs.length} yêu cầu
               </Typography>
             </Box>
 

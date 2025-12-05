@@ -42,7 +42,7 @@ export default function GRNManualCreatePage({ poId }) {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [locationsLoading, setLocationsLoading] = useState(false);
-const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -329,7 +329,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
       }, 2000);
     } catch (err) {
       console.error(err);
- setIsSubmitting(false);
+      setIsSubmitting(false);
       const apiMsg =
         err?.response?.data?.message || err?.message || "Tạo GRN thất bại";
 
@@ -371,11 +371,17 @@ const [isSubmitting, setIsSubmitting] = useState(false);
   };
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Tạo phiếu nhập kho
-      </Typography>
-
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
+        <Typography
+          color="primary"
+          align="center"
+          variant="h4"
+          fontWeight="bold"
+          sx={{ mt: 1, mb: 4 }}
+        >
+          Tạo phiếu nhập kho
+        </Typography>
+
         <Grid container spacing={3}>
           <Grid item xs={12} sm={4} md={4}>
             <FormControl fullWidth size="small">
@@ -475,7 +481,11 @@ const [isSubmitting, setIsSubmitting] = useState(false);
           <Typography variant="subtitle1" fontWeight={600}>
             Danh sách sản phẩm
           </Typography>
-          <Button disabled={isSubmitting} size="small" onClick={handleReloadProducts}>
+          <Button
+            disabled={isSubmitting}
+            size="small"
+            onClick={handleReloadProducts}
+          >
             Tải lại
           </Button>
         </Box>
@@ -553,7 +563,12 @@ const [isSubmitting, setIsSubmitting] = useState(false);
           mt: 3,
         }}
       >
-        <Button disabled={isSubmitting} variant="contained" size="large" onClick={handleCreateGRN}>
+        <Button
+          disabled={isSubmitting}
+          variant="contained"
+          size="large"
+          onClick={handleCreateGRN}
+        >
           Tạo phiếu nhập kho
         </Button>
       </Box>

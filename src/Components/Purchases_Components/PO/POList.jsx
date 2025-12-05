@@ -75,6 +75,7 @@ export default function POList() {
     statusMap,
     parseDDMMYYYY,
     fetchPOs,
+    poList,
   } = usePO();
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
@@ -133,112 +134,115 @@ export default function POList() {
                 Đơn nhập hàng
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredPOs.length} đơn hàng
+                Tổng: {poList.length} đơn hàng
               </Typography>
             </Box>
 
             {/* FILTER + UPLOAD */}
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={2}
-              alignItems="center"
-              justifyContent="space-between"
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              {/* Left group: search + filters + clear */}
               <Stack
-                direction="row"
+                direction={{ xs: "column", md: "row" }}
                 spacing={2}
                 alignItems="center"
-                flexWrap="wrap"
+                justifyContent="space-between"
               >
-                {/* Search chung */}
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  placeholder="Tìm kiếm..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: 250 }}
-                />
-
-                {/* Filter trạng thái nhận hàng */}
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Trạng thái nhận hàng</InputLabel>
-                  <Select
-                    value={receivingStatusFilter}
-                    label="Trạng thái nhận hàng"
-                    onChange={(e) => {
-                      setReceivingStatusFilter(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <MenuItem value="">Tất cả</MenuItem>
-                    <MenuItem value="Đã nhận đủ">Đã nhận đủ</MenuItem>
-                    <MenuItem value="Nhận một phần">Nhận một phần</MenuItem>
-                    <MenuItem value="Chờ xác nhận">Chờ xác nhận</MenuItem>
-                    <MenuItem value="Chưa nhận">Chưa nhận</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {/* Filter trạng thái đơn hàng */}
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Trạng thái đơn hàng</InputLabel>
-                  <Select
-                    value={orderStatusFilter}
-                    label="Trạng thái đơn hàng"
-                    onChange={(e) => {
-                      setOrderStatusFilter(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <MenuItem value="">Tất cả</MenuItem>
-                    {Object.entries(statusMap).map(([key, val]) => (
-                      <MenuItem key={key} value={key}>
-                        {val.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* Button xóa lọc */}
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleClearFilters}
+                {/* Left group: search + filters + clear */}
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  flexWrap="wrap"
                 >
-                  Xóa lọc
-                </Button>
-              </Stack>
+                  {/* Search chung */}
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    placeholder="Tìm kiếm..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ width: 250 }}
+                  />
 
-              {/* Right group: upload button */}
-              {userRole === "purchases_staff" && (
-                <Stack direction="row" spacing={2}>
-                  <Button
-                    variant="contained"
-                    startIcon={<UploadFile />}
-                    onClick={handleOpenUpload}
-                  >
-                    Tạo đơn từ Excel
-                  </Button>
+                  {/* Filter trạng thái nhận hàng */}
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel>Trạng thái nhận hàng</InputLabel>
+                    <Select
+                      value={receivingStatusFilter}
+                      label="Trạng thái nhận hàng"
+                      onChange={(e) => {
+                        setReceivingStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <MenuItem value="">Tất cả</MenuItem>
+                      <MenuItem value="Đã nhận đủ">Đã nhận đủ</MenuItem>
+                      <MenuItem value="Nhận một phần">Nhận một phần</MenuItem>
+                      <MenuItem value="Chờ xác nhận">Chờ xác nhận</MenuItem>
+                      <MenuItem value="Chưa nhận">Chưa nhận</MenuItem>
+                    </Select>
+                  </FormControl>
 
+                  {/* Filter trạng thái đơn hàng */}
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel>Trạng thái đơn hàng</InputLabel>
+                    <Select
+                      value={orderStatusFilter}
+                      label="Trạng thái đơn hàng"
+                      onChange={(e) => {
+                        setOrderStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <MenuItem value="">Tất cả</MenuItem>
+                      {Object.entries(statusMap).map(([key, val]) => (
+                        <MenuItem key={key} value={key}>
+                          {val.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Button xóa lọc */}
                   <Button
-                    variant="contained"
-                    color="success"
-                    onClick={() => navigate("/po/create")}
+                    variant="outlined"
+                    color="secondary"
+                    onClick={handleClearFilters}
                   >
-                    Tạo đơn hàng
+                    Xóa lọc
                   </Button>
                 </Stack>
-              )}
-            </Stack>
 
+                {/* Right group: upload button */}
+                {userRole === "purchases_staff" && (
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="contained"
+                      startIcon={<UploadFile />}
+                      onClick={handleOpenUpload}
+                    >
+                      Tạo đơn từ Excel
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={() => navigate("/po/create")}
+                    >
+                      Tạo đơn hàng
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Paper>
             {/* TABLE */}
             <TableContainer
               component={Paper}
@@ -268,11 +272,15 @@ export default function POList() {
                     <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
                       Trạng thái đơn hàng
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
                       Tổng tiền
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>Đã trả</TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>Còn nợ</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
+                      Đã trả
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }} align="right">
+                      Còn nợ
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
                       Người tạo
                     </TableCell>

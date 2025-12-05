@@ -102,7 +102,7 @@ export default function GRNListPage() {
                 Phiếu nhập kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredData.length} phiếu
+                Tổng: {data.length} phiếu
               </Typography>
             </Box>
 

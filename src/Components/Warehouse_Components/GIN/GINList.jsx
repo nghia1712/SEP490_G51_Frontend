@@ -67,7 +67,7 @@ export default function GRNList() {
   } = useGIN();
   const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedData = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -157,7 +157,7 @@ export default function GRNList() {
                 Phiếu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filtered.length} phiếu
+                Tổng: {data.length} phiếu
               </Typography>
             </Box>
 

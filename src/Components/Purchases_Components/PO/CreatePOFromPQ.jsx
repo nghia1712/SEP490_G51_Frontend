@@ -112,11 +112,20 @@ export default function CreatePOFromPQ() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-        Tạo đơn hàng
-      </Typography>
-
       <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography
+          align="center"
+          variant="h4"
+          sx={{
+            fontWeight: "bold",
+            flexGrow: 1,
+            color: "#1976d2",
+            mt: 1,
+            mb: 2,
+          }}
+        >
+          Tạo đơn hàng
+        </Typography>
         {/* Chọn PQ */}
         <FormControl fullWidth size="small" sx={{ mb: 3, width: 200 }}>
           <InputLabel>Chọn báo giá</InputLabel>

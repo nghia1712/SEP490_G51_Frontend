@@ -221,7 +221,7 @@ export default function StockExportList() {
                 Yêu cầu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredList.length} yêu cầu
+                Tổng: {data.length} yêu cầu
               </Typography>
             </Box>
 

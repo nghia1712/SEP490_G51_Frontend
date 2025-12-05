@@ -148,7 +148,7 @@ export default function PQList() {
                 Báo giá nhập
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filtered.length} báo giá
+                Tổng: {quotations.length} báo giá
               </Typography>
             </Box>
 

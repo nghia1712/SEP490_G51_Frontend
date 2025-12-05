@@ -314,8 +314,15 @@ export default function StockExportForm() {
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
           <Typography
+            align="center"
             variant="h4"
-            sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+            sx={{
+              fontWeight: "bold",
+              flexGrow: 1,
+              color: "#1976d2",
+              mt: 1,
+              mb: 3,
+            }}
           >
             {id ? "Cập nhật yêu cầu xuất kho" : "Tạo yêu cầu xuất kho"}
           </Typography>
