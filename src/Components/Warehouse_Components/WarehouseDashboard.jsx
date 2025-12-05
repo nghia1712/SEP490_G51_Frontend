@@ -77,6 +77,8 @@ const StatCard = ({ title, value, icon, color, onClick, subText }) => (
 export default function WarehouseDashboard() {
   const scrollableBodyStyle = { maxHeight: "400px", overflowY: "auto" };
   const [nearestLots, setNearestLots] = useState([]);
+  const [showPendingExportProductModal, setShowPendingExportProductModal] =
+    useState(false);
   const [discrepancyProducts, setDiscrepancyProducts] = useState([]);
   // ================= HOOKS =================
   const { products, loading: loadingWarehouse } = useWarehouse();
@@ -90,7 +92,16 @@ export default function WarehouseDashboard() {
     autoOpenCreate: autoOpenCreate,
   });
   const { fetchProductsWithNearestLot } = useProduct();
-  const { data: ginList, loading: loadingGIN } = useGIN();
+  const {
+    data: ginList,
+    loading: loadingGIN,
+    notExportedStats,
+    fetchNotExportedStats,
+  } = useGIN();
+  useEffect(() => {
+    fetchNotExportedStats();
+  }, []);
+
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   const handleMonthChange = (e) => {
@@ -122,17 +133,16 @@ export default function WarehouseDashboard() {
     () => grnList.reduce((sum, grn) => sum + (grn.totalQuantity || 0), 0),
     [grnList]
   );
-  const pendingGINQty = useMemo(
-    () => ginList.reduce((sum, gin) => sum + (gin.totalQuantity || 0), 0),
-    [ginList]
-  );
+  const pendingGINQty = useMemo(() => {
+    return notExportedStats?.totalQuantity || 0;
+  }, [notExportedStats]);
 
   useEffect(() => {
     const fetchAllDiscrepancyProducts = async () => {
       try {
         // 1️⃣ Lấy tất cả phiên kiểm kê
         const allSessionsRes = await warehouseAPI.getAllSession();
-        const allSessions = allSessionsRes.data?.data || []; // ✅ đảm bảo là array
+        const allSessions = allSessionsRes.data?.data || [];
 
         if (!Array.isArray(allSessions)) {
           console.error("allSessions is not an array:", allSessions);
@@ -277,7 +287,7 @@ export default function WarehouseDashboard() {
         </Col>
         <Col md={6} lg={3}>
           <StatCard
-            title="Hàng nhập chờ"
+            title="Sẩn phẩm chờ nhập"
             value={pendingGRNQty}
             icon={<LocalShipping />}
             color="primary"
@@ -285,10 +295,11 @@ export default function WarehouseDashboard() {
         </Col>
         <Col md={6} lg={3}>
           <StatCard
-            title="Hàng xuất chờ"
+            title="Sản phẩm chờ xuất"
             value={pendingGINQty}
             icon={<Storage />}
             color="secondary"
+            onClick={() => setShowPendingExportProductModal(true)}
           />
         </Col>
       </Row>
@@ -359,7 +370,6 @@ export default function WarehouseDashboard() {
 
                       return (
                         <tr key={`${p.productID}-${p.lotID}-${index}`}>
-
                           <td className="ps-4">
                             <div className="fw-semibold">{p.productName}</div>
                             <small className="text-muted">
@@ -467,6 +477,9 @@ export default function WarehouseDashboard() {
         setShowPendingGINModal={setShowPendingGINModal}
         showPendingPOModal={showPendingPOModal}
         setShowPendingPOModal={setShowPendingPOModal}
+        showPendingExportProductModal={showPendingExportProductModal}
+        setShowPendingExportProductModal={setShowPendingExportProductModal}
+        notExportedStats={notExportedStats}
         ginList={ginList.filter((g) => g.status === 1)}
         poList={poList.filter(
           (p) =>

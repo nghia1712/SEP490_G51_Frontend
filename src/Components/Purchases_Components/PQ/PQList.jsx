@@ -607,22 +607,6 @@ export default function PQList() {
                           size="small"
                           type="number"
                           value={item.quantity === 0 ? "" : item.quantity}
-                          helperText={
-                            item.quantity > item.suggestedQty
-                              ? "Số lượng vượt quá số lượng gợi ý"
-                              : ""
-                          }
-                          FormHelperTextProps={{
-                            sx: {
-                              color: "warning.main",
-                              position: "absolute",
-                              whiteSpace: "nowrap",
-                              overflow: "visible",
-                              left: 0,
-                              bottom: -20,
-                              zIndex: 1,
-                            },
-                          }}
                           onChange={(e) => {
                             const val = e.target.value;
                             const newQty = val === "" ? "" : Number(val);
