@@ -80,12 +80,32 @@ export default function WarehouseDashboard() {
   const [showPendingExportProductModal, setShowPendingExportProductModal] =
     useState(false);
   const [discrepancyProducts, setDiscrepancyProducts] = useState([]);
+  const [showPendingReceivingModal, setShowPendingReceivingModal] =
+    useState(false);
+
   // ================= HOOKS =================
   const { products, loading: loadingWarehouse } = useWarehouse();
-  const { poList, loading: loadingPO, fullyReceivedPOs = [] } = usePO();
+  const {
+    poList,
+    fullyReceivedPOs,
+    pendingProducts,
+    pendingLoading,
+    loading: loadingPO,
+    fetchPendingProducts,
+  } = usePO();
   const [autoOpenCreate] = useState(false);
   const [showPendingGINModal, setShowPendingGINModal] = useState(false);
   const [showPendingPOModal, setShowPendingPOModal] = useState(false);
+
+  useEffect(() => {
+    fetchPendingProducts();
+  }, []);
+
+  const pendingProductQty = useMemo(
+    () =>
+      pendingProducts.reduce((sum, p) => sum + (p.remainingQuantity || 0), 0),
+    [pendingProducts]
+  );
 
   const { data: grnList, loading: loadingGRN } = useGRNList({
     poId: null,
@@ -98,6 +118,7 @@ export default function WarehouseDashboard() {
     notExportedStats,
     fetchNotExportedStats,
   } = useGIN();
+
   useEffect(() => {
     fetchNotExportedStats();
   }, []);
@@ -287,12 +308,14 @@ export default function WarehouseDashboard() {
         </Col>
         <Col md={6} lg={3}>
           <StatCard
-            title="Sẩn phẩm chờ nhập"
-            value={pendingGRNQty}
+            title="Sản phẩm chờ nhập"
+            value={pendingProductQty}
             icon={<LocalShipping />}
             color="primary"
+            onClick={() => setShowPendingReceivingModal(true)}
           />
         </Col>
+
         <Col md={6} lg={3}>
           <StatCard
             title="Sản phẩm chờ xuất"
@@ -480,6 +503,9 @@ export default function WarehouseDashboard() {
         showPendingExportProductModal={showPendingExportProductModal}
         setShowPendingExportProductModal={setShowPendingExportProductModal}
         notExportedStats={notExportedStats}
+        showPendingReceivingModal={showPendingReceivingModal}
+        setShowPendingReceivingModal={setShowPendingReceivingModal}
+        pendingProducts={pendingProducts}
         ginList={ginList.filter((g) => g.status === 1)}
         poList={poList.filter(
           (p) =>

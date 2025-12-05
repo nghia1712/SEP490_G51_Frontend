@@ -431,7 +431,7 @@ export default function usePO() {
       const res = await poApi.getDetailsByYear(year);
       const data = res?.data?.data || [];
       setPoByYear(data);
-       return data;
+      return data;
     } catch (err) {
       console.error("❌ Lỗi khi lấy PO theo năm:", err);
 
@@ -501,6 +501,33 @@ export default function usePO() {
     }
   };
 
+  const [pendingProducts, setPendingProducts] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+
+  const fetchPendingProducts = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await poApi.getPendingReceivingProducts();
+      const products = res?.data?.data || [];
+      setPendingProducts(products);
+      return { data: products };
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy sản phẩm chờ nhập:", err);
+      setPendingProducts([]);
+      setSnackbar({
+        open: true,
+        message:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Lấy sản phẩm chờ nhập thất bại",
+        severity: "error",
+      });
+      return { data: [], message: err?.message };
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
   // ================== RETURN ==================
   return {
     poList,
@@ -565,5 +592,8 @@ export default function usePO() {
     poByYear,
     poByYearLoading,
     fetchPOByYear,
+    pendingProducts,
+    pendingLoading,
+    fetchPendingProducts,
   };
 }

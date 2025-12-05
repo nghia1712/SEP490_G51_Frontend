@@ -64,6 +64,10 @@ const poAPI = {
     authorApi.get(`${API_URL}/detailsByYear`, {
       params: { year },
     }),
+
+  // 🔹 Lấy danh sách sản phẩm chờ nhập
+  getPendingReceivingProducts: () =>
+    authorApi.get(`${API_URL}/purchasingOrderProducts`),
 };
 
 export default poAPI;

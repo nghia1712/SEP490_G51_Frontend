@@ -13,6 +13,9 @@ export const WarehouseDashboardModals = ({
   showPendingExportProductModal,
   setShowPendingExportProductModal,
   notExportedStats,
+  showPendingReceivingModal,
+  pendingProducts,
+  setShowPendingReceivingModal,
 }) => {
   const navigate = useNavigate();
   const modalBodyStyle = { maxHeight: "60vh", overflowY: "auto" };
@@ -170,10 +173,6 @@ export const WarehouseDashboardModals = ({
 
         <Modal.Body style={modalBodyStyle}>
           {/* Tổng số lượng */}
-          <div className="mb-3 text-end fw-bold text-primary">
-            Tổng số lượng chờ xuất: {notExportedStats?.totalQuantity || 0}
-          </div>
-
           <Table
             striped
             hover
@@ -182,30 +181,34 @@ export const WarehouseDashboardModals = ({
           >
             <thead className="bg-light text-muted">
               <tr>
-                <th>#</th>
                 <th>Sản phẩm</th>
-                <th className="text-end">Số lượng</th>
-                <th className="text-center">Tỷ lệ (%)</th>
+                <th className="text-center">Số lượng</th>
+                <th>Kho</th>
+                <th>Hạn dùng</th>
               </tr>
             </thead>
             <tbody>
               {notExportedStats?.products?.length > 0 ? (
                 notExportedStats.products.map((p, index) => (
                   <tr key={p.productID || index}>
-                    <td>{index + 1}</td>
                     <td className="ps-2">
                       <div className="fw-semibold">{p.productName}</div>
                       <small className="text-muted">
                         Mã lô: {p.lotId || "—"}
                       </small>
                     </td>
-                    <td className="text-end">{p.quatity}</td>
-                    <td className="text-center">{p.percentage}%</td>
+                    <td className="text-center">{p.quatity ?? 0}</td>
+                    <td>{p.warehouseLocation || "—"}</td>
+                    <td className="text-danger">
+                      {p.expiredDate
+                        ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-3 text-muted">
+                  <td colSpan={5} className="text-center py-3 text-muted">
                     Không có sản phẩm chờ xuất
                   </td>
                 </tr>
@@ -218,6 +221,90 @@ export const WarehouseDashboardModals = ({
           <Button
             variant="secondary"
             onClick={() => setShowPendingExportProductModal(false)}
+          >
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Pending Receiving Products Modal */}
+      <Modal
+        show={showPendingReceivingModal}
+        onHide={() => setShowPendingReceivingModal(false)}
+        size="lg"
+        centered
+        contentClassName="border-0 rounded-4 shadow-lg"
+      >
+        <Modal.Header className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Sản phẩm chờ nhập kho</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body style={modalBodyStyle}>
+          {pendingProducts === null ? (
+            // Trạng thái loading
+            <div className="text-center py-4">
+              <Spinner animation="border" />
+            </div>
+          ) : pendingProducts?.length > 0 ? (
+            <Table
+              striped
+              hover
+              responsive
+              className="table-borderless align-middle"
+            >
+              <thead className="bg-light text-muted">
+                <tr>
+                  <th>Sản phẩm</th>
+                  <th className="text-center">Số lượng</th>
+                  <th className="text-center">Đã nhập</th>
+                  <th className="text-center">Hạn dùng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingProducts.length > 0 ? (
+                  pendingProducts.map((p, index) => (
+                    <tr key={`${p.poid}-${p.productID}-${index}`}>
+                      <td className="ps-2">
+                        <div className="fw-semibold">{p.productName}</div>
+                        <small className="text-muted">
+                          Mã đơn hàng: {`PO-${p.poid}` || "—"}
+                        </small>
+                      </td>
+                      <td className="text-center fw-semibold">
+                        {p.remainingQuantity}
+                      </td>
+                      <td className="text-center fw-semibold">
+                        {`${p.receivedQuantity ?? 0} / ${
+                          p.orderedQuantity ?? 0
+                        }`}
+                      </td>
+                      <td className="fw-semibold text-center text-danger">
+                        {p.expiredDate
+                          ? new Date(p.expiredDate).toLocaleDateString("vi-VN")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="text-center text-muted py-3">
+                      Không có sản phẩm chờ nhập
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          ) : (
+            <div className="text-center py-3 text-muted">
+              Không có sản phẩm chờ nhập
+            </div>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer className="border-0 pt-0">
+          <Button
+            variant="secondary"
+            onClick={() => setShowPendingReceivingModal(false)}
           >
             Đóng
           </Button>
