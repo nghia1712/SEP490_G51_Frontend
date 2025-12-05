@@ -200,7 +200,7 @@ const ConditionalHome = () => {
     } else if (roleFromToken === "sales_staff") {
       return <Navigate to="/sales-staff" replace />;
     } else if (roleFromToken === "warehouse_staff") {
-      return <Navigate to="/warehouse-staff" replace />;
+      return <Navigate to="/warehouse-dashboard" replace />;
     } else if (roleFromToken === "accountant_staff") {
       return <Navigate to="/accountant-staff" replace />;
     } else if (roleFromToken === "manager") {
@@ -454,7 +454,6 @@ function App() {
                         }
                       />
                       <Route path="/sales-staff" element={<Landing />} />
-                      <Route path="/warehouse-staff" element={<Landing />} />
                       <Route path="/accountant-staff" element={<Landing />} />
                       <Route path="/manager" element={<Landing />} />
 

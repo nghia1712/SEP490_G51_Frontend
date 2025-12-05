@@ -358,7 +358,7 @@ export default function POActions({ poId, fetchPOs }) {
           </Tooltip>
         )}
         {canCreateGRN && (
-          <Tooltip title="Tạo GRN từ PO">
+          <Tooltip title="Tạo phiếu nhập kho">
             <span>
               <IconButton
                 color="secondary"
