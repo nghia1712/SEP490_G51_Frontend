@@ -385,13 +385,18 @@ export default function StockExportForm() {
                       value={form.dueDate ? new Date(form.dueDate) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
-                        const value = newValue.toISOString().split("T")[0];
+
+                        const year = newValue.getFullYear();
+                        const month = String(newValue.getMonth() + 1).padStart(
+                          2,
+                          "0"
+                        );
+                        const day = String(newValue.getDate()).padStart(2, "0");
+
+                        const value = `${year}-${month}-${day}`;
                         setForm((prev) => ({ ...prev, dueDate: value }));
                       }}
                       minDate={new Date()}
-                      maxDate={
-                        form.apiDueDate ? new Date(form.apiDueDate) : undefined
-                      }
                       format="dd/MM/yyyy"
                       slotProps={{
                         textField: { size: "small", fullWidth: false },

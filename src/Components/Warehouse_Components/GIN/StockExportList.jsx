@@ -533,8 +533,8 @@ export default function StockExportList() {
                     <TableCell>Hạn dùng</TableCell>
                     <TableCell>Số lượng</TableCell>
                     <TableCell>Đơn vị</TableCell>
-                    <TableCell>Kho</TableCell>
-                    <TableCell>Vị trí</TableCell>
+                    {/* <TableCell>Kho</TableCell>
+                    <TableCell>Vị trí</TableCell> */}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -547,8 +547,8 @@ export default function StockExportList() {
                       </TableCell>
                       <TableCell>{d.quantity}</TableCell>
                       <TableCell>{d.unit}</TableCell>
-                      <TableCell>{d.warehouseName}</TableCell>
-                      <TableCell>{d.locationName}</TableCell>
+                      {/* <TableCell>{d.warehouseName}</TableCell>
+                      <TableCell>{d.locationName}</TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>
