@@ -38,6 +38,9 @@ import {
 import warehouseAPI from "../../../API/warehouseAPI";
 import warehouseLocationAPI from "../../../API/warehouseLocationAPI";
 import { useLocation } from "react-router-dom";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import viLocale from "date-fns/locale/vi";
 
 export default function InventoryReportPage() {
   const locationState = useLocation();
@@ -50,6 +53,7 @@ export default function InventoryReportPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
+  const [totalSessions, setTotalSessions] = useState(0);
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -179,20 +183,25 @@ export default function InventoryReportPage() {
       try {
         let data = [];
 
+        const allSessions = await handleApiCall(() =>
+          warehouseAPI.getAllSession()
+        );
+        const completedSessions = allSessions.filter((s) => s.status === 3);
+        setTotalSessions(completedSessions.length);
+
         if (selectedLocation) {
-          data = await handleApiCall(() =>
-            warehouseAPI.getSessionByWarehouseLocation(selectedLocation)
+          data = allSessions.filter(
+            (s) => String(s.warehouseLocationID) === String(selectedLocation)
           );
         } else if (selectedWarehouse) {
-          const allSessions = await handleApiCall(() =>
-            warehouseAPI.getAllSession()
+          data = allSessions.filter(
+            (s) => String(s.warehouseID) === String(selectedWarehouse)
           );
-          data = allSessions.filter((s) => s.warehouseID === selectedWarehouse);
         } else {
-          data = await handleApiCall(() => warehouseAPI.getAllSession());
+          data = allSessions;
         }
 
-        // Chỉ lấy những session đã hoàn tất
+        // ✅ Chỉ lấy những session đã hoàn tất
         data = data.filter((s) => s.status === 3);
 
         // Filter theo search
@@ -283,7 +292,7 @@ export default function InventoryReportPage() {
               Báo cáo kiểm kê
             </Typography>
             <Typography variant="h6" color="textSecondary">
-              Tổng: {sessions.length} phiên
+              Tổng: {sessions.length} / {totalSessions} phiên
             </Typography>
           </Box>
 
@@ -328,22 +337,45 @@ export default function InventoryReportPage() {
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                type="date"
-                size="small"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                label="Từ ngày"
-              />
-              <TextField
-                type="date"
-                size="small"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                label="Đến ngày"
-              />
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                locale={viLocale}
+              >
+                <DatePicker
+                  label="Từ ngày"
+                  value={dateFrom ? new Date(dateFrom) : null}
+                  onChange={(newValue) => {
+                    if (!newValue) return;
+                    const value = newValue.toISOString().split("T")[0];
+                    setDateFrom(value);
+
+                    if (dateTo && new Date(dateTo) < newValue) {
+                      setDateTo("");
+                    }
+                  }}
+                  format="dd/MM/yyyy"
+                  slotProps={{
+                    textField: { size: "small", sx: { width: 180 } },
+                  }}
+                  maxDate={dateTo ? new Date(dateTo) : undefined}
+                />
+
+                <DatePicker
+                  label="Đến ngày"
+                  value={dateTo ? new Date(dateTo) : null}
+                  onChange={(newValue) => {
+                    if (!newValue) return;
+                    const value = newValue.toISOString().split("T")[0];
+                    setDateTo(value);
+                  }}
+                  format="dd/MM/yyyy"
+                  slotProps={{
+                    textField: { size: "small", sx: { width: 180 } },
+                  }}
+                  minDate={dateFrom ? new Date(dateFrom) : undefined}
+                />
+              </LocalizationProvider>
+
               <Button
                 variant="outlined"
                 color="secondary"
@@ -372,8 +404,8 @@ export default function InventoryReportPage() {
                 <TableRow>
                   <TableCell>#</TableCell>
                   <TableCell>Phiên kiểm kê</TableCell>
-                  <TableCell>Ngày bắt đầu</TableCell>
-                  <TableCell>Ngày hoàn tất</TableCell>
+                  <TableCell>Thời gian bắt đầu</TableCell>
+                  <TableCell>Thời gian hoàn tất</TableCell>
                   <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -392,14 +424,22 @@ export default function InventoryReportPage() {
                   </TableRow>
                 ) : (
                   paginated.map((s, i) => (
-                    <TableRow key={s.inventorySessionID} hover>
+                    <TableRow
+                      key={s.inventorySessionID}
+                      hover
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => handleViewDetail(s.inventorySessionID)}
+                    >
                       <TableCell>{(page - 1) * rowsPerPage + i + 1}</TableCell>
                       <TableCell>{s.inventorySessionID}</TableCell>
                       <TableCell>{formatDate(s.startDate)}</TableCell>
                       <TableCell>{formatDate(s.endDate)}</TableCell>
-                      <TableCell align="center">
+                      <TableCell
+                        onClick={(e) => e.stopPropagation()}
+                        align="center"
+                      >
                         <Box sx={{ display: "inline-flex", gap: 1 }}>
-                          <Tooltip title="Xem chi tiết">
+                          {/* <Tooltip title="Xem chi tiết">
                             <IconButton
                               color="primary"
                               onClick={() =>
@@ -409,7 +449,7 @@ export default function InventoryReportPage() {
                             >
                               <VisibilityIcon />
                             </IconButton>
-                          </Tooltip>
+                          </Tooltip> */}
                           <Tooltip title="Xuất Excel">
                             <IconButton
                               onClick={() => handleExport(s.inventorySessionID)}

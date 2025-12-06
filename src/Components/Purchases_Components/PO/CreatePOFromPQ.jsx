@@ -110,6 +110,13 @@ export default function CreatePOFromPQ() {
     }
   };
 
+  const isExpired = (expiredDate) => {
+    if (!expiredDate) return false;
+    const today = new Date();
+    const expire = new Date(expiredDate);
+    return expire < today;
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -134,11 +141,13 @@ export default function CreatePOFromPQ() {
             label="Chọn báo giá"
             onChange={(e) => handleSelectPQ(e.target.value)}
           >
-            {quotations.map((q) => (
-              <MenuItem key={q.quotationId} value={q.quotationId}>
-                PQ-{q.quotationId}
-              </MenuItem>
-            ))}
+            {quotations
+              .filter((q) => !isExpired(q.expiredDate))
+              .map((q) => (
+                <MenuItem key={q.quotationId} value={q.quotationId}>
+                  PQ-{q.quotationId}
+                </MenuItem>
+              ))}
           </Select>
         </FormControl>
 

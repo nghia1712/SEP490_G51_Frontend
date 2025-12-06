@@ -27,6 +27,10 @@ import {
   Card,
   CardContent,
   Container,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Search,
@@ -48,6 +52,7 @@ export default function StockExportList() {
   const { data, loading, refetch, deleteOrder, sendOrder } = useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState("");
 
   const [userRole, setUserRole] = useState(null);
   const [search, setSearch] = useState("");
@@ -62,7 +67,7 @@ export default function StockExportList() {
   const { data: detailData, loading: detailLoading } = useStockExport(viewId);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
 
   useEffect(() => {
     const role = getUserRoleFromToken();
@@ -126,23 +131,27 @@ export default function StockExportList() {
     .filter((item) => {
       const keyword = search.toLowerCase();
 
-      const statusText = getStatus(item.status).label.toLowerCase();
-
-      return (
+      const matchesSearch =
         (item.stockExportOrderCode || "").toLowerCase().includes(keyword) ||
         (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
-        (item.createBy || "").toLowerCase().includes(keyword)
-      );
+        (item.createBy || "").toLowerCase().includes(keyword);
+
+      const matchesStatus =
+        statusFilter === "" || Number(item.status) === Number(statusFilter);
+
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => Number(b.id) - Number(a.id));
-
   const totalPages = Math.ceil(filteredList.length / pageSize);
+
   const paginatedData = filteredList.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
 
-  useEffect(() => setPage(1), [search]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
 
   const handleViewDetail = (item) => {
     setViewId(item.id);
@@ -221,7 +230,7 @@ export default function StockExportList() {
                 Yêu cầu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {data.length} yêu cầu
+                Tổng: {filteredList.length} / {data.length} yêu cầu
               </Typography>
             </Box>
 
@@ -235,20 +244,53 @@ export default function StockExportList() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <TextField
-                  placeholder="Tìm kiếm..."
-                  size="small"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                {/* BÊN TRÁI */}
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <TextField
+                    placeholder="Tìm kiếm..."
+                    size="small"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
 
+                  {/* ✅ FILTER STATUS */}
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <InputLabel>Trạng thái</InputLabel>
+                    <Select
+                      value={statusFilter}
+                      label="Trạng thái"
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <MenuItem value="">Tất cả</MenuItem>
+                      <MenuItem value={0}>Nháp</MenuItem>
+                      <MenuItem value={1}>Chờ xử lý</MenuItem>
+                      <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
+                      <MenuItem value={3}>Không đủ hàng</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {/* ✅ NÚT XÓA LỌC */}
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("");
+                    }}
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Stack>
+
+                {/* BÊN PHẢI */}
                 {userRole === "sales_staff" && (
                   <Button
                     variant="contained"
@@ -337,7 +379,16 @@ export default function StockExportList() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                            onClick={(e) => e.stopPropagation()}
                           >
+                            {/* <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleViewDetail(item)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip> */}
 
                             {userRole === "warehouse_staff" &&
                               item.status === 1 &&

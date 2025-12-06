@@ -70,8 +70,8 @@ export default function DebtList() {
     secretLoading,
     fetchPharmacySecretInfo,
   } = usePO();
-  const approvedStatuses = [0, 3, 4]; // trạng thái approved nhưng chưa thanh toán hết
-  const fullyPaidStatus = 5; // trạng thái đã thanh toán hết
+  const approvedStatuses = [0, 3, 4];
+  const fullyPaidStatus = 5;
 
   const [openDetail, setOpenDetail] = useState(false);
   const [page, setPage] = useState(1);
@@ -219,8 +219,11 @@ export default function DebtList() {
                           </TableCell> */}
                           <TableCell align="center">{item.debtName}</TableCell>
                           <TableCell align="right">
-                            {item.payables.toLocaleString()} đ
+                            {item.payables === 0
+                              ? "Đã thanh toán hết"
+                              : item.payables.toLocaleString() + " đ"}
                           </TableCell>
+
                           {/* <TableCell align="center">
                             {item.currentDebt.toLocaleString()} đ
                           </TableCell> */}

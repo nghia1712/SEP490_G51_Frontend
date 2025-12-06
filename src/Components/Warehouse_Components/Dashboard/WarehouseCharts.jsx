@@ -139,10 +139,16 @@ export const WarehouseCharts = () => {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
                     cursor={{ fill: "transparent" }}
-                    formatter={(value, name) => [
-                      formatNumber(value),
-                      name === "importQuantity" ? "Nhập kho" : "Xuất kho",
-                    ]}
+                    labelFormatter={(label) => `${label}`}
+                    formatter={(value, name) => {
+                      if (name === "importQuantity") {
+                        return [`${formatNumber(value)}`, "🔵 Nhập kho"];
+                      }
+                      if (name === "exportQuantity") {
+                        return [`${formatNumber(value)}`, "🔴 Xuất kho"];
+                      }
+                      return value;
+                    }}
                   />
 
                   <Bar

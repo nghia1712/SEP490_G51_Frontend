@@ -26,6 +26,10 @@ import {
   Container,
   Card,
   CardContent,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
@@ -41,7 +45,7 @@ import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 export default function GRNList() {
   const navigate = useNavigate();
   const location = useLocation();
-
+  const [statusFilter, setStatusFilter] = useState("");
   const role = getUserRoleFromToken();
 
   const {
@@ -77,7 +81,13 @@ export default function GRNList() {
   // =========================
   useEffect(() => {
     const keyword = search.toLowerCase();
+
     const filteredData = (data || [])
+
+      .filter((item) =>
+        statusFilter === "" ? true : item.status === Number(statusFilter)
+      )
+
       .filter(
         (item) =>
           (item.note || "").toLowerCase().includes(keyword) ||
@@ -86,11 +96,11 @@ export default function GRNList() {
           (item.createBy || "").toLowerCase().includes(keyword) ||
           (item.stockExportOrderCode || "").toLowerCase().includes(keyword)
       )
-      .slice()
       .sort((a, b) => Number(b.id) - Number(a.id));
+
     setFiltered(filteredData);
     setPage(1);
-  }, [search, data]);
+  }, [search, statusFilter, data]);
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
@@ -157,7 +167,7 @@ export default function GRNList() {
                 Phiếu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {data.length} phiếu
+                Tổng: {filtered.length} / {data.length} phiếu
               </Typography>
             </Box>
 
@@ -172,23 +182,52 @@ export default function GRNList() {
                 justifyContent="space-between"
                 sx={{ width: "100%" }}
               >
-                <TextField
-                  placeholder="Tìm kiếm..."
-                  size="small"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  sx={{
-                    flexGrow: 1,
-                    maxWidth: { xs: "100%", md: 400 },
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <TextField
+                    placeholder="Tìm kiếm..."
+                    size="small"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    sx={{
+                      flexGrow: 1,
+                      maxWidth: { xs: "100%", md: 400 },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <InputLabel>Trạng thái</InputLabel>
+                    <Select
+                      value={statusFilter}
+                      label="Trạng thái"
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <MenuItem value="">Tất cả</MenuItem>
+                      <MenuItem value={0}>Nháp</MenuItem>
+                      <MenuItem value={1}>Chờ xử lý</MenuItem>
+                      <MenuItem value={2}>Đã xuất kho</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("");
+                    }}
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Stack>
+
                 {role === "accountant_staff" && (
                   <Button
                     variant="contained"
@@ -227,7 +266,7 @@ export default function GRNList() {
                     <TableCell>Người tạo</TableCell>
                     <TableCell>Trạng thái</TableCell>
                     <TableCell>Ngày tạo</TableCell>
-                    <TableCell align="center">Thao tác</TableCell>
+                    <TableCell align="center">Hành động</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -245,7 +284,12 @@ export default function GRNList() {
                     </TableRow>
                   ) : (
                     paginatedData.map((row, idx) => (
-                      <TableRow key={row.id} hover sx={{cusor:"pointer"}} onClick={()=>handleViewDetail(row)}>
+                      <TableRow
+                        key={row.id}
+                        hover
+                        sx={{ cusor: "pointer" }}
+                        onClick={() => handleViewDetail(row)}
+                      >
                         <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell>{row.goodsIssueNoteCode}</TableCell>
                         <TableCell>{row.warehouseName}</TableCell>

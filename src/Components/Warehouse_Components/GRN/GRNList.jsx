@@ -102,7 +102,7 @@ export default function GRNListPage() {
                 Phiếu nhập kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {data.length} phiếu
+                Tổng: {filtered.length} / {data.length} phiếu
               </Typography>
             </Box>
 
@@ -179,7 +179,12 @@ export default function GRNListPage() {
                     </TableRow>
                   ) : (
                     paginatedData.map((row, idx) => (
-                      <TableRow key={row.grnId + "_" + idx} hover sx={{cursor:"pointer"}} onClick={()=> handleViewDetail(row)}>
+                      <TableRow
+                        key={row.grnId + "_" + idx}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleViewDetail(row)}
+                      >
                         <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell align="center">{`GRN-${row.grnid}`}</TableCell>
                         <TableCell>{row.warehouse}</TableCell>
@@ -199,6 +204,7 @@ export default function GRNListPage() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {/* <Tooltip title="Xem chi tiết">
                               <IconButton

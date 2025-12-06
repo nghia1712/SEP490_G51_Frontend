@@ -50,7 +50,6 @@ export const DashboardModals = ({
                 <th>Mã Đơn</th>
                 <th>Nhà cung cấp</th>
                 <th className="text-end">Tổng tiền</th>
-                <th className="text-end">Trạng thái</th>
               </tr>
             </thead>
             <tbody>
@@ -62,7 +61,6 @@ export const DashboardModals = ({
                     <td className="fw-bold text-end">
                       {formatCurrency(order.total)}
                     </td>
-                    <td className="text-end">{getStatusBadge(order.status)}</td>
                   </tr>
                 ))
               ) : (
@@ -231,10 +229,14 @@ export const DashboardModals = ({
                 <tr>
                   <th className="ps-4 fw-semibold text-nowrap">Mã Đơn</th>
                   <th className="fw-semibold text-nowrap">Nhà cung cấp</th>
-                  <th className="fw-semibold text-nowrap text-center">Ngày đặt hàng</th>
+                  <th className="fw-semibold text-nowrap text-end">
+                    Tổng tiền
+                  </th>
+                  <th className="fw-semibold text-nowrap text-end">Đã trả</th>
                   <th className="fw-semibold text-nowrap text-end">Còn nợ</th>
-                  <th className="fw-semibold text-nowrap text-end">Tổng tiền</th>
-                  <th className="pe-4 fw-semibold text-nowrap text-center">Trạng thái</th>
+                  <th className="pe-4 fw-semibold text-nowrap text-center">
+                    Trạng thái
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -246,18 +248,14 @@ export const DashboardModals = ({
                       <tr key={order.poid || index}>
                         <td className="ps-4 fw-bold text-primary">{`PO-${order.poid}`}</td>
                         <td>{order.supname}</td>
-                        <td className="text-muted text-center small">
-                          {order.orderDate
-                            ? new Date(order.orderDate).toLocaleDateString(
-                                "vi-VN"
-                              )
-                            : "-"}
-                        </td>
-                        <td className="fw-bold text-end text-danger">
-                          {formatCurrency(remaining)}
-                        </td>
                         <td className="fw-bold text-end">
                           {formatCurrency(order.total)}
+                        </td>
+                        <td className="fw-bold text-end text-success">
+                          {formatCurrency(order.deposit)}
+                        </td>
+                        <td className="fw-bold text-end text-danger">
+                          {formatCurrency(order.debt)}
                         </td>
                         <td className="pe-4 text-center">
                           {getStatusBadge(order.status)}

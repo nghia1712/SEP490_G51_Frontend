@@ -146,7 +146,7 @@ export default function PRFQList() {
                 Yêu cầu báo giá mua hàng
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {prfqs.length} yêu cầu
+                Tổng: {filteredData.length} / {prfqs.length} yêu cầu
               </Typography>
             </Box>
 
@@ -205,7 +205,9 @@ export default function PRFQList() {
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Địa chỉ</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>
+                    <TableCell
+                      sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+                    >
                       Số điện thoại
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>

@@ -160,7 +160,7 @@ export const DashboardCharts = ({
                         }
                       }}
                       label={({ name, percent, value }) =>
-                        `${name} (${value}): ${(percent * 100).toFixed(0)}%`
+                        `${name}: ${(percent * 100).toFixed(0)}%`
                       }
                     >
                       {statusChartData.map((entry, index) => (
@@ -179,6 +179,7 @@ export const DashboardCharts = ({
           </Card>
         </Col>
       </Row>
+
       {/* Orders By Status Modal */}
       <Modal
         show={showStatusModal}
@@ -193,7 +194,6 @@ export const DashboardCharts = ({
           </Modal.Title>
         </Modal.Header>
 
-        {/* ✅ GIỮ GIỐNG MODAL KHÁC: maxHeight + scroll */}
         <Modal.Body
           style={{ maxHeight: "60vh", overflow: "hidden", padding: 0 }}
         >
@@ -204,7 +204,6 @@ export const DashboardCharts = ({
               responsive
               className="table-borderless align-middle mb-0"
             >
-              {/* ✅ STICKY HEADER */}
               <thead
                 className="bg-light text-muted"
                 style={{
@@ -218,7 +217,17 @@ export const DashboardCharts = ({
                   <th>Mã Đơn</th>
                   <th>Nhà cung cấp</th>
                   <th className="text-end">Tổng tiền</th>
-                  <th className="text-end">Trạng thái</th>
+                  {filteredOrdersByStatus[0]?.status !== 6 && (
+                    <>
+                      <th className="text-end">
+                        {" "}
+                        {filteredOrdersByStatus[0]?.status === 3
+                          ? "Đã cọc"
+                          : "Đã trả"}
+                      </th>
+                      <th className="text-end">Còn nợ</th>
+                    </>
+                  )}
                 </tr>
               </thead>
 
@@ -231,14 +240,25 @@ export const DashboardCharts = ({
                       <td className="fw-bold text-end">
                         {formatCurrency(order.total)}
                       </td>
-                      <td className="text-end">
-                        {getStatusBadge(order.status)}
-                      </td>
+
+                      {order.status !== 6 && (
+                        <>
+                          <td className="fw-bold text-end text-success">
+                            {formatCurrency(order.deposit)}
+                          </td>
+                          <td className="fw-bold text-end text-danger">
+                            {formatCurrency(order.debt)}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="text-center py-3 text-muted">
+                    <td
+                      colSpan={filteredOrdersByStatus[0]?.status !== 6 ? 5 : 3}
+                      className="text-center py-3 text-muted"
+                    >
                       Không có đơn hàng.
                     </td>
                   </tr>

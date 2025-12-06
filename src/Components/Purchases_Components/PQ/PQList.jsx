@@ -83,7 +83,7 @@ export default function PQList() {
       const supplierMatch = q.supplierName?.toLowerCase().includes(keyword);
       const pqMatch = `PQ-${q.quotationId}`.toLowerCase().includes(keyword);
 
-      const sentDate = new Date(q.sentDate);
+      const sentDate = new Date(q.expiredDate);
       const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
       const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
 
@@ -148,7 +148,7 @@ export default function PQList() {
                 Báo giá nhập
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {quotations.length} báo giá
+                Tổng: {filtered.length} / {quotations.length} báo giá
               </Typography>
             </Box>
 
@@ -184,7 +184,7 @@ export default function PQList() {
                     locale={viLocale}
                   >
                     <DatePicker
-                      label="Ngày gửi từ"
+                      label="Hạn từ"
                       value={dateFrom ? new Date(dateFrom) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
@@ -200,7 +200,7 @@ export default function PQList() {
                       maxDate={dateTo ? new Date(dateTo) : undefined}
                     />
                     <DatePicker
-                      label="Ngày gửi đến"
+                      label="Hạn đến"
                       value={dateTo ? new Date(dateTo) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
@@ -279,7 +279,7 @@ export default function PQList() {
                   ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                        Chưa có báo giá nào
+                       Không có dữ liệu
                       </TableCell>
                     </TableRow>
                   ) : (

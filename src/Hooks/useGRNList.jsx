@@ -59,9 +59,8 @@ export default function useGRNList({ poId, autoOpenCreate }) {
     if (!search) return data;
     return data.filter((item) => {
       const text = [
-        item.grnId,
-        item.grnid,
-        item.poid,
+        `GRN-${item.grnid}`,
+        `PO-${item.poid}`,
         item.source,
         item.description,
         item.warehouse,

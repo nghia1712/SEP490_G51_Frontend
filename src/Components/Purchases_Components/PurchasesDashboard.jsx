@@ -31,13 +31,11 @@ import { DashboardModals } from "./Dashboard/DashboardModals.jsx";
 
 // ================= STATUS MAP =================
 export const statusMap = {
-  0: { label: "Chấp thuận", color: "success" },
-  1: { label: "Từ chối", color: "danger" },
+  0: { label: "Chấp thuận", color: "warning" },
   3: { label: "Đã đặt cọc", color: "info" },
   4: { label: "Thanh toán 1 phần", color: "primary" },
-  5: { label: "Hoàn thành", color: "secondary" },
-  6: { label: "Chờ xử lý", color: "warning" },
-  7: { label: "Nháp", color: "dark" },
+  5: { label: "Hoàn thành", color: "success" },
+  6: { label: "Chờ xử lý", color: "secondary" },
 };
 
 // ================= UI HELPER COMPONENTS =================
@@ -146,7 +144,7 @@ function PurchasesDashboard() {
     if (!poList || !poList.length) return;
 
     const filteredPOs = poList.filter((po) => po.status !== 7);
-
+console.log("AAAAAAAAAA",filteredPOs);
     const statusGroups = filteredPOs.reduce((acc, po) => {
       const label = statusMap[po.status]?.label || "Khác";
 
@@ -203,7 +201,7 @@ function PurchasesDashboard() {
         const ordersWithName = await Promise.all(
           (monthItem?.orders || []).map(async (order) => {
             const name = await getSupplierName(order.supname);
-            console.log("Order POID:", order.poid, "Supplier Name:", name); // <-- log ở đây
+            console.log("Order POID:", order.poid, "Supplier Name:", name);
             return {
               ...order,
               supname: name,
@@ -214,7 +212,7 @@ function PurchasesDashboard() {
         return {
           month: `T${i + 1}`,
           total: ordersWithName.reduce(
-            (sum, o) => sum + Number(o.total || 0),
+            (sum, o) => sum + Number(o.deposit || 0),
             0
           ),
           orders: ordersWithName,
@@ -380,12 +378,12 @@ function PurchasesDashboard() {
         <Row className="g-4 mb-5">
           <Col md={6} lg={3}>
             <StatCard
-              title="Chi phí tháng này"
+              title="Chi phí dự kiến tháng này"
               value={formatCurrency(purchasesData.monthlySpending)}
               icon={<AttachMoney />}
               color="primary"
               onClick={() => setShowMonthlyOrdersModal(true)}
-              subText="Tổng chi trong tháng"
+              subText="Tổng chi dự kiến trong tháng"
             />
           </Col>
           <Col md={6} lg={3}>
