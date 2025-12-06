@@ -20,6 +20,7 @@ import useUser from "../../Hooks/useUser";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken.jsx";
 import ResetPassword from "../Login_Components/ResetPassword";
 import ForgotPassword from "../Login_Components/ForgotPassword";
+import ForgotPasswordStaff from "../Login_Components/ForgotPasswordStaff";
 import Login from "../Login_Components/Login";
 import Register from "../Login_Components/Register";
 import ConfirmEmail from "../Login_Components/ConfirmEmail";
@@ -344,7 +345,35 @@ export const ForgotPasswordWithSimpleHeader = () => (
     }}>
       <ForgotPassword />
     </Box>
-    <Footer />
+  </Box>
+);
+
+// ForgotPasswordStaff wrapper KHÔNG header/footer (giống StaffLoginBare)
+export const ForgotPasswordStaffBare = () => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      backgroundImage: "url('/images/backgroundLogin.jpg')",
+      backgroundSize: "cover",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "center",
+      backgroundAttachment: "fixed",
+    }}
+  >
+    <Box
+      component="main"
+      sx={{
+        flexGrow: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "60px 0",
+      }}
+    >
+      <ForgotPasswordStaff />
+    </Box>
   </Box>
 );
 

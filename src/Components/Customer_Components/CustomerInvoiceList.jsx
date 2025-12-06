@@ -47,7 +47,7 @@ const CustomerInvoiceList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
@@ -708,7 +708,7 @@ const CustomerInvoiceList = () => {
               )}
             </TableBody>
           </Table>
-          {paginatedInvoices.length > 0 && (
+          {paginatedInvoices.length > 0 && totalPages > 1 && (
             <Box
               sx={{
                 pt: 2,
@@ -719,7 +719,14 @@ const CustomerInvoiceList = () => {
                 backgroundColor: '#fff',
               }}
             >
-              <Pagination count={totalPages} page={page} onChange={(_, value) => setPage(value)} color="primary" />
+              <Pagination 
+                count={totalPages} 
+                page={page} 
+                onChange={(_, value) => setPage(value)} 
+                color="primary"
+                siblingCount={1}
+                boundaryCount={2}
+              />
             </Box>
           )}
         </TableContainer>

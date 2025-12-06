@@ -1774,7 +1774,7 @@ const CustomerRequestQuotationList = () => {
               )}
             </TableBody>
           </Table>
-          {sortedRequests.length > 0 && (
+          {sortedRequests.length > 0 && totalPages > 1 && (
             <Box
               sx={{
                 pt: 2,
@@ -1790,6 +1790,8 @@ const CustomerRequestQuotationList = () => {
                 page={page}
                 onChange={(_, value) => setPage(value)}
                 color="primary"
+                siblingCount={1}
+                boundaryCount={2}
               />
             </Box>
           )}

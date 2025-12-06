@@ -23,6 +23,7 @@ import {
   StaffLoginBare,
   RegisterWithSimpleHeader,
   ConfirmEmailWithSimpleHeader,
+  ForgotPasswordStaffBare,
 } from "./Components/Utils/SimpleHeaderWrapper";
 import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
@@ -315,6 +316,10 @@ function App() {
               path="/forgot-password"
               element={<ForgotPasswordWithSimpleHeader />}
             />
+            <Route
+              path="/forgot-password-staff"
+              element={<ForgotPasswordStaffBare />}
+            />
 
             {/* Routes cho Guest và Auth - sử dụng SimpleHeader riêng (giống forgot-password) */}
             <Route path="/" element={<ConditionalHome />} />
@@ -378,31 +383,7 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["customer"]}>
                             <CustomerStatusCheck>
-                              <Box
-                                sx={{
-                                  minHeight: "100vh",
-                                  backgroundImage:
-                                    "url('/images/backgroundMedical2.jpg')",
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                  backgroundRepeat: "no-repeat",
-                                  position: "relative",
-                                  "&::before": {
-                                    content: '""',
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "rgba(255, 255, 255, 0.3)",
-                                    zIndex: 1,
-                                  },
-                                }}
-                              >
-                                <Box sx={{ position: "relative", zIndex: 2 }}>
-                                  <CustomerOrderList />
-                                </Box>
-                              </Box>
+                              <CustomerOrderList />
                             </CustomerStatusCheck>
                           </ProtectedRoute>
                         }
@@ -412,31 +393,7 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["customer"]}>
                             <CustomerStatusCheck>
-                              <Box
-                                sx={{
-                                  minHeight: "100vh",
-                                  backgroundImage:
-                                    "url('/images/backgroundMedical2.jpg')",
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                  backgroundRepeat: "no-repeat",
-                                  position: "relative",
-                                  "&::before": {
-                                    content: '""',
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "rgba(255, 255, 255, 0.3)",
-                                    zIndex: 1,
-                                  },
-                                }}
-                              >
-                                <Box sx={{ position: "relative", zIndex: 2 }}>
-                                  <CustomerInvoiceList />
-                                </Box>
-                              </Box>
+                              <CustomerInvoiceList />
                             </CustomerStatusCheck>
                           </ProtectedRoute>
                         }
@@ -473,31 +430,7 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["customer"]}>
                             <CustomerStatusCheck>
-                              <Box
-                                sx={{
-                                  minHeight: "100vh",
-                                  backgroundImage:
-                                    "url('/images/backgroundMedical2.jpg')",
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
-                                  backgroundRepeat: "no-repeat",
-                                  position: "relative",
-                                  "&::before": {
-                                    content: '""',
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "rgba(255, 255, 255, 0.3)",
-                                    zIndex: 1,
-                                  },
-                                }}
-                              >
-                                <Box sx={{ position: "relative", zIndex: 2 }}>
-                                  <CustomerRequestQuotationList />
-                                </Box>
-                              </Box>
+                              <CustomerRequestQuotationList />
                             </CustomerStatusCheck>
                           </ProtectedRoute>
                         }
@@ -953,9 +886,23 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
+                      {/* Payment Remain - Customer route */}
+                      <Route
+                        path="/customer/payment-remain"
+                        element={
+                          <ProtectedRoute allowedRoles={["customer"]}>
+                            <PaymentRemainList />
+                          </ProtectedRoute>
+                        }
+                      />
+                      {/* Payment Remain - Accountant route */}
                       <Route
                         path="/payment-remain"
-                        element={<PaymentRemainList />}
+                        element={
+                          <ProtectedRoute allowedRoles={["accountant_staff"]}>
+                            <PaymentRemainList />
+                          </ProtectedRoute>
+                        }
                       />
 
                       <Route

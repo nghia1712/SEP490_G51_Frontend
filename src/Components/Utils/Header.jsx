@@ -382,8 +382,13 @@ function Header() {
     },
     {
       label: "Yêu cầu thanh toán",
+      path: "/customer/payment-remain",
+      allowedRoles: ["customer"],
+    },
+    {
+      label: "Yêu cầu thanh toán",
       path: "/payment-remain",
-      allowedRoles: ["accountant_staff", "customer"],
+      allowedRoles: ["accountant_staff"],
     },
   ];
 

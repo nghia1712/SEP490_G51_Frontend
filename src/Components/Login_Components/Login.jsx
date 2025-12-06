@@ -66,8 +66,28 @@ const Login = ({ mode = "customer" }) => {
       const backendMsg = err.response?.data?.message || "";
       const normalized = backendMsg.toLowerCase();
 
-      // Staff login: luôn hiển thị thông báo chung
+      // Staff login: hiển thị thông báo tài khoản bị khóa nếu có, còn lại thì thông báo chung
       if (isStaffLogin) {
+        // Nếu tài khoản bị khóa, hiển thị thông báo cụ thể
+        if (
+          normalized.includes("khóa") ||
+          normalized.includes("block") ||
+          normalized.includes("bị khóa")
+        ) {
+          setError(backendMsg || "Tài khoản của bạn đã bị khóa");
+          return;
+        }
+        // Các lỗi khác hiển thị thông báo chung
+        setError("Email hoặc mật khẩu không chính xác");
+        return;
+      }
+
+      // Customer login: Nếu tài khoản bị khóa, hiển thị thông báo như lỗi đăng nhập sai
+      if (
+        normalized.includes("khóa") ||
+        normalized.includes("block") ||
+        normalized.includes("bị khóa")
+      ) {
         setError("Email hoặc mật khẩu không chính xác");
         return;
       }
@@ -79,6 +99,9 @@ const Login = ({ mode = "customer" }) => {
       if (
         normalized.includes("mật khẩu") ||
         normalized.includes("password") ||
+        normalized.includes("khóa") ||
+        normalized.includes("block") ||
+        normalized.includes("bị khóa") ||
         err.response?.status === 401
       ) {
         setError("Email hoặc mật khẩu không chính xác");
@@ -286,7 +309,7 @@ const Login = ({ mode = "customer" }) => {
                     className="d-flex justify-content-between align-items-center gap-3 flex-wrap"
                   >
                     <a
-                      href="/forgot-password"
+                      href={isStaffLogin ? "/forgot-password-staff" : "/forgot-password"}
                       className="text-decoration-none"
                       style={{ color: "#155E64" }}
                     >
