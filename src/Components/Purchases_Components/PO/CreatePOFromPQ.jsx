@@ -303,7 +303,7 @@ export default function CreatePOFromPQ() {
           <Button
             variant="outlined"
             color="secondary"
-            onClick={() => handleCreatePO(0)}
+            onClick={() => handleCreatePO(7)}
             disabled={!quotationToCreatePo?.items?.length || sending}
           >
             {sending ? <CircularProgress size={20} /> : "Lưu nháp"}
