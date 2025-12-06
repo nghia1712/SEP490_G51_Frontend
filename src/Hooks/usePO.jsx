@@ -284,7 +284,7 @@ export default function usePO() {
       console.error(err);
 
       const apiMsg =
-        err?.response?.data?.message || err?.message || "Tạo GRN thất bại";
+        err?.response?.data?.message || err?.message;
 
       setSnackbar({
         open: true,

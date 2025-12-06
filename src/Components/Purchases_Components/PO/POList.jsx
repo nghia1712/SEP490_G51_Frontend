@@ -305,7 +305,12 @@ export default function POList() {
                     </TableRow>
                   ) : (
                     paginatedPOs.map((po, index) => (
-                      <TableRow key={po.poid}>
+                      <TableRow
+                        key={po.poid}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleOpenDetail(po.poid)}
+                      >
                         <TableCell>
                           {(page - 1) * pageSize + index + 1}
                         </TableCell>
@@ -350,8 +355,9 @@ export default function POList() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Tooltip title="Xem chi tiết">
+                            {/* <Tooltip title="Xem chi tiết">
                               <IconButton
                                 color="primary"
                                 onClick={() => handleOpenDetail(po.poid)}
@@ -359,8 +365,11 @@ export default function POList() {
                               >
                                 <Visibility />
                               </IconButton>
-                            </Tooltip>
-                            <POActions poId={po.poid} fetchPOs={fetchPOs} />
+                            </Tooltip> */}
+                            <POActions
+                              poId={po.poid}
+                              fetchPOs={fetchPOs}
+                            />
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -470,8 +479,8 @@ export default function POList() {
                       : selectedPO.deposit?.toLocaleString() + " ₫"}
                   </Typography>
                   <Typography>
-                    <strong>Còn nợ:</strong> {selectedPO.debt.toLocaleString()}{" "}
-                    ₫
+                    <strong>Số tiền phải trả:</strong>{" "}
+                    {selectedPO.debt.toLocaleString()} ₫
                   </Typography>
                 </Box>
               </Box>

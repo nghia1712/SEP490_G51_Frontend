@@ -75,13 +75,14 @@ export default function PRFQList() {
   }, []);
 
   // ===== Filter dữ liệu =====
-  const filteredData = prfqs.filter((p) =>
-    p.supplierName?.toLowerCase().includes(search.toLowerCase())||
-    p.supplierEmail?.toLowerCase().includes(search.toLowerCase())||
-    p.supplierPhone?.toLowerCase().includes(search.toLowerCase())||
-    p.supplierAddress?.toLowerCase().includes(search.toLowerCase())||
-    `PRFQ-${p.prfqid}`.toLowerCase().includes(search.toLowerCase())||
-    p.createdBy?.toLowerCase().includes(search.toLowerCase())
+  const filteredData = prfqs.filter(
+    (p) =>
+      p.supplierName?.toLowerCase().includes(search.toLowerCase()) ||
+      p.supplierEmail?.toLowerCase().includes(search.toLowerCase()) ||
+      p.supplierPhone?.toLowerCase().includes(search.toLowerCase()) ||
+      p.supplierAddress?.toLowerCase().includes(search.toLowerCase()) ||
+      `PRFQ-${p.prfqid}`.toLowerCase().includes(search.toLowerCase()) ||
+      p.createdBy?.toLowerCase().includes(search.toLowerCase())
   );
 
   // ===== Pagination =====
@@ -237,7 +238,12 @@ export default function PRFQList() {
                     </TableRow>
                   ) : (
                     paginatedData.map((row, index) => (
-                      <TableRow key={row.prfqid}>
+                      <TableRow
+                        key={row.prfqid}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleViewDetail(row.prfqid)}
+                      >
                         <TableCell>
                           {(page - 1) * pageSize + index + 1}
                         </TableCell>
@@ -271,17 +277,9 @@ export default function PRFQList() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            {row.status !== 4 ? (
-                              <Tooltip title="Chi tiết / Xem trước">
-                                <IconButton
-                                  color="primary"
-                                  onClick={() => handleViewDetail(row.prfqid)}
-                                >
-                                  <VisibilityIcon />
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
+                            {row.status === 4 && (
                               <>
                                 <Tooltip title="Tiếp tục chỉnh sửa">
                                   <IconButton

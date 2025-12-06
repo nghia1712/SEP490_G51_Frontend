@@ -37,6 +37,16 @@ const debtStatusMap = {
   6: { label: "Quá hạn", color: "secondary" },
 };
 
+const statusMap = {
+  0: { label: "Chấp thuận", color: "success" },
+  1: { label: "Từ chối", color: "error" },
+  3: { label: "Đã đặt cọc", color: "info" },
+  4: { label: "Thanh toán một phần", color: "primary" },
+  5: { label: "Hoàn thành", color: "secondary" },
+  6: { label: "Chờ xử lý", color: "warning" },
+  7: { label: "Nháp", color: "default" },
+};
+
 const entityTypeLabel = (type) => {
   switch (type) {
     case 1:
@@ -179,7 +189,7 @@ export default function DebtList() {
                       <TableCell align="right">Phải trả</TableCell>
                       {/* <TableCell align="center">Dư nợ</TableCell> */}
                       <TableCell align="center">Ngày trả gần nhất</TableCell>
-                      <TableCell align="center">Hành động</TableCell>
+                      {/* <TableCell align="center">Hành động</TableCell> */}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -191,7 +201,12 @@ export default function DebtList() {
                       </TableRow>
                     ) : (
                       paginatedDebts.map((item, idx) => (
-                        <TableRow key={item.reportID}>
+                        <TableRow
+                          key={item.reportID}
+                          hover
+                          sx={{ cursor: "pointer" }}
+                          onClick={() => handleOpenDetail(item.reportID)}
+                        >
                           <TableCell align="center">
                             {(page - 1) * rowsPerPage + idx + 1}
                           </TableCell>
@@ -216,7 +231,7 @@ export default function DebtList() {
                                 )
                               : "-"}
                           </TableCell>
-                          <TableCell align="center">
+                          {/* <TableCell align="center">
                             <Tooltip title="Chi tiết">
                               <IconButton
                                 color="info"
@@ -225,7 +240,7 @@ export default function DebtList() {
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
-                          </TableCell>
+                          </TableCell> */}
                         </TableRow>
                       ))
                     )}
@@ -329,6 +344,7 @@ export default function DebtList() {
                       <TableRow>
                         <TableCell align="center">Đơn hàng</TableCell>
                         <TableCell align="right">Tổng tiền</TableCell>
+                        <TableCell align="center">Trạng thái</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -341,16 +357,28 @@ export default function DebtList() {
                         .map((po) => (
                           <TableRow key={po.poid}>
                             <TableCell align="center">{`PO-${po.poid}`}</TableCell>
+
+                            {/* TOTAL */}
                             <TableCell
                               align="right"
                               sx={{
-                                color:
-                                  po.status === fullyPaidStatus
-                                    ? "green"
-                                    : "inherit",
+                                fontWeight: po.status === 5 ? "bold" : "normal",
+                                color: po.status === 5 ? "green" : "inherit",
                               }}
                             >
                               {po.toatlPo?.toLocaleString()} đ
+                            </TableCell>
+
+                            {/* STATUS */}
+                            <TableCell align="center">
+                              <Chip
+                                label={
+                                  statusMap[po.status]?.label ||
+                                  "Không xác định"
+                                }
+                                color={statusMap[po.status]?.color || "default"}
+                                size="small"
+                              />
                             </TableCell>
                           </TableRow>
                         ))}

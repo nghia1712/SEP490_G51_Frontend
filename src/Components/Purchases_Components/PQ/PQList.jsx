@@ -286,7 +286,11 @@ export default function PQList() {
                     paginated.map((row, i) => {
                       const isValid = row.status === "InDate";
                       return (
-                        <TableRow key={row.quotationId}>
+                        <TableRow key={row.quotationId}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={()=> openDetail(row.quotationId)}
+                        >
                           <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                           <TableCell>{`PQ-${row.quotationId}`}</TableCell>
                           <TableCell>
@@ -308,8 +312,9 @@ export default function PQList() {
                               direction="row"
                               spacing={1}
                               justifyContent="center"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <Tooltip title="Xem chi tiết">
+                              {/* <Tooltip title="Xem chi tiết">
                                 <span>
                                   <IconButton
                                     color="primary"
@@ -319,7 +324,7 @@ export default function PQList() {
                                     <Visibility />
                                   </IconButton>
                                 </span>
-                              </Tooltip>
+                              </Tooltip> */}
 
                               {isValid && (
                                 <Tooltip title="Tạo yêu cầu">

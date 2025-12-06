@@ -118,9 +118,30 @@ export default function POActions({ poId, fetchPOs }) {
   };
 
   const handleDeposit = async () => {
+    const depositAmount = Number(amount);
+
+    if (depositAmount <= 0) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "Số tiền cọc phải lớn hơn 0",
+      });
+      return;
+    }
+
+    if (depositAmount >= poDetail.total) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message:
+          "Số tiền cọc không thể lớn hơn hoặc bằng tổng giá trị đơn hàng",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
-      await handleDepositPO(poId, Number(amount));
+      await handleDepositPO(poId, depositAmount);
       setDepositOpen(false);
       setAmount("");
       fetchPOs();
@@ -130,9 +151,29 @@ export default function POActions({ poId, fetchPOs }) {
   };
 
   const handlePay = async () => {
+    const payAmount = Number(amount);
+
+    if (payAmount <= 0) {
+      setSnackbar({
+        open: true,
+        severity: "warning",
+        message: "Số tiền thanh toán phải lớn hơn 0",
+      });
+      return;
+    }
+
+    if (payAmount > poDetail.debt) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message: "Số tiền thanh toán không thể lớn hơn số nợ còn lại",
+      });
+      return;
+    }
+
     setProcessing(true);
     try {
-      await handlePayPO(poId, Number(amount));
+      await handlePayPO(poId, payAmount);
       setPayOpen(false);
       setAmount("");
       fetchPOs();

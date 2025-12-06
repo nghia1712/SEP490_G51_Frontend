@@ -299,7 +299,12 @@ export default function StockExportList() {
                     </TableRow>
                   ) : (
                     paginatedData.map((item, index) => (
-                      <TableRow key={item.id}>
+                      <TableRow
+                        key={item.id}
+                        hover
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleViewDetail(item)}
+                      >
                         <TableCell>
                           {(page - 1) * pageSize + index + 1}
                         </TableCell>
@@ -333,14 +338,6 @@ export default function StockExportList() {
                             spacing={1}
                             justifyContent="center"
                           >
-                            <Tooltip title="Xem chi tiết">
-                              <IconButton
-                                color="primary"
-                                onClick={() => handleViewDetail(item)}
-                              >
-                                <Visibility />
-                              </IconButton>
-                            </Tooltip>
 
                             {userRole === "warehouse_staff" &&
                               item.status === 1 &&

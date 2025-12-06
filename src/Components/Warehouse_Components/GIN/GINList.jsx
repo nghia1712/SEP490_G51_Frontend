@@ -245,7 +245,7 @@ export default function GRNList() {
                     </TableRow>
                   ) : (
                     paginatedData.map((row, idx) => (
-                      <TableRow key={row.id}>
+                      <TableRow key={row.id} hover sx={{cusor:"pointer"}} onClick={()=>handleViewDetail(row)}>
                         <TableCell>{(page - 1) * pageSize + idx + 1}</TableCell>
                         <TableCell>{row.goodsIssueNoteCode}</TableCell>
                         <TableCell>{row.warehouseName}</TableCell>
@@ -266,8 +266,9 @@ export default function GRNList() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            {/* Xem chi tiết */}
+                            {/* Xem chi tiết
                             <Tooltip title="Xem chi tiết">
                               <IconButton
                                 color="primary"
@@ -276,7 +277,7 @@ export default function GRNList() {
                               >
                                 <Visibility />
                               </IconButton>
-                            </Tooltip>
+                            </Tooltip> */}
 
                             {/* NÚT XÁC NHẬN XUẤT KHO */}
                             {role === "warehouse_staff" && row.status === 1 && (

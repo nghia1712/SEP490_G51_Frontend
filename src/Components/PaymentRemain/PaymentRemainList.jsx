@@ -228,14 +228,25 @@ const PaymentRemainList = () => {
   // Sort list by createdAt (newest first) before pagination
   const sortedList = React.useMemo(() => {
     return [...list].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.CreatedAt ? new Date(a.CreatedAt).getTime() : 0);
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.CreatedAt ? new Date(b.CreatedAt).getTime() : 0);
+      const dateA = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : a.CreatedAt
+        ? new Date(a.CreatedAt).getTime()
+        : 0;
+      const dateB = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : b.CreatedAt
+        ? new Date(b.CreatedAt).getTime()
+        : 0;
       return dateB - dateA; // Mới nhất trước
     });
   }, [list]);
 
   // Pagination FE
-  const paginatedList = sortedList.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedList = sortedList.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   return (
     <Box p={3}>
@@ -243,7 +254,10 @@ const PaymentRemainList = () => {
         <Card elevation={3} sx={{ borderRadius: 2 }}>
           <CardContent>
             {/* HEADER */}
-            <Box className="payment-remain-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Box
+              className="payment-remain-list-title-container"
+              sx={{ display: "flex", alignItems: "center", mb: 2 }}
+            >
               <RequestQuote sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
               <Typography
                 variant="h4"
@@ -361,71 +375,83 @@ const PaymentRemainList = () => {
               </Stack>
             ) : (
               <div className="payment-remain-list-container">
-              <TableContainer
-                component={Paper}
-                sx={{ borderRadius: 2, maxHeight: 500, overflowX: 'auto' }}
-              >
-                <Table className="payment-remain-list-table" stickyHeader sx={{ minWidth: 1000 }}>
-                  <TableHead
-                    sx={{
-                      backgroundColor: "#f5f5f5",
-                      "& .MuiTableCell-root": { fontWeight: "bold" },
-                    }}
+                <TableContainer
+                  component={Paper}
+                  sx={{ borderRadius: 2, maxHeight: 500, overflowX: "auto" }}
+                >
+                  <Table
+                    className="payment-remain-list-table"
+                    stickyHeader
+                    sx={{ minWidth: 1000 }}
                   >
-                    <TableRow>
-                      <TableCell>Mã yêu cầu</TableCell>
-                      <TableCell>Mã đơn hàng</TableCell>
-                      <TableCell>Mã hóa đơn</TableCell>
-                      <TableCell>Loại thanh toán</TableCell>
-                      <TableCell align="center">Phương thức</TableCell>
-                      <TableCell align="right">Số tiền</TableCell>
-                      <TableCell>Trạng thái</TableCell>
-                      <TableCell>Ngày yêu cầu</TableCell>
-                      <TableCell align="center">Thao tác</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {paginatedList.length === 0 ? (
+                    <TableHead
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        "& .MuiTableCell-root": { fontWeight: "bold" },
+                      }}
+                    >
                       <TableRow>
-                        <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                          Chưa có yêu cầu thanh toán nào
-                        </TableCell>
+                        <TableCell>Mã yêu cầu</TableCell>
+                        <TableCell>Mã đơn hàng</TableCell>
+                        <TableCell>Mã hóa đơn</TableCell>
+                        <TableCell>Loại thanh toán</TableCell>
+                        <TableCell align="center">Phương thức</TableCell>
+                        <TableCell align="right">Số tiền</TableCell>
+                        <TableCell>Trạng thái</TableCell>
+                        <TableCell>Ngày yêu cầu</TableCell>
+                        {userRole === "customer" && item.status === 0 && (
+                          <TableCell align="center">Thao tác</TableCell>
+                        )}
                       </TableRow>
-                    ) : (
-                      paginatedList.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell align="center">{item.id}</TableCell>
-                          <TableCell>
-                            {item.salesOrderCode || item.salesOrderId}
+                    </TableHead>
+
+                    <TableBody>
+                      {paginatedList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                            Chưa có yêu cầu thanh toán nào
                           </TableCell>
-                          <TableCell>{item.invoiceCode}</TableCell>
-                          <TableCell>
-                            {renderPaymentType(item.paymentType)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {renderPaymentMethod(item.paymentMethod)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {item.amount.toLocaleString()} ₫
-                          </TableCell>
-                          <TableCell>
-                            {renderStatus(item.vnPayStatus)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {item.requestCreatedAt
-                              ? new Date(
-                                  item.requestCreatedAt
-                                ).toLocaleDateString("vi-VN")
-                              : "-"}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              justifyContent="center"
-                            >
-                              <Tooltip title="Xem chi tiết">
+                        </TableRow>
+                      ) : (
+                        paginatedList.map((item) => (
+                          <TableRow
+                            key={item.id}
+                            hover
+                            sx={{ cursor: "pointer" }}
+                            onClick={() => handleViewDetail(item)}
+                          >
+                            <TableCell align="center">{item.id}</TableCell>
+                            <TableCell>
+                              {item.salesOrderCode || item.salesOrderId}
+                            </TableCell>
+                            <TableCell>{item.invoiceCode}</TableCell>
+                            <TableCell>
+                              {renderPaymentType(item.paymentType)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {renderPaymentMethod(item.paymentMethod)}
+                            </TableCell>
+                            <TableCell align="right">
+                              {item.amount.toLocaleString()} ₫
+                            </TableCell>
+                            <TableCell>
+                              {renderStatus(item.vnPayStatus)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {item.requestCreatedAt
+                                ? new Date(
+                                    item.requestCreatedAt
+                                  ).toLocaleDateString("vi-VN")
+                                : "-"}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                justifyContent="center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {/* <Tooltip title="Xem chi tiết">
                                 <IconButton
                                   color="primary"
                                   size="small"
@@ -433,28 +459,29 @@ const PaymentRemainList = () => {
                                 >
                                   <Visibility />
                                 </IconButton>
-                              </Tooltip>
-                              {userRole === "customer" && item.status === 0 && (
-                                <Tooltip title="Thanh toán">
-                                  <span>
-                                    <IconButton
-                                      color="success"
-                                      onClick={() => handlePay(item)}
-                                      disabled={loading}
-                                    >
-                                      <Paid />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                              </Tooltip> */}
+                                {userRole === "customer" &&
+                                  item.status === 0 && (
+                                    <Tooltip title="Thanh toán">
+                                      <span>
+                                        <IconButton
+                                          color="success"
+                                          onClick={() => handlePay(item)}
+                                          disabled={loading}
+                                        >
+                                          <Paid />
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  )}
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </div>
             )}
 
