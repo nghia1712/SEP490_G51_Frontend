@@ -468,41 +468,48 @@ export default function POList() {
                     </Typography>
                   )}
                 </Box>
-<Box>
-  <Box display="flex" justifyContent="space-between">
-    <Typography><strong>Tổng tiền:</strong></Typography>
-    <Typography>{selectedPO.total.toLocaleString()} ₫</Typography>
-  </Box>
+                <Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography>
+                      <strong>Tổng tiền:</strong>
+                    </Typography>
+                    <Typography>
+                      {selectedPO.total.toLocaleString()} ₫
+                    </Typography>
+                  </Box>
 
-  {selectedPO.status !== 7 && (
-    <Box display="flex" justifyContent="space-between">
-      <Typography>
-        <strong>
-          {selectedPO.status === 5 || selectedPO.status === 4
-            ? "Đã trả:"
-            : "Tiền cọc:"}
-        </strong>
-      </Typography>
-      <Typography>
-        {selectedPO.status === 0
-          ? "Chưa ghi nhận"
-          : selectedPO.status === 6
-          ? "Chưa thỏa thuận"
-          : selectedPO.deposit?.toLocaleString() + " ₫"}
-      </Typography>
-    </Box>
-  )}
+                  {selectedPO.status !== 7 && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography>
+                        <strong>
+                          {selectedPO.status === 5 || selectedPO.status === 4
+                            ? "Đã trả:"
+                            : "Tiền cọc:"}
+                        </strong>
+                      </Typography>
+                      <Typography>
+                        {selectedPO.status === 0
+                          ? "Chưa ghi nhận"
+                          : selectedPO.status === 6
+                          ? "Chưa thỏa thuận"
+                          : selectedPO.deposit?.toLocaleString() + " ₫"}
+                      </Typography>
+                    </Box>
+                  )}
 
-  {selectedPO.status !== 5 &&
-    selectedPO.status !== 6 &&
-    selectedPO.status !== 7 && (
-      <Box display="flex" justifyContent="space-between">
-        <Typography><strong>Còn nợ:</strong></Typography>
-        <Typography>{selectedPO.debt.toLocaleString()} ₫</Typography>
-      </Box>
-    )}
-</Box>
-
+                  {selectedPO.status !== 5 &&
+                    selectedPO.status !== 6 &&
+                    selectedPO.status !== 7 && (
+                      <Box display="flex" justifyContent="space-between">
+                        <Typography>
+                          <strong>Còn nợ:</strong>
+                        </Typography>
+                        <Typography>
+                          {selectedPO.debt.toLocaleString()} ₫
+                        </Typography>
+                      </Box>
+                    )}
+                </Box>
               </Box>
 
               <Typography sx={{ mt: 2, mb: 1, fontWeight: "bold" }}>

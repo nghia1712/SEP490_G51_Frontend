@@ -35,9 +35,15 @@ import {
 import { Visibility, Search, Download, ReceiptLong } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGRNList from "../../../Hooks/useGRNList";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { vi as viLocale } from "date-fns/locale";
 
 export default function GRNListPage() {
   const navigate = useNavigate();
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+
   const location = useLocation();
   const { poId, create } = location.state || {};
   const {
@@ -73,9 +79,15 @@ export default function GRNListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredData = (filtered || []).sort(
-    (a, b) => Number(b.grnid) - Number(a.grnid)
-  );
+  const filteredData = (filtered || [])
+    .filter((item) => {
+      const itemDate = item.createDate ? new Date(item.createDate) : null;
+      if (!itemDate) return true;
+      if (startDate && itemDate < startDate) return false;
+      if (endDate && itemDate > endDate) return false;
+      return true;
+    })
+    .sort((a, b) => Number(b.grnid) - Number(a.grnid));
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = filteredData.slice(
@@ -85,7 +97,7 @@ export default function GRNListPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, startDate, endDate]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -102,7 +114,7 @@ export default function GRNListPage() {
                 Phiếu nhập kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filtered.length} / {data.length} phiếu
+                Tổng: {filteredData.length} / {data.length} phiếu
               </Typography>
             </Box>
 
@@ -116,20 +128,60 @@ export default function GRNListPage() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <TextField
-                  placeholder="Tìm kiếm..."
-                  size="small"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: 350 }}
-                />
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <TextField
+                    placeholder="Tìm kiếm..."
+                    size="small"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ width: 350 }}
+                  />
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    locale={viLocale}
+                  >
+                    <DatePicker
+                      label="Ngày tạo từ"
+                      value={startDate}
+                      onChange={(newValue) => setStartDate(newValue)}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      format="dd/MM/yyyy"
+                      maxDate={endDate || undefined}
+                    />
+                    <DatePicker
+                      label="Ngày tạo đến"
+                      value={endDate}
+                      onChange={(newValue) => setEndDate(newValue)}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      format="dd/MM/yyyy"
+                      minDate={startDate || undefined}
+                    />
+                  </LocalizationProvider>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setSearch("");
+                      setStartDate(null);
+                      setEndDate(null);
+                    }}
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Stack>
+
                 <Button
                   variant="contained"
                   startIcon={<ReceiptLong />}

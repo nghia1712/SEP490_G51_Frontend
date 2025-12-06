@@ -41,6 +41,9 @@ import {
 } from "@mui/icons-material";
 import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialog";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { vi as viLocale } from "date-fns/locale";
 
 export default function GRNList() {
   const navigate = useNavigate();
@@ -75,6 +78,8 @@ export default function GRNList() {
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginatedData = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
 
   // =========================
   // Filter search
@@ -83,11 +88,9 @@ export default function GRNList() {
     const keyword = search.toLowerCase();
 
     const filteredData = (data || [])
-
       .filter((item) =>
         statusFilter === "" ? true : item.status === Number(statusFilter)
       )
-
       .filter(
         (item) =>
           (item.note || "").toLowerCase().includes(keyword) ||
@@ -96,11 +99,18 @@ export default function GRNList() {
           (item.createBy || "").toLowerCase().includes(keyword) ||
           (item.stockExportOrderCode || "").toLowerCase().includes(keyword)
       )
+      .filter((item) => {
+        const itemDate = item.createAt ? new Date(item.createAt) : null;
+        if (!itemDate) return true;
+        if (startDate && itemDate < startDate) return false;
+        if (endDate && itemDate > endDate) return false;
+        return true;
+      })
       .sort((a, b) => Number(b.id) - Number(a.id));
 
     setFiltered(filteredData);
     setPage(1);
-  }, [search, statusFilter, data]);
+  }, [search, statusFilter, startDate, endDate, data]);
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
@@ -215,12 +225,40 @@ export default function GRNList() {
                     </Select>
                   </FormControl>
 
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    locale={viLocale}
+                  >
+                    <DatePicker
+                      label="Ngày tạo từ"
+                      value={startDate}
+                      onChange={(newValue) => setStartDate(newValue)}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      maxDate={endDate || undefined}
+                      format="dd/MM/yyyy"
+                    />
+                    <DatePicker
+                      label="Ngày tạo đến"
+                      value={endDate}
+                      onChange={(newValue) => setEndDate(newValue)}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 180 } },
+                      }}
+                      minDate={startDate || undefined}
+                      format="dd/MM/yyyy"
+                    />
+                  </LocalizationProvider>
+
                   <Button
                     variant="outlined"
                     color="secondary"
                     onClick={() => {
                       setSearch("");
                       setStatusFilter("");
+                      setStartDate(null);
+                      setEndDate(null);
                     }}
                     sx={{ whiteSpace: "nowrap" }}
                   >
