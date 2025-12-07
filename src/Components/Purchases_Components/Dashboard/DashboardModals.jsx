@@ -20,6 +20,10 @@ export const DashboardModals = ({
   setShowMonthlyChartModal,
   monthlyOrders,
   selectedMonth,
+  showLowStockModal,
+  setShowLowStockModal,
+  lowStockProducts,
+  getStockAlert,
 }) => {
   const navigate = useNavigate();
 
@@ -110,8 +114,8 @@ export const DashboardModals = ({
               <tr>
                 <th>Mã Đơn</th>
                 <th>Nhà cung cấp</th>
-                <th>Tổng tiền</th>
-                <th className="text-end">Trạng thái</th>
+                <th className="text-end">Tổng tiền</th>
+                <th className="text-center">Trạng thái</th>
               </tr>
             </thead>
             <tbody>
@@ -122,8 +126,10 @@ export const DashboardModals = ({
                     <tr key={order.poid}>
                       <td className="fw-bold text-primary">{`PO-${order.poid}`}</td>
                       <td>{order.supplierName}</td>
-                      <td className="fw-bold">{formatCurrency(order.total)}</td>
-                      <td className="text-end">
+                      <td className="fw-bold text-end">
+                        {formatCurrency(order.total)}
+                      </td>
+                      <td className="text-center">
                         {getStatusBadge(order.status)}
                       </td>
                     </tr>
@@ -165,7 +171,12 @@ export const DashboardModals = ({
               <Spinner animation="border" />
             </div>
           ) : (
-            <Table hover responsive className="table-borderless align-middle">
+            <Table
+              striped
+              hover
+              responsive
+              className="table-borderless align-middle"
+            >
               <thead className="bg-light text-muted">
                 <tr>
                   <th>Tên nhà cung cấp</th>
@@ -274,6 +285,58 @@ export const DashboardModals = ({
             </Table>
           </div>
         </Modal.Body>
+      </Modal>
+
+      <Modal
+        show={showLowStockModal}
+        onHide={() => setShowLowStockModal(false)}
+        size="lg"
+        centered
+        contentClassName="border-0 rounded-4 shadow-lg"
+      >
+        <Modal.Header className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Sản phẩm tồn kho thấp</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
+          <Table hover responsive className="table-borderless align-middle">
+            <thead className="bg-light text-muted">
+              <tr>
+                <th>Sản phẩm</th>
+                <th className="text-center">Hiện tại</th>
+                <th className="text-center">Tối thiểu</th>
+                <th className="text-center">Tỉ lệ tồn kho</th>
+                <th className="text-center">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowStockProducts.length > 0 ? (
+                lowStockProducts.map((p) => (
+                  <tr key={p.productID || p._pid}>
+                    <td>{p.productName}</td>
+                    <td className="text-center">{p.totalCurrentQuantity}</td>
+                    <td className="text-center">{p.minQuantity}</td>
+                    <td className="text-center">{p.percentQuantity}%</td>{" "}
+                    {/* Hiển thị percentQuantity */}
+                    <td className="text-center">
+                      {getStockAlert(p.totalCurrentQuantity, p.minQuantity)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="text-center py-3 text-muted">
+                    Không có sản phẩm tồn kho thấp
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" onClick={() => setShowLowStockModal(false)}>
+            Đóng
+          </Button>
+        </Modal.Footer>
       </Modal>
     </>
   );

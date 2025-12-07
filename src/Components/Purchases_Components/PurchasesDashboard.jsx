@@ -31,11 +31,11 @@ import { DashboardModals } from "./Dashboard/DashboardModals.jsx";
 
 // ================= STATUS MAP =================
 export const statusMap = {
-  0: { label: "Chấp thuận", color: "warning" },
+  0: { label: "Chấp thuận", color: "primary" },
   3: { label: "Đã đặt cọc", color: "info" },
-  4: { label: "Thanh toán 1 phần", color: "primary" },
+  4: { label: "Còn nợ", color: "danger" },
   5: { label: "Hoàn thành", color: "success" },
-  6: { label: "Chờ xử lý", color: "secondary" },
+  6: { label: "Chờ xử lý", color: "warning" },
 };
 
 // ================= UI HELPER COMPONENTS =================
@@ -95,6 +95,7 @@ function PurchasesDashboard() {
   const [showLowStockModal, setShowLowStockModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [lowStockTop5, setLowStockTop5] = useState([]);
   const [nearestLots, setNearestLots] = useState([]);
   const [yearlyChartData, setYearlyChartData] = useState([]);
   const [purchasesData, setPurchasesData] = useState({
@@ -144,7 +145,7 @@ function PurchasesDashboard() {
     if (!poList || !poList.length) return;
 
     const filteredPOs = poList.filter((po) => po.status !== 7);
-console.log("AAAAAAAAAA",filteredPOs);
+    console.log("AAAAAAAAAA", filteredPOs);
     const statusGroups = filteredPOs.reduce((acc, po) => {
       const label = statusMap[po.status]?.label || "Khác";
 
@@ -172,17 +173,24 @@ console.log("AAAAAAAAAA",filteredPOs);
   useEffect(() => {
     const loadProductKPIs = async () => {
       try {
-        const lowStock = await fetchProductsBelowMinQuantity();
-        const nearest = await fetchProductsWithNearestLot();
-        const filteredNearest = nearest.filter(
-          (lot) => (lot.lotQuantity || 0) > 0
-        );
-        setLowStockProducts(lowStock);
-        setNearestLots(filteredNearest);
+        const lowStockRes = await fetchProductsBelowMinQuantity();
+        setLowStockProducts(lowStockRes);
+
+        const lowStockTop5 = lowStockRes
+          .sort(
+            (a, b) =>
+              a.totalCurrentQuantity - b.totalCurrentQuantity ||
+              a.percentQuantity - b.percentQuantity
+          )
+          .slice(0, 5);
+
+        setLowStockTop5(lowStockTop5);
+        console.log("Top 5", lowStockTop5);
       } catch (err) {
         console.error("Failed to fetch product KPIs:", err);
       }
     };
+
     loadProductKPIs();
   }, []);
 
@@ -354,7 +362,7 @@ console.log("AAAAAAAAAA",filteredPOs);
 
   return (
     <div className="">
-      <Container>
+      <Container fluid style={{ maxWidth: "1500px", padding: "20px" }}>
         {/* ===== Header ===== */}
         <div
           style={{ marginTop: "20px" }}
@@ -442,66 +450,6 @@ console.log("AAAAAAAAAA",filteredPOs);
               setShowStatusModal={setShowStatusModal}
             />
           </Col>
-          <Modal
-            show={showLowStockModal}
-            onHide={() => setShowLowStockModal(false)}
-            size="lg"
-            centered
-            contentClassName="border-0 rounded-4 shadow-lg"
-          >
-            <Modal.Header className="border-0 pb-0">
-              <Modal.Title className="fw-bold">
-                Sản phẩm tồn kho thấp
-              </Modal.Title>
-            </Modal.Header>
-            <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
-              <Table hover responsive className="table-borderless align-middle">
-                <thead className="bg-light text-muted">
-                  <tr>
-                    <th>Sản phẩm</th>
-                    <th className="text-center">Hiện tại</th>
-                    <th className="text-center">Tối thiểu</th>
-                    <th className="text-center">Tỉ lệ tồn kho</th>
-                    <th className="text-center">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lowStockProducts.length > 0 ? (
-                    lowStockProducts.map((p) => (
-                      <tr key={p.productID || p._pid}>
-                        <td>{p.productName}</td>
-                        <td className="text-center">
-                          {p.totalCurrentQuantity}
-                        </td>
-                        <td className="text-center">{p.minQuantity}</td>
-                        <td className="text-center">
-                          {p.percentQuantity}%
-                        </td>{" "}
-                        {/* Hiển thị percentQuantity */}
-                        <td className="text-center">
-                          {getStockAlert(p.totalCurrentQuantity, p.minQuantity)}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="text-center py-3 text-muted">
-                        Không có sản phẩm tồn kho thấp
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </Modal.Body>
-            <Modal.Footer className="border-0 pt-0">
-              <Button
-                variant="light"
-                onClick={() => setShowLowStockModal(false)}
-              >
-                Đóng
-              </Button>
-            </Modal.Footer>
-          </Modal>
         </Row>
 
         {/* ========================================================== */}
@@ -599,42 +547,38 @@ console.log("AAAAAAAAAA",filteredPOs);
 
           {/* RIGHT COLUMN — 4 COLUMNS */}
           <Col lg={4} className="d-flex">
-            <Card className="border-0 shadow-sm rounded-4 flex-fill">
-              <Card.Header className="bg-white border-0 pt-4 px-4 pb-0">
-                <h5 className="fw-bold mb-3 text-warning d-flex align-items-center">
-                  <DateRange className="me-2" /> Lô hàng hạn gần nhất
-                </h5>
+            {/* TOP 5 SẢN PHẨM TỒN KHO THẤP */}
+            <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
+              <Card.Header className="bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 className="fw-bold mb-0">Top 5 sản phẩm tồn kho thấp</h5>
               </Card.Header>
-
-              <Card.Body className="p-0" style={scrollableBodyStyle}>
+              <Card.Body className="p-0">
                 <div className="table-responsive">
                   <Table hover className="table-borderless align-middle mb-0">
-                    <thead className="bg-light text-muted sticky-top">
+                    <thead className="bg-light text-muted">
                       <tr>
-                        <th className="ps-4 py-2">Sản phẩm</th>
-                        <th className="pe-4 text-end py-2">Hết hạn</th>
+                        <th className="ps-4 fw-semibold text-nowrap">
+                          Sản phẩm
+                        </th>
+                        <th className="fw-semibold text-nowrap">Tồn kho</th>
+                        <th className="fw-semibold text-nowrap">Tối thiểu</th>
+                        <th className="fw-semibold text-nowrap text-end pe-4">
+                          Trạng thái
+                        </th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      {nearestLots.length > 0 ? (
-                        nearestLots.map((lot, index) => (
-                          <tr
-                            key={lot._lotID || `${lot.productName}-${index}`}
-                            style={{ borderBottom: "1px solid #f0f0f0" }}
-                          >
-                            <td className="ps-4">
-                              <div className="fw-semibold">
-                                {lot.productName}
-                              </div>
-                              <small className="text-muted">
-                                Mã lô: {lot._lotID} • Số lượng:{" "}
-                                {lot.lotQuantity}
-                              </small>
-                            </td>
-                            <td className="pe-4 text-end text-danger fw-semibold">
-                              {new Date(lot.expiredDate).toLocaleDateString(
-                                "vi-VN"
+                      {lowStockTop5.length > 0 ? (
+                        lowStockTop5.map((item, i) => (
+                          <tr key={i}>
+                            <td className="ps-4">{item.productName}</td>
+                            <td>{item.totalCurrentQuantity}</td>
+                            <td>{item.minQuantity}</td>
+                            <td className="text-end pe-4">
+                              {getStockAlert(
+                                item.totalCurrentQuantity,
+                                item.minQuantity
                               )}
                             </td>
                           </tr>
@@ -642,10 +586,10 @@ console.log("AAAAAAAAAA",filteredPOs);
                       ) : (
                         <tr>
                           <td
-                            colSpan={2}
+                            colSpan={4}
                             className="text-center py-3 text-muted"
                           >
-                            Không có cảnh báo
+                            Không có sản phẩm tồn kho thấp
                           </td>
                         </tr>
                       )}
@@ -676,6 +620,10 @@ console.log("AAAAAAAAAA",filteredPOs);
         setShowMonthlyChartModal={setShowMonthlyChartModal}
         monthlyOrders={monthlyOrders}
         selectedMonth={selectedMonth}
+        getStockAlert={getStockAlert}
+        showLowStockModal={showLowStockModal}
+        setShowLowStockModal={setShowLowStockModal}
+        lowStockProducts={lowStockProducts}
       />
     </div>
   );

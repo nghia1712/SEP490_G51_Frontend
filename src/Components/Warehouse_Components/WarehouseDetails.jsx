@@ -243,7 +243,19 @@ export default function WarehouseDetailPage() {
                         </TableRow>
                       ) : (
                         paginatedLocations.map((loc, index) => (
-                          <TableRow key={loc.id} hover>
+                          <TableRow
+                            key={loc.id}
+                            hover
+                            sx={{ cursor: "pointer" }}
+                            onClick={() =>
+                              navigate(
+                                `/warehouse-location/details/${loc.id}`,
+                                {
+                                  state: { warehouseID: warehouse.id },
+                                }
+                              )
+                            }
+                          >
                             <TableCell>
                               {(page - 1) * rowsPerPage + index + 1}
                             </TableCell>
@@ -253,8 +265,11 @@ export default function WarehouseDetailPage() {
                                 loc.status ? "active" : "inactive"
                               )}
                             </TableCell>
-                            <TableCell align="center">
-                              <Tooltip title="Xem chi tiết">
+                            <TableCell
+                              align="center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* <Tooltip title="Xem chi tiết">
                                 <IconButton
                                   color="primary"
                                   onClick={() =>
@@ -268,7 +283,7 @@ export default function WarehouseDetailPage() {
                                 >
                                   <VisibilityIcon fontSize="small" />
                                 </IconButton>
-                              </Tooltip>
+                              </Tooltip> */}
 
                               <Tooltip title="Chỉnh sửa">
                                 <IconButton

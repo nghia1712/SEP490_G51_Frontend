@@ -285,8 +285,9 @@ export default function WarehouseList() {
                         hover
                         sx={{
                           "&:nth-of-type(odd)": { backgroundColor: "#fafafa" },
-                          "&:hover": { backgroundColor: "#f0f7ff" },
+                          "&:hover": { backgroundColor: "#f0f7ff" , cursor:"pointer"},
                         }}
+                        onClick={()=>handleNavigateDetail(w.id)}
                       >
                         <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                         <TableCell>{w.name}</TableCell>
@@ -299,15 +300,16 @@ export default function WarehouseList() {
                             direction="row"
                             spacing={1}
                             justifyContent="center"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Tooltip title="Xem chi tiết">
+                            {/* <Tooltip title="Xem chi tiết">
                               <IconButton
                                 color="primary"
                                 onClick={() => handleNavigateDetail(w.id)}
                               >
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Tooltip>
+                            </Tooltip> */}
                             <Tooltip title="Chỉnh sửa">
                               <IconButton
                                 color="secondary"
