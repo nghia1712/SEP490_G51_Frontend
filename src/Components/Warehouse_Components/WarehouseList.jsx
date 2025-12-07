@@ -164,59 +164,69 @@ export default function WarehouseList() {
                 </Typography>
               </Box>
 
-              {/* TOOLBAR */}
-              <Paper sx={{ p: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}>
-                <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
-                  <TextField
-                    placeholder="Tìm kiếm theo tên kho..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    size="small"
-                    sx={{ minWidth: 300 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  <FormGroup row>
-                    {["Hoạt động", "Ngừng hoạt động"].map((status) => (
-                      <FormControlLabel
-                        key={status}
-                        control={
-                          <Checkbox
-                            name={status}
-                            checked={filterStatus[status]}
-                            onChange={handleFilterChange}
-                            size="small"
-                            color="primary"
-                          />
-                        }
-                        label={
-                          <Typography variant="body2">{status}</Typography>
-                        }
-                      />
-                    ))}
-                  </FormGroup>
-
-                  <Box sx={{ ml: "auto" }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      sx={{
-                        backgroundColor: "#1976d2",
-                        "&:hover": { backgroundColor: "#1565c0" },
-                        borderRadius: 2,
-                        px: 3,
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  backgroundColor: "#f8fafc",
+                  borderRadius: 2,
+                }}
+              >
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  alignItems="center"
+                  spacing={2}
+                  justifyContent="space-between"
+                >
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <TextField
+                      placeholder="Tìm kiếm theo tên kho..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      size="small"
+                      sx={{ minWidth: 300 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon color="action" />
+                          </InputAdornment>
+                        ),
                       }}
-                      onClick={handleOpenAddWarehouse}
-                    >
-                      Thêm kho
-                    </Button>
-                  </Box>
+                    />
+
+                    <FormGroup row sx={{ flexWrap: "wrap" }}>
+                      {["Hoạt động", "Ngừng hoạt động"].map((status) => (
+                        <FormControlLabel
+                          key={status}
+                          control={
+                            <Checkbox
+                              name={status}
+                              checked={filterStatus[status]}
+                              onChange={handleFilterChange}
+                              size="small"
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Typography
+                              variant="body2"
+                              sx={{ whiteSpace: "nowrap" }}
+                            >
+                              {status}
+                            </Typography>
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </Stack>
+
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleOpenAddWarehouse}
+                  >
+                    Thêm kho
+                  </Button>
                 </Stack>
               </Paper>
             </Box>
@@ -285,9 +295,12 @@ export default function WarehouseList() {
                         hover
                         sx={{
                           "&:nth-of-type(odd)": { backgroundColor: "#fafafa" },
-                          "&:hover": { backgroundColor: "#f0f7ff" , cursor:"pointer"},
+                          "&:hover": {
+                            backgroundColor: "#f0f7ff",
+                            cursor: "pointer",
+                          },
                         }}
-                        onClick={()=>handleNavigateDetail(w.id)}
+                        onClick={() => handleNavigateDetail(w.id)}
                       >
                         <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                         <TableCell>{w.name}</TableCell>
