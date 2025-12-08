@@ -22,6 +22,7 @@ import {
   Snackbar,
   CircularProgress,
   Alert,
+  Stack,
 } from "@mui/material";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
@@ -415,9 +416,35 @@ export default function PRFQCreate() {
 
         {/* DANH SÁCH SẢN PHẨM */}
         <Paper sx={{ p: 2 }}>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            Danh sách sản phẩm
-          </Typography>
+ <Stack
+    direction="row"
+    justifyContent="space-between"
+    alignItems="center"
+  >
+    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+      Danh sách sản phẩm
+    </Typography>
+
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        Sản phẩm chưa có trong hệ thống?
+      </Typography>
+
+      <Tooltip title="Thêm sản phẩm nhanh">
+        <IconButton
+          disabled={loading}
+          color="primary"
+          size="small"
+          onClick={handleOpenAddProduct}
+          sx={{
+            color: "primary",
+          }}
+        >
+          <AddIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  </Stack>
           <TableContainer>
             <Table>
               <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
@@ -504,17 +531,6 @@ export default function PRFQCreate() {
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Thêm sản phẩm nhanh">
-                        <IconButton
-                          disabled={loading}
-                          color="primary"
-                          size="small"
-                          sx={{ mr: 1 }}
-                          onClick={handleOpenAddProduct}
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Xóa dòng này">
                         <IconButton
                           color="error"
@@ -744,7 +760,6 @@ export default function PRFQCreate() {
               </TableContainer>
 
               {/* SECTION: Notes */}
-              {/* NOTES – giống bản Excel */}
               <Box sx={{ borderTop: "1px solid black", p: 2 }}>
                 <Typography sx={{ fontWeight: 700, mb: 1 }}>
                   GHI CHÚ (NOTES)

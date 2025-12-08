@@ -240,7 +240,15 @@ export default function usePO() {
     }));
     setSending(true);
     try {
-      await prfqApi.convertToPo({ excelKey, details, status: 6 });
+      const res = await prfqApi.convertToPo({ excelKey, details, status: 6 });
+      if (!res?.success) {
+        setSnackbar({
+          open: true,
+          message: res?.data?.message || "Có lỗi xảy ra.",
+          severity: "error",
+        });
+        return;
+      }
       setSnackbar({
         open: true,
         message: "Gửi đơn hàng thành công!",
@@ -283,8 +291,7 @@ export default function usePO() {
     } catch (err) {
       console.error(err);
 
-      const apiMsg =
-        err?.response?.data?.message || err?.message;
+      const apiMsg = err?.response?.data?.message || err?.message;
 
       setSnackbar({
         open: true,
