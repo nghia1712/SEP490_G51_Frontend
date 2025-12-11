@@ -45,7 +45,7 @@ import requestSalesQuotationAPI from "../../API/requestSalesQuotationAPI";
 import salesQuotationAPI from "../../API/salesQuotationAPI";
 
 const headerTextSx = {
-  textTransform: "uppercase",
+  textTransform: "capitalize",
   fontWeight: 600,
   letterSpacing: "0.03em",
 };
@@ -1272,18 +1272,6 @@ const handleDepositPercentChange = (value) => {
                 </Select>
               </FormControl>
 
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => {
-                  setSearchRequestCode("");
-                  setSearchCustomerName("");
-                  setStatusFilter("all");
-                  setPage(1);
-                }}
-              >
-                Xóa lọc
-              </Button>
         </Box>
       </Box>
 
@@ -1315,11 +1303,11 @@ const handleDepositPercentChange = (value) => {
                     px: 2,
                         textAlign: "left",
                     fontWeight: 600,
-                        textTransform: "uppercase",
+                        textTransform: "capitalize",
                         letterSpacing: "0.03em",
                   }}
                 >
-                  STT
+                  #
                 </TableCell>
                     <TableCell sx={{ width: "22%", py: 1.5, px: 2 }}>
                   <TableSortLabel
@@ -1410,13 +1398,13 @@ const handleDepositPercentChange = (value) => {
                           gap: 0.5,
                         }}
                       >
-                        <span
-                          style={{
-                            textTransform: "uppercase",
-                            fontWeight: 600,
-                            letterSpacing: "0.03em",
-                          }}
-                        >
+                    <span
+                      style={{
+                        textTransform: "capitalize",
+                        fontWeight: 600,
+                        letterSpacing: "0.03em",
+                      }}
+                    >
                       Hành động
                     </span>
                   </Box>

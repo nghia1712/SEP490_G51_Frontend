@@ -47,7 +47,7 @@ import productAPI from '../../API/productAPI';
 import useUser from '../../Hooks/useUser';
 
 const headerTextSx = {
-  textTransform: 'uppercase',
+  textTransform: 'capitalize',
   fontWeight: 600,
   letterSpacing: '0.03em',
 };
@@ -1548,7 +1548,7 @@ const CustomerRequestQuotationList = () => {
             py: 1.5,
           }}
         >
-          Tạo báo giá
+          Tạo yêu cầu báo giá
         </Button>
       </Box>
 
@@ -1581,11 +1581,11 @@ const CustomerRequestQuotationList = () => {
                     px: 2,
                     textAlign: 'left',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
+                    textTransform: 'capitalize',
                     letterSpacing: '0.03em',
                   }}
                 >
-                  STT
+                  #
                 </TableCell>
                 <TableCell sx={{ width: '22%', py: 1.5, px: 2 }}>
                   <TableSortLabel
@@ -1630,7 +1630,7 @@ const CustomerRequestQuotationList = () => {
                 </TableCell>
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                    <span style={{ textTransform: 'capitalize', fontWeight: 600, letterSpacing: '0.03em' }}>
                       Hành động
                     </span>
                   </Box>
@@ -1900,7 +1900,7 @@ const CustomerRequestQuotationList = () => {
                   <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ width: '60px', textAlign: 'center' }}>STT</TableCell>
+                        <TableCell sx={{ width: '60px', textAlign: 'center', textTransform: 'capitalize' }}>#</TableCell>
                         <TableCell>Tên sản phẩm</TableCell>
                       </TableRow>
                     </TableHead>
@@ -2051,7 +2051,7 @@ const CustomerRequestQuotationList = () => {
                   <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ width: '60px', textAlign: 'center', whiteSpace: 'nowrap' }}>STT</TableCell>
+                        <TableCell sx={{ width: '60px', textAlign: 'center', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>#</TableCell>
                         <TableCell sx={{ whiteSpace: 'nowrap' }}>Tên sản phẩm</TableCell>
                         <TableCell sx={{ width: '100px', textAlign: 'center', whiteSpace: 'nowrap' }}>Thao tác</TableCell>
                       </TableRow>
@@ -2199,7 +2199,7 @@ const CustomerRequestQuotationList = () => {
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ width: '60px', textAlign: 'center', whiteSpace: 'nowrap' }}>STT</TableCell>
+                      <TableCell sx={{ width: '60px', textAlign: 'center', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>#</TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>Tên sản phẩm</TableCell>
                       <TableCell sx={{ width: '100px', textAlign: 'center', whiteSpace: 'nowrap' }}>Thao tác</TableCell>
                     </TableRow>
@@ -2473,7 +2473,7 @@ const CustomerRequestQuotationList = () => {
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
+                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5', textTransform: 'capitalize' }}>#</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên sản phẩm</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
@@ -2785,7 +2785,7 @@ const CustomerRequestQuotationList = () => {
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5' }}>STT</TableCell>
+                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5', textTransform: 'capitalize' }}>#</TableCell>
                       <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
                       <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                       <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>

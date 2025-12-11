@@ -41,7 +41,7 @@ import salesQuotationAPI from '../../API/salesQuotationAPI';
 import paymentAPI from '../../API/paymentAPI';
 
 const headerTextSx = {
-  textTransform: 'uppercase',
+  textTransform: 'capitalize',
   fontWeight: 600,
   letterSpacing: '0.03em',
 };
@@ -98,7 +98,11 @@ const CustomerOrderList = () => {
     if (value === null || value === undefined || value === '') {
       return null;
     }
-    const parsed = Number(value);
+  const sanitized =
+    typeof value === 'string'
+      ? value.replace(/[^0-9.-]/g, '')
+      : value;
+  const parsed = Number(sanitized);
     return Number.isFinite(parsed) ? parsed : null;
   }, []);
 
@@ -682,9 +686,9 @@ const CustomerOrderList = () => {
       case 3:
         return 'Từ chối'; // Rejected
       case 4:
-        return short ? '... hàng 1 phần' : 'Giao hàng 1 phần'; // PartiallyDelivered
+        return 'Giao hàng 1 phần'; // PartiallyDelivered
       case 5:
-        return short ? '... toàn bộ hàng' : 'Giao toàn bộ hàng'; // Delivered
+        return 'Giao toàn bộ hàng'; // Delivered
       case 6:
         return 'Hoàn thành'; // Complete
       case 7:
@@ -728,9 +732,9 @@ const CustomerOrderList = () => {
       case 1:
         return 'Đã cọc'; // Deposited
       case 2:
-        return 'Đã thanh toán 1 phần'; // PartiallyPaid
+        return 'Đã tt 1 phần'; // PartiallyPaid
       case 3:
-        return 'Đã thanh toán toàn bộ'; // Paid
+        return 'Đã tt toàn bộ'; // Paid
       case 4:
         return 'Trả lại tiền'; // Refunded
       default:
@@ -747,9 +751,9 @@ const CustomerOrderList = () => {
       case 1:
         return 'Đã cọc'; // Deposited
       case 2:
-        return '... toán 1 phần'; // PartiallyPaid
+        return 'Đã tt 1 phần'; // PartiallyPaid
       case 3:
-        return '... toán toàn bộ'; // Paid
+        return 'Đã tt toàn bộ'; // Paid
       case 4:
         return 'Trả lại tiền'; // Refunded
       default:
@@ -776,31 +780,49 @@ const hasDepositRequirement = (depositInfo) => {
   return false;
 };
 
-const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo, orderData = null, short = false) => {
+const getPaymentStatusCodeByContext = (paymentStatus, orderStatus, depositInfo, orderData = null) => {
   const normalizedStatus = typeof orderStatus === 'string' ? Number(orderStatus) : orderStatus;
   const normalizedPayment =
     typeof paymentStatus === 'string' && paymentStatus !== ''
       ? Number(paymentStatus)
       : paymentStatus;
 
-  // ƯU TIÊN: Nếu trạng thái đơn hàng là "Giao hàng 1 phần" (4) → trạng thái thanh toán là "Đã thanh toán 1 phần"
-  if (normalizedStatus === 4) { // PartiallyDelivered
-    return short ? '... toán 1 phần' : 'Đã thanh toán 1 phần';
+  // Nếu đã giao hàng 1 phần → xem như Đã tt 1 phần
+  if (normalizedStatus === 4) {
+    return 2;
+  }
+
+  // Nếu backend đã set trạng thái thanh toán cụ thể
+  if (
+    normalizedPayment === 1 || // Deposited
+    normalizedPayment === 2 || // PartiallyPaid
+    normalizedPayment === 3 || // Paid
+    normalizedPayment === 4 || // Failed
+    normalizedPayment === 5    // Refunded
+  ) {
+    return normalizedPayment;
   }
 
   let paidAmount = 0;
   let totalAmount = 0;
   let depositAmount = 0;
+  let depositPercentNum = null;
 
-  // Kiểm tra dựa trên số tiền đã thanh toán và số tiền cọc yêu cầu
   if (orderData) {
-    paidAmount = toNumberOrNull(orderData.paidAmount ?? orderData.PaidAmount ?? 0) ?? 0;
+    paidAmount = toNumberOrNull(
+      orderData.paidAmount ??
+      orderData.PaidAmount ??
+      orderData.depositPaidAmount ??
+      orderData.DepositPaidAmount ??
+      0
+    ) ?? 0;
     totalAmount =
       toNumberOrNull(
         orderData.totalAmount ??
           orderData.TotalAmount ??
           orderData.totalPrice ??
           orderData.TotalPrice ??
+          orderData.grandTotal ??
           0,
       ) ?? 0;
     depositAmount =
@@ -808,58 +830,83 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         depositInfo?.amount ?? orderData.depositAmount ?? orderData.DepositAmount ?? null,
       ) ?? 0;
 
-    // ƯU TIÊN: Nếu đã thanh toán đủ tổng tiền → "Đã thanh toán toàn bộ"
-    if (totalAmount > 0 && paidAmount >= totalAmount) {
-      return short ? '... toán toàn bộ' : 'Đã thanh toán toàn bộ';
-    }
+    const depositPercentValue =
+      depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+    depositPercentNum = toNumberOrNull(depositPercentValue);
+  }
 
-    // Nếu đã thanh toán một phần (đã cọc hoặc thanh toán một phần nhưng chưa đủ tổng tiền)
-    if (totalAmount > 0 && paidAmount > 0 && paidAmount < totalAmount) {
-      // Nếu đã cọc đủ hoặc hơn số tiền cọc yêu cầu
-      if (depositAmount > 0 && paidAmount >= depositAmount) {
-        return 'Đã cọc';
+  // Đã thanh toán toàn bộ
+  if (totalAmount > 0 && paidAmount >= totalAmount) {
+    return 3;
+  }
+
+  // Tính tiền cọc hiệu quả
+  let effectiveDepositAmount = depositAmount;
+  if ((effectiveDepositAmount === 0 || effectiveDepositAmount === null) && depositPercentNum !== null && depositPercentNum > 0 && totalAmount > 0) {
+    effectiveDepositAmount = (depositPercentNum / 100) * totalAmount;
+  }
+  if ((effectiveDepositAmount === 0 || effectiveDepositAmount === null) && depositPercentNum !== null && depositPercentNum > 0 && totalAmount === 0) {
+    // Không có tổng nhưng có % cọc: không suy được, giữ 0 để tránh sai
+    effectiveDepositAmount = 0;
+  }
+
+  // Đã thanh toán nhưng chưa đủ tổng (hoặc chưa biết tổng nhưng đã trả)
+  if (paidAmount > 0 && (totalAmount === 0 || paidAmount < totalAmount)) {
+    if (effectiveDepositAmount > 0) {
+      if (paidAmount < effectiveDepositAmount) {
+        return 0; // Chờ cọc
       }
-      // Nếu đã thanh toán một phần nhưng chưa đủ cọc
-      return short ? '... toán 1 phần' : 'Đã thanh toán 1 phần';
+      if (paidAmount === effectiveDepositAmount) {
+        return 1; // Đã cọc
+      }
+      // Đã vượt mức cọc nhưng chưa đủ tổng
+      return 2; // Đã tt 1 phần
     }
+
+    // Không yêu cầu cọc hoặc không tính được cọc: đã trả nhưng chưa đủ tổng
+    return 2;
   }
 
-  // Nếu không có orderData, kiểm tra paymentStatus từ backend
-  // Nếu paymentStatus = 1 (Deposited), hiển thị "Đã cọc"
-  if (normalizedPayment === 1) {
-    return 'Đã cọc';
+  // Đơn đã chấp thuận nhưng chưa thanh toán
+  if (normalizedStatus === 2) {
+    if (depositPercentNum !== null && depositPercentNum > 0) {
+      return paidAmount > 0 ? 1 : 0; // Đã cọc hoặc Chờ cọc
+    }
+    return 0; // Chờ thanh toán
   }
 
-  // Nếu backend đã set trạng thái thanh toán cụ thể (Đã thanh toán, ...)
-  if (
-    normalizedPayment === 2 || // PartiallyPaid
-    normalizedPayment === 3 || // Paid
-    normalizedPayment === 4 || // Failed
-    normalizedPayment === 5 // Refunded
-  ) {
-    return short ? getPaymentStatusLabelShort(normalizedPayment) : getPaymentStatusLabel(normalizedPayment);
-  }
+  // Mặc định
+  return 0;
+};
 
-  // Nếu đơn đã được chấp thuận và chưa thanh toán đồng nào
-  // Kiểm tra depositPercent để quyết định hiển thị "Chờ cọc" hay "Chờ thanh toán"
-  if (
-    normalizedStatus === 2 &&
-    (normalizedPayment === null || normalizedPayment === undefined || normalizedPayment === 0) &&
-    paidAmount === 0
-  ) {
-    const depositPercentValue = depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo, orderData = null, short = false) => {
+  const statusCode = getPaymentStatusCodeByContext(paymentStatus, orderStatus, depositInfo, orderData);
+  // Phân biệt "Chờ cọc" và "Chờ thanh toán" khi statusCode = 0
+  if (statusCode === 0 && orderData) {
+    const paid = toNumberOrNull(
+      orderData.paidAmount ??
+        orderData.PaidAmount ??
+        orderData.depositPaidAmount ??
+        orderData.DepositPaidAmount ??
+        0,
+    ) ?? 0;
+    const depositPercentValue =
+      depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
     const depositPercentNum = toNumberOrNull(depositPercentValue);
-    // Nếu depositPercent = 0 hoặc null: hiển thị "Chờ thanh toán"
-    // Nếu depositPercent > 0: hiển thị "Chờ cọc"
-    if (depositPercentNum === null || depositPercentNum === 0) {
-      return 'Chờ thanh toán';
-    } else {
+    const depositAmountVal =
+      toNumberOrNull(depositInfo?.amount ?? orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+    const hasDepositRequirement =
+      (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+
+    if (paid === 0 && hasDepositRequirement) {
       return 'Chờ cọc';
     }
+    if (paid === 0 && !hasDepositRequirement) {
+      return 'Chờ thanh toán';
+    }
   }
 
-  // Mặc định: suy luận theo enum thanh toán
-  return short ? getPaymentStatusLabelShort(normalizedPayment) : getPaymentStatusLabel(normalizedPayment);
+  return short ? getPaymentStatusLabelShort(statusCode) : getPaymentStatusLabel(statusCode);
 };
 
   // Hàm lấy màu cho trạng thái thanh toán
@@ -1900,11 +1947,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     px: 2,
                     textAlign: 'left',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
+                  textTransform: 'capitalize',
                     letterSpacing: '0.03em',
                   }}
                 >
-                  STT
+                #
                 </TableCell>
                 <TableCell sx={{ width: '25%', py: 1.5, px: 2 }}>
                   <TableSortLabel
@@ -1962,7 +2009,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     Tiền đã trả
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '18%', py: 1.5, px: 2, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                <TableCell sx={{ width: '20%', py: 1.5, px: 0.01, whiteSpace: 'nowrap', textAlign: 'right' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'totalAmount'}
                     direction={sortConfig.key === 'totalAmount' ? sortConfig.direction : 'asc'}
@@ -1974,7 +2021,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                 </TableCell>
                 <TableCell sx={{ width: '20%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                    <span style={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.03em' }}>
+                  <span style={{ textTransform: 'capitalize', fontWeight: 600, letterSpacing: '0.03em' }}>
                       Hành động
                     </span>
                   </Box>
@@ -2025,31 +2072,38 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         '-'
                       )}
                     </TableCell>
-                    <TableCell>
-                      {/* Hiển thị "-" nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) */}
-                      {order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3 ? (
-                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>-</Typography>
-                      ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (
-                        <Tooltip
-                          title={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
-                            percent: order.depositPercent,
-                            amount: order.depositAmount,
-                          }, order, false)}
-                          arrow
-                        >
+                  <TableCell>
+                    {/* Hiển thị "-" nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) */}
+                    {order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'left' }}>-</Typography>
+                    ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (() => {
+                      const effectiveStatus = getEffectiveOrderStatus(order.orderStatus, order.paymentStatus, order);
+                      const statusCode = getPaymentStatusCodeByContext(order.paymentStatus, effectiveStatus, {
+                        percent: order.depositPercent,
+                        amount: order.depositAmount,
+                      }, order);
+                      const labelFull = getPaymentStatusLabelByContext(order.paymentStatus, effectiveStatus, {
+                        percent: order.depositPercent,
+                        amount: order.depositAmount,
+                      }, order, false);
+                      const labelShort = getPaymentStatusLabelByContext(order.paymentStatus, effectiveStatus, {
+                        percent: order.depositPercent,
+                        amount: order.depositAmount,
+                      }, order, true);
+                      const color = getPaymentStatusColor(statusCode);
+                      return (
+                        <Tooltip title={labelFull} arrow>
                           <Chip
-                            label={getPaymentStatusLabelByContext(order.paymentStatus, order.orderStatus, {
-                              percent: order.depositPercent,
-                              amount: order.depositAmount,
-                            }, order, true)}
+                            label={labelShort}
                             size="small"
-                            sx={getPaymentStatusColor(order.paymentStatus)}
+                            sx={color}
                           />
                         </Tooltip>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
+                      );
+                    })() : (
+                      '-'
+                    )}
+                  </TableCell>
                     <TableCell sx={{ width: '15%', textAlign: 'right', pr: 4 }}>{formatCurrency(order.paidAmount)}</TableCell>
                     <TableCell sx={{ textAlign: 'right', pr: 4 }}>{formatCurrency(order.totalAmount || order.grandTotal)}</TableCell>
                     <TableCell sx={{ textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
@@ -2156,6 +2210,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                     </Typography>
                     {(() => {
                       if (!orderDetails) return <Typography variant="body1">-</Typography>;
+                      
+                      // Nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) → không hiển thị trạng thái thanh toán
+                      if (detailOrderStatus === 0 || detailOrderStatus === 1 || detailOrderStatus === 3) {
+                        return <Typography variant="body1">-</Typography>;
+                      }
                       
                       // Tính toán payment status để hiển thị dựa trên order status và số tiền (giống màn list)
                       const totalAmountValue = toNumberOrNull(

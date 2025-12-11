@@ -45,10 +45,8 @@ import salesOrderAPI from "../../API/salesOrderAPI";
 import salesQuotationAPI from "../../API/salesQuotationAPI";
 
 const headerTextSx = {
-  textTransform: "uppercase",
-
+  textTransform: "capitalize",
   fontWeight: 600,
-
   letterSpacing: "0.03em",
 };
 
@@ -379,6 +377,56 @@ const SalesOrderList = () => {
     }
 
     return getPaymentStatusLabel(normalizedPayment);
+  };
+
+  const toNumberOrNull = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const sanitized =
+      typeof value === 'string'
+        ? value.replace(/[^0-9.-]/g, '')
+        : value;
+    const parsed = Number(sanitized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const getDepositAmountValue = (data) => {
+    if (!data) return 0;
+    const totalAmountValue = toNumberOrNull(
+      data.totalAmount ??
+      data.TotalAmount ??
+      data.totalPrice ??
+      data.TotalPrice ??
+      data.grandTotal ??
+      null
+    );
+    const depositPercentValue = toNumberOrNull(
+      data.depositPercent ?? data.DepositPercent ?? null
+    );
+    const depositAmountValue = toNumberOrNull(
+      data.depositAmount ?? data.DepositAmount ?? null
+    );
+
+    if (depositPercentValue !== null && totalAmountValue !== null) {
+      return (depositPercentValue / 100) * totalAmountValue;
+    }
+
+    return depositAmountValue ?? 0;
+  };
+
+  const getAmountAfterDeposit = (data) => {
+    if (!data) return 0;
+    const totalAmountValue = toNumberOrNull(
+      data.totalAmount ??
+      data.TotalAmount ??
+      data.totalPrice ??
+      data.TotalPrice ??
+      data.grandTotal ??
+      null
+    );
+    if (totalAmountValue === null) return 0;
+
+    const depositAmountValue = toNumberOrNull(getDepositAmountValue(data)) ?? 0;
+    return Math.max(totalAmountValue - depositAmountValue, 0);
   };
 
   const getPaymentStatusColor = (status) => {
@@ -1016,12 +1064,35 @@ const SalesOrderList = () => {
             data.createdBy ??
             data.CreatedBy ??
             "-",
+          customerName:
+            data.customerName ??
+            data.CustomerName ??
+            data.customerFullName ??
+            data.CustomerFullName ??
+            data.creator ??
+            data.createBy ??
+            data.CreateBy ??
+            data.createdBy ??
+            data.CreatedBy ??
+            "-",
+          quotationCode:
+            data.quotationCode ??
+            data.QuotationCode ??
+            data.salesQuotationCode ??
+            data.SalesQuotationCode ??
+            "",
 
           status:
             data.status ??
             data.Status ??
             data.SalesOrderStatus ??
             data.salesOrderStatus ??
+            null,
+          paymentStatus:
+            data.paymentStatus ??
+            data.PaymentStatus ??
+            data.salesPaymentStatus ??
+            data.SalesPaymentStatus ??
             null,
           createdAt:
             data.createdAt ??
@@ -1389,21 +1460,15 @@ const SalesOrderList = () => {
                     <TableCell
                       sx={{
                         width: "8%",
-
                         py: 1.5,
-
                         px: 2,
-
                         textAlign: "left",
-
                         fontWeight: 600,
-
-                        textTransform: "uppercase",
-
+                        textTransform: "capitalize",
                         letterSpacing: "0.03em",
                       }}
                     >
-                      STT
+                      #
                     </TableCell>
 
                     <TableCell sx={{ width: "17%", py: 1.5, px: 2 }}>
@@ -1425,19 +1490,14 @@ const SalesOrderList = () => {
                     <TableCell
                       sx={{
                         width: "14%",
-
                         py: 1.5,
-
                         px: 2,
-
-                        textTransform: "uppercase",
-
+                        textTransform: "capitalize",
                         fontWeight: 600,
-
                         letterSpacing: "0.03em",
                       }}
                     >
-                      Người tạo
+                      Khách hàng
                     </TableCell>
 
                     <TableCell sx={{ width: "14%", py: 1.5, px: 2 }}>
@@ -1528,7 +1588,7 @@ const SalesOrderList = () => {
                       >
                         <span
                           style={{
-                            textTransform: "uppercase",
+                            textTransform: "capitalize",
                             fontWeight: 600,
                             letterSpacing: "0.03em",
                           }}
@@ -1829,7 +1889,7 @@ const SalesOrderList = () => {
               {/* Thông tin đơn hàng - Layout 3 cột */}
 
               <Box sx={{ mb: 3, display: "flex", gap: 4 }}>
-                {/* Phần 1 - Bên trái: Mã đơn hàng, Người tạo, Trạng thái, Thời gian tạo */}
+                {/* Phần 1 - Bên trái: Mã đơn hàng, Khách hàng, Trạng thái đơn hàng, Trạng thái thanh toán */}
 
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
@@ -1844,17 +1904,17 @@ const SalesOrderList = () => {
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Người tạo:
+                      Khách hàng:
                     </Typography>
 
                     <Typography variant="body1">
-                      {orderDetails.creator || "-"}
+                      {orderDetails.customerName || orderDetails.creator || "-"}
                     </Typography>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Trạng thái:
+                      Trạng thái đơn hàng:
                     </Typography>
 
                     <Chip
@@ -1866,14 +1926,52 @@ const SalesOrderList = () => {
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Thời gian tạo:
+                      Trạng thái thanh toán:
                     </Typography>
+                    {(() => {
+                      const statusValue = orderDetails.status;
+                      const paymentValue = orderDetails.paymentStatus;
 
-                    <Typography variant="body1">
-                      {orderDetails.createdAt
-                        ? formatDate(orderDetails.createdAt)
-                        : "-"}
-                    </Typography>
+                      // Với Nháp, Đã gửi, Từ chối: không hiển thị trạng thái thanh toán
+                      if (statusValue === 0 || statusValue === 1 || statusValue === 3) {
+                        return <Typography variant="body1">-</Typography>;
+                      }
+
+                      const totalAmountValue = Number(orderDetails.totalAmount ?? 0);
+                      const paidAmountValue = Number(orderDetails.paidAmount ?? 0);
+                      const depositAmountValue = Number(orderDetails.depositAmount ?? 0);
+
+                      let paymentStatusForDisplay =
+                        paymentValue !== null && paymentValue !== undefined
+                          ? Number(paymentValue)
+                          : 0;
+
+                      if (totalAmountValue > 0 && paidAmountValue >= totalAmountValue) {
+                        paymentStatusForDisplay = 3; // Paid
+                      } else if (statusValue === 4) {
+                        paymentStatusForDisplay = 2; // PartiallyPaid
+                      } else if (
+                        totalAmountValue > 0 &&
+                        paidAmountValue > 0 &&
+                        paidAmountValue < totalAmountValue
+                      ) {
+                        // Đã thanh toán một phần
+                        if (depositAmountValue > 0 && paidAmountValue >= depositAmountValue) {
+                          paymentStatusForDisplay = 1; // Deposited
+                        } else {
+                          paymentStatusForDisplay = 2; // PartiallyPaid
+                        }
+                      }
+
+                      const label = getPaymentStatusLabel(paymentStatusForDisplay);
+                      return (
+                        <Chip
+                          label={label}
+                          size="small"
+                          sx={getPaymentStatusColor(paymentStatusForDisplay)}
+                        />
+                      );
+                    })()}
                   </Box>
                 </Box>
 
@@ -1922,7 +2020,7 @@ const SalesOrderList = () => {
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Số tiền đã cọc:
+                      Số tiền đã trả:
                     </Typography>
 
                     <Typography variant="body1">
@@ -1936,17 +2034,17 @@ const SalesOrderList = () => {
                     </Typography>
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {renderCurrency(orderDetails.remainingDeposit)}
+                      {renderCurrency(getDepositAmountValue(orderDetails))}
                     </Typography>
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Tổng tiền đơn hàng:
+                      Số tiền sau cọc:
                     </Typography>
 
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {renderCurrency(orderDetails.totalAmount)}
+                      {renderCurrency(getAmountAfterDeposit(orderDetails))}
                     </Typography>
                   </Box>
                 </Box>
@@ -1979,7 +2077,7 @@ const SalesOrderList = () => {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          STT
+                          #
                         </TableCell>
 
                         <TableCell
