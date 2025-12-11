@@ -14,6 +14,7 @@ import { useAuthContext } from "../../App";
 import { CircularProgress } from "@mui/material";
 // Import các thành phần cần thiết từ Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const ForgotPasswordStaff = () => {
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,7 @@ const ForgotPasswordStaff = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +32,9 @@ const ForgotPasswordStaff = () => {
     try {
       const response = await forgotPassword({ Email: email });
       setMessage(response.message || "Yêu cầu đã được gửi thành công!");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (err) {
       setLoading(false);
       // Xử lý các lỗi từ backend
@@ -272,4 +277,3 @@ const ForgotPasswordStaff = () => {
 };
 
 export default ForgotPasswordStaff;
-
