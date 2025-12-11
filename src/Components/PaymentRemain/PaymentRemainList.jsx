@@ -554,7 +554,7 @@ const PaymentRemainList = () => {
   );
 
   const headerTextSx = {
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     fontWeight: 600,
     letterSpacing: '0.03em',
   };
@@ -639,11 +639,11 @@ const PaymentRemainList = () => {
                       px: 2,
                       textAlign: 'left',
                       fontWeight: 600,
-                      textTransform: 'uppercase',
+                    textTransform: 'capitalize',
                       letterSpacing: '0.03em',
                     }}
                   >
-                    STT
+                  #
                   </TableCell>
                   <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
                     Mã đơn hàng

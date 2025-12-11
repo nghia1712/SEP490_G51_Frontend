@@ -53,7 +53,7 @@ import salesQuotationAPI from "../../API/salesQuotationAPI";
 import requestSalesQuotationAPI from "../../API/requestSalesQuotationAPI";
 
 const headerTextSx = {
-  textTransform: "uppercase",
+  textTransform: "capitalize",
   fontWeight: 600,
   letterSpacing: "0.03em",
 };
@@ -1362,11 +1362,11 @@ const SalesQuotationList = () => {
                         px: 2,
                         textAlign: "left",
                         fontWeight: 600,
-                        textTransform: "uppercase",
+                        textTransform: "capitalize",
                         letterSpacing: "0.03em",
                       }}
                     >
-                      STT
+                      #
                     </TableCell>
                     <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
                       <TableSortLabel
@@ -1452,7 +1452,7 @@ const SalesQuotationList = () => {
                       >
                         <span
                           style={{
-                            textTransform: "uppercase",
+                            textTransform: "capitalize",
                             fontWeight: 600,
                             letterSpacing: "0.03em",
                           }}
@@ -1772,7 +1772,7 @@ const SalesQuotationList = () => {
                             backgroundColor: "#f5f5f5",
                           }}
                         >
-                          STT
+                          #
                         </TableCell>
                         <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
                           Tên sản phẩm
@@ -2372,7 +2372,7 @@ const SalesQuotationList = () => {
                               backgroundColor: "#f5f5f5",
                             }}
                           >
-                            STT
+                            #
                           </TableCell>
                           <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
                             Tên sản phẩm

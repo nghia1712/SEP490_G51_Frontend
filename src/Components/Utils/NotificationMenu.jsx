@@ -626,18 +626,25 @@ export default function NotificationMenu() {
                 borderRadius: "50%",
                 bgcolor: "primary.main",
                 mr: 1,
+                flexShrink: 0,
               }}
             />
           )}
-          <Typography
-            variant="body2"
-            sx={{
-              whiteSpace: "normal",
-            }}
-            title={n.message}
-          >
-            {n.message}
-          </Typography>
+          <Tooltip title={n.message} arrow>
+            <Typography
+              variant="body2"
+              sx={{
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                textOverflow: "ellipsis",
+                whiteSpace: "normal",
+              }}
+            >
+              {n.message}
+            </Typography>
+          </Tooltip>
         </Box>
         <Typography variant="caption" color="text.secondary">
           {dayjs.utc(n.createdAt).local().fromNow()}

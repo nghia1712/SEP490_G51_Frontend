@@ -34,7 +34,7 @@ import invoiceAPI from '../../API/invoiceAPI';
 import paymentRemainAPI from '../../API/paymentRemainAPI';
 
 const headerTextSx = {
-  textTransform: 'uppercase',
+  textTransform: 'capitalize',
   fontWeight: 600,
   letterSpacing: '0.03em',
 };
@@ -556,11 +556,11 @@ const CustomerInvoiceList = () => {
                     px: 2,
                     textAlign: 'left',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
+                    textTransform: 'capitalize',
                     letterSpacing: '0.03em',
                   }}
                 >
-                  STT
+                  #
                 </TableCell>
                 <TableCell sx={{ width: '22%', py: 1.5, px: 2, textTransform: 'none', fontWeight: 500 }}>
                   <TableSortLabel
