@@ -301,7 +301,7 @@ export default function GRNListPage() {
         <DialogTitle>Tạo phiếu nhập kho</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField label="PO ID" value={poId ?? ""} disabled />
+            <TextField label="Mã đơn hàng" value={poId ?? ""} disabled />
 
             {/* Warehouse Dropdown */}
             <FormControl fullWidth>
