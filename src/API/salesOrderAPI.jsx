@@ -71,6 +71,14 @@ const salesOrderAPI = {
 
   // POST /api/SalesOrder/check-delivered-sales-order
   checkDelivered: () => authorApi.post(`${API_URL}/check-delivered-sales-order`),
+
+  // ====================== SALES DASHBOARD STATISTICS ======================
+  // GET /api/SalesOrder/revenue/{year}
+  getRevenueByYear: (year) => authorApi.get(`${API_URL}/revenue/${year}`),
+
+  // GET /api/SalesOrder/sales-product-quantity/{year}
+  getSalesProductQuantityByYear: (year) =>
+    authorApi.get(`${API_URL}/sales-product-quantity/${year}`),
 };
 
 export default salesOrderAPI;

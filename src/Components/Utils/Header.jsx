@@ -738,7 +738,13 @@ function Header() {
                   color="inherit"
                   onClick={handleSalesMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
-                  sx={activeNavStyle}
+                  sx={
+                    salesStaffMenuItems.salesManagement.items.some((item) =>
+                      isActiveNavItem(item.path)
+                    )
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
                 >
                   {salesStaffMenuItems.salesManagement.label}
                 </Button>
