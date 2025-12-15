@@ -64,8 +64,25 @@ const CustomerInvoiceList = () => {
   const applyStatusFilter = useCallback(
     (data) => {
       if (statusFilter === 'all') return data;
-      const filterStatus = Number(statusFilter);
-      return data.filter((invoice) => invoice.status === filterStatus);
+      
+      return data.filter((invoice) => {
+        const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
+        const totalRemain = invoice.totalRemain ?? 0;
+        
+        switch (statusFilter) {
+          case 'unpaid':
+            // Chưa thanh toán: invoice đã được gửi (status = 1) và chưa thanh toán toàn bộ (paymentStatus != 3 và totalRemain > 0)
+            return invoice.status === 1 && paymentStatus !== 3 && totalRemain > 0;
+          case 'paid':
+            // Đã thanh toán: paymentStatus = 3 HOẶC totalRemain = 0
+            return paymentStatus === 3 || totalRemain === 0;
+          case 'cancelled':
+            // Đã hủy: status = 2
+            return invoice.status === 2;
+          default:
+            return true;
+        }
+      });
     },
     [statusFilter],
   );
@@ -84,13 +101,32 @@ const CustomerInvoiceList = () => {
           orderCode:
             invoice.salesOrderCode ||
             invoice.SalesOrderCode ||
-            `SO-${invoice.salesOrderId || invoice.SalesOrderId || ''}`,
+            invoice.OrderCode ||
+            invoice.orderCode ||
+            invoice.salesOrder?.salesOrderCode ||
+            invoice.salesOrder?.SalesOrderCode ||
+            invoice.SalesOrder?.salesOrderCode ||
+            invoice.SalesOrder?.SalesOrderCode ||
+            invoice.salesOrder?.OrderCode ||
+            invoice.salesOrder?.orderCode ||
+            invoice.SalesOrder?.OrderCode ||
+            invoice.SalesOrder?.orderCode ||
+            (invoice.salesOrderId || invoice.SalesOrderId 
+              ? `SO-${invoice.salesOrderId || invoice.SalesOrderId}` 
+              : '-'),
           salesOrderId: invoice.salesOrderId || invoice.SalesOrderId || null,
           status:
             invoice.status !== undefined
               ? invoice.status
               : invoice.Status !== undefined
               ? invoice.Status
+              : 0,
+          // PaymentStatus: 0=NotPaymentYet, 1=Deposited, 2=PartiallyPaid, 3=Paid, 4=Refunded
+          paymentStatus:
+            invoice.paymentStatus !== undefined
+              ? invoice.paymentStatus
+              : invoice.PaymentStatus !== undefined
+              ? invoice.PaymentStatus
               : 0,
           createdAt:
             invoice.createdAt ||
@@ -194,30 +230,62 @@ const CustomerInvoiceList = () => {
     }));
   };
 
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 0:
-        return 'Nháp';
-      case 1:
-        return 'Đã Gửi';
-      case 2:
-        return 'Đã Hủy';
-      default:
-        return 'Không xác định';
+  // Hàm lấy label trạng thái cho customer - dựa vào PaymentStatus và totalRemain
+  const getStatusLabel = (invoice) => {
+    // Nếu invoice bị hủy
+    if (invoice.status === 2) {
+      return 'Đã Hủy';
     }
+    
+    // Lấy PaymentStatus (0=NotPaymentYet, 1=Deposited, 2=PartiallyPaid, 3=Paid, 4=Refunded)
+    const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
+    const totalRemain = invoice.totalRemain ?? 0;
+    
+    // Nếu đã thanh toán toàn bộ (paymentStatus = 3 HOẶC totalRemain = 0)
+    if (paymentStatus === 3 || totalRemain === 0) {
+      return 'Đã thanh toán';
+    }
+    
+    // Nếu invoice đã được gửi (status = 1) và chưa thanh toán hoặc thanh toán 1 phần
+    if (invoice.status === 1) {
+      return 'Chưa thanh toán';
+    }
+    
+    // Trường hợp còn lại (nháp hoặc không xác định)
+    if (invoice.status === 0) {
+      return 'Nháp';
+    }
+    
+    return 'Không xác định';
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 0:
-        return { backgroundColor: '#9e9e9e', color: '#fff' };
-      case 1:
-        return { backgroundColor: '#2196f3', color: '#fff' };
-      case 2:
-        return { backgroundColor: '#f44336', color: '#fff' };
-      default:
-        return { backgroundColor: '#757575', color: '#fff' };
+  // Hàm lấy màu cho trạng thái
+  const getStatusColor = (invoice) => {
+    // Nếu invoice bị hủy
+    if (invoice.status === 2) {
+      return { backgroundColor: '#f44336', color: '#fff' };
     }
+    
+    // Lấy PaymentStatus và totalRemain
+    const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
+    const totalRemain = invoice.totalRemain ?? 0;
+    
+    // Nếu đã thanh toán toàn bộ (paymentStatus = 3 HOẶC totalRemain = 0)
+    if (paymentStatus === 3 || totalRemain === 0) {
+      return { backgroundColor: '#4caf50', color: '#fff' }; // Xanh lá
+    }
+    
+    // Nếu invoice đã được gửi (status = 1) và chưa thanh toán
+    if (invoice.status === 1) {
+      return { backgroundColor: '#ff9800', color: '#fff' }; // Cam - chưa thanh toán
+    }
+    
+    // Trường hợp nháp
+    if (invoice.status === 0) {
+      return { backgroundColor: '#9e9e9e', color: '#fff' };
+    }
+    
+    return { backgroundColor: '#757575', color: '#fff' };
   };
 
   const formatDate = (dateString) => {
@@ -518,9 +586,9 @@ const CustomerInvoiceList = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="0">Nháp</MenuItem>
-            <MenuItem value="1">Đã Gửi</MenuItem>
-            <MenuItem value="2">Đã Hủy</MenuItem>
+            <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
+            <MenuItem value="paid">Đã thanh toán</MenuItem>
+            <MenuItem value="cancelled">Đã hủy</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -669,7 +737,7 @@ const CustomerInvoiceList = () => {
                     <TableCell>{invoice.orderCode}</TableCell>
                     <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                     <TableCell>
-                      <Chip label={getStatusLabel(invoice.status)} size="small" sx={getStatusColor(invoice.status)} />
+                      <Chip label={getStatusLabel(invoice)} size="small" sx={getStatusColor(invoice)} />
                     </TableCell>
                     <TableCell sx={{ textAlign: 'right', pr: 4, fontWeight: 500, textTransform: 'none' }}>
                       {formatCurrency(invoice.totalAmount)}
@@ -690,17 +758,33 @@ const CustomerInvoiceList = () => {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        <Tooltip title="Thanh toán hóa đơn">
-                          <span>
-                            <IconButton
-                              size="medium"
-                              color="success"
-                              onClick={() => handlePayment(invoice)}
-                            >
-                              <PaymentIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                        {/* Chỉ hiển thị button thanh toán khi chưa thanh toán và invoice đã được gửi */}
+                        {(() => {
+                          const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
+                          const isPaid = paymentStatus === 3; // Đã thanh toán toàn bộ
+                          const isCancelled = invoice.status === 2; // Đã hủy
+                          const isDraft = invoice.status === 0; // Nháp
+                          const hasRemain = (invoice.totalRemain ?? 0) > 0;
+                          
+                          // Ẩn button nếu: đã thanh toán, đã hủy, là nháp, hoặc không còn tiền cần thanh toán
+                          if (isPaid || isCancelled || isDraft || !hasRemain) {
+                            return null;
+                          }
+                          
+                          return (
+                            <Tooltip title="Thanh toán hóa đơn">
+                              <span>
+                                <IconButton
+                                  size="medium"
+                                  color="success"
+                                  onClick={() => handlePayment(invoice)}
+                                >
+                                  <PaymentIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          );
+                        })()}
                       </Box>
                     </TableCell>
                   </TableRow>
