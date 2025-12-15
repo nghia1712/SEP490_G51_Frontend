@@ -43,6 +43,7 @@ import "dayjs/locale/vi";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import requestSalesQuotationAPI from "../../API/requestSalesQuotationAPI";
 import salesQuotationAPI from "../../API/salesQuotationAPI";
+import { extractErrorMessage } from "../../Utils/errorHandler";
 
 const headerTextSx = {
   textTransform: "capitalize",
@@ -183,44 +184,6 @@ const ListRSQ = () => {
     return 0;
   };
 
-  const extractErrorMessage = (error, fallback = "Đã xảy ra lỗi") => {
-    if (!error) return fallback;
-    const data = error.response?.data ?? {};
-    const errorsObj = data.errors || data.Errors;
-    const errorsArray = Array.isArray(errorsObj)
-        ? errorsObj
-      : typeof errorsObj === "object"
-          ? Object.values(errorsObj).flat()
-          : null;
-
-    const candidates = [
-      typeof data === "string" ? data : null,
-      data.message,
-      data.Message,
-      data.error,
-      data.Error,
-      data.title,
-      data.Title,
-      errorsArray && errorsArray[0],
-      Array.isArray(errorsArray) && errorsArray.length > 0
-        ? errorsArray.join(", ")
-        : null,
-      error.response?.data?.Data?.Message,
-      error.message,
-    ];
-
-    const message = candidates.find(
-      (msg) => typeof msg === "string" && msg.trim() !== ""
-    );
-
-    if (message) {
-      if (message.trim() === "One or more validation errors occurred.") {
-        return "Bạn chưa điền đủ thông tin báo giá, vui lòng kiểm tra lại.";
-      }
-      return message;
-    }
-    return fallback;
-  };
 
   const calculateTotals = (minQuantity, unitPrice, taxRate = 0) => {
     const qty = Math.max(1, Number(minQuantity) || 1);

@@ -122,9 +122,75 @@ const PaymentRemainList = () => {
       
       const res = await paymentRemainAPI.getList(params);
       const data = res.data?.data || [];
-      setFullList(data);
-      setList(data);
-      setTotalPages(Math.ceil(data.length / pageSize));
+
+      // Chuẩn hóa dữ liệu và loại bỏ bản ghi trùng (theo invoiceCode/invoiceId/salesOrderCode/salesOrderId) cho customer
+      const normalized = data.map((item) => ({
+        ...item,
+        invoiceCode: item.invoiceCode ?? item.InvoiceCode ?? "",
+        salesOrderCode: item.salesOrderCode ?? item.SalesOrderCode ?? "",
+        requestCreatedAt:
+          item.requestCreatedAt ??
+          item.RequestCreatedAt ??
+          item.createdAt ??
+          item.CreatedAt ??
+          null,
+        invoiceId: item.invoiceId ?? item.InvoiceId ?? null,
+        salesOrderId: item.salesOrderId ?? item.SalesOrderId ?? null,
+      }));
+
+      let deduped = normalized;
+
+      // Chỉ dedupe cho customer để tránh hiển thị nhiều dòng cùng invoice
+      if (userRole === "customer") {
+        const map = new Map();
+        // Hàm xếp hạng trạng thái để ưu tiên bản ghi đã thanh toán
+        const rankStatus = (s) => {
+          if (s === 3) return 4; // Đã thanh toán
+          if (s === 2) return 3; // Thanh toán một phần
+          if (s === 1) return 2; // Đã đặt cọc / Success
+          if (s === 0) return 1; // Chờ thanh toán / Pending
+          return 0;
+        };
+
+        normalized.forEach((item) => {
+          const key =
+            item.invoiceCode ||
+            item.invoiceId ||
+            item.salesOrderCode ||
+            item.salesOrderId ||
+            item.id;
+          const existing = map.get(key);
+          if (!existing) {
+            map.set(key, item);
+            return;
+          }
+
+          const sNew = item.vnPayStatus ?? item.VnPayStatus ?? item.paymentStatus ?? -1;
+          const sOld = existing.vnPayStatus ?? existing.VnPayStatus ?? existing.paymentStatus ?? -1;
+          const rNew = rankStatus(sNew);
+          const rOld = rankStatus(sOld);
+
+          // Ưu tiên bản ghi có trạng thái cao hơn (đã thanh toán > một phần > đặt cọc > chờ)
+          if (rNew > rOld) {
+            map.set(key, item);
+            return;
+          }
+
+          // Nếu cùng hạng, ưu tiên bản ghi có thời gian request mới hơn
+          if (rNew === rOld) {
+            const t1 = new Date(item.requestCreatedAt || 0).getTime();
+            const t2 = new Date(existing.requestCreatedAt || 0).getTime();
+            if (t1 > t2) {
+              map.set(key, item);
+            }
+          }
+        });
+        deduped = Array.from(map.values());
+      }
+
+      setFullList(deduped);
+      setList(deduped);
+      setTotalPages(Math.ceil(deduped.length / pageSize));
       setPage(1);
     } catch (error) {
       console.error(error);

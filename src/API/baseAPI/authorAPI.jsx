@@ -53,6 +53,26 @@ authorApi.interceptors.response.use(
         console.log("Error response data:", error.response?.data);
         const originalRequest = error.config;
 
+        // Xử lý lỗi 504 Gateway Timeout - chuyển thành message thân thiện
+        if (error.response?.status === 504 || 
+            error.code === 'ECONNABORTED' || 
+            error.message?.includes('timeout') ||
+            (typeof error.response?.data === "string" && error.response.data.includes("504 Gateway Time-out"))) {
+            // Tạo error object mới với message đã được xử lý
+            const friendlyError = new Error("Máy chủ đang yêu cầu xử lý quá lâu. Vui lòng thử lại");
+            friendlyError.response = error.response;
+            friendlyError.config = error.config;
+            friendlyError.code = error.code;
+            friendlyError.isAxiosError = true;
+            // Thêm message vào response.data để các component có thể lấy được
+            if (error.response) {
+                error.response.data = {
+                    message: "Máy chủ đang yêu cầu xử lý quá lâu. Vui lòng thử lại"
+                };
+            }
+            return Promise.reject(error);
+        }
+
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true; // Prevent infinite loops
 
