@@ -199,7 +199,8 @@ const ConditionalHome = () => {
       // Customer: kiểm tra status và redirect phù hợp
       return <CustomerHomeRedirect />;
     } else if (roleFromToken === "sales_staff") {
-      return <Navigate to="/sales-staff" replace />;
+      // Nhân viên bán hàng vào thẳng trang tổng quan bán hàng
+      return <Navigate to="/sales-dashboard" replace />;
     } else if (roleFromToken === "warehouse_staff") {
       return <Navigate to="/warehouse-dashboard" replace />;
     } else if (roleFromToken === "accountant_staff") {
@@ -410,7 +411,11 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route path="/sales-staff" element={<Landing />} />
+                      {/* Đường dẫn cũ /sales-staff được chuyển hướng về dashboard bán hàng */}
+                      <Route
+                        path="/sales-staff"
+                        element={<Navigate to="/sales-dashboard" replace />}
+                      />
                       <Route path="/accountant-staff" element={<Landing />} />
                       <Route path="/manager" element={<Landing />} />
 
