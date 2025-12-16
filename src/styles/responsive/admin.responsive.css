@@ -4,7 +4,8 @@
 
 /* Bootstrap Detail Modal Responsive */
 .user-detail-modal .modal-dialog {
-  margin: 10px;
+  /* Căn giữa ngang, đẩy form xuống thấp hơn so với header */
+  margin: 40px auto 20px auto;
 }
 
 .user-detail-modal .modal-content {
@@ -12,7 +13,8 @@
 }
 
 .user-detail-modal .modal-body {
-  padding: 15px;
+  /* Tăng khoảng trống giữa header và nội dung form */
+  padding: 20px 20px 10px 20px;
 }
 
 /* Avatar Column - Mobile */
@@ -38,26 +40,32 @@
 }
 
 /* Customer Document Images Responsive */
-.customer-document-image {
-  max-width: 100%;
-  width: 100%;
-  height: auto;
+.customer-document-container {
+  /* Mỗi ảnh chiếm khoảng 35% chiều ngang để form thấp hơn */
+  flex: 1 1 40%;
+  max-width: 40%;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.customer-document-container {
-  max-width: 100%;
-  margin-bottom: 15px;
+.customer-document-image {
+  width: 70%;
+  /* Giữ ảnh trong một khung vuông: chiều cao = chiều rộng */
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
 }
 
 @media (max-width: 768px) {
   .customer-document-container {
     max-width: 100%;
+    margin-bottom: 12px;
   }
 
   .customer-document-image {
-    width: 100%;
-    height: auto;
-    max-height: 200px;
+    width: 80%;
+    aspect-ratio: 1 / 1;
   }
 
   .customer-document-label {
@@ -173,6 +181,26 @@
   .user-filter-section .form-control,
   .user-filter-section .form-select {
     width: 100% !important;
+  }
+
+  /* Bố cục form lọc trên mobile giống trang tài khoản quản lý */
+  .user-filter-section form {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .user-filter-section form > div {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+  }
+}
+
+/* Nút "Tạo nhân viên" full-width trên màn rất nhỏ để không tràn hàng */
+@media (max-width: 576px) {
+  .user-filter-section .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 

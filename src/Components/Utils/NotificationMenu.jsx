@@ -635,6 +635,8 @@ export default function NotificationMenu() {
               variant="body2"
               sx={{
                 overflow: "hidden",
+                wordBreak: "break-word",
+                overflowWrap: "anywhere",
                 display: "-webkit-box",
                 WebkitBoxOrient: "vertical",
                 WebkitLineClamp: 2,

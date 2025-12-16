@@ -204,8 +204,8 @@ const ConditionalHome = () => {
     } else if (roleFromToken === "warehouse_staff") {
       return <Navigate to="/warehouse-dashboard" replace />;
     } else if (roleFromToken === "accountant_staff") {
-      // Accountant vào thẳng màn tổng quan (manager-dashboard)
-      return <Navigate to="/manager-dashboard" replace />;
+      // Accountant vào thẳng màn tổng quan kế toán
+      return <Navigate to="/accountant-dashboard" replace />;
     } else if (roleFromToken === "manager") {
       return <Navigate to="/manager" replace />;
     }
@@ -417,10 +417,10 @@ function App() {
                         path="/sales-staff"
                         element={<Navigate to="/sales-dashboard" replace />}
                       />
-                      {/* Accountant route cũ chuyển thẳng về dashboard */}
+                      {/* Accountant route cũ chuyển thẳng về dashboard kế toán */}
                       <Route
                         path="/accountant-staff"
-                        element={<Navigate to="/manager-dashboard" replace />}
+                        element={<Navigate to="/accountant-dashboard" replace />}
                       />
                       <Route path="/manager" element={<Landing />} />
 
@@ -631,6 +631,22 @@ function App() {
                             allowedRoles={[
                               "manager",
                               "accountant_staff",
+                              "admin",
+                            ]}
+                          >
+                            <ManagerDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Routes cho Accountant Dashboard (dùng cùng component với ManagerDashboard) */}
+                      <Route
+                        path="/accountant-dashboard"
+                        element={
+                          <ProtectedRoute
+                            allowedRoles={[
+                              "accountant_staff",
+                              "manager",
                               "admin",
                             ]}
                           >

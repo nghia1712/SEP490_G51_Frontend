@@ -474,7 +474,7 @@ function Header() {
   const accountantStaffMenuItems = {
     overview: {
       label: "Tổng quan",
-      path: "/manager-dashboard",
+      path: "/accountant-dashboard",
     },
     supplierManagement: {
       label: "Nhà cung cấp",
