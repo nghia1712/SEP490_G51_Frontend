@@ -61,7 +61,23 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
         const response = await productAPI.getById(resolvedProductId);
 
         if (response.data && response.data.success) {
-          setProductDetail(response.data.data);
+          const productData = response.data.data;
+          // Normalize field names for consistent access
+          const normalizedProduct = {
+            ...productData,
+            productUses: productData?.productUses || productData?.ProductUses || productData?.uses || productData?.Uses || "",
+            productIngredients: productData?.productIngredients || productData?.ProductIngredients || "",
+            productWeight: productData?.productWeight || productData?.ProductWeight || "",
+            productDescription: productData?.productDescription || productData?.ProductDescription || "",
+            productName: productData?.productName || productData?.ProductName || "",
+            productID: productData?.productID || productData?.ProductID || productData?.id || productData?.Id || "",
+            unit: productData?.unit || productData?.Unit || "",
+            minQuantity: productData?.minQuantity || productData?.MinQuantity || 0,
+            maxQuantity: productData?.maxQuantity || productData?.MaxQuantity || 0,
+            totalCurrentQuantity: productData?.totalCurrentQuantity || productData?.TotalCurrentQuantity || 0,
+            status: productData?.status || productData?.Status || false,
+          };
+          setProductDetail(normalizedProduct);
 
           if (response.data.data.categoryID || response.data.data.CategoryID) {
             const categoryId =
@@ -266,6 +282,23 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
                       {productDetail.productDescription ||
                         productDetail.ProductDescription ||
                         "Không có mô tả"}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="ingredients" label="Thành phần">
+                      {productDetail.productIngredients ||
+                        productDetail.ProductIngredients ||
+                        "Không có thông tin"}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="uses" label="Công dụng">
+                      {(productDetail.productUses || productDetail.ProductUses) || "Không có thông tin"}
+                    </Descriptions.Item>
+                    <Descriptions.Item key="weight" label="Khối lượng">
+                      {(() => {
+                        const weight = productDetail.productWeight || productDetail.ProductWeight;
+                        if (!weight && weight !== 0) return "Không có thông tin";
+                        const weightNum = typeof weight === 'string' ? parseFloat(weight) : weight;
+                        if (isNaN(weightNum)) return weight || "Không có thông tin";
+                        return `${weightNum} g`;
+                      })()}
                     </Descriptions.Item>
                     <Descriptions.Item key="unit" label="Đơn vị">
                       {productDetail.unit || productDetail.Unit}

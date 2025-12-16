@@ -40,11 +40,14 @@ const AddProduct = ({
     categoryId: "",
     productDescription: "",
     unit: "",
-    minQuantity: 0,
-    maxQuantity: 0,
+    minQuantity: "",
+    maxQuantity: "",
     totalCurrentQuantity: 0,
     status: true,
     productImages: [],
+    productIngredients: "",
+    productUses: "",
+    productWeight: "",
   });
   const [imagePreviews, setImagePreviews] = useState([]);
   // const [selectedInventory, setSelectedInventory] = useState(""); // Commented out - will be developed later
@@ -75,11 +78,14 @@ const AddProduct = ({
         categoryId: "",
         productDescription: "",
         unit: "",
-        minQuantity: 0,
-        maxQuantity: 0,
+        minQuantity: "",
+        maxQuantity: "",
         totalCurrentQuantity: 0,
         status: true,
         productImages: [],
+        productIngredients: "",
+        productUses: "",
+        productWeight: "",
         // imageUrl: "", // (commented)
       });
       // setSelectedInventory(""); // Commented out - will be developed later
@@ -102,7 +108,12 @@ const AddProduct = ({
 
     let val = value;
     if (["minQuantity", "maxQuantity", "totalCurrentQuantity"].includes(name)) {
-      val = Number(value) >= 0 ? Number(value) : 0;
+      if (value === "" || value === null || value === undefined) {
+        val = "";
+      } else {
+        const numValue = Number(value);
+        val = numValue >= 0 ? numValue : "";
+      }
     }
 
     setProductData((prev) => ({ ...prev, [name]: val }));
@@ -195,26 +206,67 @@ const AddProduct = ({
     } else {
       tempErrors.unit = "";
     }
-    // validate min/max
-    if (productData.minQuantity < 0) {
+
+    // Validate ProductUses (required)
+    if (!productData.productUses || productData.productUses.trim().length === 0) {
+      tempErrors.productUses = "Công dụng không được bỏ trống.";
+    } else {
+      tempErrors.productUses = "";
+    }
+
+    // Validate ProductWeight (required, must be between 0 and 1500)
+    if (!productData.productWeight || productData.productWeight === "") {
+      tempErrors.productWeight = "Khối lượng không được bỏ trống.";
+    } else {
+      const weightNum = parseFloat(productData.productWeight);
+      if (isNaN(weightNum)) {
+        tempErrors.productWeight = "Khối lượng phải là số.";
+      } else if (weightNum < 0) {
+        tempErrors.productWeight = "Khối lượng không được nhỏ hơn 0.";
+      } else if (weightNum > 1500) {
+        tempErrors.productWeight = "Khối lượng không được lớn hơn 1500 g.";
+      } else {
+        tempErrors.productWeight = "";
+      }
+    }
+
+    // Validate ProductIngredients (required)
+    if (!productData.productIngredients || productData.productIngredients.trim().length === 0) {
+      tempErrors.productIngredients = "Thành phần không được bỏ trống.";
+    } else {
+      tempErrors.productIngredients = "";
+    }
+
+    // Validate minQuantity (required)
+    if (productData.minQuantity === undefined || productData.minQuantity === null || productData.minQuantity === "") {
+      tempErrors.minQuantity = "Số lượng tối thiểu không được bỏ trống.";
+    } else if (productData.minQuantity < 0) {
       tempErrors.minQuantity = "Số lượng tối thiểu không được nhỏ hơn 0.";
+    } else {
+      tempErrors.minQuantity = "";
     }
-    if (productData.maxQuantity < 0) {
+
+    // Validate maxQuantity (required)
+    if (productData.maxQuantity === undefined || productData.maxQuantity === null || productData.maxQuantity === "") {
+      tempErrors.maxQuantity = "Số lượng tối đa không được bỏ trống.";
+    } else if (productData.maxQuantity < 0) {
       tempErrors.maxQuantity = "Số lượng tối đa không được nhỏ hơn 0.";
+    } else {
+      tempErrors.maxQuantity = "";
     }
-    if (productData.minQuantity > productData.maxQuantity) {
+
+    // Validate min/max relationship
+    if (productData.minQuantity !== undefined && productData.minQuantity !== null && productData.minQuantity !== "" &&
+        productData.maxQuantity !== undefined && productData.maxQuantity !== null && productData.maxQuantity !== "" &&
+        productData.minQuantity > productData.maxQuantity) {
       tempErrors.minQuantity =
         "Số lượng tối thiểu không được lớn hơn số lượng tối đa.";
       tempErrors.maxQuantity =
         "Số lượng tối đa không được nhỏ hơn số lượng tối thiểu.";
     }
 
-    if (
-      !productData.productDescription ||
-      productData.productDescription.trim() === ""
-    ) {
-      tempErrors.productDescription = "Mô tả thuốc là bắt buộc.";
-    } else if (productData.productDescription.length > 300) {
+    // Validate productDescription (optional, but check max length if provided)
+    if (productData.productDescription && productData.productDescription.length > 300) {
       tempErrors.productDescription = "Mô tả không được vượt quá 300 ký tự.";
     } else {
       tempErrors.productDescription = "";
@@ -238,8 +290,8 @@ const AddProduct = ({
           productData.productDescription || ""
         );
         formData.append("Unit", productData.unit);
-        formData.append("MinQuantity", Number(productData.minQuantity));
-        formData.append("MaxQuantity", Number(productData.maxQuantity));
+        formData.append("MinQuantity", productData.minQuantity !== "" && productData.minQuantity !== null && productData.minQuantity !== undefined ? Number(productData.minQuantity) : 0);
+        formData.append("MaxQuantity", productData.maxQuantity !== "" && productData.maxQuantity !== null && productData.maxQuantity !== undefined ? Number(productData.maxQuantity) : 0);
         formData.append("Status", productData.status ? "true" : "false");
         formData.append("Image", productData.productImages[0] || null);
         formData.append("ImageA", productData.productImages[1] || null);
@@ -247,6 +299,22 @@ const AddProduct = ({
         formData.append("ImageC", productData.productImages[3] || null);
         formData.append("ImageD", productData.productImages[4] || null);
         formData.append("ImageE", productData.productImages[5] || null);
+        formData.append("ProductIngredients", productData.productIngredients || "");
+        // Backend DTO has typo: ProductlUses (with 'l') instead of ProductUses
+        // Ensure we send the value even if it's empty string (backend will handle it)
+        const productUsesValue = productData.productUses || "";
+        console.log("=== AddProduct - ProductUses value ===");
+        console.log("productUses:", productUsesValue);
+        console.log("productUses length:", productUsesValue.length);
+        formData.append("ProductlUses", productUsesValue);
+        // Send ProductWeight as decimal string (backend expects decimal?)
+        // Convert to decimal and send as string with decimal format
+        const weightValue = productData.productWeight !== "" && productData.productWeight !== null && productData.productWeight !== undefined 
+          ? parseFloat(productData.productWeight) 
+          : 0;
+        // Send as string with decimal format (e.g., "250.0" instead of "250")
+        const weightString = isNaN(weightValue) ? "0.0" : weightValue.toFixed(1);
+        formData.append("ProductWeight", weightString);
 
         const { default: productAPI2 } = await import("../../API/productAPI");
         await productAPI2.create(formData);
@@ -260,19 +328,25 @@ const AddProduct = ({
         return;
       } catch (error) {
         setLoading(false);
+        // Show backend message if available to help debug 400 errors
+        const backendMessage =
+          error?.response?.data?.message ||
+          error?.response?.data?.Message ||
+          error?.response?.data?.error ||
+          error?.message;
         setErrors((prev) => ({
           ...prev,
-          general: error?.message || "Có lỗi xảy ra.",
+          general: backendMessage || "Có lỗi xảy ra.",
         }));
       }
     }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: "90vh" } }}>
       <DialogTitle>Thêm Thuốc Mới</DialogTitle>
       <Divider sx={{ opacity: 0.5 }} />
-      <DialogContent sx={{ overflowY: "hidden", maxHeight: "none" }}>
+      <DialogContent sx={{ overflowY: "auto", maxHeight: "80vh" }}>
         <Box sx={{ mt: 1 }}>
           {errors.general && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -350,7 +424,7 @@ const AddProduct = ({
                 </FormControl>
                 <TextField
                   name="productDescription"
-                  label="Mô tả thuốc *"
+                  label="Mô tả thuốc"
                   value={productData.productDescription}
                   onChange={handleChange}
                   error={!!errors.productDescription}
@@ -360,21 +434,64 @@ const AddProduct = ({
                   rows={3}
                   placeholder="Nhập mô tả thuốc (tối đa 300 ký tự)"
                 />
-                <FormControl fullWidth error={!!errors.unit}>
-                  <InputLabel id="unit-select-label">Đơn Vị *</InputLabel>
+                <TextField
+                  name="productIngredients"
+                  label="Thành phần"
+                  value={productData.productIngredients}
+                  onChange={handleChange}
+                  error={!!errors.productIngredients}
+                  helperText={errors.productIngredients}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  placeholder="Nhập thành phần của thuốc"
+                  required
+                />
+                <TextField
+                  name="productUses"
+                  label="Công dụng"
+                  value={productData.productUses}
+                  onChange={handleChange}
+                  error={!!errors.productUses}
+                  helperText={errors.productUses}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  placeholder="Nhập công dụng của thuốc"
+                  required
+                />
+                <TextField
+                  label="Khối lượng (g)"
+                  type="number"
+                  name="productWeight"
+                  value={productData.productWeight}
+                  onChange={handleChange}
+                  fullWidth
+                  required
+                  error={!!errors.productWeight}
+                  helperText={errors.productWeight}
+                  InputProps={{
+                    inputProps: {
+                      min: 0,
+                      max: 1500,
+                      step: 1
+                    }
+                  }}
+                />
+                <FormControl fullWidth error={!!errors.unit} required>
+                  <InputLabel id="unit-select-label">Đơn Vị</InputLabel>
                   <Select
                     labelId="unit-select-label"
                     name="unit"
                     value={productData.unit}
-                    label="Đơn Vị *"
+                    label="Đơn Vị"
                     onChange={handleChange}
                   >
-                    <MenuItem value="">
-                      <em>Tùy chọn</em>
-                    </MenuItem>
                     <MenuItem value="Hộp">Hộp</MenuItem>
                     <MenuItem value="Vỉ">Vỉ</MenuItem>
                     <MenuItem value="Lọ">Lọ</MenuItem>
+                    <MenuItem value="Chai">Chai</MenuItem>
+                    <MenuItem value="Tuýp">Tuýp</MenuItem>
                   </Select>
                   {errors.unit && (
                     <FormHelperText>{errors.unit}</FormHelperText>
@@ -391,6 +508,7 @@ const AddProduct = ({
                     InputProps={{ inputProps: { min: 0 } }}
                     error={!!errors.minQuantity}
                     helperText={errors.minQuantity}
+                    required
                   />
                   <TextField
                     label="Số lượng tối đa"
@@ -402,6 +520,7 @@ const AddProduct = ({
                     InputProps={{ inputProps: { min: 0 } }}
                     error={!!errors.maxQuantity}
                     helperText={errors.maxQuantity}
+                    required
                   />
                 </Box>
                 <FormControl fullWidth>

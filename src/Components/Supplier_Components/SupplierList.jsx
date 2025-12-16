@@ -579,42 +579,37 @@ const SupplierList = () => {
         .toLowerCase()
         .includes(search.toLowerCase());
 
-      // Debug filter status
-      console.log("=== FILTER DEBUG ===");
-      console.log("Supplier:", supplier);
-      console.log("Supplier status:", supplier.status);
-      console.log("Filter status:", filterStatus);
-
       // Check if any filter is active
       const hasActiveFilter =
         filterStatus["Còn cung cấp"] || filterStatus["Ngừng cung cấp"];
-      console.log("Has active filter:", hasActiveFilter);
 
       let statusMatch = true;
       if (hasActiveFilter) {
+        // Check if supplier is active: status === "active" or status === 1 or status === true
         const isActiveSupplier =
-          supplier.status === "active" || supplier.status === 1;
-        console.log("Is active supplier:", isActiveSupplier);
+          supplier.status === "active" || 
+          supplier.status === 1 || 
+          supplier.status === true ||
+          supplier.status === "1";
+        
+        // Check if supplier is inactive: status === "inactive" or status === 0 or status === false
+        const isInactiveSupplier =
+          supplier.status === "inactive" || 
+          supplier.status === 0 || 
+          supplier.status === false ||
+          supplier.status === "0";
 
         if (isActiveSupplier) {
+          // Supplier is active, check if "Còn cung cấp" filter is checked
           statusMatch = filterStatus["Còn cung cấp"];
-          console.log(
-            "Active supplier - filter 'Còn cung cấp':",
-            filterStatus["Còn cung cấp"]
-          );
-        } else {
+        } else if (isInactiveSupplier) {
+          // Supplier is inactive, check if "Ngừng cung cấp" filter is checked
           statusMatch = filterStatus["Ngừng cung cấp"];
-          console.log(
-            "Inactive supplier - filter 'Ngừng cung cấp':",
-            filterStatus["Ngừng cung cấp"]
-          );
+        } else {
+          // Unknown status, don't match any filter
+          statusMatch = false;
         }
       }
-
-      console.log("Search match:", searchMatch);
-      console.log("Status match:", statusMatch);
-      console.log("Final result:", searchMatch && statusMatch);
-      console.log("==================");
 
       return searchMatch && statusMatch;
     })
@@ -758,31 +753,9 @@ const SupplierList = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundImage: "url('/images/backgroundMedical2.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        position: "relative",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background:
-            "linear-gradient(135deg, rgba(0, 150, 136, 0.4) 0%, rgba(0, 121, 107, 0.45) 25%, rgba(0, 96, 100, 0.5) 50%, rgba(0, 77, 64, 0.45) 75%, rgba(0, 60, 50, 0.4) 100%)",
-          zIndex: 0,
-        },
-      }}
-    >
       <Container
         maxWidth="xl"
-        sx={{ mt: 0, mb: 4, position: "relative", zIndex: 1, pt: 4 }}
+        sx={{ mt: 0, mb: 4, pt: 4 }}
       >
         <Card
           elevation={3}
@@ -892,13 +865,15 @@ const SupplierList = () => {
                         setOpenAddModal(true);
                       }}
                       sx={{
-                        backgroundColor: "#1976d2",
-                        "&:hover": { backgroundColor: "#1565c0" },
-                        borderRadius: 2,
-                        px: 3,
+                        backgroundColor: "#155E64",
+                        "&:hover": { backgroundColor: "#0D4F52" },
+                        borderRadius: "8px",
+                        px: { xs: 2, sm: 3 },
+                        py: 1.5,
+                        fontWeight: "600",
                       }}
                     >
-                      Thêm nhà cung cấp
+                      THÊM NHÀ CUNG CẤP
                     </Button>
                   </Box>
                 </Stack>
@@ -972,29 +947,24 @@ const SupplierList = () => {
                       <React.Fragment
                         key={`supplier-${supplier.id || supplier._id || index}`}
                       >
-                        <Tooltip
-                          title="Nhấn để xem chi tiết"
-                          arrow
-                          placement="top"
+                        <TableRow
+                          hover
+                          onClick={() =>
+                            fetchSupplierDetails(supplier._id || supplier.id)
+                          }
+                          sx={{
+                            "&:nth-of-type(odd)": {
+                              backgroundColor: "#fafafa",
+                            },
+                            "&:hover": {
+                              backgroundColor: "#f0f7ff",
+                              cursor: "pointer",
+                              transform: "scale(1.01)",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            },
+                            transition: "all 0.2s",
+                          }}
                         >
-                          <TableRow
-                            hover
-                            onClick={() =>
-                              fetchSupplierDetails(supplier._id || supplier.id)
-                            }
-                            sx={{
-                              "&:nth-of-type(odd)": {
-                                backgroundColor: "#fafafa",
-                              },
-                              "&:hover": {
-                                backgroundColor: "#f0f7ff",
-                                cursor: "pointer",
-                                transform: "scale(1.01)",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                              },
-                              transition: "all 0.2s",
-                            }}
-                          >
                             <TableCell>
                               <Typography variant="body2" color="textSecondary">
                                 {pageStart + index + 1}
@@ -1141,7 +1111,6 @@ const SupplierList = () => {
                               </Stack>
                             </TableCell>
                           </TableRow>
-                        </Tooltip>
                       </React.Fragment>
                     ))
                   ) : (
@@ -1438,25 +1407,70 @@ const SupplierList = () => {
                     <TableRow>
                       <TableCell sx={{ width: "60px", textAlign: "center" }}>#</TableCell>
                       <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell>Danh mục</TableCell>
                       <TableCell align="right">Giá</TableCell>
                       <TableCell align="right">Tồn kho</TableCell>
+                      <TableCell align="right">Ngày hết hạn</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginatedProducts.map((product, index) => (
-                      <TableRow key={product.supplierProductId || index}>
-                        <TableCell sx={{ width: "60px", textAlign: "center" }}>
-                          {productPageStart + index + 1}
-                        </TableCell>
-                        <TableCell>{product.productName}</TableCell>
-                        <TableCell>{product.categoryName}</TableCell>
-                        <TableCell align="right">
-                          {new Intl.NumberFormat("vi-VN").format(product.price)} VNĐ
-                        </TableCell>
-                        <TableCell align="right">{product.stock}</TableCell>
-                      </TableRow>
-                    ))}
+                    {paginatedProducts.map((product, index) => {
+                      // Parse inputPrice to number
+                      const price = product.inputPrice !== undefined && product.inputPrice !== null
+                        ? (typeof product.inputPrice === 'string' ? parseFloat(product.inputPrice) : Number(product.inputPrice))
+                        : null;
+                      
+                      // Get lotQuantity
+                      const stock = product.lotQuantity !== undefined && product.lotQuantity !== null
+                        ? product.lotQuantity
+                        : null;
+                      
+                      // Format expiredDate to DD/MM/YYYY
+                      let expiredDate = null;
+                      if (product.expiredDate) {
+                        try {
+                          const date = new Date(product.expiredDate);
+                          if (!isNaN(date.getTime())) {
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = date.getFullYear();
+                            expiredDate = `${day}/${month}/${year}`;
+                          }
+                        } catch (e) {
+                          expiredDate = product.expiredDate;
+                        }
+                      }
+                      
+                      // Create unique key combining productID and warehouselocationID or index
+                      const uniqueKey = product.productID && product.warehouselocationID
+                        ? `${product.productID}-${product.warehouselocationID}`
+                        : product.productID
+                        ? `${product.productID}-${index}`
+                        : `product-${index}`;
+                      
+                      return (
+                        <TableRow key={uniqueKey}>
+                          <TableCell sx={{ width: "60px", textAlign: "center" }}>
+                            {productPageStart + index + 1}
+                          </TableCell>
+                          <TableCell>{product.productName || "Không có tên"}</TableCell>
+                          <TableCell align="right">
+                            {price !== null && !isNaN(price)
+                              ? (
+                                  <>
+                                    {new Intl.NumberFormat("vi-VN").format(price)} <span style={{ textDecoration: "underline" }}>đ</span>
+                                  </>
+                                )
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell align="right">
+                            {stock !== null ? stock : "N/A"}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>
+                            {expiredDate || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -1478,7 +1492,6 @@ const SupplierList = () => {
           )}
         </Dialog>
       </Container>
-    </Box>
   );
 };
 

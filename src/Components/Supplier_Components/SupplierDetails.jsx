@@ -212,7 +212,7 @@ const SupplierDetails = ({
                             Giá bán
                           </Typography>
                           <Typography variant="h6" sx={{ color: palette.medium, fontWeight: "bold" }}>
-                            {new Intl.NumberFormat("vi-VN").format(product.price)} VNĐ
+                            {new Intl.NumberFormat("vi-VN").format(product.price)} <span style={{ textDecoration: "underline" }}>đ</span>
                           </Typography>
                         </Box>
                         <Box>

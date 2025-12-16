@@ -39,6 +39,9 @@ const EditProduct = ({
     maxQuantity: 0,
     totalCurrentQuantity: 0,
     status: false,
+    productIngredients: "",
+    productUses: "",
+    productWeight: "",
   });
 
   const [productImages, setProductImages] = useState([]); // File objects (ảnh mới)
@@ -90,6 +93,9 @@ const EditProduct = ({
           maxQuantity: product.maxQuantity || 0,
           totalCurrentQuantity: product.totalCurrentQuantity || 0,
           status: normalizeStatus(product.status),
+          productIngredients: product.productIngredients || "",
+          productUses: product.productUses || "",
+          productWeight: product.productWeight || "",
         });
 
         // Xử lý URL ảnh - loại bỏ double slash và tạo full URL
@@ -127,6 +133,9 @@ const EditProduct = ({
         maxQuantity: 0,
         totalCurrentQuantity: 0,
         status: false,
+        productIngredients: "",
+        productUses: "",
+        productWeight: "",
       });
       setProductImages([]);
       setImagePreviews([]);
@@ -220,13 +229,31 @@ const EditProduct = ({
     if (productData.unit && productData.unit.length > 10)
       tempErrors.unit = "Đơn vị không được vượt quá 10 ký tự.";
 
-    // Description
-    if (
-      !productData.productDescription ||
-      productData.productDescription.trim() === ""
-    ) {
-      tempErrors.productDescription = "Mô tả thuốc là bắt buộc.";
-    } else if (productData.productDescription.length > 300) {
+    // Validate ProductUses (required)
+    if (!productData.productUses || productData.productUses.trim().length === 0) {
+      tempErrors.productUses = "Công dụng không được bỏ trống.";
+    } else {
+      tempErrors.productUses = "";
+    }
+
+    // Validate ProductWeight (required, must be between 0 and 1500)
+    if (!productData.productWeight || productData.productWeight === "") {
+      tempErrors.productWeight = "Khối lượng không được bỏ trống.";
+    } else {
+      const weightNum = parseFloat(productData.productWeight);
+      if (isNaN(weightNum)) {
+        tempErrors.productWeight = "Khối lượng phải là số.";
+      } else if (weightNum < 0) {
+        tempErrors.productWeight = "Khối lượng không được nhỏ hơn 0.";
+      } else if (weightNum > 1500) {
+        tempErrors.productWeight = "Khối lượng không được lớn hơn 1500 g.";
+      } else {
+        tempErrors.productWeight = "";
+      }
+    }
+
+    // Description (optional, but check max length if provided)
+    if (productData.productDescription && productData.productDescription.length > 300) {
       tempErrors.productDescription = "Mô tả không được vượt quá 300 ký tự.";
     } else {
       tempErrors.productDescription = "";
@@ -279,10 +306,37 @@ const EditProduct = ({
       "MaxQuantity",
       Number(productData.maxQuantity ?? product.maxQuantity ?? 0)
     );
+    // Send Status as string "true"/"false" (lowercase for ASP.NET Core model binding from FormData)
     formData.append(
       "Status",
       normalizeStatus(productData.status ?? product.status) ? "true" : "false"
     );
+    formData.append(
+      "ProductIngredients",
+      productData.productIngredients || product.productIngredients || ""
+    );
+    // Backend DTO has typo: ProductlUses (with 'l') instead of ProductUses
+    formData.append(
+      "ProductlUses",
+      productData.productUses || product.productUses || ""
+    );
+    // Handle ProductWeight - backend expects decimal? (nullable decimal)
+    // Always send as string to ensure proper decimal parsing by ASP.NET Core model binding
+    const weightValue = productData.productWeight !== "" && productData.productWeight !== null && productData.productWeight !== undefined 
+      ? parseFloat(productData.productWeight) 
+      : (product.productWeight !== "" && product.productWeight !== null && product.productWeight !== undefined 
+          ? parseFloat(product.productWeight) 
+          : 0);
+    
+    // Always append ProductWeight as string (backend will parse as decimal?)
+    formData.append("ProductWeight", isNaN(weightValue) ? "0" : weightValue.toString());
+
+    // Debug: Log all form data being sent
+    console.log("=== EditProduct - FormData being sent ===");
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ":", pair[1], "Type:", typeof pair[1]);
+    }
+    console.log("=== End FormData Debug ===");
 
     // Gửi ảnh: chỉ gửi File mới nếu có, backend sẽ giữ nguyên ảnh cũ nếu không có File mới
     const keys = ["Image", "ImageA", "ImageB", "ImageC", "ImageD", "ImageE"];
@@ -303,9 +357,35 @@ const EditProduct = ({
         handleClose();
       }, 2000);
     } catch (error) {
+      console.error("=== Update Error Details ===");
+      console.error("Error:", error);
+      console.error("Error response:", error?.response);
+      console.error("Error response data:", error?.response?.data);
+      console.error("Error response status:", error?.response?.status);
+      console.error("Full error object:", JSON.stringify(error?.response?.data, null, 2));
+      
+      let errorMessage = "Có lỗi xảy ra khi cập nhật sản phẩm.";
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.errors) {
+          // Handle validation errors
+          const errorMessages = Object.values(errorData.errors).flat();
+          errorMessage = errorMessages.join(", ");
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else {
+          // Try to extract any error message from the response
+          errorMessage = JSON.stringify(errorData);
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       setErrors((prev) => ({
         ...prev,
-        general: error?.message || "Có lỗi xảy ra.",
+        general: errorMessage,
       }));
       setLoading(false);
     }
@@ -376,6 +456,47 @@ const EditProduct = ({
                   multiline
                   rows={3}
                 />
+                <TextField
+                  name="productIngredients"
+                  label="Thành phần"
+                  value={productData.productIngredients}
+                  onChange={handleChange}
+                  error={!!errors.productIngredients}
+                  helperText={errors.productIngredients}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  placeholder="Nhập thành phần của thuốc"
+                />
+                <TextField
+                  name="productUses"
+                  label="Công dụng"
+                  value={productData.productUses}
+                  onChange={handleChange}
+                  error={!!errors.productUses}
+                  helperText={errors.productUses}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  placeholder="Nhập công dụng của thuốc"
+                />
+                <TextField
+                  label="Khối lượng (g)"
+                  type="number"
+                  name="productWeight"
+                  value={productData.productWeight}
+                  onChange={handleChange}
+                  fullWidth
+                  error={!!errors.productWeight}
+                  helperText={errors.productWeight}
+                  InputProps={{
+                    inputProps: {
+                      min: 0,
+                      max: 1500,
+                      step: 1
+                    }
+                  }}
+                />
                 <FormControl fullWidth error={!!errors.unit}>
                   <InputLabel>Đơn Vị</InputLabel>
                   <Select
@@ -383,12 +504,11 @@ const EditProduct = ({
                     value={productData.unit}
                     onChange={handleChange}
                   >
-                    <MenuItem value="">
-                      <em>Tùy chọn</em>
-                    </MenuItem>
                     <MenuItem value="Hộp">Hộp</MenuItem>
                     <MenuItem value="Vỉ">Vỉ</MenuItem>
                     <MenuItem value="Lọ">Lọ</MenuItem>
+                    <MenuItem value="Chai">Chai</MenuItem>
+                    <MenuItem value="Tuýp">Tuýp</MenuItem>
                   </Select>
                   {errors.unit && (
                     <FormHelperText>{errors.unit}</FormHelperText>

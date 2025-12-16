@@ -34,6 +34,10 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
+  useMediaQuery,
+  useTheme,
+  FormControl,
+  TableFooter,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CategoryIcon from "@mui/icons-material/Category";
@@ -53,6 +57,8 @@ import productAPI from "../../API/productAPI";
 
 function ListCategory() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     categories: hookCategories,
     getAllCategories,
@@ -433,20 +439,26 @@ function ListCategory() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Card elevation={3} sx={{ borderRadius: 2 }}>
-        <CardContent>
+    <Container
+      maxWidth="xl"
+      sx={{ mt: 0, mb: 4, pt: 4 }}
+    >
+      <Card
+        elevation={3}
+        sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
+      >
+        <CardContent sx={{ p: 3 }}>
           {/* Title */}
-          <Box className="category-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <CategoryIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
             <Typography
               variant="h4"
-              className="category-list-title"
+              component="h1"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
             >
-              Danh mục thuốc
+              Quản lý danh mục
             </Typography>
-            <Typography variant="h6" color="text.secondary" className="category-list-count">
+            <Typography variant="h6" color="text.secondary">
               Tổng: {filteredCategories.length} danh mục
             </Typography>
           </Box>
@@ -456,29 +468,29 @@ function ListCategory() {
             className="category-list-filter-container"
             sx={{
               p: 2,
-              mb: 3,
+              mb: 2,
               backgroundColor: "#f8fafc",
               borderRadius: 2,
             }}
           >
             <Stack
               direction={{ xs: "column", md: "row" }}
-              alignItems="center"
+              alignItems={{ xs: "stretch", md: "center" }}
               spacing={2}
               justifyContent="space-between"
             >
-              {/* Left: Search + Lọc trạng thái */}
-              <Stack
-                direction="row"
-                spacing={2}
-                alignItems="center"
-                flexWrap="wrap"
+              {/* LEFT: Lọc trạng thái + tìm kiếm */}
+              <Stack 
+                direction={{ xs: "column", sm: "row" }} 
+                spacing={2} 
+                alignItems={{ xs: "stretch", sm: "center" }}
+                sx={{ width: { xs: "100%", md: "auto" }, flex: { xs: "1 1 auto", md: "0 1 auto" } }}
               >
-                {/* SEARCH */}
+                {/* Search */}
                 <TextField
+                  placeholder="Tìm kiếm danh mục..."
                   variant="outlined"
                   size="small"
-                  placeholder="Tìm tên danh mục..."
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
                   InputProps={{
@@ -488,12 +500,62 @@ function ListCategory() {
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ width: 300 }}
+                  sx={{
+                    width: { xs: "100%", sm: "auto" },
+                    minWidth: { xs: "100%", sm: 250 },
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "#fff",
+                      borderRadius: "8px",
+                      "& fieldset": {
+                        borderColor: "#1976d2",
+                        borderWidth: "1.5px",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1565c0",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2",
+                        borderWidth: "2px",
+                      },
+                    },
+                  }}
                 />
-
-                {/* LỌC TRẠNG THÁI - giống trang nhà cung cấp, label: Hoạt động / Ngừng hoạt động */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <FormGroup row>
+                <FormControl
+                  size="small"
+                  sx={{
+                    width: { xs: "100%", sm: "auto" },
+                    minWidth: { xs: "100%", sm: 320 },
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "#fff",
+                      borderRadius: "8px",
+                      "& fieldset": {
+                        borderColor: "#1976d2",
+                        borderWidth: "1.5px",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "#1565c0",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#1976d2",
+                        borderWidth: "2px",
+                      },
+                    },
+                  }}
+                >
+                  <FormGroup 
+                    row={true}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      flexWrap: "nowrap",
+                      gap: 1,
+                      width: "100%",
+                      "& .MuiFormControlLabel-root": {
+                        marginRight: 0,
+                        whiteSpace: "nowrap"
+                      }
+                    }}
+                  >
                     {[
                       { key: "Còn cung cấp", label: "Hoạt động" },
                       { key: "Ngừng cung cấp", label: "Ngừng hoạt động" },
@@ -521,8 +583,7 @@ function ListCategory() {
                       />
                     ))}
                   </FormGroup>
-                </Box>
-
+                </FormControl>
                 {/* CLEAR FILTER */}
                 <Button
                   variant="outlined"
@@ -534,23 +595,29 @@ function ListCategory() {
                       "Ngừng cung cấp": false,
                     });
                   }}
+                  sx={{ width: { xs: "100%", sm: "auto" } }}
                 >
                   Xóa lọc
                 </Button>
               </Stack>
 
-              {/* Right: Nút thêm danh mục */}
-              <Box sx={{ ml: "auto" }}>
+              {/* RIGHT: Nút thêm danh mục */}
+              <Box sx={{ 
+                marginLeft: { xs: 0, md: "auto" },
+                width: { xs: "100%", md: "auto" }
+              }}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setIsAddDialogOpen(true)}
+                  fullWidth={isMobile}
                   sx={{
                     backgroundColor: "#155E64",
                     "&:hover": { backgroundColor: "#0D4F52" },
                     borderRadius: "8px",
-                    px: 3,
-                    py: 1.3,
+                    px: { xs: 2, sm: 3 },
+                    py: 1.5,
+                    fontWeight: "600",
                   }}
                 >
                   THÊM DANH MỤC
@@ -566,29 +633,33 @@ function ListCategory() {
             </Box>
           )}
 
-          {/* Table */}
+          {/* Table View - Scrollable on all screen sizes */}
           {!loading && (
-            <div className="category-list-table-container">
             <TableContainer
               component={Paper}
-              sx={{
-                boxShadow: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 2,
+              sx={{ 
+                borderRadius: 2, 
+                boxShadow: 1,
                 overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
               }}
             >
-              <Table className="category-list-table" sx={{ tableLayout: "fixed", minWidth: 800 }}>
+              <Table className="category-list-table" sx={{ 
+                tableLayout: "auto", 
+                minWidth: 1000,
+              }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableCell
                       sx={{
                         width: "7%",
-                        py: 1.5,
-                        px: 2,
+                        py: { xs: 1, sm: 1.5 },
+                        px: { xs: 1, sm: 2 },
                         textAlign: "left",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
+                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        whiteSpace: "nowrap",
                       }}
                     >
                       <TableSortLabel
@@ -603,7 +674,13 @@ function ListCategory() {
                         #
                       </TableSortLabel>
                     </TableCell>
-                    <TableCell sx={{ width: "20%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ 
+                      width: "20%", 
+                      py: { xs: 1, sm: 1.5 }, 
+                      px: { xs: 1, sm: 2 },
+                      fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                      whiteSpace: "nowrap",
+                    }}>
                       <TableSortLabel
                         active={sortConfig.key === "categoryName"}
                         direction={
@@ -623,12 +700,13 @@ function ListCategory() {
                     <TableCell
                       sx={{
                         width: "25%",
-                        py: 1.5,
-                        px: 2,
-                        pl: 2,
+                        py: { xs: 1, sm: 1.5 },
+                        px: { xs: 1, sm: 2 },
+                        pl: { xs: 1, sm: 2 },
                         textAlign: "left",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
+                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
                       }}
                     >
                       Mô tả
@@ -636,10 +714,11 @@ function ListCategory() {
                     <TableCell
                       sx={{
                         width: "15%",
-                        py: 1.5,
-                        px: 2,
+                        py: { xs: 1, sm: 1.5 },
+                        px: { xs: 1, sm: 2 },
                         textAlign: "left",
                         whiteSpace: "nowrap",
+                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
                       }}
                     >
                       <TableSortLabel
@@ -660,7 +739,14 @@ function ListCategory() {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ width: "15%", py: 1.5, px: 2, textAlign: "center" }}
+                      sx={{ 
+                        width: "15%", 
+                        py: { xs: 1, sm: 1.5 }, 
+                        px: { xs: 1, sm: 2 }, 
+                        textAlign: "center",
+                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       <TableSortLabel
                         active={sortConfig.key === "status"}
@@ -679,7 +765,14 @@ function ListCategory() {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ width: "18%", textAlign: "right", py: 1.5, px: 2 }}
+                      sx={{ 
+                        width: "18%", 
+                        textAlign: "right", 
+                        py: { xs: 1, sm: 1.5 }, 
+                        px: { xs: 1, sm: 2 },
+                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       <Box
                         sx={{
@@ -725,9 +818,10 @@ function ListCategory() {
                               backgroundColor: "#f9f9f9",
                             },
                             "& td": {
-                              py: 1.5,
-                              px: 2,
+                              py: { xs: 1, sm: 1.5 },
+                              px: { xs: 1, sm: 2 },
                               verticalAlign: "middle",
+                              fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
                             },
                           }}
                         >
@@ -1054,27 +1148,19 @@ function ListCategory() {
                   )}
                 </TableBody>
               </Table>
-              {filteredCategories.length > 0 && totalPages > 1 && (
-                <Box
-                  sx={{
-                    pt: 2,
-                    pb: 2,
-                    borderTop: "1px solid #e0e0e0",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={(_, value) => setCurrentPage(value)}
-                    color="primary"
-                  />
-                </Box>
-              )}
             </TableContainer>
-            </div>
+          )}
+
+          {/* Pagination - giống quản lý nhà cung cấp, căn phải */}
+          {filteredCategories.length > 0 && totalPages > 1 && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
+              <Pagination
+                count={totalPages}
+                page={currentPage}
+                onChange={(_, value) => setCurrentPage(value)}
+                color="primary"
+              />
+            </Box>
           )}
         </CardContent>
       </Card>
