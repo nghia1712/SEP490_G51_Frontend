@@ -66,9 +66,6 @@ export default function DebtList() {
     fetchDebtReport,
     fetchDebtDetail,
     setSelectedDebt,
-    secretInfo,
-    secretLoading,
-    fetchPharmacySecretInfo,
   } = usePO();
   const approvedStatuses = [0, 3, 4];
   const fullyPaidStatus = 5;
@@ -81,7 +78,6 @@ export default function DebtList() {
 
   useEffect(() => {
     fetchDebtReport();
-    fetchPharmacySecretInfo();
   }, []);
 
   const renderCurrency = (value) => {
@@ -154,25 +150,6 @@ export default function DebtList() {
             <Paper
               sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              {secretLoading ? (
-                <Stack alignItems="center">
-                  <CircularProgress size={24} />
-                </Stack>
-              ) : (
-                <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                  <Button variant="contained">
-                    Tổng thu:{" "}
-                    {renderCurrency(secretInfo?.totalRecieve || 0)}
-                  </Button>
-                  <Button variant="outlined">
-                    Tổng chi: {renderCurrency(secretInfo?.totalPaid || 0)}
-                  </Button>
-                  {/* <Button variant="outlined">
-                    Nợ trần: {secretInfo?.debtCeiling?.toLocaleString() || "0"}{" "}
-                    đ
-                  </Button> */}
-                </Stack>
-              )}
               <Paper
                 sx={{
                   p: 2,

@@ -29,7 +29,7 @@ export default function usePRFQ(prfqId = null) {
     supplierId: "",
     taxCode: "030203002865",
     phone: "0398233047",
-    address: "165 Dư Hàng Kênh Tp Hải Phòng",
+    address: "Kiot số 17, Phường Lê Thanh Nghị, TP Hải Phòng",
     email: "",
     items: [{ productName: "" }],
   });

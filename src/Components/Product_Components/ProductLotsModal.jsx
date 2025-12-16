@@ -39,7 +39,6 @@ const parseDate = (dateStr) => {
 
   return new Date(dateStr);
 };
-const userRole = getUserRoleFromToken();
 
 const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
   const [localLots, setLocalLots] = useState([]);
@@ -50,6 +49,13 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
     message: "",
     severity: "success",
   });
+
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    const role = getUserRoleFromToken();
+    setCanEdit(role === "sales_staff");
+  }, []);
 
   useEffect(() => {
     setLocalLots(lots);
@@ -111,7 +117,6 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
       setUpdatingLotId(null);
     }
   };
-  const canEdit = userRole === "sales_staff";
   return (
     <>
       <Dialog
@@ -217,8 +222,8 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                           : "-"}
                       </TableCell>
 
-                      <TableCell>
-                        {canEdit && (
+                      {canEdit && (
+                        <TableCell>
                           <IconButton
                             color="primary"
                             size="small"
@@ -231,11 +236,11 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                               <EditIcon />
                             )}
                           </IconButton>
-                        )}
-                        {updatingLotId === lot.lotID && (
-                          <CircularProgress size={20} sx={{ ml: 1 }} />
-                        )}
-                      </TableCell>
+                          {updatingLotId === lot.lotID && (
+                            <CircularProgress size={20} sx={{ ml: 1 }} />
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
