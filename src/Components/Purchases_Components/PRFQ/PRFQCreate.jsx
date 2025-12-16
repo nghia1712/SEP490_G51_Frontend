@@ -25,7 +25,7 @@ import {
   Stack,
 } from "@mui/material";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
 import supplierAPI from "../../../API/supplierAPI";
 import productAPI from "../../../API/productAPI";
@@ -36,6 +36,9 @@ export default function PRFQCreate() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isUpdate = !!id;
+  const location = useLocation();
+  const notificationProducts = location.state?.products || [];
+  console.log("Product from noti", notificationProducts);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -120,6 +123,58 @@ export default function PRFQCreate() {
     };
     fetchSuppliers();
   }, []);
+
+  useEffect(() => {
+    if (notificationProducts.length === 0 || isUpdate) return;
+
+    const autoFillProducts = async () => {
+      const res = await productAPI.getAll();
+      const products = Array.isArray(res.data?.data) ? res.data.data : [];
+
+      const matchedItems = notificationProducts
+        .map((name) => {
+          const matched = products.find(
+            (p) =>
+              p.status === true &&
+              p.productName.trim().toLowerCase() === name.trim().toLowerCase()
+          );
+
+          if (!matched) return null;
+
+          return {
+            productId: matched.productID,
+            productName: matched.productName,
+            description: matched.productDescription || "",
+            unit: matched.unit || "",
+          };
+        })
+        .filter(Boolean);
+
+      const ignoredProducts = notificationProducts.filter(
+        (name) =>
+          !products.some(
+            (p) =>
+              p.status === true &&
+              p.productName.trim().toLowerCase() === name.trim().toLowerCase()
+          )
+      );
+
+      if (ignoredProducts.length > 0) {
+        setSnackbar({
+          open: true,
+          severity: "warning",
+          message: `Không tìm thấy ${ignoredProducts.length} sản phẩm trong hệ thống, đã tự động bỏ qua.`,
+        });
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        items: matchedItems.length > 0 ? matchedItems : [{ productName: "" }],
+      }));
+    };
+
+    autoFillProducts();
+  }, [notificationProducts, isUpdate]);
 
   useEffect(() => {
     if (!isUpdate) return;
@@ -416,35 +471,35 @@ export default function PRFQCreate() {
 
         {/* DANH SÁCH SẢN PHẨM */}
         <Paper sx={{ p: 2 }}>
- <Stack
-    direction="row"
-    justifyContent="space-between"
-    alignItems="center"
-  >
-    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-      Danh sách sản phẩm
-    </Typography>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Danh sách sản phẩm
+            </Typography>
 
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        Sản phẩm chưa có trong hệ thống?
-      </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Sản phẩm chưa có trong hệ thống?
+              </Typography>
 
-      <Tooltip title="Thêm sản phẩm nhanh">
-        <IconButton
-          disabled={loading}
-          color="primary"
-          size="small"
-          onClick={handleOpenAddProduct}
-          sx={{
-            color: "primary",
-          }}
-        >
-          <AddIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </Box>
-  </Stack>
+              <Tooltip title="Thêm sản phẩm nhanh">
+                <IconButton
+                  disabled={loading}
+                  color="primary"
+                  size="small"
+                  onClick={handleOpenAddProduct}
+                  sx={{
+                    color: "primary",
+                  }}
+                >
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Stack>
           <TableContainer>
             <Table>
               <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
@@ -467,7 +522,16 @@ export default function PRFQCreate() {
                         isOptionEqualToValue={(option, value) =>
                           option.productID === value.productId
                         }
-                        value={item || { productName: "" }}
+                        value={
+                          item.productId
+                            ? productSuggestions.find(
+                                (p) => p.productID === item.productId
+                              ) || {
+                                productID: item.productId,
+                                productName: item.productName,
+                              }
+                            : null
+                        }
                         onChange={(e, value) => {
                           if (value) {
                             const isDuplicate = formData.items.some(

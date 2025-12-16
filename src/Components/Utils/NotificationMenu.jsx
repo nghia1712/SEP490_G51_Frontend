@@ -55,7 +55,6 @@ export default function NotificationMenu() {
         ? res.data.data
         : [];
       setNotifications(notificationList);
-
     } catch (err) {
       console.error("Error fetching notifications:", err);
     }
@@ -87,6 +86,19 @@ export default function NotificationMenu() {
     }
   };
 
+  function extractProductNames(message = "") {
+    const parts = message.split(":");
+    if (parts.length < 2) return [];
+
+    return parts[1]
+      .split(",")
+      .map((p) => p.replace(/\s*\([^)]*\)/g, "").trim())
+      .filter(Boolean);
+  }
+
+  const LOW_STOCK_REGEX =
+    /thiếu\/sắp hết|sắp hết|thiếu\s+\d+|tồn kho nhỏ hơn số lượng tối thiểu/i;
+
   const handleNotificationClick = async (n) => {
     if (!n.isRead) {
       try {
@@ -95,8 +107,27 @@ export default function NotificationMenu() {
         console.error("Mark read failed, continue navigation", err);
       }
     }
+    if (
+      userRole === "purchases_staff" &&
+      LOW_STOCK_REGEX.test(n.message || "")
+    ) {
+const productNames = extractProductNames(n.message);
 
-    const customerProfileMatch = n.message?.match(/Khách hàng.*id\s+([a-f0-9-]+)/i);
+console.log("Notification message:", n.message);
+console.log("Extracted products:", productNames);
+
+      handleClose();
+      navigate("/purchase/prfq/form", {
+        state: {
+          products: productNames,
+        },
+      });
+      return;
+    }
+
+    const customerProfileMatch = n.message?.match(
+      /Khách hàng.*id\s+([a-f0-9-]+)/i
+    );
     if (
       customerProfileMatch &&
       (userRole === "admin" || userRole === "manager")
@@ -116,7 +147,7 @@ export default function NotificationMenu() {
         // Parse RequestCode từ message cho sales staff
         const message = n.message || "";
         console.log("NotificationMenu (Sales) - Message:", message);
-        
+
         let match = message.match(/RSQ-([A-F0-9]{8})/i);
         if (!match) {
           match = message.match(/RSQ-([A-Z0-9]+)/i);
@@ -124,30 +155,37 @@ export default function NotificationMenu() {
         if (!match) {
           match = message.match(/(RSQ-[A-Z0-9]+)/i);
         }
-        
+
         if (match && match[0]) {
           const requestCode = match[0].trim().toUpperCase();
-          console.log("NotificationMenu (Sales) - Parsed requestCode:", requestCode);
-          
+          console.log(
+            "NotificationMenu (Sales) - Parsed requestCode:",
+            requestCode
+          );
+
           try {
-            const requestListResponse = await requestSalesQuotationAPI.viewList();
+            const requestListResponse =
+              await requestSalesQuotationAPI.viewList();
             if (requestListResponse?.data?.data) {
-              const requestList = Array.isArray(requestListResponse.data.data) 
-                ? requestListResponse.data.data 
+              const requestList = Array.isArray(requestListResponse.data.data)
+                ? requestListResponse.data.data
                 : [];
-              
-              const matchingRequest = requestList.find(
-                (r) => {
-                  const code = String(r.RequestCode || r.requestCode || '').trim().toUpperCase();
-                  return code === requestCode;
-                }
-              );
-              
+
+              const matchingRequest = requestList.find((r) => {
+                const code = String(r.RequestCode || r.requestCode || "")
+                  .trim()
+                  .toUpperCase();
+                return code === requestCode;
+              });
+
               if (matchingRequest) {
                 const rsqId = matchingRequest.Id || matchingRequest.id;
-                console.log("NotificationMenu (Sales) - Found matching request with rsqId:", rsqId);
-                navigate("/request-quotation", { 
-                  state: { openRsqId: Number(rsqId) } 
+                console.log(
+                  "NotificationMenu (Sales) - Found matching request with rsqId:",
+                  rsqId
+                );
+                navigate("/request-quotation", {
+                  state: { openRsqId: Number(rsqId) },
                 });
                 return;
               }
@@ -164,7 +202,7 @@ export default function NotificationMenu() {
         const message = n.message || "";
         console.log("NotificationMenu - Full notification:", n);
         console.log("NotificationMenu - Message:", message);
-        
+
         // Pattern 1: RSQ- theo sau là 8 ký tự hex
         let match = message.match(/RSQ-([A-F0-9]{8})/i);
         // Pattern 2: RSQ- theo sau là bất kỳ ký tự nào
@@ -175,45 +213,70 @@ export default function NotificationMenu() {
         if (!match) {
           match = message.match(/(RSQ-[A-Z0-9]+)/i);
         }
-        
+
         console.log("NotificationMenu - Match result:", match);
-        
+
         if (match && match[0]) {
           const requestCode = match[0].trim().toUpperCase(); // RSQ-D89A2F89
           console.log("NotificationMenu - Parsed requestCode:", requestCode);
-          
+
           try {
             // Tìm rsqId từ RequestCode
-            const requestListResponse = await requestSalesQuotationAPI.viewList();
-            console.log("NotificationMenu - Request list response:", requestListResponse);
-            
+            const requestListResponse =
+              await requestSalesQuotationAPI.viewList();
+            console.log(
+              "NotificationMenu - Request list response:",
+              requestListResponse
+            );
+
             if (requestListResponse?.data?.data) {
-              const requestList = Array.isArray(requestListResponse.data.data) 
-                ? requestListResponse.data.data 
+              const requestList = Array.isArray(requestListResponse.data.data)
+                ? requestListResponse.data.data
                 : [];
-              
-              console.log("NotificationMenu - Request list length:", requestList.length);
-              console.log("NotificationMenu - All request codes:", requestList.map(r => (r.RequestCode || r.requestCode || '').toUpperCase()));
-              
-              // Tìm request matching với RequestCode (case-insensitive)
-              const matchingRequest = requestList.find(
-                (r) => {
-                  const code = String(r.RequestCode || r.requestCode || '').trim().toUpperCase();
-                  return code === requestCode;
-                }
+
+              console.log(
+                "NotificationMenu - Request list length:",
+                requestList.length
               );
-              
+              console.log(
+                "NotificationMenu - All request codes:",
+                requestList.map((r) =>
+                  (r.RequestCode || r.requestCode || "").toUpperCase()
+                )
+              );
+
+              // Tìm request matching với RequestCode (case-insensitive)
+              const matchingRequest = requestList.find((r) => {
+                const code = String(r.RequestCode || r.requestCode || "")
+                  .trim()
+                  .toUpperCase();
+                return code === requestCode;
+              });
+
               if (matchingRequest) {
                 const rsqId = matchingRequest.Id || matchingRequest.id;
-                console.log("NotificationMenu - Found matching request with rsqId:", rsqId, "for code:", requestCode);
+                console.log(
+                  "NotificationMenu - Found matching request with rsqId:",
+                  rsqId,
+                  "for code:",
+                  requestCode
+                );
                 // Navigate đến trang request quotation với rsqId trong state để tự động mở dialog chi tiết
-                navigate("/customer/request-quotation", { 
-                  state: { openRsqId: Number(rsqId) } 
+                navigate("/customer/request-quotation", {
+                  state: { openRsqId: Number(rsqId) },
                 });
                 return;
               } else {
-                console.warn("NotificationMenu - Request not found with code:", requestCode);
-                console.warn("NotificationMenu - Available codes:", requestList.map(r => (r.RequestCode || r.requestCode || '').toUpperCase()));
+                console.warn(
+                  "NotificationMenu - Request not found with code:",
+                  requestCode
+                );
+                console.warn(
+                  "NotificationMenu - Available codes:",
+                  requestList.map((r) =>
+                    (r.RequestCode || r.requestCode || "").toUpperCase()
+                  )
+                );
                 // Fallback: navigate to customer request quotation page
                 navigate("/customer/request-quotation");
                 return;
@@ -224,14 +287,23 @@ export default function NotificationMenu() {
               return;
             }
           } catch (err) {
-            console.error("NotificationMenu - Error handling request quotation notification:", err);
-            console.error("NotificationMenu - Error details:", err.response?.data || err.message);
+            console.error(
+              "NotificationMenu - Error handling request quotation notification:",
+              err
+            );
+            console.error(
+              "NotificationMenu - Error details:",
+              err.response?.data || err.message
+            );
             // Fallback: navigate to customer request quotation page
             navigate("/customer/request-quotation");
             return;
           }
         } else {
-          console.warn("NotificationMenu - Could not parse RequestCode from message:", message);
+          console.warn(
+            "NotificationMenu - Could not parse RequestCode from message:",
+            message
+          );
           // Không parse được RequestCode, chỉ navigate đến trang danh sách
           navigate("/customer/request-quotation");
         }
@@ -268,7 +340,7 @@ export default function NotificationMenu() {
                 order.orderCode ||
                 order.Code ||
                 order.code ||
-                "",
+                ""
             );
             return code === orderCode;
           });
@@ -291,7 +363,7 @@ export default function NotificationMenu() {
           } else {
             console.warn(
               "NotificationMenu (Customer) - Order not found with code:",
-              orderCode,
+              orderCode
             );
           }
         } else {
@@ -300,67 +372,94 @@ export default function NotificationMenu() {
       } catch (err) {
         console.error(
           "NotificationMenu (Customer) - Error handling order notification:",
-          err,
+          err
         );
       }
       navigate("/customer/orders");
       return;
     }
 
-    if (
-      userRole === "customer" &&
-      /báo giá mới/i.test(n.message || "")
-    ) {
+    if (userRole === "customer" && /báo giá mới/i.test(n.message || "")) {
       handleClose();
       try {
         // Parse QuotationCode từ message: "Báo giá mới SQ-20251122-D8863FDA"
         const message = n.message || "";
-        console.log("NotificationMenu (Customer) - Message for new quotation:", message);
-        
+        console.log(
+          "NotificationMenu (Customer) - Message for new quotation:",
+          message
+        );
+
         // Pattern 1: SQ- theo sau là date và code
         let match = message.match(/SQ-([A-Z0-9-]+)/i);
         // Pattern 2: Tìm SQ ở bất kỳ đâu trong message
         if (!match) {
           match = message.match(/(SQ-[A-Z0-9-]+)/i);
         }
-        
+
         console.log("NotificationMenu (Customer) - Match result:", match);
-        
+
         if (match && match[0]) {
           const quotationCode = match[0].trim().toUpperCase(); // SQ-20251122-D8863FDA
-          console.log("NotificationMenu (Customer) - Parsed quotationCode:", quotationCode);
-          
+          console.log(
+            "NotificationMenu (Customer) - Parsed quotationCode:",
+            quotationCode
+          );
+
           // Tìm sqId từ QuotationCode
           const quotationListResponse = await salesQuotationAPI.viewList();
-          console.log("NotificationMenu (Customer) - Quotation list response:", quotationListResponse);
-          
+          console.log(
+            "NotificationMenu (Customer) - Quotation list response:",
+            quotationListResponse
+          );
+
           if (quotationListResponse?.data?.data) {
-            const quotationList = Array.isArray(quotationListResponse.data.data) 
-              ? quotationListResponse.data.data 
+            const quotationList = Array.isArray(quotationListResponse.data.data)
+              ? quotationListResponse.data.data
               : [];
-            
-            console.log("NotificationMenu (Customer) - Quotation list length:", quotationList.length);
-            console.log("NotificationMenu (Customer) - All quotation codes:", quotationList.map(q => (q.QuotationCode || q.quotationCode || '').toUpperCase()));
-            
-            // Tìm quotation matching với QuotationCode (case-insensitive)
-            const matchingQuotation = quotationList.find(
-              (q) => {
-                const code = String(q.QuotationCode || q.quotationCode || '').trim().toUpperCase();
-                return code === quotationCode;
-              }
+
+            console.log(
+              "NotificationMenu (Customer) - Quotation list length:",
+              quotationList.length
             );
-            
+            console.log(
+              "NotificationMenu (Customer) - All quotation codes:",
+              quotationList.map((q) =>
+                (q.QuotationCode || q.quotationCode || "").toUpperCase()
+              )
+            );
+
+            // Tìm quotation matching với QuotationCode (case-insensitive)
+            const matchingQuotation = quotationList.find((q) => {
+              const code = String(q.QuotationCode || q.quotationCode || "")
+                .trim()
+                .toUpperCase();
+              return code === quotationCode;
+            });
+
             if (matchingQuotation) {
               const sqId = matchingQuotation.Id || matchingQuotation.id;
-              console.log("NotificationMenu (Customer) - Found matching quotation with sqId:", sqId, "for code:", quotationCode);
+              console.log(
+                "NotificationMenu (Customer) - Found matching quotation with sqId:",
+                sqId,
+                "for code:",
+                quotationCode
+              );
               // Navigate đến trang request quotation với sqId trong state để tự động mở dialog chi tiết báo giá
-              navigate("/customer/request-quotation", { 
-                state: { sqId: Number(sqId) } 
+              navigate("/customer/request-quotation", {
+                state: { sqId: Number(sqId) },
               });
               return;
             } else {
-              console.warn("NotificationMenu (Customer) - Quotation not found with code:", quotationCode);
-              console.warn("NotificationMenu (Customer) - Available codes:", quotationList.map(q => (q.QuotationCode || q.quotationCode || '').toUpperCase()));
+              console.warn(
+                "NotificationMenu (Customer) - Quotation not found with code:",
+                quotationCode
+              );
+              console.warn(
+                "NotificationMenu (Customer) - Available codes:",
+                quotationList.map((q) =>
+                  (q.QuotationCode || q.quotationCode || "").toUpperCase()
+                )
+              );
               // Fallback: navigate to customer request quotation page
               navigate("/customer/request-quotation");
               return;
@@ -371,13 +470,22 @@ export default function NotificationMenu() {
             return;
           }
         } else {
-          console.warn("NotificationMenu (Customer) - Could not parse QuotationCode from message:", message);
+          console.warn(
+            "NotificationMenu (Customer) - Could not parse QuotationCode from message:",
+            message
+          );
           // Không parse được QuotationCode, chỉ navigate đến trang danh sách
           navigate("/customer/request-quotation");
         }
       } catch (err) {
-        console.error("NotificationMenu (Customer) - Error handling new quotation notification:", err);
-        console.error("NotificationMenu (Customer) - Error details:", err.response?.data || err.message);
+        console.error(
+          "NotificationMenu (Customer) - Error handling new quotation notification:",
+          err
+        );
+        console.error(
+          "NotificationMenu (Customer) - Error details:",
+          err.response?.data || err.message
+        );
         // Fallback: navigate to customer request quotation page
         navigate("/customer/request-quotation");
       }
@@ -387,10 +495,10 @@ export default function NotificationMenu() {
     // Xử lý notification khi khách gửi đơn hàng (cho sales_staff)
     if (userRole === "sales_staff" && /đơn hàng/i.test(n.message || "")) {
       handleClose();
-          const message = n.message || "";
-          const orderCode = extractOrderCodeFromMessage(message);
-          if (orderCode) {
-            console.log("NotificationMenu (Sales) - Parsed orderCode:", orderCode);
+      const message = n.message || "";
+      const orderCode = extractOrderCodeFromMessage(message);
+      if (orderCode) {
+        console.log("NotificationMenu (Sales) - Parsed orderCode:", orderCode);
         try {
           const orderListResponse = await salesOrderAPI.listSalesOrder();
           if (orderListResponse?.data?.data) {
@@ -455,46 +563,63 @@ export default function NotificationMenu() {
     }
 
     // Xử lý notification về bình luận mới trong báo giá (cho sales_staff)
-    if (userRole === "sales_staff" && /bình luận mới trong báo giá/i.test(n.message || "")) {
+    if (
+      userRole === "sales_staff" &&
+      /bình luận mới trong báo giá/i.test(n.message || "")
+    ) {
       handleClose();
       try {
         // Parse QuotationCode từ message: "Bạn có 1 bình luận mới trong báo giá SQ-20251122-D8863FDA"
         const match = n.message.match(/báo giá\s+([A-Z0-9-]+)/i);
         if (match && match[1]) {
           const quotationCode = match[1];
-          console.log("NotificationMenu - Parsed quotationCode:", quotationCode);
-          
+          console.log(
+            "NotificationMenu - Parsed quotationCode:",
+            quotationCode
+          );
+
           // Tìm sqId từ QuotationCode
           const quotationListResponse = await salesQuotationAPI.viewList();
           if (quotationListResponse.data && quotationListResponse.data.data) {
-            const quotationList = Array.isArray(quotationListResponse.data.data) 
-              ? quotationListResponse.data.data 
+            const quotationList = Array.isArray(quotationListResponse.data.data)
+              ? quotationListResponse.data.data
               : [];
-            
+
             const matchingQuotation = quotationList.find(
               (q) => (q.QuotationCode || q.quotationCode) === quotationCode
             );
-            
+
             if (matchingQuotation) {
               const sqId = matchingQuotation.Id || matchingQuotation.id;
               console.log("NotificationMenu - Found sqId:", sqId);
-              navigate("/sales-quotation", { state: { openQuotationId: sqId } });
+              navigate("/sales-quotation", {
+                state: { openQuotationId: sqId },
+              });
               return;
             } else {
-              console.warn("NotificationMenu - Quotation not found with code:", quotationCode);
+              console.warn(
+                "NotificationMenu - Quotation not found with code:",
+                quotationCode
+              );
               // Fallback: navigate to sales-quotation page anyway
               navigate("/sales-quotation");
               return;
             }
           }
         } else {
-          console.warn("NotificationMenu - Could not parse quotationCode from message:", n.message);
+          console.warn(
+            "NotificationMenu - Could not parse quotationCode from message:",
+            n.message
+          );
           // Fallback: navigate to sales-quotation page
           navigate("/sales-quotation");
           return;
         }
       } catch (err) {
-        console.error("NotificationMenu - Error handling comment notification:", err);
+        console.error(
+          "NotificationMenu - Error handling comment notification:",
+          err
+        );
         // Fallback: navigate to sales-quotation page
         navigate("/sales-quotation");
       }
@@ -502,48 +627,63 @@ export default function NotificationMenu() {
     }
 
     // Xử lý notification về bình luận mới trong báo giá (cho customer)
-    if (userRole === "customer" && /bình luận mới trong báo giá/i.test(n.message || "")) {
+    if (
+      userRole === "customer" &&
+      /bình luận mới trong báo giá/i.test(n.message || "")
+    ) {
       handleClose();
       try {
         // Parse QuotationCode từ message: "Bạn có 1 bình luận mới trong báo giá SQ-20251122-D8863FDA"
         const match = n.message.match(/báo giá\s+([A-Z0-9-]+)/i);
         if (match && match[1]) {
           const quotationCode = match[1];
-          console.log("NotificationMenu (Customer) - Parsed quotationCode:", quotationCode);
-          
+          console.log(
+            "NotificationMenu (Customer) - Parsed quotationCode:",
+            quotationCode
+          );
+
           // Tìm sqId từ QuotationCode
           const quotationListResponse = await salesQuotationAPI.viewList();
           if (quotationListResponse.data && quotationListResponse.data.data) {
-            const quotationList = Array.isArray(quotationListResponse.data.data) 
-              ? quotationListResponse.data.data 
+            const quotationList = Array.isArray(quotationListResponse.data.data)
+              ? quotationListResponse.data.data
               : [];
-            
+
             const matchingQuotation = quotationList.find(
               (q) => (q.QuotationCode || q.quotationCode) === quotationCode
             );
-            
+
             if (matchingQuotation) {
               const sqId = matchingQuotation.Id || matchingQuotation.id;
               console.log("NotificationMenu (Customer) - Found sqId:", sqId);
-              
+
               // Navigate đến trang request quotation với sqId trong state để tự động mở dialog
               navigate("/customer/request-quotation", { state: { sqId } });
               return;
             } else {
-              console.warn("NotificationMenu (Customer) - Quotation not found with code:", quotationCode);
+              console.warn(
+                "NotificationMenu (Customer) - Quotation not found with code:",
+                quotationCode
+              );
               // Fallback: navigate to customer request quotation page
               navigate("/customer/request-quotation");
               return;
             }
           }
         } else {
-          console.warn("NotificationMenu (Customer) - Could not parse quotationCode from message:", n.message);
+          console.warn(
+            "NotificationMenu (Customer) - Could not parse quotationCode from message:",
+            n.message
+          );
           // Fallback: navigate to customer request quotation page
           navigate("/customer/request-quotation");
           return;
         }
       } catch (err) {
-        console.error("NotificationMenu (Customer) - Error handling comment notification:", err);
+        console.error(
+          "NotificationMenu (Customer) - Error handling comment notification:",
+          err
+        );
         // Fallback: navigate to customer request quotation page
         navigate("/customer/request-quotation");
       }
@@ -551,7 +691,6 @@ export default function NotificationMenu() {
     }
 
     if (userRole === "warehouse_staff") {
-
       const match = n.message.match(
         /yêu cầu Tạo phiếu nhập kho cho đơn hàng[:\s]+(\d+)/i
       );

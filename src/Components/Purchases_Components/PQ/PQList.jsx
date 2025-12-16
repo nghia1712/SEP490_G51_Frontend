@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -28,6 +29,10 @@ import {
   Card,
   CardContent,
   Container,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { useEffect } from "react";
@@ -69,12 +74,34 @@ export default function PQList() {
   const [search, setSearch] = useState("");
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.status) {
+      setStatusFilter(location.state.status);
+      setPage(1);
+    }
+  }, [location.state]);
 
   const pageSize = 5;
   const { prfqs, showSnackbar, handleImportQuotation, importLoading } =
     usePRFQ();
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  const parseDDMMYYYY = (str) => {
+    if (!str) return null;
+    const [dd, mm, yyyy] = str.split("/");
+    if (!dd || !mm || !yyyy) return null;
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  };
+
+  const formatLocalDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const filtered = quotations
     .filter((q) => {
@@ -83,11 +110,19 @@ export default function PQList() {
       const supplierMatch = q.supplierName?.toLowerCase().includes(keyword);
       const pqMatch = `PQ-${q.quotationId}`.toLowerCase().includes(keyword);
 
-      const sentDate = new Date(q.expiredDate);
-      const fromMatch = dateFrom ? sentDate >= new Date(dateFrom) : true;
-      const toMatch = dateTo ? sentDate <= new Date(dateTo) : true;
+      // 🔥 Filter theo trạng thái
+      const statusMatch = statusFilter ? q.status === statusFilter : true;
 
-      return (supplierMatch || pqMatch) && fromMatch && toMatch;
+      const sentDate = parseDDMMYYYY(q.expiredDate);
+      if (!sentDate) return false;
+
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+
+      const fromMatch = from ? sentDate >= from : true;
+      const toMatch = to ? sentDate <= to : true;
+
+      return (supplierMatch || pqMatch) && statusMatch && fromMatch && toMatch;
     })
     .sort((a, b) => b.quotationId - a.quotationId);
 
@@ -188,10 +223,7 @@ export default function PQList() {
                       value={dateFrom ? new Date(dateFrom) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
-                        const value = newValue.toISOString().split("T")[0];
-                        setDateFrom(value);
-                        if (dateTo && new Date(dateTo) < newValue)
-                          setDateTo("");
+                        setDateFrom(formatLocalDate(newValue));
                       }}
                       format="dd/MM/yyyy"
                       slotProps={{
@@ -204,8 +236,7 @@ export default function PQList() {
                       value={dateTo ? new Date(dateTo) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
-                        const value = newValue.toISOString().split("T")[0];
-                        setDateTo(value);
+                        setDateTo(formatLocalDate(newValue));
                       }}
                       format="dd/MM/yyyy"
                       slotProps={{
@@ -214,6 +245,22 @@ export default function PQList() {
                       minDate={dateFrom ? new Date(dateFrom) : undefined}
                     />
                   </LocalizationProvider>
+                  <FormControl size="small" sx={{ width: 180 }}>
+                    <InputLabel>Trạng thái</InputLabel>
+                    <Select
+                      value={statusFilter}
+                      label="Trạng thái"
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <MenuItem value="">Tất cả</MenuItem>
+                      <MenuItem value="InDate">Còn hiệu lực</MenuItem>
+                      <MenuItem value="OutOfDate">Hết hiệu lực</MenuItem>
+                    </Select>
+                  </FormControl>
+
                   <Button
                     variant="outlined"
                     color="secondary"
@@ -221,6 +268,7 @@ export default function PQList() {
                       setSearch("");
                       setDateFrom("");
                       setDateTo("");
+                      setStatusFilter("");
                       setPage(1);
                     }}
                   >
@@ -279,17 +327,18 @@ export default function PQList() {
                   ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                       Không có dữ liệu
+                        Không có dữ liệu
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginated.map((row, i) => {
                       const isValid = row.status === "InDate";
                       return (
-                        <TableRow key={row.quotationId}
-                        hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={()=> openDetail(row.quotationId)}
+                        <TableRow
+                          key={row.quotationId}
+                          hover
+                          sx={{ cursor: "pointer" }}
+                          onClick={() => openDetail(row.quotationId)}
                         >
                           <TableCell>{(page - 1) * pageSize + i + 1}</TableCell>
                           <TableCell>{`PQ-${row.quotationId}`}</TableCell>
