@@ -204,7 +204,8 @@ const ConditionalHome = () => {
     } else if (roleFromToken === "warehouse_staff") {
       return <Navigate to="/warehouse-dashboard" replace />;
     } else if (roleFromToken === "accountant_staff") {
-      return <Navigate to="/accountant-staff" replace />;
+      // Accountant vào thẳng màn tổng quan (manager-dashboard)
+      return <Navigate to="/manager-dashboard" replace />;
     } else if (roleFromToken === "manager") {
       return <Navigate to="/manager" replace />;
     }
@@ -416,7 +417,11 @@ function App() {
                         path="/sales-staff"
                         element={<Navigate to="/sales-dashboard" replace />}
                       />
-                      <Route path="/accountant-staff" element={<Landing />} />
+                      {/* Accountant route cũ chuyển thẳng về dashboard */}
+                      <Route
+                        path="/accountant-staff"
+                        element={<Navigate to="/manager-dashboard" replace />}
+                      />
                       <Route path="/manager" element={<Landing />} />
 
                       {/* Customer Additional Info Route */}

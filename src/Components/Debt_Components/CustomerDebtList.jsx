@@ -63,6 +63,32 @@ export default function CustomerDebtList() {
     page * rowsPerPage
   );
 
+  const renderCurrency = (value) => {
+    const number = Number(value) || 0;
+    const formatted = new Intl.NumberFormat("vi-VN")
+      .format(number)
+      .replace(/\./g, ",");
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "baseline",
+          gap: 2,
+        }}
+      >
+        <span>{formatted}</span>
+        <span
+          style={{
+            textDecoration: "underline",
+            textUnderlineOffset: "1px",
+          }}
+        >
+          đ
+        </span>
+      </span>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
@@ -186,12 +212,12 @@ export default function CustomerDebtList() {
                           <TableCell align="center">
                             {new Date(item.dueDate).toLocaleDateString("vi-VN")}
                           </TableCell>
-                          <TableCell align="right">
-                            {item.totalAmount?.toLocaleString()} đ
-                          </TableCell>
-                          <TableCell align="right">
-                            {item.debtAmount?.toLocaleString()} đ
-                          </TableCell>
+                      <TableCell align="right">
+                        {renderCurrency(item.totalAmount)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {renderCurrency(item.debtAmount)}
+                      </TableCell>
                         </TableRow>
                       ))
                     )}

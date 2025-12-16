@@ -373,6 +373,19 @@ export default function GRNList() {
                                 </IconButton>
                               </Tooltip>
                             )}
+
+                            {/* NÚT TẠO HÓA ĐƠN (chỉ cho kế toán và phiếu đã xuất kho) */}
+                            {role === "accountant_staff" && row.status === 2 && (
+                              <Tooltip title="Tạo hóa đơn từ phiếu này">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => handleOpenInvoiceDialog(row)}
+                                >
+                                  <ReceiptLong />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -404,7 +417,12 @@ export default function GRNList() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle fontWeight={"bold"}>Chi tiết phiếu xuất kho</DialogTitle>
+        <DialogTitle
+          fontWeight={"bold"}
+          sx={{ textAlign: "center", fontSize: "1.4rem" }}
+        >
+          Chi tiết phiếu xuất kho
+        </DialogTitle>
         <DialogContent dividers>
           {detailLoading ? (
             <Stack alignItems="center" mt={3}>
@@ -413,78 +431,169 @@ export default function GRNList() {
           ) : (
             selectedExport && (
               <>
-                <Typography>
-                  <b>Phiếu xuất kho:</b> {selectedExport.goodsIssueNoteCode}
-                </Typography>
-                <Typography>
-                  <b>Mã đơn hàng:</b> {selectedExport.stockExportOrderCode}
-                </Typography>
-                <Typography>
-                  <b>Kho xuất:</b> {selectedExport.warehouseName}
-                </Typography>
-
-                <Typography>
-                  <b>Ngày tạo:</b>{" "}
-                  {selectedExport.createAt
-                    ? new Date(selectedExport.createAt).toLocaleDateString(
-                        "vi-VN"
-                      )
-                    : "-"}
-                </Typography>
-
-                <Typography>
-                  <b>Người tạo:</b> {selectedExport.createBy}
-                </Typography>
-                <Typography>
-                  <b>Mô tả:</b> {selectedExport.note}
-                </Typography>
-
-                <Typography fontWeight="bold" mt={2} mb={1}>
-                  Danh sách sản phẩm
-                </Typography>
-
-                <Table size="small">
-                  <TableHead
-                    sx={{
-                      backgroundColor: "#f5f5f5",
-                      "& .MuiTableCell-root": { fontWeight: "bold" },
-                    }}
+                {/* Thông tin phiếu xuất kho */}
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2.5, borderRadius: 2, mb: 3 }}
+                >
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    gutterBottom
+                    sx={{ mb: 2 }}
                   >
-                    <TableRow>
-                      <TableCell>#</TableCell>
-                      <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell>Số lượng</TableCell>
-                      <TableCell>Vị trí kho</TableCell>
-                      <TableCell>Hạn dùng</TableCell>
-                    </TableRow>
-                  </TableHead>
+                    Thông tin phiếu
+                  </Typography>
+                  <Stack spacing={1.2}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">
+                        Phiếu xuất kho:
+                      </Typography>
+                      <Typography fontWeight={500}>
+                        {selectedExport.goodsIssueNoteCode}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">
+                        Mã đơn hàng:
+                      </Typography>
+                      <Typography fontWeight={500}>
+                        {selectedExport.stockExportOrderCode || "-"}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">Kho xuất:</Typography>
+                      <Typography fontWeight={500}>
+                        {selectedExport.warehouseName}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">
+                        Ngày tạo:
+                      </Typography>
+                      <Typography fontWeight={500}>
+                        {selectedExport.createAt
+                          ? new Date(
+                              selectedExport.createAt
+                            ).toLocaleDateString("vi-VN")
+                          : "-"}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">
+                        Người tạo:
+                      </Typography>
+                      <Typography fontWeight={500}>
+                        {selectedExport.createBy}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">Mô tả:</Typography>
+                      <Typography
+                        sx={{ textAlign: "right", whiteSpace: "pre-wrap" }}
+                      >
+                        {selectedExport.note || "-"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
 
-                  <TableBody>
-                    {detailItems.length === 0 ? (
+                {/* Danh sách sản phẩm */}
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    gutterBottom
+                    sx={{ mb: 2 }}
+                  >
+                    Danh sách sản phẩm
+                  </Typography>
+
+                  <Table size="small">
+                    <TableHead
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        "& .MuiTableCell-root": { fontWeight: "bold" },
+                      }}
+                    >
                       <TableRow>
-                        <TableCell colSpan={5} align="center">
-                          Không có sản phẩm
-                        </TableCell>
+                        <TableCell>#</TableCell>
+                        <TableCell>Tên sản phẩm</TableCell>
+                        <TableCell>Số lượng</TableCell>
+                        <TableCell>Vị trí kho</TableCell>
+                        <TableCell>Hạn dùng</TableCell>
                       </TableRow>
-                    ) : (
-                      detailItems.map((item, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell>{item.productName}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.warehouseLocationName}</TableCell>
-                          <TableCell>
-                            {item.expiredDate
-                              ? new Date(item.expiredDate).toLocaleDateString(
-                                  "vi-VN"
-                                )
-                              : "-"}
+                    </TableHead>
+
+                    <TableBody>
+                      {detailItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center">
+                            Không có sản phẩm
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        detailItems.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell>{item.productName}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{item.warehouseLocationName}</TableCell>
+                            <TableCell>
+                              {item.expiredDate
+                                ? new Date(
+                                    item.expiredDate
+                                  ).toLocaleDateString("vi-VN")
+                                : "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </Paper>
               </>
             )
           )}

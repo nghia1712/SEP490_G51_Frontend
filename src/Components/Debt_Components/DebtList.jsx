@@ -84,6 +84,32 @@ export default function DebtList() {
     fetchPharmacySecretInfo();
   }, []);
 
+  const renderCurrency = (value) => {
+    const number = Number(value) || 0;
+    const formatted = new Intl.NumberFormat("vi-VN")
+      .format(number)
+      .replace(/\./g, ",");
+    return (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "baseline",
+          gap: 2,
+        }}
+      >
+        <span>{formatted}</span>
+        <span
+          style={{
+            textDecoration: "underline",
+            textUnderlineOffset: "1px",
+          }}
+        >
+          đ
+        </span>
+      </span>
+    );
+  };
+
   const handleOpenDetail = async (id) => {
     await fetchDebtDetail(id);
     setOpenDetail(true);
@@ -136,10 +162,10 @@ export default function DebtList() {
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                   <Button variant="contained">
                     Tổng thu:{" "}
-                    {secretInfo?.totalRecieve?.toLocaleString() || "0"} đ
+                    {renderCurrency(secretInfo?.totalRecieve || 0)}
                   </Button>
                   <Button variant="outlined">
-                    Tổng chi: {secretInfo?.totalPaid?.toLocaleString() || "0"} đ
+                    Tổng chi: {renderCurrency(secretInfo?.totalPaid || 0)}
                   </Button>
                   {/* <Button variant="outlined">
                     Nợ trần: {secretInfo?.debtCeiling?.toLocaleString() || "0"}{" "}
@@ -221,7 +247,7 @@ export default function DebtList() {
                           <TableCell align="right">
                             {item.payables === 0
                               ? "Đã thanh toán hết"
-                              : item.payables.toLocaleString() + " đ"}
+                              : renderCurrency(item.payables)}
                           </TableCell>
 
                           {/* <TableCell align="center">
@@ -297,7 +323,7 @@ export default function DebtList() {
                   <Stack direction="row" justifyContent="space-between">
                     <Typography>Phải trả:</Typography>
                     <Typography>
-                      {selectedDebt.payables?.toLocaleString()} đ
+                      {renderCurrency(selectedDebt.payables)}
                     </Typography>
                   </Stack>
 
@@ -362,15 +388,15 @@ export default function DebtList() {
                             <TableCell align="center">{`PO-${po.poid}`}</TableCell>
 
                             {/* TOTAL */}
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: po.status === 5 ? "bold" : "normal",
-                                color: po.status === 5 ? "green" : "inherit",
-                              }}
-                            >
-                              {po.toatlPo?.toLocaleString()} đ
-                            </TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              fontWeight: po.status === 5 ? "bold" : "normal",
+                              color: po.status === 5 ? "green" : "inherit",
+                            }}
+                          >
+                            {renderCurrency(po.toatlPo)}
+                          </TableCell>
 
                             {/* STATUS */}
                             <TableCell align="center">
