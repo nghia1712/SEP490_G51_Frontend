@@ -288,6 +288,15 @@ export default function PRFQCreate() {
         (item) => !item.productId || !item.productName.trim()
       );
 
+      if (!formData.supplierId) {
+        setSnackbar({
+          open: true,
+          message: "Vui lòng chọn nhà cung cấp!",
+          severity: "warning",
+        });
+        setLoading(false);
+        return;
+      }
       if (invalidItem) {
         setSnackbar({
           open: true,
