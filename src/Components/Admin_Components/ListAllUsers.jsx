@@ -1650,7 +1650,7 @@ const ListAllUsers = ({ roleGroup }) => {
                                 src={imagePreview.url}
                                 alt={imagePreview.title || "Preview"}
                                 style={{
-                                    maxWidth: "100%",
+                                    width: "100%",
                                     maxHeight: "70vh",
                                     objectFit: "contain",
                                 }}

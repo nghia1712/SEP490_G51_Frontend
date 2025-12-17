@@ -1244,21 +1244,27 @@ const SupplierList = () => {
         >
           <DialogTitle
             sx={{
-              backgroundColor: "#1976d2",
-              color: "white",
+              backgroundColor: "#fff", // bỏ header xanh
+              color: "#1976d2",
               display: "flex",
               alignItems: "center",
               pb: 2,
+              borderBottom: "1px solid #e0e0e0",
             }}
           >
-            <BusinessIcon sx={{ mr: 1 }} />
-            Chi tiết nhà cung cấp
+            <BusinessIcon sx={{ mr: 1, color: "#1976d2" }} />
+            <Typography
+              component="span"
+              sx={{ fontSize: 25, fontWeight: 700, mr: 2 }}
+            >
+              Chi tiết nhà cung cấp
+            </Typography>
             <IconButton
               onClick={() => setOpenDetailsModal(false)}
               sx={{
                 ml: "auto",
-                color: "white",
-                "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
+                color: "#1976d2",
+                "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
               }}
             >
               <CloseIcon />

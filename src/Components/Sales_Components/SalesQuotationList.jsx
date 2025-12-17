@@ -1343,16 +1343,25 @@ const SalesQuotationList = () => {
           {/* Table */}
           {!loading && (
             <div className="sales-quotation-list-table-container">
-            <TableContainer
-              component={Paper}
-              sx={{
-                boxShadow: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 2,
-                overflowX: "auto",
-              }}
-            >
-              <Table className="sales-quotation-list-table" sx={{ tableLayout: "fixed", minWidth: 1000 }}>
+              <TableContainer
+                component={Paper}
+                sx={{
+                  boxShadow: 2,
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  borderRadius: 2,
+                  overflowX: "auto",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                <Table
+                  className="sales-quotation-list-table"
+                  sx={{
+                    tableLayout: "auto",
+                    borderSpacing: 0,
+                    borderCollapse: "collapse",
+                    minWidth: 1000, // giống trang thuốc
+                  }}
+                >
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableCell

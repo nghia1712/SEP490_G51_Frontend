@@ -1251,12 +1251,20 @@ const handleDepositPercentChange = (value) => {
           component={Paper}
           sx={{
             boxShadow: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
             borderRadius: 2,
-                overflow: "hidden",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
           }}
         >
-              <Table sx={{ tableLayout: "fixed" }}>
+          <Table
+            sx={{
+              tableLayout: "auto",
+              borderSpacing: 0,
+              borderCollapse: "collapse",
+              minWidth: 1000, // giống trang thuốc: table rộng hơn container để scroll ngang
+            }}
+          >
             <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableCell

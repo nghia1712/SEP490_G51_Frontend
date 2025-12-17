@@ -60,12 +60,28 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
 
         const response = await productAPI.getById(resolvedProductId);
 
-        if (response.data && response.data.success) {
-          const productData = response.data.data;
+        // Một số API trả success = false nhưng vẫn gửi đầy đủ data (message: "ID sản phẩm không hợp lệ")
+        // => Ưu tiên dùng data nếu có, chỉ coi là lỗi khi hoàn toàn không có data
+        const apiData =
+          response?.data?.data ??
+          (response?.data && typeof response.data === "object"
+            ? response.data
+            : null);
+
+        if (apiData) {
+          const productData = apiData;
           // Normalize field names for consistent access
           const normalizedProduct = {
             ...productData,
-            productUses: productData?.productUses || productData?.ProductUses || productData?.uses || productData?.Uses || "",
+            // Backend DTO/ProductDTOView dùng tên field bị typo: ProductlUses (chữ l)
+            // Nên cần map cả ProductlUses vào productUses để hiển thị đúng "Công dụng"
+            productUses:
+              productData?.productUses ||
+              productData?.ProductUses ||
+              productData?.ProductlUses ||
+              productData?.uses ||
+              productData?.Uses ||
+              "",
             productIngredients: productData?.productIngredients || productData?.ProductIngredients || "",
             productWeight: productData?.productWeight || productData?.ProductWeight || "",
             productDescription: productData?.productDescription || productData?.ProductDescription || "",
@@ -154,8 +170,21 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
           onCancel={handleClose}
           footer={null}
           centered
-          width={700}
-          styles={{ body: { padding: 0, borderRadius: 16 } }}
+          width={700} // giữ nguyên chiều ngang 700
+          title={
+            <span style={{ fontSize: 25, fontWeight: 700 }}>
+              Chi tiết thuốc
+            </span>
+          }
+          // Giới hạn chiều cao form, cho phép scroll dọc bên trong để form "ngắn" hơn trên màn hình
+          styles={{
+            body: {
+              padding: 0,
+              borderRadius: 16,
+              maxHeight: "70vh",
+              overflowY: "auto",
+            },
+          }}
           style={{ top: 40 }}
           destroyOnHidden={true}
         >
@@ -269,10 +298,7 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
                   <Title level={4} style={{ marginBottom: 16 }}>
                     {productDetail.productName || productDetail.ProductName}
                   </Title>
-                  <Descriptions column={1} size="middle" bordered>
-                    <Descriptions.Item key="product-id" label="Mã sản phẩm">
-                      {productDetail.productID || productDetail.ProductID}
-                    </Descriptions.Item>
+                    <Descriptions column={1} size="middle" bordered>
                     <Descriptions.Item key="product-name" label="Tên sản phẩm">
                       <strong>
                         {productDetail.productName || productDetail.ProductName}
@@ -289,7 +315,11 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
                         "Không có thông tin"}
                     </Descriptions.Item>
                     <Descriptions.Item key="uses" label="Công dụng">
-                      {(productDetail.productUses || productDetail.ProductUses) || "Không có thông tin"}
+                      {(
+                        productDetail.productUses ||
+                        productDetail.ProductUses ||
+                        productDetail.ProductlUses
+                      ) || "Không có thông tin"}
                     </Descriptions.Item>
                     <Descriptions.Item key="weight" label="Khối lượng">
                       {(() => {

@@ -38,27 +38,36 @@ const SupplierDetails = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
           borderRadius: 2,
           boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-          height: "80vh",
+          maxHeight: "70vh", // giống form chi tiết thuốc: chiều cao giới hạn
         },
       }}
     >
       <DialogTitle
         sx={{
-          backgroundColor: palette.dark,
-          color: palette.white,
+          backgroundColor: "#fff", // bỏ header xanh, nền trắng giống các form khác
+          color: palette.dark,
           display: "flex",
           alignItems: "center",
           pb: 2,
+          borderBottom: "1px solid #e0e0e0",
         }}
       >
         <BusinessIcon sx={{ mr: 1 }} />
-        Chi tiết nhà cung cấp: {selectedSupplier?.name}
+        <Typography
+          component="span"
+          sx={{ fontSize: 25, fontWeight: 700, mr: 2 }}
+        >
+          Chi tiết nhà cung cấp
+        </Typography>
+        <Typography component="span" sx={{ fontSize: 16, opacity: 0.9 }}>
+          {selectedSupplier?.name}
+        </Typography>
         <IconButton
           onClick={onClose}
           sx={{
@@ -70,7 +79,13 @@ const SupplierDetails = ({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ p: 0, height: "100%" }}>
+      <DialogContent
+        sx={{
+          p: 0,
+          maxHeight: "70vh", // nội dung scroll bên trong giống chi tiết thuốc
+          overflowY: "auto",
+        }}
+      >
         <Tabs
           value={tabValue}
           onChange={(e, newValue) => setTabValue(newValue)}

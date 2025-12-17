@@ -85,7 +85,24 @@ export default function StockExportForm() {
       const filteredOrders = [];
 
       for (const order of allOrders) {
-        if (!order.isDeposited) continue;
+        // Backend flag: isDeposited = true khi đơn đã cọc đủ theo % quy định.
+        // Với trường hợp % cọc = 0 (không yêu cầu khách đặt cọc), ta vẫn
+        // cho phép tạo yêu cầu xuất kho giống như đơn "Đã cọc".
+        const rawDepositPercent =
+          order.depositPercent ?? order.DepositPercent ?? null;
+        const depositPercentNum = Number(rawDepositPercent);
+        const isZeroDeposit =
+          rawDepositPercent !== null &&
+          !Number.isNaN(depositPercentNum) &&
+          depositPercentNum === 0;
+
+        const isDeposited =
+          order.isDeposited === true ||
+          order.IsDeposited === true ||
+          order.isDeposited === 1 ||
+          order.IsDeposited === 1;
+
+        if (!isDeposited && !isZeroDeposit) continue;
 
         const detailRes = await getOrderInfor(order.salesOrderId);
         const details = detailRes.data?.data?.details || [];
@@ -113,15 +130,18 @@ export default function StockExportForm() {
     const preselectedId = location.state?.preselectedSalesOrderId;
     if (!preselectedId) return;
 
-    if (!salesOrderList || salesOrderList.length === 0) return;
+    if (!salesOrderList || salesOrderList.length === 0) {
+      // Nếu BE không trả đơn này trong listNotDelivered, vẫn cố load lô theo ID
+      loadOrderLots(preselectedId);
+      return;
+    }
 
     const existedOrder = salesOrderList.find(
       (s) => s.salesOrderId === preselectedId
     );
 
-    if (existedOrder) {
-      loadOrderLots(preselectedId);
-    }
+    // Nếu tìm thấy trong danh sách thì dùng luôn, ngược lại vẫn load theo ID
+    loadOrderLots(preselectedId);
   }, [id, location.state, salesOrderList]);
 
   const loadOrderLots = async (salesOrderId, existedDetails = []) => {
@@ -353,9 +373,14 @@ export default function StockExportForm() {
                         const selectedOrder = salesOrderList.find(
                           (s) => s.salesOrderId === selected
                         );
-                        return selectedOrder
-                          ? selectedOrder.salesOrderCode
-                          : "";
+                        if (selectedOrder) {
+                          return selectedOrder.salesOrderCode;
+                        }
+                        // Fallback: nếu đơn không có trong salesOrderList (vd: đơn cọc 0%),
+                        // hiển thị mã đơn từ state điều hướng nếu có
+                        return (
+                          location.state?.preselectedSalesOrderCode || ""
+                        );
                       }}
                     >
                       {salesOrderList.length === 0 ? (

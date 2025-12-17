@@ -31,6 +31,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Search,
@@ -52,6 +54,8 @@ export default function StockExportList() {
   const { data, loading, refetch, deleteOrder, sendOrder } = useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [statusFilter, setStatusFilter] = useState("");
 
   const [userRole, setUserRole] = useState(null);
@@ -244,13 +248,24 @@ export default function StockExportList() {
                 alignItems="center"
                 justifyContent="space-between"
               >
-                {/* BÊN TRÁI */}
-                <Stack direction="row" spacing={2} alignItems="center">
+                {/* BÊN TRÁI - filter, giống trang thuốc */}
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={2}
+                  alignItems="center"
+                  sx={{
+                    width: { xs: "100%", md: "auto" },
+                    flexWrap: "wrap",
+                  }}
+                >
                   <TextField
                     placeholder="Tìm kiếm..."
                     size="small"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    sx={{
+                      width: { xs: "100%", sm: 240 },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -261,7 +276,12 @@ export default function StockExportList() {
                   />
 
                   {/* ✅ FILTER STATUS */}
-                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <FormControl
+                    size="small"
+                    sx={{
+                      minWidth: { xs: "100%", sm: 180 },
+                    }}
+                  >
                     <InputLabel>Trạng thái</InputLabel>
                     <Select
                       value={statusFilter}
@@ -284,31 +304,60 @@ export default function StockExportList() {
                       setSearch("");
                       setStatusFilter("");
                     }}
-                    sx={{ whiteSpace: "nowrap" }}
+                    sx={{
+                      whiteSpace: "nowrap",
+                      width: { xs: "100%", sm: "auto" },
+                    }}
                   >
                     Xóa lọc
                   </Button>
                 </Stack>
 
-                {/* BÊN PHẢI */}
+                {/* BÊN PHẢI - nút tạo, full width trên mobile giống trang thuốc */}
                 {userRole === "sales_staff" && (
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => navigate("/stock-export/create")}
+                  <Box
+                    sx={{
+                      marginLeft: { xs: 0, md: "auto" },
+                      width: { xs: "100%", md: "auto" },
+                    }}
                   >
-                    Tạo yêu cầu xuất kho
-                  </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate("/stock-export/create")}
+                      fullWidth={isMobile}
+                      sx={{
+                        px: { xs: 2, sm: 3 },
+                        py: 1.2,
+                        fontWeight: 600,
+                      }}
+                    >
+                      TẠO YÊU CẦU XUẤT KHO
+                    </Button>
+                  </Box>
                 )}
               </Stack>
             </Paper>
 
-            {/* TABLE */}
+            {/* TABLE - responsive giống trang thuốc */}
             <TableContainer
               component={Paper}
-              sx={{ borderRadius: 2, maxHeight: 500 }}
+              sx={{
+                borderRadius: 2,
+                maxHeight: 500,
+                overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
-              <Table stickyHeader>
+              <Table
+                stickyHeader
+                sx={{
+                  tableLayout: "auto",
+                  borderSpacing: 0,
+                  borderCollapse: "collapse",
+                  minWidth: 1000, // đảm bảo rộng hơn container để có scroll ngang
+                }}
+              >
                 <TableHead
                   sx={{
                     backgroundColor: "#f5f5f5",
