@@ -774,7 +774,7 @@ const SupplierList = () => {
                   Quản lý nhà cung cấp
                 </Typography>
                 <Typography variant="h6" color="textSecondary">
-                  Tổng: {suppliers.length} nhà cung cấp
+                  Tổng: {filteredSuppliers.length} / {suppliers.length} nhà cung cấp
                 </Typography>
               </Box>
 

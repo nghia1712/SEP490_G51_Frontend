@@ -62,7 +62,7 @@ const InvoiceList = () => {
     direction: "desc",
   });
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("3");
@@ -392,7 +392,7 @@ const InvoiceList = () => {
               Hóa đơn
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {paginatedInvoices.length} hóa đơn
+              Tổng: {invoices.length} / {allInvoices.length} hóa đơn
             </Typography>
           </Box>
 

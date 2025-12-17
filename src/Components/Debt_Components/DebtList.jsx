@@ -150,14 +150,14 @@ export default function DebtList() {
             <Paper
               sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-                <Typography variant="subtitle1"></Typography>
-                <TextField
-                  size="small"
-                  placeholder="Tìm kiếm"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  sx={{ width: 300 }}
-                />
+              <Typography variant="subtitle1"></Typography>
+              <TextField
+                size="small"
+                placeholder="Tìm kiếm"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                sx={{ width: 300 }}
+              />
             </Paper>
 
             {/* TABLE */}
@@ -354,15 +354,15 @@ export default function DebtList() {
                             <TableCell align="center">{`PO-${po.poid}`}</TableCell>
 
                             {/* TOTAL */}
-                          <TableCell
-                            align="right"
-                            sx={{
-                              fontWeight: po.status === 5 ? "bold" : "normal",
-                              color: po.status === 5 ? "green" : "inherit",
-                            }}
-                          >
-                            {renderCurrency(po.toatlPo)}
-                          </TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{
+                                fontWeight: po.status === 5 ? "bold" : "normal",
+                                color: po.status === 5 ? "green" : "inherit",
+                              }}
+                            >
+                              {renderCurrency(po.toatlPo)}
+                            </TableCell>
 
                             {/* STATUS */}
                             <TableCell align="center">

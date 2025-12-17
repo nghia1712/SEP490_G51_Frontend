@@ -361,7 +361,7 @@ const ListProduct = () => {
                 Quản lý thuốc
               </Typography>
               <Typography variant="h6" color="textSecondary">
-                Tổng: {filteredProducts.length} sản phẩm
+                Tổng: {filteredProducts.length} / {products.length} sản phẩm
               </Typography>
             </Box>
 

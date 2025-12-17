@@ -1389,7 +1389,7 @@ const SalesOrderList = () => {
               Đơn hàng
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {filteredOrders.length} đơn hàng
+              Tổng: {filteredOrders.length} / {orders.length} đơn hàng
             </Typography>
           </Box>
 

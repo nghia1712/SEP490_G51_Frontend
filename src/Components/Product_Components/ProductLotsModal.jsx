@@ -14,6 +14,7 @@ import {
   Snackbar,
   Alert,
   Portal,
+  Box,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import warehouseAPI from "../../API/warehouseAPI";
@@ -159,7 +160,16 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
             alignItems: "center",
           }}
         >
-          Danh sách lô của {productName}
+          <span>
+            Danh sách lô hàng của{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 700, color: "primary.main" }}
+            >
+              {productName}
+            </Box>
+          </span>
+
           <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>
@@ -172,7 +182,12 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
             <Table>
               <TableHead>
                 <TableRow
-                  sx={{ "& .MuiTableCell-root": { whiteSpace: "nowrap" } }}
+                  sx={{
+                    "& .MuiTableCell-root": {
+                      whiteSpace: "nowrap",
+                      fontWeight: 600,
+                    },
+                  }}
                 >
                   <TableCell>Lô hàng</TableCell>
                   <TableCell>Ngày nhập</TableCell>
