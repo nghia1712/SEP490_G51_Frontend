@@ -31,6 +31,8 @@ import {
   FormControlLabel,
   Checkbox,
   FormControl,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -48,6 +50,9 @@ import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
 const PAGE_SIZE = 5;
 
 const ListProduct = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const userRole = getUserRoleFromToken();
   const [snack, setSnack] = useState({
     open: false,
@@ -336,42 +341,53 @@ const ListProduct = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Card elevation={3} sx={{ borderRadius: 2 }}>
-        <CardContent>
-          {/* Title */}
-          <Box className="product-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-            <MedicationIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
-            <Typography
-              variant="h4"
-              className="product-list-title"
-              sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
-            >
-              Thuốc
-            </Typography>
-            <Typography variant="h6" color="text.secondary" className="product-list-count">
-              Tổng: {filteredProducts.length} sản phẩm
-            </Typography>
-          </Box>
+      <Container
+        maxWidth="xl"
+        sx={{ mt: 0, mb: 4, pt: 4 }}
+      >
+        <Card
+          elevation={3}
+          sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            {/* Title */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <MedicationIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
+              >
+                Quản lý thuốc
+              </Typography>
+              <Typography variant="h6" color="textSecondary">
+                Tổng: {filteredProducts.length} sản phẩm
+              </Typography>
+            </Box>
 
-          {/* FILTER */}
-          <Paper
-            className="product-list-filter-container"
-            sx={{
-              p: 2,
-              mb: 2,
-              backgroundColor: "#f8fafc",
-              borderRadius: 2,
-            }}
-          >
+            {/* FILTER */}
+            <Paper
+              className="product-list-filter-container"
+              sx={{
+                p: 2,
+                mb: 2,
+                backgroundColor: "#f8fafc",
+                borderRadius: 2,
+              }}
+            >
             <Stack
               direction={{ xs: "column", md: "row" }}
-              alignItems="center"
+              alignItems={{ xs: "stretch", md: "center" }}
               spacing={2}
               justifyContent="space-between"
             >
               {/* LEFT: Lọc trạng thái + tìm kiếm */}
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack 
+                direction={{ xs: "column", sm: "row" }} 
+                spacing={2} 
+                alignItems={{ xs: "stretch", sm: "center" }}
+                sx={{ width: { xs: "100%", md: "auto" }, flex: { xs: "1 1 auto", md: "0 1 auto" } }}
+              >
                 {/* Search */}
                 <TextField
                   placeholder="Tìm kiếm thuốc..."
@@ -387,7 +403,8 @@ const ListProduct = () => {
                     ),
                   }}
                   sx={{
-                    minWidth: 250,
+                    width: { xs: "100%", sm: "auto" },
+                    minWidth: { xs: "100%", sm: 250 },
                     "& .MuiOutlinedInput-root": {
                       backgroundColor: "#fff",
                       borderRadius: "8px",
@@ -408,7 +425,8 @@ const ListProduct = () => {
                 <FormControl
                   size="small"
                   sx={{
-                    minWidth: 200,
+                    width: { xs: "100%", sm: "auto" },
+                    minWidth: { xs: "100%", sm: 200 },
                     "& .MuiOutlinedInput-root": {
                       backgroundColor: "#fff",
                       borderRadius: "8px",
@@ -426,8 +444,14 @@ const ListProduct = () => {
                     },
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <FormGroup row>
+                  <Box sx={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: 1,
+                    flexDirection: { xs: "column", sm: "row" },
+                    width: { xs: "100%", sm: "auto" }
+                  }}>
+                    <FormGroup row={!isMobile}>
                       {[
                         { key: "Còn cung cấp", label: "Đang bán" },
                         { key: "Ngừng cung cấp", label: "Ngừng bán" },
@@ -456,27 +480,32 @@ const ListProduct = () => {
                   variant="outlined"
                   color="secondary"
                   onClick={handleClearFilters}
+                  sx={{ width: { xs: "100%", sm: "auto" } }}
                 >
                   Xóa lọc
                 </Button>
               </Stack>
 
               {/* RIGHT: Nút thêm thuốc */}
-              <Box sx={{ marginLeft: "auto" }}>
+              <Box sx={{ 
+                marginLeft: { xs: 0, md: "auto" },
+                width: { xs: "100%", md: "auto" }
+              }}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setShowAddProduct(true)}
+                  fullWidth={isMobile}
                   sx={{
                     backgroundColor: "#155E64",
                     "&:hover": { backgroundColor: "#0D4F52" },
                     borderRadius: "8px",
-                    px: 3,
+                    px: { xs: 2, sm: 3 },
                     py: 1.5,
                     fontWeight: "600",
                   }}
                 >
-                  THÊM THUỐC
+                  {isMobile ? "THÊM THUỐC" : "THÊM THUỐC"}
                 </Button>
               </Box>
             </Stack>
@@ -489,19 +518,26 @@ const ListProduct = () => {
             </Box>
           )}
 
-          {/* Table */}
+          {/* Table View - Scrollable on all screen sizes */}
           {!loading && (
-            <div className="product-list-table-container">
             <TableContainer
               component={Paper}
-              sx={{
-                boxShadow: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 2,
+              sx={{ 
+                borderRadius: 2, 
+                boxShadow: 1,
                 overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
               }}
             >
-              <Table className="product-list-table" sx={{ tableLayout: "fixed", borderSpacing: 0, borderCollapse: "collapse", minWidth: 800 }}>
+              <Table 
+                className="product-list-table" 
+                sx={{ 
+                  tableLayout: "auto", 
+                  borderSpacing: 0, 
+                  borderCollapse: "collapse",
+                  minWidth: 1000, // Đảm bảo table rộng hơn container để có scroll ngang
+                }}
+              >
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     {headCells.map((headCell, idx) => (
@@ -509,14 +545,24 @@ const ListProduct = () => {
                         key={headCell.id}
                         align={headCell.align || "left"}
                         sx={{
-                          py: 1.5,
-                          px: idx === 0 ? 2 : idx === 1 ? 0 : idx === 4 ? 0 : idx === 5 ? 0 : 2,
-                          pr: idx === 0 ? 0 : idx === 1 ? 1 : idx === 4 ? 0 : idx === 5 ? 1 : 2,
-                          pl: idx === 4 ? 1 : idx === 5 ? 0 : undefined,
-                          pl: idx === 5 ? 0 : undefined,
+                          py: { xs: 1, sm: 1.5 },
+                          px: { 
+                            xs: 1, 
+                            sm: idx === 0 ? 2 : idx === 1 ? 0 : idx === 4 ? 0 : idx === 5 ? 0 : 2 
+                          },
+                          pr: { 
+                            xs: 1, 
+                            sm: idx === 0 ? 0 : idx === 1 ? 1 : idx === 4 ? 0 : idx === 5 ? 1 : 2 
+                          },
+                          pl: { 
+                            xs: 1, 
+                            sm: idx === 4 ? 1 : idx === 5 ? 0 : undefined 
+                          },
                           textAlign: headCell.align || "left",
                           fontWeight: 600,
                           letterSpacing: "0.03em",
+                          fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                          whiteSpace: "nowrap", // Prevent text wrapping in headers
                         }}
                         sortDirection={
                           sortBy === headCell.id ? sortDirection : false
@@ -580,9 +626,10 @@ const ListProduct = () => {
                               backgroundColor: "#f9f9f9",
                             },
                             "& td": {
-                              py: 1.5,
-                              px: 2,
+                              py: { xs: 1, sm: 1.5 },
+                              px: { xs: 1, sm: 2 },
                               verticalAlign: "middle",
+                              fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
                             },
                             "& td:nth-of-type(5)": {
                               px: 0,
@@ -600,7 +647,7 @@ const ListProduct = () => {
                             sx={{
                               fontWeight: 400,
                               textAlign: "left",
-                              width: "3%",
+                              width: "5%",
                               pl: 2,
                               pr: 0,
                             }}
@@ -610,7 +657,7 @@ const ListProduct = () => {
                           <TableCell
                             sx={{
                               textAlign: "left",
-                              width: "6%",
+                              width: "10%",
                               pl: 0,
                               pr: 1,
                             }}
@@ -651,14 +698,14 @@ const ListProduct = () => {
                               fontWeight: 500,
                               textAlign: "left",
                               pl: 1,
-                              width: "18%",
+                              width: "15%",
                             }}
                           >
                             {product.productName ||
                               product.ProductName ||
                               "Tên không xác định"}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "left", width: "15%" }}>
+                          <TableCell sx={{ textAlign: "left", width: "15%", pr: 1, pl: 3 }}>
                             {(() => {
                               const categoryId =
                                 product.categoryID ??
@@ -681,10 +728,9 @@ const ListProduct = () => {
                               );
                             })()}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "left", width: "3%", pr: 0, pl: 1 }}>
+                          <TableCell sx={{ textAlign: "left", width: "15%", pr: 0, pl: 1 }}>
                             {product.Unit ?? product.unit}
                           </TableCell>
-                          {/* Xóa cột vị trí theo yêu cầu */}
                           <TableCell
                             sx={{ 
                               width: "10%", 
@@ -828,30 +874,20 @@ const ListProduct = () => {
                       ))
                   )}
                 </TableBody>
-                {filteredProducts.length > 0 && totalPages > 1 && (
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell
-                        colSpan={headCells.length}
-                        sx={{ borderBottom: "none", p: 2 }}
-                      >
-                        <Box
-                          sx={{ display: "flex", justifyContent: "flex-end" }}
-                        >
-                          <Pagination
-                            count={totalPages}
-                            page={page}
-                            onChange={(_, v) => setPage(v)}
-                            color="primary"
-                          />
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  </TableFooter>
-                )}
               </Table>
             </TableContainer>
-            </div>
+          )}
+
+          {/* Pagination - chỉ hiện khi > 1 trang, căn phải */}
+          {!loading && filteredProducts.length > 0 && totalPages > 1 && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, v) => setPage(v)}
+                color="primary"
+              />
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -933,7 +969,7 @@ const ListProduct = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-    </Container>
+      </Container>
   );
 };
 

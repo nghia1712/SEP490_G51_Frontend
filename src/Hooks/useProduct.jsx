@@ -85,6 +85,9 @@ const useProduct = () => {
         totalCurrentQuantity:
           p?.TotalCurrentQuantity ?? p?.totalCurrentQuantity ?? p?.totalStock,
         status: p?.Status ?? p?.status,
+        productIngredients: p?.ProductIngredients ?? p?.productIngredients,
+        productUses: p?.ProductUses ?? p?.productUses,
+        productWeight: p?.ProductWeight ?? p?.productWeight,
         categoryName:
           p?.CategoryName ??
           p?.categoryName ??

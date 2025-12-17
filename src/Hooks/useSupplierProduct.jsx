@@ -27,10 +27,45 @@ const useSupplierProduct = () => {
     setError(null);
     try {
       const response = await supplierProductAPI.getProductsBySupplier(supplierId);
-      return response.data?.data || [];
+      
+      // Handle response structure: { statusCode: 200, success: true, message: "", data: [...] }
+      let products = [];
+      
+      console.log("=== fetchProductsBySupplier Debug ===");
+      console.log("Full response:", response);
+      console.log("response.data:", response.data);
+      console.log("response.data.success:", response.data?.success);
+      console.log("response.data.data:", response.data?.data);
+      console.log("Is array:", Array.isArray(response.data?.data));
+      
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        // Format: { success: true, data: [...], statusCode: 200, message: "" }
+        products = response.data.data;
+        console.log("Using response.data.data, count:", products.length);
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        // Fallback: check response.data.data directly
+        products = response.data.data;
+        console.log("Using response.data.data (fallback), count:", products.length);
+      } else if (Array.isArray(response.data)) {
+        // Legacy format: directly array
+        products = response.data;
+        console.log("Using response.data (legacy), count:", products.length);
+      }
+      
+      if (products.length > 0) {
+        console.log("First product:", products[0]);
+        console.log("First product keys:", Object.keys(products[0]));
+        console.log("First product inputPrice:", products[0].inputPrice, typeof products[0].inputPrice);
+        console.log("First product lotQuantity:", products[0].lotQuantity, typeof products[0].lotQuantity);
+      }
+      
+      console.log("Final products:", products);
+      console.log("=== End Debug ===");
+      
+      return products || [];
     } catch (err) {
       setError(err.message || "Lỗi khi tải sản phẩm theo nhà cung cấp");
-      setSupplierProducts([]);
+      return [];
     } finally {
       setLoading(false);
     }

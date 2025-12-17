@@ -39,7 +39,19 @@ const ExpandSupplierProduct = ({
     if (open && supplier?._id) {
       const fetchProducts = async () => {
         const products = await fetchProductsBySupplier(supplier._id);
-        setSupplierProducts(products);
+        console.log("=== ExpandSupplierProduct - Products received ===");
+        console.log("Products:", products);
+        console.log("Products length:", products?.length);
+        if (products && products.length > 0) {
+          console.log("First product:", products[0]);
+          console.log("First product keys:", Object.keys(products[0]));
+          console.log("First product inputPrice:", products[0].inputPrice, typeof products[0].inputPrice);
+          console.log("First product lotQuantity:", products[0].lotQuantity, typeof products[0].lotQuantity);
+          console.log("First product productName:", products[0].productName);
+          console.log("First product expiredDate:", products[0].expiredDate);
+        }
+        console.log("=== End Products received ===");
+        setSupplierProducts(products || []);
       };
       fetchProducts();
     }
@@ -101,42 +113,77 @@ const ExpandSupplierProduct = ({
               <Table>
                 <TableHead>
                   <TableRow sx={{ background: palette.light }}>
+                    <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Tên sản phẩm</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Danh mục</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Tồn kho</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Định lượng</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Đơn vị</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Ngày hết hạn</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Ảnh</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }} align="right">Giá</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }} align="right">Tồn kho</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }} align="right">Ngày hết hạn</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {supplierProducts.map((product) => (
-                    <TableRow key={product._id} hover>
-                      <TableCell>{product.productName}</TableCell>
-                      <TableCell>{product.categoryId?.categoryName || "Không có"}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
-                      <TableCell>{product.quantitative}</TableCell>
-                      <TableCell>{product.unit}</TableCell>
-                      <TableCell>
-                        {product.expiry ? new Date(product.expiry).toLocaleDateString() : ""}
-                      </TableCell>
-                      <TableCell>
-                        {product.productImage ? (
-                          <Avatar
-                            src={product.productImage}
-                            alt={product.productName}
-                            sx={{ width: 40, height: 40, borderRadius: 2 }}
-                            variant="rounded"
-                          />
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            Không có
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {supplierProducts.map((product, index) => {
+                    // Parse inputPrice to number
+                    let price = null;
+                    if (product.inputPrice !== undefined && product.inputPrice !== null) {
+                      price = typeof product.inputPrice === 'string' 
+                        ? parseFloat(product.inputPrice) 
+                        : Number(product.inputPrice);
+                    }
+                    
+                    // Get lotQuantity (could be 0, so check !== undefined)
+                    const stock = product.lotQuantity !== undefined && product.lotQuantity !== null
+                      ? product.lotQuantity
+                      : null;
+                    
+                    // Format expiredDate to DD/MM/YYYY
+                    let expiredDate = null;
+                    if (product.expiredDate) {
+                      try {
+                        const date = new Date(product.expiredDate);
+                        if (!isNaN(date.getTime())) {
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const year = date.getFullYear();
+                          expiredDate = `${day}/${month}/${year}`;
+                        }
+                      } catch (e) {
+                        expiredDate = product.expiredDate;
+                      }
+                    }
+                    
+                    // Create unique key combining productID and warehouselocationID or index
+                    const uniqueKey = product.productID && product.warehouselocationID
+                      ? `${product.productID}-${product.warehouselocationID}`
+                      : product.productID
+                      ? `${product.productID}-${index}`
+                      : `product-${index}`;
+                    
+                    return (
+                      <TableRow key={uniqueKey} hover>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          {product.productName || "Không có tên"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {price !== null && price !== undefined && !isNaN(price)
+                            ? (
+                                <>
+                                  {new Intl.NumberFormat("vi-VN").format(price)} <span style={{ textDecoration: "underline" }}>đ</span>
+                                </>
+                              )
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {stock !== null && stock !== undefined
+                            ? stock
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 500 }}>
+                          {expiredDate || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
