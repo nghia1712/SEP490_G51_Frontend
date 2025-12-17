@@ -35,6 +35,9 @@ import {
   CardContent,
 } from "@mui/material";
 import RequestQuote from "@mui/icons-material/RequestQuote";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -74,11 +77,12 @@ const ListRSQ = () => {
     useState(false);
   const [quotationFormData, setQuotationFormData] = useState(null);
   const [quotationRows, setQuotationRows] = useState([]);
+  const [initialQuotationRows, setInitialQuotationRows] = useState([]);
   const [quotationForm, setQuotationForm] = useState({
     expiredDate: "",
     depositPercent: 0,
-    depositDueDays: 1,
-    expectedDeliveryDate: 2,
+    depositDueDays: "", // để trống khi mở form
+    expectedDeliveryDate: "",
     noteId: 1,
   });
   const [quotationLoading, setQuotationLoading] = useState(false);
@@ -724,7 +728,8 @@ const ListRSQ = () => {
             taxRate: defaultTaxInfo.rate,
           };
         });
-        
+
+        setInitialQuotationRows(initialRows);
         setQuotationRows(initialRows);
         setDetailDialogOpen(false);
         setCreateQuotationDialogOpen(true);
@@ -747,14 +752,52 @@ const ListRSQ = () => {
     setCreateQuotationDialogOpen(false);
     setQuotationFormData(null);
     setQuotationRows([]);
+    setInitialQuotationRows([]);
     setQuotationForm({
       expiredDate: "",
       depositPercent: 0,
-      depositDueDays: 1,
+      depositDueDays: "", // reset về trống
       noteId: 1,
     });
     setQuotationError(null);
     setQuotationAction(null);
+  };
+
+  const handleDuplicateQuotationRow = (rowId) => {
+    setQuotationRows((prevRows) => {
+      const targetIndex = prevRows.findIndex((r) => r.id === rowId);
+      if (targetIndex === -1) return prevRows;
+
+      const targetRow = prevRows[targetIndex];
+      const maxId = prevRows.reduce(
+        (max, r) => Math.max(max, r.id || 0),
+        0
+      );
+      const newId = maxId + 1;
+
+      const newRow = {
+        ...targetRow,
+        id: newId,
+        // Giữ nguyên lô hàng và thuế giống dòng gốc
+        // Các tổng tiền đã được tính sẵn theo lô & thuế hiện tại
+        note: "",
+      };
+
+      const newRows = [...prevRows];
+      newRows.splice(targetIndex + 1, 0, newRow);
+      return newRows;
+    });
+  };
+
+  const handleRemoveQuotationRow = (rowId) => {
+    setQuotationRows((prevRows) =>
+      prevRows.filter((row) => row.id !== rowId)
+    );
+  };
+
+  const handleResetQuotationRows = () => {
+    if (!initialQuotationRows || initialQuotationRows.length === 0) return;
+    setQuotationRows(initialQuotationRows);
   };
 
 const handleLotChange = (rowId, lotId) => {
@@ -875,6 +918,42 @@ const handleDepositPercentChange = (value) => {
       return;
     }
 
+    // Validate thời hạn thanh toán cọc
+    if (
+      quotationForm.depositDueDays === "" ||
+      quotationForm.depositDueDays === null ||
+      quotationForm.depositDueDays === undefined
+    ) {
+      const message = "Vui lòng nhập thời hạn thanh toán cọc (ngày)";
+      setQuotationError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // Validate thời hạn giao hàng
+    if (
+      quotationForm.expectedDeliveryDate === "" ||
+      quotationForm.expectedDeliveryDate === null ||
+      quotationForm.expectedDeliveryDate === undefined
+    ) {
+      const message = "Vui lòng nhập thời hạn giao hàng (ngày)";
+      setQuotationError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // Nếu không còn dòng sản phẩm nào trong bảng
+    if (!quotationRows || quotationRows.length === 0) {
+      const message =
+        "Vui lòng thêm ít nhất một sản phẩm trước khi tạo / lưu nháp báo giá";
+      setQuotationError(message);
+      setSnackbarMessage(message);
+      setSnackbarOpen(true);
+      return;
+    }
+
     // Validate details - phải có ít nhất một sản phẩm với lô và thuế hợp lệ
     const detailPayload = quotationRows
       .filter((row) => {
@@ -893,9 +972,58 @@ const handleDepositPercentChange = (value) => {
         note: row.note || "",
       }));
 
+    // Không cho phép cùng 1 sản phẩm chọn trùng lô hàng
+    // và không cho phép cùng 1 sản phẩm có nhiều loại thuế khác nhau
+    if (detailPayload.length > 0) {
+      const seenLots = new Set();
+      let hasDuplicateLot = false;
+
+      const productTaxMap = new Map();
+      let hasInconsistentTax = false;
+
+      for (const item of detailPayload) {
+        const lotKey = `${item.productId ?? ""}-${item.lotId ?? ""}`;
+        if (seenLots.has(lotKey)) {
+          hasDuplicateLot = true;
+        } else {
+          seenLots.add(lotKey);
+        }
+
+        const prodKey = item.productId ?? "";
+        const taxId = item.taxId ?? 0;
+        if (productTaxMap.has(prodKey)) {
+          if (productTaxMap.get(prodKey) !== taxId) {
+            hasInconsistentTax = true;
+          }
+        } else {
+          productTaxMap.set(prodKey, taxId);
+        }
+
+        if (hasDuplicateLot || hasInconsistentTax) break;
+      }
+
+      if (hasDuplicateLot) {
+        const message =
+          "Không được chọn trùng lô hàng cho cùng một sản phẩm. Vui lòng chọn lô khác hoặc xóa bớt dòng trùng.";
+        setQuotationError(message);
+        setSnackbarMessage(message);
+        setSnackbarOpen(true);
+        return;
+      }
+
+      if (hasInconsistentTax) {
+        const message =
+          "Mỗi sản phẩm chỉ được phép áp dụng một loại thuế duy nhất. Vui lòng kiểm tra và chọn cùng một loại thuế cho tất cả dòng của sản phẩm đó.";
+        setQuotationError(message);
+        setSnackbarMessage(message);
+        setSnackbarOpen(true);
+        return;
+      }
+    }
+
     if (detailPayload.length === 0) {
       const message =
-        "Vui lòng chọn lô và thuế cho ít nhất một sản phẩm trước khi tạo báo giá";
+        "Không thể tạo / lưu nháp báo giá vì tất cả sản phẩm đều không có lô hàng hoặc không có thuế hợp lệ. Vui lòng kiểm tra lại yêu cầu báo giá.";
       setQuotationError(message);
       setSnackbarMessage(message);
       setSnackbarOpen(true);
@@ -1358,15 +1486,16 @@ const handleDepositPercentChange = (value) => {
                     Trạng thái
                   </TableSortLabel>
                 </TableCell>
-                    <TableCell
-                      sx={{ width: "16%", textAlign: "right", py: 1.5, px: 2 }}
-                    >
+                  <TableCell
+                    sx={{ width: "25%", textAlign: "right", py: 1.5, px: 2 }}
+                  >
                       <Box
                         sx={{
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "flex-end",
+                        justifyContent: "flex-end",
                           gap: 0.5,
+                        whiteSpace: "nowrap",
                         }}
                       >
                     <span
@@ -1424,9 +1553,9 @@ const handleDepositPercentChange = (value) => {
                           "-"
                   )}
                 </TableCell>
-                      <TableCell
-                        sx={{ textAlign: "right", verticalAlign: "middle" }}
-                      >
+                <TableCell
+                  sx={{ width: "25%", textAlign: "right", verticalAlign: "middle" }}
+                >
                         <Box
                           sx={{
                             display: "flex",
@@ -1514,7 +1643,7 @@ const handleDepositPercentChange = (value) => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết yêu cầu báo giá
           </Typography>
         </DialogTitle>
@@ -1784,7 +1913,7 @@ const handleDepositPercentChange = (value) => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Tạo báo giá
           </Typography>
         </DialogTitle>
@@ -1886,15 +2015,29 @@ const handleDepositPercentChange = (value) => {
                   <TextField
                     type="number"
                     value={quotationForm.depositDueDays}
-                    onChange={(e) =>
-                      setQuotationForm({
-                        ...quotationForm,
-                        depositDueDays: Math.max(
-                          1,
-                          Math.min(365, parseInt(e.target.value, 10) || 1)
-                        ),
-                      })
-                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setQuotationForm((prev) => ({
+                          ...prev,
+                          depositDueDays: "",
+                        }));
+                        return;
+                      }
+                      const parsed = parseInt(raw, 10);
+                      if (Number.isNaN(parsed)) {
+                        setQuotationForm((prev) => ({
+                          ...prev,
+                          depositDueDays: "",
+                        }));
+                        return;
+                      }
+                      const clamped = Math.max(1, Math.min(365, parsed));
+                      setQuotationForm((prev) => ({
+                        ...prev,
+                        depositDueDays: clamped,
+                      }));
+                    }}
                     inputProps={{ min: 1, max: 365 }}
                     variant="outlined"
                     size="medium"
@@ -1943,13 +2086,32 @@ const handleDepositPercentChange = (value) => {
 
               {/* Products table */}
               <Box sx={{ mb: 2 }}>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  sx={{ mb: 1 }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
                 >
-                  Danh sách sản phẩm:
-                </Typography>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                  >
+                    Danh sách sản phẩm:
+                  </Typography>
+                  <IconButton
+                    color="primary"
+                    onClick={handleResetQuotationRows}
+                    disabled={
+                      !initialQuotationRows ||
+                      initialQuotationRows.length === 0
+                    }
+                    size="medium"
+                  >
+                    <RefreshIcon sx={{ fontSize: 24 }} />
+                  </IconButton>
+                </Box>
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead>
@@ -1962,10 +2124,11 @@ const handleDepositPercentChange = (value) => {
                         <TableCell>Lô hàng (chọn theo ngày hết hạn)</TableCell>
                         <TableCell>Thuế</TableCell>
                         <TableCell align="right">
-                          Thành tiền trước thuế
+                          Giá trước thuế
                         </TableCell>
-                        <TableCell align="right">Thành tiền sau thuế</TableCell>
+                        <TableCell align="right">Giá sau thuế</TableCell>
                         <TableCell>Ghi chú</TableCell>
+                        <TableCell align="center">Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1978,101 +2141,125 @@ const handleDepositPercentChange = (value) => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        quotationRows.map((row) => (
-                          <TableRow key={row.id}>
-                            <TableCell
-                              sx={{ width: "60px", textAlign: "center" }}
-                            >
-                              {row.id}
-                            </TableCell>
-                            <TableCell>{row.productName || "-"}</TableCell>
-                            <TableCell>{row.productUnit || "-"}</TableCell>
-                            <TableCell sx={{ minWidth: 200 }}>
-                              {row.lotOptions && row.lotOptions.length > 0 ? (
-                                <FormControl fullWidth size="small">
-                                  <Select
-                            value={
-                                      row.lotId !== null &&
-                                      row.lotId !== undefined
-                                ? row.lotId
-                                        : "NONE"
-                            }
-                                    onChange={(e) =>
-                                      handleLotChange(row.id, e.target.value)
-                                    }
-                                  >
-                                    {row.lotOptions.map((lot, idx) => (
-                              <MenuItem
-                                key={`${row.id}-${idx}`}
-                                value={
-                                          lot.lotId !== null &&
-                                          lot.lotId !== undefined
-                                    ? lot.lotId
-                                            : "NONE"
-                                }
+                        quotationRows.map((row, index) => {
+                          const hasValidLotForRow = (row.lotOptions || []).some(
+                            (lot) =>
+                              lot.lotId !== null && lot.lotId !== undefined
+                          );
+
+                          const showIndex =
+                            index === 0 ||
+                            quotationRows[index - 1].productId !==
+                              row.productId;
+
+                          return (
+                            <TableRow key={row.id}>
+                              <TableCell
+                                sx={{ width: "60px", textAlign: "center" }}
                               >
-                                        {lot.displayLabel ||
-                                          (lot.lotId
-                                            ? `Lô ${lot.lotId}`
-                                            : lot.note || "Không có lô")}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              ) : (
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  Hết lô hàng
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell sx={{ minWidth: 150 }}>
-                              {row.taxOptions && row.taxOptions.length > 0 ? (
-                                <FormControl fullWidth size="small">
-                                  <Select
-                                    value={
-                                      row.taxId && row.taxId > 0
-                                        ? row.taxId
-                                        : row.taxOptions[0]?.id ??
-                                          row.taxOptions[0]?.Id ??
-                                          ""
-                                    }
-                                    onChange={(e) =>
-                                      handleTaxChange(row.id, e.target.value)
-                                    }
+                                {showIndex ? row.id : ""}
+                              </TableCell>
+                              <TableCell>{row.productName || "-"}</TableCell>
+                            <TableCell>{row.productUnit || "-"}</TableCell>
+                              <TableCell sx={{ minWidth: 200 }}>
+                              {(() => {
+                                const validLotOptions =
+                                  (row.lotOptions || []).filter(
+                                    (lot) =>
+                                      lot.lotId !== null &&
+                                      lot.lotId !== undefined
+                                  );
+
+                                if (validLotOptions.length === 0) {
+                                  return (
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      Không có lô hàng
+                                    </Typography>
+                                  );
+                                }
+
+                                return (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={
+                                        row.lotId !== null &&
+                                        row.lotId !== undefined
+                                          ? row.lotId
+                                          : "NONE"
+                                      }
+                                      onChange={(e) =>
+                                        handleLotChange(row.id, e.target.value)
+                                      }
+                                    >
+                                      {validLotOptions.map((lot, idx) => (
+                                        <MenuItem
+                                          key={`${row.id}-${idx}`}
+                                          value={lot.lotId}
+                                        >
+                                          {lot.displayLabel ||
+                                            `Lô ${lot.lotId}`}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                );
+                              })()}
+                              </TableCell>
+                              <TableCell sx={{ minWidth: 150 }}>
+                                {!hasValidLotForRow ? (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
                                   >
-                                    {row.taxOptions.map((tax) => (
-                                      <MenuItem
-                                        key={tax.id || tax.Id}
-                                        value={tax.id || tax.Id}
-                                      >
-                                        {tax.name || tax.Name || "-"}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              ) : (
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  Không có thuế
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
+                                    Không có thuế
+                                  </Typography>
+                                ) : row.taxOptions && row.taxOptions.length > 0 ? (
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={
+                                        row.taxId && row.taxId > 0
+                                          ? row.taxId
+                                          : row.taxOptions[0]?.id ??
+                                            row.taxOptions[0]?.Id ??
+                                            ""
+                                      }
+                                      onChange={(e) =>
+                                        handleTaxChange(row.id, e.target.value)
+                                      }
+                                    >
+                                      {row.taxOptions.map((tax) => (
+                                        <MenuItem
+                                          key={tax.id || tax.Id}
+                                          value={tax.id || tax.Id}
+                                        >
+                                          {tax.name || tax.Name || "-"}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    Không có thuế
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right">
                               {row.totalBeforeTax !== undefined
                                 ? renderCurrency(row.totalBeforeTax)
                                 : "-"}
-                            </TableCell>
-                            <TableCell align="right">
+                              </TableCell>
+                              <TableCell align="right">
                               {row.totalAfterTax !== undefined
                                 ? renderCurrency(row.totalAfterTax)
                                 : "-"}
-                            </TableCell>
-                            <TableCell>
+                              </TableCell>
+                              <TableCell>
                               <TextField
                                 value={row.note || ""}
                                 onChange={(e) => {
@@ -2088,9 +2275,38 @@ const handleDepositPercentChange = (value) => {
                                 fullWidth
                                 placeholder="Ghi chú"
                               />
-                            </TableCell>
-                          </TableRow>
-                        ))
+                              </TableCell>
+                              <TableCell align="center">
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  justifyContent="center"
+                                >
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() =>
+                                      handleDuplicateQuotationRow(row.id)
+                                    }
+                                    title="Thêm dòng báo giá cho sản phẩm này"
+                                  >
+                                    <AddCircleOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() =>
+                                      handleRemoveQuotationRow(row.id)
+                                    }
+                                    title="Xóa dòng này"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Stack>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>

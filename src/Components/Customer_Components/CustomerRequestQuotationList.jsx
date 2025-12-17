@@ -1808,7 +1808,7 @@ const CustomerRequestQuotationList = () => {
         fullWidth
       >
         <DialogTitle className="customer-request-quotation-detail-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết yêu cầu báo giá
           </Typography>
         </DialogTitle>
@@ -2159,7 +2159,7 @@ const CustomerRequestQuotationList = () => {
         fullWidth
       >
         <DialogTitle className="customer-request-quotation-create-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Tạo yêu cầu báo giá
           </Typography>
         </DialogTitle>
@@ -2331,7 +2331,7 @@ const CustomerRequestQuotationList = () => {
         fullWidth
       >
         <DialogTitle className="customer-request-quotation-selection-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chọn báo giá để xem
           </Typography>
         </DialogTitle>
@@ -2402,7 +2402,7 @@ const CustomerRequestQuotationList = () => {
         fullWidth
       >
         <DialogTitle className="customer-request-quotation-quotation-detail-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết báo giá
           </Typography>
         </DialogTitle>
@@ -2478,8 +2478,8 @@ const CustomerRequestQuotationList = () => {
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Giá trước thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Giá sau thuế</TableCell>
                         <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
                       </TableRow>
                     </TableHead>
@@ -2734,7 +2734,7 @@ const CustomerRequestQuotationList = () => {
         fullWidth
       >
         <DialogTitle className="customer-request-quotation-order-form-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Tạo đơn hàng
           </Typography>
         </DialogTitle>

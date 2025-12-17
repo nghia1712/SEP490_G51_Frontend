@@ -1550,7 +1550,7 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "13%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}>
                       <TableSortLabel
                         active={sortConfig.key === "orderStatus"}
                         direction={
@@ -1565,7 +1565,7 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "13%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}>
                       <TableSortLabel
                         active={sortConfig.key === "paymentStatus"}
                         direction={
@@ -1580,7 +1580,7 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "11%", py: 1, px: 3.1 }}>
+                    <TableCell sx={{ width: "13%", py: 0.01, px: 2, textAlign: "left" }}>
                       <TableSortLabel
                         active={sortConfig.key === "paidAmount"}
                         direction={
@@ -1595,7 +1595,7 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "15%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ width: "15%", py: 1.5, px: 2, textAlign: "left" }}>
                       <TableSortLabel
                         active={sortConfig.key === "totalAmount"}
                         direction={
@@ -1678,7 +1678,7 @@ const SalesOrderList = () => {
 
                       <TableCell>{formatDate(order.createdAt)}</TableCell>
 
-                      <TableCell sx={{ textAlign: "center" }}>
+                      <TableCell sx={{ textAlign: "left" }}>
                         {order.orderStatus !== undefined &&
                         order.orderStatus !== null ? (
                           <Chip
@@ -1691,7 +1691,7 @@ const SalesOrderList = () => {
                         )}
                       </TableCell>
 
-                      <TableCell sx={{ textAlign: "center" }}>
+                      <TableCell sx={{ textAlign: "left" }}>
                         {order.orderStatus === 1 || order.orderStatus === 3 ? (
                           "-"
                         ) : (
@@ -1703,11 +1703,11 @@ const SalesOrderList = () => {
                         )}
                       </TableCell>
 
-                      <TableCell sx={{ textAlign: "right" }}>
+                      <TableCell sx={{ textAlign: "left" }}>
                         {renderCurrency(order.paidAmount)}
                       </TableCell>
 
-                      <TableCell sx={{ textAlign: "right" }}>
+                      <TableCell sx={{ textAlign: "left" }}>
                         {renderCurrency(order.totalAmount)}
                       </TableCell>
 
@@ -1909,7 +1909,7 @@ const SalesOrderList = () => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết đơn hàng
           </Typography>
         </DialogTitle>

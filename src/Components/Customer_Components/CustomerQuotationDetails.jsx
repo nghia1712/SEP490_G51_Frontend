@@ -554,8 +554,8 @@ const CustomerQuotationDetails = () => {
                     <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Thuế</TableCell>
                     <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Số lượng tối thiểu</TableCell>
                     <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá</TableCell>
-                    <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
-                    <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
+                    <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Giá trước thuế</TableCell>
+                    <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Giá sau thuế</TableCell>
                     <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Ghi chú</TableCell>
             </TableRow>
           </TableHead>
