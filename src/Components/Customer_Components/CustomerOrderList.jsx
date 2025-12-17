@@ -2148,7 +2148,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         fullWidth
       >
         <DialogTitle className="customer-order-detail-dialog-title">
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết đơn hàng
           </Typography>
         </DialogTitle>

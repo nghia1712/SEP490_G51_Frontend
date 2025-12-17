@@ -19,8 +19,10 @@ import {
   Snackbar,
   TextField,
   MenuItem,
+  IconButton,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import requestSalesQuotationAPI from '../../API/requestSalesQuotationAPI';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 
@@ -195,6 +197,35 @@ const CreateSalesQuotation = () => {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleDuplicateRow = (rowId) => {
+    setRows((prevRows) => {
+      const targetIndex = prevRows.findIndex((r) => r.id === rowId);
+      if (targetIndex === -1) return prevRows;
+
+      const targetRow = prevRows[targetIndex];
+      const maxId = prevRows.reduce((max, r) => Math.max(max, r.id || 0), 0);
+      const newId = maxId + 1;
+
+      const defaultLot = (targetRow.lotOptions || [])[0] || null;
+
+      const newRow = {
+        ...targetRow,
+        id: newId,
+        lotId: null,
+        taxId: null,
+        expiryDate: '',
+        minQuantity: defaultLot?.lotQuantity ?? 1,
+        unitPrice: defaultLot?.salePrice ?? 0,
+        subtotal: 0,
+        note: '',
+      };
+
+      const newRows = [...prevRows];
+      newRows.splice(targetIndex + 1, 0, newRow);
+      return newRows;
+    });
   };
 
   const handleLotChange = (rowId, lotId) => {
@@ -389,9 +420,14 @@ const CreateSalesQuotation = () => {
           Quay lại
         </Button>
         <Typography
-          variant="h4"
+          variant="h3"
           component="h1"
-          sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold', color: '#155E64' }}
+          sx={{
+            flexGrow: 1,
+            textAlign: 'center',
+            fontWeight: 800,
+            color: '#155E64',
+          }}
         >
           Tạo báo giá
         </Typography>
@@ -618,6 +654,7 @@ const CreateSalesQuotation = () => {
               <TableCell align="right">Đơn giá</TableCell>
               <TableCell align="right">Thành tiền</TableCell>
               <TableCell>Ghi chú</TableCell>
+              <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -685,6 +722,16 @@ const CreateSalesQuotation = () => {
                       placeholder="Ghi chú"
                       fullWidth
                     />
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleDuplicateRow(row.id)}
+                      title="Thêm dòng cho sản phẩm này"
+                    >
+                      <AddCircleOutlineIcon fontSize="small" />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))

@@ -85,6 +85,7 @@ const SalesQuotationList = () => {
     expectedDeliveryDate: 2,
   });
   const [editRows, setEditRows] = useState([]);
+  const [editInitialRows, setEditInitialRows] = useState([]);
   const [notes, setNotes] = useState([]);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editError, setEditError] = useState(null);
@@ -443,19 +444,16 @@ const SalesQuotationList = () => {
 
   // Sort quotations
   const sortedQuotations = useMemo(() => {
-    // Nếu không có sortConfig.key, mặc định sort theo ngày báo giá từ mới nhất đến cũ nhất
+    // Nếu không có sortConfig.key, mặc định sort theo Mã báo giá (quotationCode) giảm dần
     const effectiveSortConfig = sortConfig.key
       ? sortConfig
-      : { key: "quotationDate", direction: "desc" };
+      : { key: "quotationCode", direction: "desc" };
 
     return [...filteredQuotations].sort((a, b) => {
       let aValue = a[effectiveSortConfig.key];
       let bValue = b[effectiveSortConfig.key];
 
-      if (effectiveSortConfig.key === "quotationCode") {
-        aValue = aValue || "";
-        bValue = bValue || "";
-      } else if (
+      if (
         effectiveSortConfig.key === "quotationDate" ||
         effectiveSortConfig.key === "expiredDate"
       ) {
@@ -472,6 +470,19 @@ const SalesQuotationList = () => {
       if (aValue > bValue) {
         return effectiveSortConfig.direction === "asc" ? 1 : -1;
       }
+
+      // Với cùng một Mã báo giá hoặc cùng key, ưu tiên id lớn (mới) đứng trước
+      if (
+        effectiveSortConfig.key === "quotationCode" ||
+        effectiveSortConfig.key === "quotationDate"
+      ) {
+        const aId = a.id || 0;
+        const bId = b.id || 0;
+        if (aId !== bId) {
+          return bId - aId; // id lớn (mới) đứng trước
+        }
+      }
+
       return 0;
     });
   }, [filteredQuotations, sortConfig]);
@@ -810,6 +821,7 @@ const SalesQuotationList = () => {
         });
 
         setEditRows(initializedRows);
+        setEditInitialRows(initializedRows);
 
         // Parse deposit / deadline information, ưu tiên field từ backend, fallback từ ghi chú
         const noteText = data.Notes || data.Note || data.note || "";
@@ -1007,6 +1019,38 @@ const SalesQuotationList = () => {
     );
   };
 
+  const handleEditDuplicateRow = (rowId) => {
+    setEditRows((prevRows) => {
+      const targetIndex = prevRows.findIndex((r) => r.id === rowId);
+      if (targetIndex === -1) return prevRows;
+
+      const targetRow = prevRows[targetIndex];
+      const maxId = prevRows.reduce((max, r) => Math.max(max, r.id || 0), 0);
+      const newId = maxId + 1;
+
+      const newRow = {
+        ...targetRow,
+        id: newId,
+        // Dòng nhân bản là detail mới, không dùng lại SqdId cũ
+        sqdId: null,
+        note: "",
+      };
+
+      const newRows = [...prevRows];
+      newRows.splice(targetIndex + 1, 0, newRow);
+      return newRows;
+    });
+  };
+
+  const handleEditRemoveRow = (rowId) => {
+    setEditRows((prevRows) => prevRows.filter((row) => row.id !== rowId));
+  };
+
+  const handleEditResetRows = () => {
+    if (!editInitialRows || editInitialRows.length === 0) return;
+    setEditRows(editInitialRows);
+  };
+
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditingQuotationId(null);
@@ -1018,6 +1062,7 @@ const SalesQuotationList = () => {
       depositDueDays: 1,
     });
     setEditRows([]);
+    setEditInitialRows([]);
     setEditError(null);
   };
 
@@ -1043,22 +1088,77 @@ const SalesQuotationList = () => {
       return;
     }
 
+    if (!editRows || editRows.length === 0) {
+      setEditError(
+        "Vui lòng thêm ít nhất một sản phẩm trước khi cập nhật báo giá"
+      );
+      return;
+    }
+
     const detailPayload = editRows
-      .filter(
-        (row) =>
-          row.lotId !== null && row.lotId !== undefined && row.lotId !== "NONE"
-      )
+      .filter((row) => {
+        const hasValidLot =
+          row.lotId !== null && row.lotId !== undefined && row.lotId !== "NONE";
+        const taxIdNum = Number(row.taxId);
+        const hasValidTax = !isNaN(taxIdNum) && taxIdNum > 0;
+        return hasValidLot && hasValidTax;
+      })
       .map((row) => ({
         sqdId: row.sqdId || null,
         productId: row.productId,
         lotId: row.lotId,
-        taxId: row.taxId,
+        taxId: Number(row.taxId),
         note: row.note || "",
       }));
 
+    // Không cho phép cùng 1 sản phẩm chọn trùng lô hàng
+    // và không cho phép cùng 1 sản phẩm có nhiều loại thuế khác nhau
+    if (detailPayload.length > 0) {
+      const seenLots = new Set();
+      let hasDuplicateLot = false;
+
+      const productTaxMap = new Map();
+      let hasInconsistentTax = false;
+
+      for (const item of detailPayload) {
+        const lotKey = `${item.productId ?? ""}-${item.lotId ?? ""}`;
+        if (seenLots.has(lotKey)) {
+          hasDuplicateLot = true;
+        } else {
+          seenLots.add(lotKey);
+        }
+
+        const prodKey = item.productId ?? "";
+        const taxId = item.taxId ?? 0;
+        if (productTaxMap.has(prodKey)) {
+          if (productTaxMap.get(prodKey) !== taxId) {
+            hasInconsistentTax = true;
+          }
+        } else {
+          productTaxMap.set(prodKey, taxId);
+        }
+
+        if (hasDuplicateLot || hasInconsistentTax) break;
+      }
+
+      if (hasDuplicateLot) {
+        const message =
+          "Không được chọn trùng lô hàng cho cùng một sản phẩm. Vui lòng chọn lô khác hoặc xóa bớt dòng trùng.";
+        setEditError(message);
+        return;
+      }
+
+      if (hasInconsistentTax) {
+        const message =
+          "Mỗi sản phẩm chỉ được phép áp dụng một loại thuế duy nhất. Vui lòng kiểm tra và chọn cùng một loại thuế cho tất cả dòng của sản phẩm đó.";
+        setEditError(message);
+        return;
+      }
+    }
+
     if (detailPayload.length === 0) {
       setEditError(
-        "Vui lòng chọn lô và thuế cho ít nhất một sản phẩm trước khi cập nhật"
+        "Không thể cập nhật báo giá vì tất cả sản phẩm đều không có lô hàng hoặc không có thuế hợp lệ. Vui lòng kiểm tra lại."
       );
       return;
     }
@@ -1449,7 +1549,7 @@ const SalesQuotationList = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ width: "16%", textAlign: "right", py: 1.5, px: 2 }}
+                      sx={{ width: "25%", textAlign: "right", py: 1.5, px: 2 }}
                     >
                       <Box
                         sx={{
@@ -1457,6 +1557,7 @@ const SalesQuotationList = () => {
                           alignItems: "center",
                           justifyContent: "flex-end",
                           gap: 0.5,
+                          whiteSpace: "nowrap",
                         }}
                       >
                         <span
@@ -1514,7 +1615,11 @@ const SalesQuotationList = () => {
                         )}
                       </TableCell>
                       <TableCell
-                        sx={{ textAlign: "right", verticalAlign: "middle" }}
+                        sx={{
+                          width: "25%",
+                          textAlign: "right",
+                          verticalAlign: "middle",
+                        }}
                       >
                         <Box
                           sx={{
@@ -1677,7 +1782,7 @@ const SalesQuotationList = () => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Chi tiết báo giá
           </Typography>
         </DialogTitle>
@@ -1801,7 +1906,7 @@ const SalesQuotationList = () => {
                             backgroundColor: "#f5f5f5",
                           }}
                         >
-                          Thành tiền trước thuế
+                          Giá trước thuế
                         </TableCell>
                         <TableCell
                           sx={{
@@ -1809,7 +1914,7 @@ const SalesQuotationList = () => {
                             backgroundColor: "#f5f5f5",
                           }}
                         >
-                          Thành tiền sau thuế
+                          Giá sau thuế
                         </TableCell>
                         <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
                           Ghi chú
@@ -2187,7 +2292,7 @@ const SalesQuotationList = () => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6" component="div">
+          <Typography variant="h5" component="div">
             Sửa báo giá
           </Typography>
         </DialogTitle>
@@ -2359,13 +2464,29 @@ const SalesQuotationList = () => {
 
                 {/* Danh sách sản phẩm - Chỉnh sửa ghi chú */}
                 <Box sx={{ mb: 2 }}>
-                  <Typography
-                    variant="subtitle2"
-                    color="text.secondary"
-                    sx={{ mb: 1 }}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 1,
+                    }}
                   >
-                    Danh sách sản phẩm:
-                  </Typography>
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                    >
+                      Danh sách sản phẩm:
+                    </Typography>
+                    <IconButton
+                      color="primary"
+                      onClick={handleEditResetRows}
+                      disabled={!editInitialRows || editInitialRows.length === 0}
+                      size="medium"
+                    >
+                      <RefreshIcon sx={{ fontSize: 24 }} />
+                    </IconButton>
+                  </Box>
                   <TableContainer
                     component={Paper}
                     variant="outlined"
@@ -2413,6 +2534,12 @@ const SalesQuotationList = () => {
                           </TableCell>
                           <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
                             Ghi chú
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            sx={{ backgroundColor: "#f5f5f5" }}
+                          >
+                            Thao tác
                           </TableCell>
                         </TableRow>
                       </TableHead>
@@ -2526,6 +2653,30 @@ const SalesQuotationList = () => {
                                   fullWidth
                                   placeholder="Nhập ghi chú"
                                 />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  justifyContent="center"
+                                >
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleEditDuplicateRow(row.id)}
+                                    title="Thêm dòng báo giá cho sản phẩm này"
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleEditRemoveRow(row.id)}
+                                    title="Xóa dòng này"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Stack>
                               </TableCell>
                             </TableRow>
                           ))
