@@ -150,16 +150,6 @@ export default function DebtList() {
             <Paper
               sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              <Paper
-                sx={{
-                  p: 2,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  borderRadius: 2,
-                }}
-              >
                 <Typography variant="subtitle1"></Typography>
                 <TextField
                   size="small"
@@ -168,7 +158,6 @@ export default function DebtList() {
                   onChange={(e) => setSearchText(e.target.value)}
                   sx={{ width: 300 }}
                 />
-              </Paper>
             </Paper>
 
             {/* TABLE */}
