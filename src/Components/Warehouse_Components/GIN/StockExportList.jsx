@@ -126,6 +126,8 @@ export default function StockExportList() {
         return { label: "Không đủ hàng", color: "secondary" };
       case 4:
         return { label: "Quá hạn", color: "error" };
+      case 5:
+        return { label: "Đã hủy", color: "error" };
       default:
         return { label: "Không xác định", color: "default" };
     }
@@ -369,7 +371,7 @@ export default function StockExportList() {
                     <TableCell align="center">Yêu cầu xuất kho</TableCell>
                     <TableCell>Mã đơn hàng</TableCell>
                     <TableCell>Ngày gửi yêu cầu</TableCell>
-                    <TableCell>Ngày giao hàng</TableCell>
+                    <TableCell>Ngày xuất kho dự kiến</TableCell>
                     <TableCell align="center">Trạng thái</TableCell>
                     <TableCell>Người tạo</TableCell>
                     <TableCell align="center">Thao tác</TableCell>

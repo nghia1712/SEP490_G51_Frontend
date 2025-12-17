@@ -11,6 +11,8 @@ export const mapStockExportStatus = (status) => {
       return "Đã xuất kho";
     case 3:
       return "Quá hạn";
+    case 5:
+      return "Đã hủy";
     default:
       return "Không xác định";
   }
