@@ -299,10 +299,12 @@ export default function POActions({ poId, fetchPOs }) {
               {poDetail.total?.toLocaleString() || 0} ₫
             </Typography>
             <Typography>
-              <strong>Tiền cọc:</strong>{" "}
+              <strong>{poDetail.status === 4 ? "Đã trả:" : "Tiền cọc:"}</strong>{" "}
               {poDetail.status === 6
                 ? "Chưa thỏa thuận"
-                : poDetail.deposit?.toLocaleString() + " ₫"}
+                : poDetail.status === 0
+                ? "Chưa ghi nhận"
+                : `${Number(poDetail.deposit || 0).toLocaleString()} ₫`}
             </Typography>
             {Number(poDetail.status) !== STATUS.SENT && (
               <Typography>
