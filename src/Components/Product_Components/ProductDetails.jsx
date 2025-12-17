@@ -78,7 +78,7 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
             productUses:
               productData?.productUses ||
               productData?.ProductUses ||
-              productData?.ProductlUses ||
+              productData?.productlUses ||
               productData?.uses ||
               productData?.Uses ||
               "",

@@ -94,7 +94,7 @@ const EditProduct = ({
           totalCurrentQuantity: product.totalCurrentQuantity || 0,
           status: normalizeStatus(product.status),
           productIngredients: product.productIngredients || "",
-          productUses: product.productUses || "",
+          productUses: product.productlUses || "",
           productWeight: product.productWeight || "",
         });
 
@@ -107,18 +107,19 @@ const EditProduct = ({
           product.imageD,
           product.imageE,
         ];
-        
-        const urls = imageFields
-          .filter(Boolean)
-          .map((u) => {
-            // Loại bỏ double slash và tạo full URL
-            const cleanPath = u.startsWith('/') ? u : `/${u}`;
-            return `https://api.bbpharmacy.site${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
-          });
+
+        const urls = imageFields.filter(Boolean).map((u) => {
+          // Loại bỏ double slash và tạo full URL
+          const cleanPath = u.startsWith("/") ? u : `/${u}`;
+          return `https://api.bbpharmacy.site${cleanPath}`.replace(
+            /([^:]\/)\/+/g,
+            "$1"
+          );
+        });
 
         setImagePreviews(urls);
         setOriginalImageUrls(urls); // Lưu URL ảnh cũ
-        
+
         // Không fetch ảnh cũ để tránh CORS error
         // Chỉ lưu URL, khi submit sẽ chỉ gửi File mới (nếu có)
         setProductImages([]);
@@ -230,7 +231,10 @@ const EditProduct = ({
       tempErrors.unit = "Đơn vị không được vượt quá 10 ký tự.";
 
     // Validate ProductUses (required)
-    if (!productData.productUses || productData.productUses.trim().length === 0) {
+    if (
+      !productData.productUses ||
+      productData.productUses.trim().length === 0
+    ) {
       tempErrors.productUses = "Công dụng không được bỏ trống.";
     } else {
       tempErrors.productUses = "";
@@ -253,7 +257,10 @@ const EditProduct = ({
     }
 
     // Description (optional, but check max length if provided)
-    if (productData.productDescription && productData.productDescription.length > 300) {
+    if (
+      productData.productDescription &&
+      productData.productDescription.length > 300
+    ) {
       tempErrors.productDescription = "Mô tả không được vượt quá 300 ký tự.";
     } else {
       tempErrors.productDescription = "";
@@ -278,115 +285,96 @@ const EditProduct = ({
 
   const handleUpdate = async () => {
     setErrors((prev) => ({ ...prev, general: "" }));
-    const isValid = await validate();
-    if (!isValid) return;
+
+    if (!(await validate())) return;
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append(
-      "ProductName",
-      productData.productName || product.productName || ""
-    );
-    formData.append(
-      "ProductDescription",
-      productData.productDescription || product.productDescription || ""
-    );
-    formData.append("Unit", productData.unit || product.unit || "");
-    formData.append(
-      "CategoryID",
-      Number(
-        productData.categoryId || product.categoryID || product.CategoryID || 0
-      )
-    );
-    formData.append(
-      "MinQuantity",
-      Number(productData.minQuantity ?? product.minQuantity ?? 0)
-    );
-    formData.append(
-      "MaxQuantity",
-      Number(productData.maxQuantity ?? product.maxQuantity ?? 0)
-    );
-    // Send Status as string "true"/"false" (lowercase for ASP.NET Core model binding from FormData)
-    formData.append(
-      "Status",
-      normalizeStatus(productData.status ?? product.status) ? "true" : "false"
-    );
-    formData.append(
-      "ProductIngredients",
-      productData.productIngredients || product.productIngredients || ""
-    );
-    // Backend DTO has typo: ProductlUses (with 'l') instead of ProductUses
-    formData.append(
-      "ProductlUses",
-      productData.productUses || product.productUses || ""
-    );
-    // Handle ProductWeight - backend expects decimal? (nullable decimal)
-    // Always send as string to ensure proper decimal parsing by ASP.NET Core model binding
-    const weightValue = productData.productWeight !== "" && productData.productWeight !== null && productData.productWeight !== undefined 
-      ? parseFloat(productData.productWeight) 
-      : (product.productWeight !== "" && product.productWeight !== null && product.productWeight !== undefined 
-          ? parseFloat(product.productWeight) 
-          : 0);
-    
-    // Always append ProductWeight as string (backend will parse as decimal?)
-    formData.append("ProductWeight", isNaN(weightValue) ? "0" : weightValue.toString());
-
-    // Debug: Log all form data being sent
-    console.log("=== EditProduct - FormData being sent ===");
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ":", pair[1], "Type:", typeof pair[1]);
-    }
-    console.log("=== End FormData Debug ===");
-
-    // Gửi ảnh: chỉ gửi File mới nếu có, backend sẽ giữ nguyên ảnh cũ nếu không có File mới
-    const keys = ["Image", "ImageA", "ImageB", "ImageC", "ImageD", "ImageE"];
-    for (let i = 0; i < productImages.length; i++) {
-      if (productImages[i] && productImages[i] instanceof File) {
-        formData.append(keys[i], productImages[i]);
-      }
-    }
-    // Lưu ý: Nếu không có File mới, backend sẽ giữ nguyên ảnh cũ
 
     try {
+      const formData = new FormData();
+
+      // Các trường cơ bản
+      formData.append("ProductName", productData.productName.trim());
+      formData.append("CategoryID", Number(productData.categoryId));
+      formData.append(
+        "ProductDescription",
+        productData.productDescription || ""
+      );
+      formData.append("Unit", productData.unit);
+      formData.append(
+        "MinQuantity",
+        productData.minQuantity ? Number(productData.minQuantity) : 0
+      );
+      formData.append(
+        "MaxQuantity",
+        productData.maxQuantity ? Number(productData.maxQuantity) : 0
+      );
+      formData.append("Status", productData.status ? "true" : "false");
+      formData.append(
+        "ProductIngredients",
+        productData.productIngredients || ""
+      );
+
+      // ProductUses / ProductlUses typo backend
+      formData.append("ProductlUses", productData.productUses || "");
+
+      // ProductWeight phải gửi decimal string
+      const weightValue =
+        productData.productWeight !== "" && productData.productWeight != null
+          ? parseFloat(productData.productWeight)
+          : 0;
+      formData.append(
+        "ProductWeight",
+        isNaN(weightValue) ? "0.0" : weightValue.toFixed(1)
+      );
+
+      // Xử lý ảnh: chỉ gửi file mới, backend sẽ giữ ảnh cũ nếu không có file
+      const imageKeys = [
+        "Image",
+        "ImageA",
+        "ImageB",
+        "ImageC",
+        "ImageD",
+        "ImageE",
+      ];
+      imageKeys.forEach((key, idx) => {
+        if (productImages[idx] instanceof File) {
+          formData.append(key, productImages[idx]);
+        }
+      });
+
+      // Gọi API update
+      const { default: productAPI } = await import("../../API/productAPI");
       const productId = getProductIdValue(product);
-      await updateProduct(productId, formData);
+      const response = await productAPI.update(productId, formData);
+
+      if (response?.data?.message !== "Thành công") {
+        setErrors((prev) => ({
+          ...prev,
+          general: response?.data?.message || "Cập nhật thất bại",
+        }));
+        setLoading(false);
+        return;
+      }
+
       setSuccessMessage("Cập nhật thành công!");
       setSelectedImage(null);
+
       setTimeout(() => {
         onUpdateSuccess();
         handleClose();
       }, 2000);
     } catch (error) {
-      console.error("=== Update Error Details ===");
-      console.error("Error:", error);
-      console.error("Error response:", error?.response);
-      console.error("Error response data:", error?.response?.data);
-      console.error("Error response status:", error?.response?.status);
-      console.error("Full error object:", JSON.stringify(error?.response?.data, null, 2));
-      
+      console.error("=== Update Error ===", error);
+
       let errorMessage = "Có lỗi xảy ra khi cập nhật sản phẩm.";
-      if (error?.response?.data) {
-        const errorData = error.response.data;
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.errors) {
-          // Handle validation errors
-          const errorMessages = Object.values(errorData.errors).flat();
-          errorMessage = errorMessages.join(", ");
-        } else if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else {
-          // Try to extract any error message from the response
-          errorMessage = JSON.stringify(errorData);
-        }
+      if (error?.response) {
+        errorMessage = error.response?.data?.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
-      setErrors((prev) => ({
-        ...prev,
-        general: errorMessage,
-      }));
+
+      setErrors((prev) => ({ ...prev, general: errorMessage }));
       setLoading(false);
     }
   };
@@ -493,8 +481,8 @@ const EditProduct = ({
                     inputProps: {
                       min: 0,
                       max: 1500,
-                      step: 1
-                    }
+                      step: 1,
+                    },
                   }}
                 />
                 <FormControl fullWidth error={!!errors.unit}>

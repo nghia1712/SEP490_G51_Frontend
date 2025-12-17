@@ -57,7 +57,7 @@ export default function GRNList() {
     error,
     search,
     setSearch,
-    refetch,
+    refetch: fetchList,
     openDetail,
     setOpenDetail,
     selectedExport,
@@ -72,6 +72,11 @@ export default function GRNList() {
     renderGINStatus,
     exportedLotProduct,
   } = useGIN();
+  
+    useEffect(() => {
+      fetchList();
+    }, []);
+
   const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
   const pageSize = 5;

@@ -137,12 +137,6 @@ export default function useGIN() {
     }
   };
 
-  // =========================
-  // useEffect khởi tạo list
-  // =========================
-  useEffect(() => {
-    fetchList();
-  }, []);
 
   // =========================
   // NOT ENOUGH
