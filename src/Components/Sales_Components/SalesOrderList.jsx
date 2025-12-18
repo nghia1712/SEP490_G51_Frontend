@@ -118,6 +118,8 @@ const SalesOrderList = () => {
 
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [searchOrderCode, setSearchOrderCode] = useState("");
+  const [searchCustomerName, setSearchCustomerName] = useState("");
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -351,22 +353,242 @@ const SalesOrderList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Chỉ chạy một lần khi mount
 
-  const getOrderStatusLabel = (status) => {
-    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
+  const toNumberOrNull = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const sanitized =
+      typeof value === "string" ? value.replace(/[^0-9.-]/g, "") : value;
+    const parsed = Number(sanitized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const getEffectiveOrderStatus = (orderStatus, paymentStatus, orderData = null) => {
+    if (!orderData) {
+      // Nếu không có orderData, chỉ kiểm tra payment status
+      if (paymentStatus === 2) { // PartiallyPaid
+        return 4; // PartiallyDelivered
+      }
+      return orderStatus;
+    }
+
+    const totalAmount = toNumberOrNull(
+      orderData.totalAmount ??
+      orderData.TotalAmount ??
+      orderData.totalPrice ??
+      orderData.TotalPrice ??
+      orderData.grandTotal ??
+      0
+    ) ?? 0;
+
+    const paidAmount = toNumberOrNull(
+      orderData.paidAmount ??
+      orderData.PaidAmount ??
+      orderData.depositPaidAmount ??
+      orderData.DepositPaidAmount ??
+      0
+    ) ?? 0;
+
+    // Nếu tổng tiền = tiền đã trả → "Giao toàn bộ hàng" (Delivered = 5)
+    if (totalAmount > 0 && paidAmount >= totalAmount) {
+      return 5; // Delivered
+    }
+
+    // Nếu payment status là "Đã thanh toán 1 phần" (PartiallyPaid = 2)
+    // thì hiển thị order status là "Giao hàng 1 phần" (PartiallyDelivered = 4)
+    if (paymentStatus === 2) { // PartiallyPaid
+      return 4; // PartiallyDelivered
+    }
+
+    // Trả về order status gốc
+    return orderStatus;
+  };
+
+  const hasDepositRequirement = (depositInfo) => {
+    if (!depositInfo) return false;
+    const percentValue = depositInfo.percent;
+    const amountValue = depositInfo.amount;
+    if (percentValue !== null && percentValue !== undefined) {
+      const parsed = Number(percentValue);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return true;
+      }
+    }
+    if (amountValue !== null && amountValue !== undefined) {
+      const parsedAmount = Number(amountValue);
+      if (Number.isFinite(parsedAmount) && parsedAmount > 0) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const getPaymentStatusCodeByContext = (paymentStatus, orderStatus, depositInfo, orderData = null) => {
+    const normalizedStatus = typeof orderStatus === "string" ? Number(orderStatus) : orderStatus;
+    const normalizedPayment =
+      typeof paymentStatus === "string" && paymentStatus !== ""
+        ? Number(paymentStatus)
+        : paymentStatus;
+
+    let paidAmount = 0;
+    let totalAmount = 0;
+    let depositAmount = 0;
+    let depositPercentNum = null;
+
+    if (orderData) {
+      paidAmount = toNumberOrNull(
+        orderData.paidAmount ??
+        orderData.PaidAmount ??
+        orderData.depositPaidAmount ??
+        orderData.DepositPaidAmount ??
+        0
+      ) ?? 0;
+      totalAmount =
+        toNumberOrNull(
+          orderData.totalAmount ??
+            orderData.TotalAmount ??
+            orderData.totalPrice ??
+            orderData.TotalPrice ??
+            orderData.grandTotal ??
+            0,
+        ) ?? 0;
+      depositAmount =
+        toNumberOrNull(
+          depositInfo?.amount ?? orderData.depositAmount ?? orderData.DepositAmount ?? null,
+        ) ?? 0;
+
+      const depositPercentValue =
+        depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+      depositPercentNum = toNumberOrNull(depositPercentValue);
+    }
+
+    // Nếu đã giao hàng 1 phần → xem như Đã tt 1 phần
+    if (normalizedStatus === 4) {
+      return 2;
+    }
+
+    // Nếu đơn hàng đã giao toàn bộ (Delivered = 5) và đã thanh toán đủ, ưu tiên hiển thị "Đã tt toàn bộ"
+    // Thay vì "Trả lại tiền" từ backend
+    if (normalizedStatus === 5 && totalAmount > 0 && paidAmount >= totalAmount) {
+      return 3; // Paid
+    }
+
+    // Nếu backend đã set trạng thái thanh toán cụ thể (nhưng không phải trường hợp trên)
+    if (
+      normalizedPayment === 1 || // Deposited
+      normalizedPayment === 2 || // PartiallyPaid
+      normalizedPayment === 3 || // Paid
+      normalizedPayment === 4 || // Failed
+      normalizedPayment === 5    // Refunded
+    ) {
+      return normalizedPayment;
+    }
+
+    // Đã thanh toán toàn bộ
+    if (totalAmount > 0 && paidAmount >= totalAmount) {
+      return 3;
+    }
+
+    // Tính tiền cọc hiệu quả
+    let effectiveDepositAmount = depositAmount;
+    if ((effectiveDepositAmount === 0 || effectiveDepositAmount === null) && depositPercentNum !== null && depositPercentNum > 0 && totalAmount > 0) {
+      effectiveDepositAmount = (depositPercentNum / 100) * totalAmount;
+    }
+    if ((effectiveDepositAmount === 0 || effectiveDepositAmount === null) && depositPercentNum !== null && depositPercentNum > 0 && totalAmount === 0) {
+      // Không có tổng nhưng có % cọc: không suy được, giữ 0 để tránh sai
+      effectiveDepositAmount = 0;
+    }
+
+    // Đã thanh toán nhưng chưa đủ tổng (hoặc chưa biết tổng nhưng đã trả)
+    if (paidAmount > 0 && (totalAmount === 0 || paidAmount < totalAmount)) {
+      if (effectiveDepositAmount > 0) {
+        if (paidAmount < effectiveDepositAmount) {
+          return 0; // Chờ cọc
+        }
+        if (paidAmount === effectiveDepositAmount) {
+          return 1; // Đã cọc
+        }
+        // Đã vượt mức cọc nhưng chưa đủ tổng
+        return 2; // Đã tt 1 phần
+      }
+
+      // Không yêu cầu cọc hoặc không tính được cọc: đã trả nhưng chưa đủ tổng
+      return 2;
+    }
+
+    // Đơn đã chấp thuận nhưng chưa thanh toán
+    if (normalizedStatus === 2) {
+      if (depositPercentNum !== null && depositPercentNum > 0) {
+        return paidAmount > 0 ? 1 : 0; // Đã cọc hoặc Chờ cọc
+      }
+      return 0; // Chờ thanh toán
+    }
+
+    // Mặc định
+    return 0;
+  };
+
+  const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo, orderData = null, short = false) => {
+    // Kiểm tra trường hợp đặc biệt: NotComplete (7) và cọc = 0% → "Ngừng giao dịch"
+    const normalizedStatus = typeof orderStatus === "string" ? Number(orderStatus) : orderStatus;
+    if (normalizedStatus === 7 && orderData) { // NotComplete
+      const depositPercentValue =
+        depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+      const depositPercentNum = toNumberOrNull(depositPercentValue);
+      const depositAmountVal =
+        toNumberOrNull(depositInfo?.amount ?? orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+      const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+      
+      if (!hasDeposit) {
+        return "Ngừng giao dịch";
+      }
+    }
+
+    const statusCode = getPaymentStatusCodeByContext(paymentStatus, orderStatus, depositInfo, orderData);
+    // Phân biệt "Chờ cọc" và "Chờ thanh toán" khi statusCode = 0
+    if (statusCode === 0 && orderData) {
+      const paid = toNumberOrNull(
+        orderData.paidAmount ??
+          orderData.PaidAmount ??
+          orderData.depositPaidAmount ??
+          orderData.DepositPaidAmount ??
+          0,
+      ) ?? 0;
+      const depositPercentValue =
+        depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+      const depositPercentNum = toNumberOrNull(depositPercentValue);
+      const depositAmountVal =
+        toNumberOrNull(depositInfo?.amount ?? orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+      const hasDepositRequirement =
+        (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+
+      if (paid === 0 && hasDepositRequirement) {
+        return "Chờ cọc";
+      }
+      if (paid === 0 && !hasDepositRequirement) {
+        return "Chờ thanh toán";
+      }
+    }
+
+    return short ? getPaymentStatusLabelShort(statusCode) : getPaymentStatusLabel(statusCode);
+  };
+
+  const getOrderStatusLabel = (status, short = false) => {
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, PartiallyDelivered=4, Delivered=5, Complete=6, NotComplete=7
     switch (status) {
       case 0:
         return "Nháp"; // Draft
       case 1:
-        return "Chờ xử lý"; // Send / Pending approval
+        return "Đã gửi"; // Send
       case 2:
         return "Chấp thuận"; // Approved
       case 3:
         return "Từ chối"; // Rejected
       case 4:
-        return "Đã giao hàng"; // Delivered
+        return "Giao hàng 1 phần"; // PartiallyDelivered
       case 5:
-        return "Hoàn thành"; // Complete
+        return "Giao toàn bộ hàng"; // Delivered
       case 6:
+        return "Hoàn thành"; // Complete
+      case 7:
         return "Chưa hoàn thành"; // NotComplete
       default:
         return "Không xác định";
@@ -383,7 +605,7 @@ const SalesOrderList = () => {
   }, [location.state, navigate]);
 
   const getOrderStatusColor = (status) => {
-    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
+    // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, PartiallyDelivered=4, Delivered=5, Complete=6, NotComplete=7
     switch (status) {
       case 0: // Nháp (Draft)
         return { backgroundColor: "#fff3cd", color: "#856404" };
@@ -393,11 +615,13 @@ const SalesOrderList = () => {
         return { backgroundColor: "#ffe082", color: "#8c6d1f" };
       case 3: // Từ chối (Rejected)
         return { backgroundColor: "#f8d7da", color: "#721c24" };
-      case 4: // Đã giao hàng (Delivered)
+      case 4: // Giao hàng 1 phần (PartiallyDelivered)
+        return { backgroundColor: "#b3d9ff", color: "#003366" };
+      case 5: // Giao toàn bộ hàng (Delivered)
         return { backgroundColor: "#cce5ff", color: "#004085" };
-      case 5: // Hoàn thành (Complete)
+      case 6: // Hoàn thành (Complete)
         return { backgroundColor: "#d4edda", color: "#155724" };
-      case 6: // Chưa hoàn thành (NotComplete)
+      case 7: // Chưa hoàn thành (NotComplete)
         return { backgroundColor: "#ffe0b2", color: "#e65100" };
       default:
         return { backgroundColor: "#e3f2fd", color: "#1976d2" };
@@ -405,79 +629,42 @@ const SalesOrderList = () => {
   };
 
   const getPaymentStatusLabel = (status) => {
-    // PaymentStatus enum (backend): NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
+    // PaymentStatus enum backend: NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
     switch (status) {
       case 0:
-        return "Chờ thanh toán"; // Chưa thanh toán đồng nào
+        return "Chờ thanh toán"; // NotPaymentYet
       case 1:
-        return "Đã cọc"; // Đã thanh toán đúng/đủ tiền cọc
+        return "Đã cọc"; // Deposited
       case 2:
-        return "Đã cọc"; // Đã thanh toán một phần (có thể đã cọc, chưa đủ tổng)
+        return "Đã tt 1 phần"; // PartiallyPaid
       case 3:
-        return "Đã thanh toán"; // Đã thanh toán toàn bộ
+        return "Đã tt toàn bộ"; // Paid
       case 4:
-        return "Trả lại tiền"; // Đã hoàn tiền
+        return "Trả lại cọc"; // Refunded
       default:
         return "Không xác định";
     }
   };
 
-  // Dùng riêng cho màn hình list:
-  // - Nếu đơn đã được chấp thuận (Approved = 2), chưa thanh toán đồng nào:
-  //    + Nếu % cọc > 0  => hiển thị "Chờ cọc"
-  //    + Nếu % cọc = 0  => hiển thị "Chờ thanh toán"
-  // - Các trường hợp khác hiển thị theo enum thanh toán
-  const getPaymentStatusLabelForList = (
-    paymentStatus,
-    orderStatus,
-    paidAmount,
-    depositPercent,
-    depositAmount
-  ) => {
-    const normalizedStatus =
-      typeof orderStatus === "string" && orderStatus !== ""
-        ? Number(orderStatus)
-        : orderStatus;
-
-    const normalizedPayment =
-      typeof paymentStatus === "string" && paymentStatus !== ""
-        ? Number(paymentStatus)
-        : paymentStatus;
-
-    const paid = Number(paidAmount) || 0;
-    const depositAmountValue =
-      depositAmount !== null && depositAmount !== undefined
-        ? Number(depositAmount)
-        : 0;
-    const depositPercentValue =
-      depositPercent !== null && depositPercent !== undefined
-        ? Number(depositPercent)
-        : 0;
-
-    if (
-      normalizedStatus === 2 && // Approved
-      (normalizedPayment === null ||
-        normalizedPayment === undefined ||
-        normalizedPayment === 0) &&
-      paid === 0
-    ) {
-      // Phân biệt trường hợp có/không có cọc
-      if (depositAmountValue > 0 || depositPercentValue > 0) {
-        return "Chờ cọc";
-      }
-      return "Chờ thanh toán";
+  // Hàm lấy label ngắn gọn cho trạng thái thanh toán (dùng trong bảng list)
+  const getPaymentStatusLabelShort = (status) => {
+    // PaymentStatus enum backend: NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
+    switch (status) {
+      case 0:
+        return "Chờ thanh toán"; // NotPaymentYet
+      case 1:
+        return "Đã cọc"; // Deposited
+      case 2:
+        return "Đã tt 1 phần"; // PartiallyPaid
+      case 3:
+        return "Đã tt toàn bộ"; // Paid
+      case 4:
+        return "Trả lại cọc"; // Refunded
+      default:
+        return "Không xác định";
     }
-
-    return getPaymentStatusLabel(normalizedPayment);
   };
 
-  const toNumberOrNull = (value) => {
-    if (value === null || value === undefined || value === "") return null;
-    const sanitized =
-      typeof value === "string" ? value.replace(/[^0-9.-]/g, "") : value;
-    const parsed = Number(sanitized);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
 
   const getDepositAmountValue = (data) => {
     if (!data) return 0;
@@ -519,27 +706,35 @@ const SalesOrderList = () => {
     return Math.max(totalAmountValue - depositAmountValue, 0);
   };
 
-  const getPaymentStatusColor = (status) => {
+  const getPaymentStatusColor = (status, orderStatus = null, orderData = null) => {
+    // Kiểm tra trường hợp đặc biệt: NotComplete (7) và cọc = 0% → "Ngừng giao dịch"
+    if (orderStatus === 7 && orderData) {
+      const depositPercentValue = orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+      const depositPercentNum = toNumberOrNull(depositPercentValue);
+      const depositAmountVal = toNumberOrNull(orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+      const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+      
+      if (!hasDeposit) {
+        return { backgroundColor: "#9e9e9e", color: "#ffffff" }; // Màu xám cho "Ngừng giao dịch"
+      }
+    }
+
+    // PaymentStatus enum: Pending=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
     switch (status) {
-      case 0:
+      case 0: // Chờ thanh toán (Pending)
         return { backgroundColor: "#fff3cd", color: "#856404" };
-
-      // 1 và 2 đều là trạng thái "Đã cọc" -> dùng chung một màu
-      case 1:
-      case 2:
-        return { backgroundColor: "#ede7f6", color: "#4a148c" };
-
-      case 3:
-        return { backgroundColor: "#d4edda", color: "#155724" };
-
-      case 4:
-        return { backgroundColor: "#f8d7da", color: "#721c24" };
-
-      case 5:
-        return { backgroundColor: "#bbdefb", color: "#0d47a1" };
-
+      case 1: // Đã cọc (Deposited)
+        return { backgroundColor: "#9c27b0", color: "#ffffff" }; // Màu tím đậm
+      case 2: // Đã thanh toán 1 phần (PartiallyPaid)
+        return { backgroundColor: "#fff9c4", color: "#f57f17" }; // Màu vàng nhạt để phân biệt với đã cọc
+      case 3: // Đã thanh toán toàn bộ (Paid)
+        return { backgroundColor: "#c8e6c9", color: "#1b5e20" };
+      case 4: // Thất bại (Failed)
+        return { backgroundColor: "#ffcdd2", color: "#b71c1c" };
+      case 5: // Trả lại cọc (Refunded)
+        return { backgroundColor: "#f8bbd0", color: "#880e4f" };
       default:
-        return { backgroundColor: "#e0e0e0", color: "#424242" };
+        return { backgroundColor: "#e3f2fd", color: "#1976d2" };
     }
   };
 
@@ -637,22 +832,94 @@ const SalesOrderList = () => {
   // Filter orders by status
 
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const matchOrderStatus =
-        orderStatusFilter === "all" ||
-        (order.orderStatus !== undefined &&
-          order.orderStatus !== null &&
-          order.orderStatus === parseInt(orderStatusFilter, 10));
+    let filtered = orders;
+    
+    // Lọc theo trạng thái đơn hàng
+    if (orderStatusFilter !== "all") {
+      const filterOrderStatus = Number(orderStatusFilter);
+      filtered = filtered.filter((order) => order.orderStatus === filterOrderStatus);
+    }
+    
+    // Lọc theo trạng thái thanh toán
+    if (paymentStatusFilter !== "all") {
+      // Xử lý trường hợp đặc biệt "Chờ cọc"
+      if (paymentStatusFilter === "waiting_deposit") {
+        filtered = filtered.filter((order) => {
+          // Nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) thì không có trạng thái thanh toán
+          if (order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3) {
+            return false;
+          }
+          // Kiểm tra xem có phải "Chờ cọc" không
+          const depositPercentValue = order.depositPercent ?? order.DepositPercent ?? null;
+          const depositPercentNum = toNumberOrNull(depositPercentValue);
+          const hasDepositRequirement = depositPercentNum !== null && depositPercentNum > 0;
+          const paymentStatus = order.paymentStatus ?? 0;
+          const paidAmount = order.paidAmount ?? 0;
+          
+          // "Chờ cọc" khi: đơn đã chấp thuận, có yêu cầu cọc, chưa thanh toán gì
+          return order.orderStatus === 2 && 
+                 hasDepositRequirement && 
+                 (paymentStatus === 0 || paymentStatus === null || paymentStatus === undefined) &&
+                 paidAmount === 0;
+        });
+      } else if (paymentStatusFilter === "transaction_stopped") {
+        // Filter "Ngừng giao dịch": NotComplete (7) và cọc = 0%
+        filtered = filtered.filter((order) => {
+          if (order.orderStatus !== 7) return false; // Phải là NotComplete
+          const depositPercentValue = order.depositPercent ?? order.DepositPercent ?? null;
+          const depositPercentNum = toNumberOrNull(depositPercentValue);
+          const depositAmountVal = toNumberOrNull(order.depositAmount ?? order.DepositAmount ?? null) ?? 0;
+          const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+          return !hasDeposit; // Cọc = 0%
+        });
+      } else {
+        const filterPaymentStatus = Number(paymentStatusFilter);
+        filtered = filtered.filter((order) => {
+          // Nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) thì không có trạng thái thanh toán
+          // Các đơn hàng này sẽ không khớp với bất kỳ filter thanh toán cụ thể nào
+          if (order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3) {
+            return false;
+          }
+          
+          // Nếu filter là "Chờ Thanh Toán" (0), loại trừ các đơn hàng "Chờ cọc"
+          if (filterPaymentStatus === 0) {
+            const depositPercentValue = order.depositPercent ?? order.DepositPercent ?? null;
+            const depositPercentNum = toNumberOrNull(depositPercentValue);
+            const hasDepositRequirement = depositPercentNum !== null && depositPercentNum > 0;
+            const paidAmount = order.paidAmount ?? 0;
+            
+            // Loại trừ nếu có yêu cầu cọc và chưa thanh toán (đó là "Chờ cọc", không phải "Chờ thanh toán")
+            if (hasDepositRequirement && paidAmount === 0) {
+              return false;
+            }
+          }
+          
+          return order.paymentStatus === filterPaymentStatus;
+        });
+      }
+    }
 
-      const matchPaymentStatus =
-        paymentStatusFilter === "all" ||
-        (order.paymentStatus !== undefined &&
-          order.paymentStatus !== null &&
-          order.paymentStatus === parseInt(paymentStatusFilter, 10));
+    // Filter by order code search
+    if (searchOrderCode.trim()) {
+      const searchTerm = searchOrderCode.trim().toLowerCase();
+      filtered = filtered.filter(
+        (order) =>
+          order.code && order.code.toLowerCase().includes(searchTerm)
+      );
+    }
 
-      return matchOrderStatus && matchPaymentStatus;
-    });
-  }, [orders, orderStatusFilter, paymentStatusFilter]);
+    // Filter by customer name search
+    if (searchCustomerName.trim()) {
+      const searchTerm = searchCustomerName.trim().toLowerCase();
+      filtered = filtered.filter(
+        (order) =>
+          order.creator &&
+          order.creator.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return filtered;
+  }, [orders, orderStatusFilter, paymentStatusFilter, searchOrderCode, searchCustomerName]);
 
   // Sort orders
 
@@ -701,7 +968,7 @@ const SalesOrderList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [orderStatusFilter, paymentStatusFilter]);
+  }, [orderStatusFilter, paymentStatusFilter, searchOrderCode, searchCustomerName]);
 
   const totalPages = Math.max(1, Math.ceil(sortedOrders.length / pageSize));
 
@@ -1473,6 +1740,37 @@ const SalesOrderList = () => {
               alignItems="center"
               spacing={2}
             >
+              {/* Search fields */}
+              <TextField
+                size="small"
+                label="Tìm kiếm mã đơn hàng"
+                value={searchOrderCode}
+                onChange={(e) => setSearchOrderCode(e.target.value)}
+                sx={{
+                  minWidth: 200,
+                  backgroundColor: "white",
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                  },
+                }}
+                placeholder="Nhập mã đơn hàng..."
+                disabled={loading}
+              />
+              <TextField
+                size="small"
+                label="Tìm kiếm tên khách hàng"
+                value={searchCustomerName}
+                onChange={(e) => setSearchCustomerName(e.target.value)}
+                sx={{
+                  minWidth: 200,
+                  backgroundColor: "white",
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "white",
+                  },
+                }}
+                placeholder="Nhập tên khách hàng..."
+                disabled={loading}
+              />
               <FormControl
                 size="small"
                 sx={{ minWidth: 200 }}
@@ -1490,12 +1788,13 @@ const SalesOrderList = () => {
                   }}
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
-                  <MenuItem value="1">Chờ xử lý</MenuItem>
-                  <MenuItem value="2">Chấp thuận</MenuItem>
-                  <MenuItem value="3">Từ chối</MenuItem>
-                  <MenuItem value="4">Đã giao hàng</MenuItem>
-                  <MenuItem value="5">Hoàn thành</MenuItem>
-                  <MenuItem value="6">Chưa hoàn thành</MenuItem>
+                  <MenuItem value="1">Đã Gửi</MenuItem>
+                  <MenuItem value="2">Chấp Thuận</MenuItem>
+                  <MenuItem value="3">Từ Chối</MenuItem>
+                  <MenuItem value="4">Giao Hàng 1 Phần</MenuItem>
+                  <MenuItem value="5">Giao Toàn Bộ Hàng</MenuItem>
+                  <MenuItem value="6">Hoàn Thành</MenuItem>
+                  <MenuItem value="7">Chưa Hoàn Thành</MenuItem>
                 </Select>
               </FormControl>
               <FormControl
@@ -1515,12 +1814,13 @@ const SalesOrderList = () => {
                   }}
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
-                  <MenuItem value="0">Chờ thanh toán</MenuItem>
-                  <MenuItem value="1">Đã cọc</MenuItem>
-                  <MenuItem value="2">Đã thanh toán</MenuItem>
-                  <MenuItem value="3">Thành công</MenuItem>
-                  <MenuItem value="4">Thất bại</MenuItem>
-                  <MenuItem value="5">Trả lại tiền</MenuItem>
+                  <MenuItem value="waiting_deposit">Chờ Cọc</MenuItem>
+                  <MenuItem value="0">Chờ Thanh Toán</MenuItem>
+                  <MenuItem value="1">Đã Cọc</MenuItem>
+                  <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
+                  <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
+                  <MenuItem value="5">Trả Lại Cọc</MenuItem>
+                  <MenuItem value="transaction_stopped">Ngừng Giao Dịch</MenuItem>
                 </Select>
               </FormControl>
             </Stack>
@@ -1703,16 +2003,36 @@ const SalesOrderList = () => {
 
                 <TableBody>
                   {paginatedOrders.map((order, index) => {
-                    const paymentLabelForList = getPaymentStatusLabelForList(
-                      order.paymentStatus,
-                      order.orderStatus,
-                      order.paidAmount,
-                      order.depositPercent,
-                      order.depositAmount
-                    );
+                    const effectiveStatus = getEffectiveOrderStatus(order.orderStatus, order.paymentStatus, order);
+                    const statusCode = getPaymentStatusCodeByContext(order.paymentStatus, effectiveStatus, {
+                      percent: order.depositPercent,
+                      amount: order.depositAmount,
+                    }, order);
+                    const labelFull = getPaymentStatusLabelByContext(order.paymentStatus, effectiveStatus, {
+                      percent: order.depositPercent,
+                      amount: order.depositAmount,
+                    }, order, false);
+                    const labelShort = getPaymentStatusLabelByContext(order.paymentStatus, effectiveStatus, {
+                      percent: order.depositPercent,
+                      amount: order.depositAmount,
+                    }, order, true);
+                    // Nút tạo yêu cầu xuất kho chỉ hiển thị khi:
+                    // - Đơn đã được chấp thuận (status = 2)
+                    // - Trạng thái thanh toán là: "Chờ thanh toán" (statusCode = 0 và không có deposit requirement) hoặc "Đã cọc" (statusCode = 1)
+                    // - KHÔNG hiển thị khi là "Chờ cọc" (statusCode = 0 nhưng có deposit requirement)
+                    const depositPercentValue = order.depositPercent ?? order.DepositPercent ?? null;
+                    const depositPercentNum = toNumberOrNull(depositPercentValue);
+                    const depositAmountValue = toNumberOrNull(order.depositAmount ?? order.DepositAmount ?? null) ?? 0;
+                    const hasDepositRequirement = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountValue > 0;
+                    const paidAmount = toNumberOrNull(order.paidAmount ?? order.PaidAmount ?? 0) ?? 0;
+                    
+                    // "Chờ cọc" = statusCode = 0, có deposit requirement, và chưa thanh toán
+                    const isWaitingDeposit = statusCode === 0 && hasDepositRequirement && paidAmount === 0;
+                    
                     const canCreateExportRequest =
-                      paymentLabelForList === "Chờ thanh toán" ||
-                      paymentLabelForList === "Đã cọc";
+                      order.orderStatus === 2 && // Đơn đã chấp thuận
+                      !isWaitingDeposit && // Không phải "Chờ cọc"
+                      (statusCode === 0 || statusCode === 1); // Chờ thanh toán hoặc Đã cọc
 
                     return (
                       <TableRow
@@ -1748,9 +2068,9 @@ const SalesOrderList = () => {
                           {order.orderStatus !== undefined &&
                           order.orderStatus !== null ? (
                             <Chip
-                              label={getOrderStatusLabel(order.orderStatus)}
+                              label={getOrderStatusLabel(effectiveStatus, false)}
                               size="small"
-                              sx={getOrderStatusColor(order.orderStatus)}
+                              sx={getOrderStatusColor(effectiveStatus)}
                             />
                           ) : (
                             "-"
@@ -1758,17 +2078,18 @@ const SalesOrderList = () => {
                         </TableCell>
 
                         <TableCell sx={{ textAlign: "left" }}>
-                          {order.orderStatus === 1 ||
-                          order.orderStatus === 3 ? (
-                            "-"
+                          {order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 3 ? (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "left" }}>-</Typography>
+                          ) : order.paymentStatus !== undefined && order.paymentStatus !== null ? (
+                            <Tooltip title={labelFull} arrow>
+                              <Chip
+                                label={labelShort}
+                                size="small"
+                                sx={getPaymentStatusColor(statusCode, effectiveStatus, order)}
+                              />
+                            </Tooltip>
                           ) : (
-                            <Chip
-                              label={paymentLabelForList}
-                              size="small"
-                              sx={getPaymentStatusColor(
-                                order.paymentStatus ?? 0
-                              )}
-                            />
+                            "-"
                           )}
                         </TableCell>
 
@@ -2037,11 +2358,20 @@ const SalesOrderList = () => {
                       Trạng thái đơn hàng:
                     </Typography>
 
-                    <Chip
-                      label={getOrderStatusLabel(orderDetails.status)}
-                      size="small"
-                      sx={getOrderStatusColor(orderDetails.status)}
-                    />
+                    {(() => {
+                      const effectiveStatus = getEffectiveOrderStatus(
+                        orderDetails.status,
+                        orderDetails.paymentStatus,
+                        orderDetails
+                      );
+                      return (
+                        <Chip
+                          label={getOrderStatusLabel(effectiveStatus, false)}
+                          size="small"
+                          sx={getOrderStatusColor(effectiveStatus)}
+                        />
+                      );
+                    })()}
                   </Box>
 
                   <Box sx={{ mb: 2 }}>
@@ -2061,84 +2391,35 @@ const SalesOrderList = () => {
                         return <Typography variant="body1">-</Typography>;
                       }
 
-                      const totalAmountValue = Number(
-                        orderDetails.totalAmount ?? 0
+                      const effectiveStatus = getEffectiveOrderStatus(
+                        statusValue,
+                        paymentValue,
+                        orderDetails
                       );
-                      const paidAmountValue = Number(
-                        orderDetails.paidAmount ?? 0
+                      const statusCode = getPaymentStatusCodeByContext(
+                        paymentValue,
+                        effectiveStatus,
+                        {
+                          percent: orderDetails.depositPercent,
+                          amount: orderDetails.depositAmount,
+                        },
+                        orderDetails
                       );
-                      const depositAmountValue = Number(
-                        orderDetails.depositAmount ?? 0
-                      );
-                      const depositPercentValue = Number(
-                        orderDetails.depositPercent ?? 0
-                      );
-
-                      let paymentStatusForDisplay =
-                        paymentValue !== null && paymentValue !== undefined
-                          ? Number(paymentValue)
-                          : 0;
-
-                      // Nếu đã thanh toán đủ
-                      if (
-                        totalAmountValue > 0 &&
-                        paidAmountValue >= totalAmountValue
-                      ) {
-                        paymentStatusForDisplay = 3; // Paid
-                      } else if (statusValue === 4) {
-                        paymentStatusForDisplay = 2; // PartiallyPaid
-                      } else if (
-                        totalAmountValue > 0 &&
-                        paidAmountValue > 0 &&
-                        paidAmountValue < totalAmountValue
-                      ) {
-                        // Đã thanh toán một phần
-                        if (
-                          depositAmountValue > 0 &&
-                          paidAmountValue >= depositAmountValue
-                        ) {
-                          paymentStatusForDisplay = 1; // Deposited
-                        } else {
-                          paymentStatusForDisplay = 2; // PartiallyPaid
-                        }
-                      }
-
-                      // Trường hợp đơn đã duyệt, chưa thanh toán đồng nào
-                      if (
-                        statusValue === 2 &&
-                        paidAmountValue === 0 &&
-                        (paymentValue === null ||
-                          paymentValue === undefined ||
-                          Number(paymentValue) === 0)
-                      ) {
-                        if (depositPercentValue > 0) {
-                          // Có % cọc > 0 => Chờ cọc
-                          return (
-                            <Chip
-                              label="Chờ cọc"
-                              size="small"
-                              sx={getPaymentStatusColor(0)}
-                            />
-                          );
-                        }
-                        // Không có cọc => Chờ thanh toán
-                        return (
-                          <Chip
-                            label="Chờ thanh toán"
-                            size="small"
-                            sx={getPaymentStatusColor(0)}
-                          />
-                        );
-                      }
-
-                      const label = getPaymentStatusLabel(
-                        paymentStatusForDisplay
+                      const label = getPaymentStatusLabelByContext(
+                        paymentValue,
+                        effectiveStatus,
+                        {
+                          percent: orderDetails.depositPercent,
+                          amount: orderDetails.depositAmount,
+                        },
+                        orderDetails,
+                        false
                       );
                       return (
                         <Chip
                           label={label}
                           size="small"
-                          sx={getPaymentStatusColor(paymentStatusForDisplay)}
+                          sx={getPaymentStatusColor(statusCode, effectiveStatus, orderDetails)}
                         />
                       );
                     })()}

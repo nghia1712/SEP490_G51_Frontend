@@ -98,6 +98,11 @@ const CustomerOrderList = () => {
   const pageSize = 5;
   const quotationInfoCache = useRef(new Map());
   const paymentWindowRef = useRef(null); // Reference đến tab thanh toán VNPay
+  const [editQuantitiesDialogOpen, setEditQuantitiesDialogOpen] = useState(false);
+  const [editQuantitiesLoading, setEditQuantitiesLoading] = useState(false);
+  const [editQuantitiesRows, setEditQuantitiesRows] = useState([]);
+  const [editQuantitiesOrderId, setEditQuantitiesOrderId] = useState(null);
+  const [editQuantitiesErrors, setEditQuantitiesErrors] = useState({});
   const remainingDepositAmount = paymentOrderDetails?.remainingDeposit ?? 0;
   const paymentButtonDisabled =
     redirectingPayment ||
@@ -322,6 +327,16 @@ const CustomerOrderList = () => {
                    hasDepositRequirement && 
                    (paymentStatus === 0 || paymentStatus === null || paymentStatus === undefined) &&
                    paidAmount === 0;
+          });
+        } else if (paymentStatusFilter === "transaction_stopped") {
+          // Filter "Ngừng giao dịch": NotComplete (7) và cọc = 0%
+          filtered = filtered.filter((order) => {
+            if (order.orderStatus !== 7) return false; // Phải là NotComplete
+            const depositPercentValue = order.depositPercent ?? order.DepositPercent ?? null;
+            const depositPercentNum = toNumberOrNull(depositPercentValue);
+            const depositAmountVal = toNumberOrNull(order.depositAmount ?? order.DepositAmount ?? null) ?? 0;
+            const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+            return !hasDeposit; // Cọc = 0%
           });
         } else {
           const filterPaymentStatus = Number(paymentStatusFilter);
@@ -783,7 +798,7 @@ const CustomerOrderList = () => {
       case 3:
         return 'Đã tt toàn bộ'; // Paid
       case 4:
-        return 'Trả lại tiền'; // Refunded
+        return 'Trả lại cọc'; // Refunded
       default:
         return 'Không xác định';
     }
@@ -802,7 +817,7 @@ const CustomerOrderList = () => {
       case 3:
         return 'Đã tt toàn bộ'; // Paid
       case 4:
-        return 'Trả lại tiền'; // Refunded
+        return 'Trả lại cọc'; // Refunded
       default:
         return 'Không xác định';
     }
@@ -834,22 +849,6 @@ const getPaymentStatusCodeByContext = (paymentStatus, orderStatus, depositInfo, 
       ? Number(paymentStatus)
       : paymentStatus;
 
-  // Nếu đã giao hàng 1 phần → xem như Đã tt 1 phần
-  if (normalizedStatus === 4) {
-    return 2;
-  }
-
-  // Nếu backend đã set trạng thái thanh toán cụ thể
-  if (
-    normalizedPayment === 1 || // Deposited
-    normalizedPayment === 2 || // PartiallyPaid
-    normalizedPayment === 3 || // Paid
-    normalizedPayment === 4 || // Failed
-    normalizedPayment === 5    // Refunded
-  ) {
-    return normalizedPayment;
-  }
-
   let paidAmount = 0;
   let totalAmount = 0;
   let depositAmount = 0;
@@ -880,6 +879,28 @@ const getPaymentStatusCodeByContext = (paymentStatus, orderStatus, depositInfo, 
     const depositPercentValue =
       depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
     depositPercentNum = toNumberOrNull(depositPercentValue);
+  }
+
+  // Nếu đã giao hàng 1 phần → xem như Đã tt 1 phần
+  if (normalizedStatus === 4) {
+    return 2;
+  }
+
+  // Nếu đơn hàng đã giao toàn bộ (Delivered = 5) và đã thanh toán đủ, ưu tiên hiển thị "Đã tt toàn bộ"
+  // Thay vì "Trả lại tiền" từ backend
+  if (normalizedStatus === 5 && totalAmount > 0 && paidAmount >= totalAmount) {
+    return 3; // Paid
+  }
+
+  // Nếu backend đã set trạng thái thanh toán cụ thể (nhưng không phải trường hợp trên)
+  if (
+    normalizedPayment === 1 || // Deposited
+    normalizedPayment === 2 || // PartiallyPaid
+    normalizedPayment === 3 || // Paid
+    normalizedPayment === 4 || // Failed
+    normalizedPayment === 5    // Refunded
+  ) {
+    return normalizedPayment;
   }
 
   // Đã thanh toán toàn bộ
@@ -933,6 +954,19 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     return short ? 'Chờ xác nhận' : 'Chờ xác nhận thanh toán';
   }
 
+  // Kiểm tra "Ngừng giao dịch": NotComplete (7) và cọc = 0%
+  if (orderStatus === 7 && orderData) {
+    const depositPercentValue =
+      depositInfo?.percent ?? orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+    const depositPercentNum = toNumberOrNull(depositPercentValue);
+    const depositAmountVal =
+      toNumberOrNull(depositInfo?.amount ?? orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+    const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+    if (!hasDeposit) {
+      return 'Ngừng giao dịch';
+    }
+  }
+
   const statusCode = getPaymentStatusCodeByContext(paymentStatus, orderStatus, depositInfo, orderData);
   // Phân biệt "Chờ cọc" và "Chờ thanh toán" khi statusCode = 0
   if (statusCode === 0 && orderData) {
@@ -963,8 +997,21 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 };
 
   // Hàm lấy màu cho trạng thái thanh toán
-  const getPaymentStatusColor = (status) => {
-    // PaymentStatus enum: Pending=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
+  const getPaymentStatusColor = (status, orderStatus = null, orderData = null) => {
+    // Kiểm tra "Ngừng giao dịch": NotComplete (7) và cọc = 0%
+    if (orderStatus === 7 && orderData) {
+      const depositPercentValue =
+        orderData?.depositPercent ?? orderData?.DepositPercent ?? null;
+      const depositPercentNum = toNumberOrNull(depositPercentValue);
+      const depositAmountVal =
+        toNumberOrNull(orderData?.depositAmount ?? orderData?.DepositAmount ?? null) ?? 0;
+      const hasDeposit = (depositPercentNum !== null && depositPercentNum > 0) || depositAmountVal > 0;
+      if (!hasDeposit) {
+        return { backgroundColor: '#e0e0e0', color: '#424242' }; // Màu xám cho "Ngừng giao dịch"
+      }
+    }
+
+    // PaymentStatus enum: Pending=0, Deposited=1, PartiallyPaid=2, Paid=3, Failed=4, Refunded=5
     switch (status) {
       case 0: // Chờ thanh toán (Pending)
         return { backgroundColor: '#fff3cd', color: '#856404' };
@@ -976,7 +1023,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         return { backgroundColor: '#c8e6c9', color: '#1b5e20' };
       case 4: // Thất bại (Failed)
         return { backgroundColor: '#ffcdd2', color: '#b71c1c' };
-      case 5: // Trả lại tiền (Refunded)
+      case 5: // Trả lại cọc (Refunded)
         return { backgroundColor: '#f8bbd0', color: '#880e4f' };
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
@@ -1001,11 +1048,415 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     return 'default';
   };
 
-  const handleEdit = (orderId) => {
-    // Navigate to edit page
-    // Edit page removed, navigate to orders list
-    navigate('/customer/orders');
+  const handleEdit = async (orderId) => {
+    // Open edit quantities dialog for draft orders
+    setEditQuantitiesOrderId(orderId);
+    setEditQuantitiesDialogOpen(true);
+    setEditQuantitiesLoading(true);
+    setEditQuantitiesRows([]);
+    
+    try {
+      const response = await salesOrderAPI.viewDetails(orderId);
+      const data = response.data?.data;
+      
+      if (!data) {
+        throw new Error('Không tìm thấy thông tin đơn hàng');
+      }
+      
+      // Process details similar to handleView
+      const rawDetails =
+        data.details ??
+        data.Details ??
+        data.orderDetails ??
+        data.OrderDetails ??
+        data.salesOrderDetails ??
+        data.SalesOrderDetails ??
+        [];
+      
+      const processedDetails = rawDetails.map((detail) => {
+        const quantity = detail.quantity ?? detail.Quantity ?? 0;
+        const rawTaxRate = detail.taxRate ?? detail.TaxRate ?? null;
+        const taxText =
+          detail.taxText ??
+          detail.TaxText ??
+          detail.taxPolicyName ??
+          detail.TaxPolicyName ??
+          detail.taxName ??
+          detail.TaxName ??
+          '-';
+        const taxRate =
+          rawTaxRate !== null && rawTaxRate !== undefined
+            ? rawTaxRate
+            : taxText !== '-' ? getTaxRateFromText(taxText) : 0;
+        
+        // Note: detail.unitPrice/UnitPrice from API is actually the price AFTER tax
+        // So we need to calculate the price BEFORE tax
+        const unitPriceAfterTax =
+          detail.unitPrice ??
+          detail.UnitPrice ??
+          detail.unitPriceAfterTax ??
+          detail.UnitPriceAfterTax ??
+          detail.priceAfterTax ??
+          detail.PriceAfterTax ??
+          0;
+        
+        // Calculate price before tax: priceAfterTax / (1 + taxRate)
+        const unitPriceBeforeTax = taxRate > 0 && unitPriceAfterTax > 0
+          ? unitPriceAfterTax / (1 + taxRate)
+          : (detail.unitPriceBeforeTax ??
+             detail.UnitPriceBeforeTax ??
+             detail.priceBeforeTax ??
+             detail.PriceBeforeTax ??
+             unitPriceAfterTax);
+        const expiredDate =
+          detail.expiredDate ??
+          detail.ExpiredDate ??
+          detail.expiredDateText ??
+          detail.ExpiredDateText ??
+          detail.lot?.ExpiredDate ??
+          detail.Lot?.ExpiredDate ??
+          detail.lot?.expiredDate ??
+          detail.Lot?.expiredDate ??
+          null;
+        const productName = detail.productName ?? detail.ProductName ?? '-';
+        const expiredDisplay = expiredDate ? formatDate(expiredDate) : '-';
+        const unitName =
+          detail.unitName ??
+          detail.UnitName ??
+          detail.uomName ??
+          detail.UomName ??
+          detail.unit ??
+          detail.Unit ??
+          detail.unitMeasure ??
+          detail.UnitMeasure ??
+          detail.lot?.UnitName ??
+          detail.Lot?.UnitName ??
+          detail.lot?.unitName ??
+          detail.Lot?.unitName ??
+          '-';
+        
+        return {
+          ...detail,
+          productName,
+          quantity,
+          unitPriceBeforeTax,
+          unitPriceAfterTax,
+          subtotalBeforeTax: quantity * unitPriceBeforeTax,
+          subtotalAfterTax: quantity * unitPriceAfterTax,
+          taxText: taxText || '-',
+          taxRate,
+          expiredDate,
+          expiredDisplay,
+          unitName,
+        };
+      });
+      
+      // Fetch quotation details to get complete unit and tax information
+      let quotationDetailsList = [];
+      let quotationInfoData = null;
+      if (data.salesQuotationId) {
+        try {
+          const quotationDetailResponse = await salesQuotationAPI.viewDetails(data.salesQuotationId);
+          quotationInfoData = quotationDetailResponse.data?.data ?? null;
+          quotationDetailsList =
+            quotationInfoData?.Details ??
+            quotationInfoData?.details ??
+            [];
+        } catch (quotationErr) {
+          console.warn('Không thể lấy chi tiết báo giá để bổ sung dữ liệu đơn hàng', quotationErr);
+        }
+      }
+      
+      // Merge with quotation details to get complete information
+      // Match by LotId to ensure correct pairing
+      const mergedRows = processedDetails.map((detail, index) => {
+        const detailLotId = detail.lotId ?? detail.LotId ?? detail.lotID ?? detail.LotID ?? null;
+        // Try to match by LotId first, then fallback to index
+        let matchedQuotationDetail = null;
+        if (detailLotId !== null) {
+          matchedQuotationDetail = quotationDetailsList.find(qd => 
+            (qd.LotId ?? qd.lotId ?? qd.LotID ?? qd.lotID) === detailLotId
+          ) ?? null;
+        }
+        // Fallback to index if no match found
+        if (!matchedQuotationDetail) {
+          matchedQuotationDetail = quotationDetailsList[index] ?? null;
+        }
+        const parsedQuantity = Number(detail.quantity ?? 0);
+        const quantityValue = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+
+        let unitName = detail.unitName;
+        let taxText = detail.taxText;
+        let taxRate = detail.taxRate ?? null;
+        
+        // Get unit name and tax from quotation if available
+        if (matchedQuotationDetail) {
+          const quotationUnit =
+            matchedQuotationDetail.Unit ??
+            matchedQuotationDetail.unit ??
+            matchedQuotationDetail.ProductUnit ??
+            matchedQuotationDetail.productUnit ??
+            null;
+          const quotationTaxText =
+            matchedQuotationDetail.TaxText ??
+            matchedQuotationDetail.taxText ??
+            matchedQuotationDetail.TaxPolicyName ??
+            matchedQuotationDetail.taxPolicyName ??
+            null;
+          
+          if (quotationUnit) {
+            unitName = quotationUnit;
+          }
+          
+          if (quotationTaxText) {
+            taxText = quotationTaxText;
+            const parsedRate = getTaxRateFromText(quotationTaxText);
+            if (parsedRate !== null && !Number.isNaN(parsedRate)) {
+              taxRate = parsedRate;
+            }
+          }
+        }
+        
+        // Fallback: try to get from lot if still not available
+        if (!unitName || unitName === '-') {
+          unitName =
+            detail.lot?.UnitName ??
+            detail.Lot?.UnitName ??
+            detail.lot?.unitName ??
+            detail.Lot?.unitName ??
+            '-';
+        }
+        
+        if (taxRate === null) {
+          taxRate = taxText !== '-' ? getTaxRateFromText(taxText) : 0;
+        }
+        
+        // Get unit prices from processed detail
+        // Note: detail.unitPriceAfterTax is the price AFTER tax from API
+        let unitPriceAfterTax = detail.unitPriceAfterTax;
+        
+        // Always calculate price before tax from price after tax using the current tax rate
+        // This ensures consistency even if tax rate was updated from quotation
+        let unitPriceBeforeTax;
+        if (taxRate > 0 && unitPriceAfterTax > 0) {
+          // Calculate before tax from after tax: priceAfterTax / (1 + taxRate)
+          unitPriceBeforeTax = unitPriceAfterTax / (1 + taxRate);
+        } else {
+          // If no tax, before tax = after tax
+          unitPriceBeforeTax = unitPriceAfterTax;
+        }
+        
+        // Get productId - API doesn't return it directly in order details
+        // Try multiple sources: detail -> quotation -> lot
+        let productId = 
+          detail.productId ?? 
+          detail.ProductId ?? 
+          detail.productID ?? 
+          detail.ProductID ?? null;
+        
+        // If productId not found in detail, try to get from quotation
+        if (!productId && matchedQuotationDetail) {
+          productId =
+            matchedQuotationDetail.ProductId ??
+            matchedQuotationDetail.productId ??
+            matchedQuotationDetail.ProductID ??
+            matchedQuotationDetail.productID ??
+            null;
+          
+          // Debug log to see what's in quotation detail
+          if (!productId) {
+            console.warn('Quotation detail found but no ProductId:', {
+              matchedQuotationDetail: matchedQuotationDetail,
+              productName: detail.productName,
+            });
+          }
+        }
+        
+        // If still not found, try to get from lot (if available in raw detail)
+        if (!productId) {
+          const rawDetail = rawDetails[index];
+          productId =
+            rawDetail?.lot?.ProductId ??
+            rawDetail?.Lot?.ProductId ??
+            rawDetail?.lot?.Product?.ProductId ??
+            rawDetail?.Lot?.Product?.ProductId ??
+            rawDetail?.lot?.Product?.productId ??
+            rawDetail?.Lot?.Product?.productId ??
+            rawDetail?.lot?.productId ??
+            rawDetail?.Lot?.productId ??
+            null;
+        }
+        
+        // Debug log if still missing
+        if (!productId) {
+          console.error('ProductId not found for product:', detail.productName, {
+            detailKeys: Object.keys(detail),
+            matchedQuotationDetail: matchedQuotationDetail ? {
+              keys: Object.keys(matchedQuotationDetail),
+              ProductId: matchedQuotationDetail.ProductId,
+              productId: matchedQuotationDetail.productId,
+              ProductID: matchedQuotationDetail.ProductID,
+              productID: matchedQuotationDetail.productID,
+            } : null,
+            rawDetail: rawDetails[index] ? {
+              keys: Object.keys(rawDetails[index]),
+              lot: rawDetails[index].lot,
+              Lot: rawDetails[index].Lot,
+            } : null,
+            quotationDetailsListLength: quotationDetailsList.length,
+            quotationDetailsListSample: quotationDetailsList[0] ? Object.keys(quotationDetailsList[0]) : null,
+          });
+        }
+        
+        const lotId = detail.lotId ?? detail.LotId ?? detail.lotID ?? detail.LotID ?? null;
+        const salesOrderDetailId = detail.salesOrderDetailId ?? detail.SalesOrderDetailId ?? detail.id ?? detail.Id ?? null;
+        
+        return {
+          id: index + 1,
+          salesOrderDetailId,
+          productId,
+          lotId,
+          productName: detail.productName,
+          quantity: quantityValue,
+          unitPrice: unitPriceBeforeTax,
+          unitPriceAfterTax,
+          taxText: taxText || '-',
+          taxRate,
+          expiredDate: detail.expiredDisplay,
+          unitName: unitName || '-',
+          subtotal: quantityValue * unitPriceBeforeTax,
+          subtotalAfterTax: quantityValue * unitPriceAfterTax,
+        };
+      });
+      
+      // Validate data after loading
+      const errors = {};
+      mergedRows.forEach((row, index) => {
+        if (!row.productId || row.productId === null) {
+          errors[`row_${row.id}`] = 'Thiếu ProductId';
+        }
+        if (!row.lotId || row.lotId === null) {
+          errors[`row_${row.id}`] = (errors[`row_${row.id}`] || '') + (errors[`row_${row.id}`] ? ', ' : '') + 'Thiếu LotId';
+        }
+        if (row.quantity <= 0) {
+          errors[`row_${row.id}`] = (errors[`row_${row.id}`] || '') + (errors[`row_${row.id}`] ? ', ' : '') + 'Số lượng phải lớn hơn 0';
+        }
+      });
+      
+      if (Object.keys(errors).length > 0) {
+        console.error('Validation errors:', errors);
+        console.error('Row data:', mergedRows);
+        setEditQuantitiesErrors(errors);
+      } else {
+        setEditQuantitiesErrors({});
+      }
+      
+      setEditQuantitiesRows(mergedRows);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Không thể tải thông tin đơn hàng';
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+      setEditQuantitiesDialogOpen(false);
+    } finally {
+      setEditQuantitiesLoading(false);
+    }
   };
+
+  const handleCloseEditQuantitiesDialog = () => {
+    setEditQuantitiesDialogOpen(false);
+    setEditQuantitiesRows([]);
+    setEditQuantitiesOrderId(null);
+    setEditQuantitiesErrors({});
+  };
+
+  const handleEditQuantityChange = (rowId, newQuantity) => {
+    // Giới hạn số lượng từ 1 đến 3000
+    const quantity = Math.min(3000, Math.max(1, Number(newQuantity) || 1));
+    setEditQuantitiesRows(rows =>
+      rows.map(row => {
+        if (row.id === rowId) {
+          const subtotal = quantity * row.unitPrice;
+          const subtotalAfterTax = quantity * row.unitPriceAfterTax;
+          return {
+            ...row,
+            quantity,
+            subtotal,
+            subtotalAfterTax,
+          };
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleSaveQuantities = async () => {
+    if (!editQuantitiesOrderId || editQuantitiesRows.length === 0) {
+      setSnackbarMessage('Không có dữ liệu để cập nhật.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setEditQuantitiesLoading(true);
+    try {
+      // Validate that all rows have productId and lotId
+      const errors = {};
+      editQuantitiesRows.forEach((row) => {
+        const rowErrors = [];
+        if (!row.productId || row.productId === null || row.productId === undefined) {
+          rowErrors.push('Thiếu ProductId');
+        }
+        if (!row.lotId || row.lotId === null || row.lotId === undefined) {
+          rowErrors.push('Thiếu LotId');
+        }
+        if (row.quantity <= 0) {
+          rowErrors.push('Số lượng phải lớn hơn 0');
+        }
+        if (rowErrors.length > 0) {
+          errors[`row_${row.id}`] = rowErrors.join(', ');
+        }
+      });
+      
+      if (Object.keys(errors).length > 0) {
+        setEditQuantitiesErrors(errors);
+        setEditQuantitiesLoading(false);
+        return;
+      }
+      
+      setEditQuantitiesErrors({});
+
+      // Prepare payload according to SalesOrderUpdateDTO
+      // Backend expects: SalesOrderId, CreateBy, Details (with ProductId, LotId, Quantity)
+      const payload = {
+        SalesOrderId: editQuantitiesOrderId,
+        CreateBy: 'customer', // Backend will override this from JWT token
+        Details: editQuantitiesRows.map((row) => ({
+          ProductId: Number(row.productId),
+          LotId: Number(row.lotId),
+          Quantity: Number(row.quantity),
+        })),
+      };
+
+      await salesOrderAPI.updateDraftQuantities(editQuantitiesOrderId, payload);
+      
+      setSnackbarMessage('Cập nhật số lượng thành công.');
+      setSnackbarOpen(true);
+      handleCloseEditQuantitiesDialog();
+      fetchOrders(); // Refresh order list
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Không thể cập nhật số lượng';
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setEditQuantitiesLoading(false);
+    }
+  };
+
+  const editQuantitiesTotals = useMemo(() => {
+    const before = editQuantitiesRows.reduce((sum, row) => sum + (row.subtotal || 0), 0);
+    const after = editQuantitiesRows.reduce((sum, row) => sum + (row.subtotalAfterTax || 0), 0);
+    const tax = after - before;
+    return { before, tax, after };
+  }, [editQuantitiesRows]);
 
   const handleDelete = async (orderId) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
@@ -1741,6 +2192,20 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       paymentLabelForActions === 'Chờ cọc' &&
       hasDepositRequirement;
 
+    // Kiểm tra điều kiện hiển thị nút "Chấp thuận" (hoàn tất đơn hàng)
+    // - Trạng thái đơn hàng hiệu quả = 5 (Giao toàn bộ hàng)
+    // - Tiền đã trả = Tổng tiền đơn hàng
+    // - Đơn hàng chưa phải Complete (6)
+    const effectiveStatus = getEffectiveOrderStatus(status, order.paymentStatus, order);
+    const totalAmount = toNumberOrNull(order.totalAmount ?? order.TotalAmount ?? order.grandTotal ?? 0) ?? 0;
+    const paidAmount = toNumberOrNull(order.paidAmount ?? order.PaidAmount ?? 0) ?? 0;
+    
+    const showCompleteButton =
+      effectiveStatus === 5 && // Giao toàn bộ hàng
+      totalAmount > 0 &&
+      paidAmount >= totalAmount && // Tiền đã trả = Tổng tiền đơn hàng
+      status !== 6; // Chưa phải Complete
+
     return (
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
         {status === 0 && (
@@ -1825,20 +2290,20 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
             </IconButton>
           </Tooltip>
         )}
-        {status === 5 && (
-          <Tooltip title="Hoàn Thành" placement="bottom" arrow>
+        {showCompleteButton && (
+          <Tooltip title="Xác nhận hoàn thành đơn hàng" placement="bottom" arrow>
             <IconButton
               size="medium"
               onClick={() => handleComplete(id)}
               sx={{
-                color: '#1976d2',
+                color: '#1b5e20', // Màu xanh giống "Đã tt toàn bộ"
                 width: '40px',
                 height: '40px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 '&:hover': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                  backgroundColor: 'rgba(27, 94, 32, 0.1)',
                 },
               }}
             >
@@ -2089,8 +2554,8 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
               <MenuItem value="1">Đã Cọc</MenuItem>
               <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
               <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
-              <MenuItem value="4">Thất Bại</MenuItem>
-              <MenuItem value="5">Trả Lại Tiền</MenuItem>
+                  <MenuItem value="5">Trả Lại Cọc</MenuItem>
+                  <MenuItem value="transaction_stopped">Ngừng Giao Dịch</MenuItem>
             </Select>
           </FormControl>
           <TextField
@@ -2272,7 +2737,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         percent: order.depositPercent,
                         amount: order.depositAmount,
                       }, order, true);
-                      const color = getPaymentStatusColor(statusCode);
+                      const color = getPaymentStatusColor(statusCode, effectiveStatus, order);
                       return (
                         <Tooltip title={labelFull} arrow>
                           <Chip
@@ -2378,7 +2843,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                       );
                       return (
                         <Chip
-                          label={orderDetails.statusName || getStatusLabel(effectiveStatus)}
+                          label={getOrderStatusLabel(effectiveStatus, false)}
                           sx={getOrderStatusColor(effectiveStatus)}
                           size="small"
                         />
@@ -2399,57 +2864,24 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         return <Typography variant="body1">-</Typography>;
                       }
                       
-                      // Tính toán payment status để hiển thị dựa trên order status và số tiền (giống màn list)
-                      const totalAmountValue = toNumberOrNull(
-                        orderDetails.totalAmount ??
-                        orderDetails.TotalAmount ??
-                        orderDetails.totalPrice ??
-                        orderDetails.TotalPrice ??
-                        0
-                      ) ?? 0;
-                      
-                      const paidAmountValue = toNumberOrNull(
-                        orderDetails.paidAmount ??
-                        orderDetails.PaidAmount ??
-                        0
-                      ) ?? 0;
-                      
-                      // Tính effective order status (có thể bị override bởi payment status)
-                      const effectiveOrderStatus = getEffectiveOrderStatus(
+                      // Sử dụng cùng logic như trong bảng list
+                      const effectiveStatus = getEffectiveOrderStatus(
                         detailOrderStatus,
                         detailPaymentStatus,
                         orderDetails
                       );
-                      
-                      // Nếu đã thanh toán đủ tổng tiền, payment status = 3 (Paid)
-                      let paymentStatusForDisplay = detailPaymentStatus !== null && detailPaymentStatus !== undefined
-                        ? detailPaymentStatus
-                        : 0;
-                      
-                      if (totalAmountValue > 0 && paidAmountValue >= totalAmountValue) {
-                        paymentStatusForDisplay = 3; // Paid
-                      } else if (effectiveOrderStatus === 4) {
-                        // Nếu trạng thái đơn hàng là "Giao hàng 1 phần" → trạng thái thanh toán là "Đã thanh toán 1 phần"
-                        paymentStatusForDisplay = 2; // PartiallyPaid
-                      } else if (totalAmountValue > 0 && paidAmountValue > 0 && paidAmountValue < totalAmountValue) {
-                        // Nếu đã thanh toán một phần
-                        const depositAmountValue = toNumberOrNull(
-                          orderDetails.depositAmount ??
-                          orderDetails.DepositAmount ??
-                          0
-                        ) ?? 0;
-                        // Nếu đã cọc đủ hoặc hơn số tiền cọc yêu cầu
-                        if (depositAmountValue > 0 && paidAmountValue >= depositAmountValue) {
-                          paymentStatusForDisplay = 1; // Deposited
-                        } else {
-                          paymentStatusForDisplay = 2; // PartiallyPaid
-                        }
-                      }
-                      
-                      // Truyền effectiveOrderStatus vào để getPaymentStatusLabelByContext có thể kiểm tra
-                      const paymentLabel = getPaymentStatusLabelByContext(
-                        paymentStatusForDisplay,
-                        effectiveOrderStatus, // Truyền effectiveOrderStatus thay vì detailOrderStatus
+                      const statusCode = getPaymentStatusCodeByContext(
+                        detailPaymentStatus,
+                        effectiveStatus,
+                        {
+                          percent: orderDetails.depositPercent,
+                          amount: orderDetails.depositAmount,
+                        },
+                        orderDetails
+                      );
+                      const label = getPaymentStatusLabelByContext(
+                        detailPaymentStatus,
+                        effectiveStatus,
                         {
                           percent: orderDetails.depositPercent,
                           amount: orderDetails.depositAmount,
@@ -2458,14 +2890,12 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         false
                       );
                       
-                      return paymentLabel ? (
+                      return (
                         <Chip
-                          label={paymentLabel}
-                          sx={getPaymentStatusColor(paymentStatusForDisplay)}
+                          label={label}
                           size="small"
+                          sx={getPaymentStatusColor(statusCode, effectiveStatus, orderDetails)}
                         />
-                      ) : (
-                        <Typography variant="body1">-</Typography>
                       );
                     })()}
                   </Box>
@@ -2723,7 +3153,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                           paymentOrderDetails
                         )}
                         size="small"
-                        sx={{ ...getPaymentStatusColor(paymentOrderDetails.paymentStatus), fontWeight: 500 }}
+                        sx={{ ...getPaymentStatusColor(
+                          paymentOrderDetails.paymentStatus,
+                          paymentOrderDetails.status ?? paymentOrderDetails.orderStatus ?? null,
+                          paymentOrderDetails
+                        ), fontWeight: 500 }}
                       />
                     ) : (
                       <Typography variant="body1">-</Typography>
@@ -2900,6 +3334,180 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseRejectReason}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Quantities Dialog */}
+      <Dialog
+        className="customer-order-edit-quantities-dialog"
+        open={editQuantitiesDialogOpen}
+        onClose={handleCloseEditQuantitiesDialog}
+        maxWidth="xl"
+        fullWidth
+      >
+        <DialogTitle className="customer-order-edit-quantities-dialog-title">
+          <Typography variant="h5" component="div">
+            Sửa số lượng sản phẩm của đơn hàng
+          </Typography>
+        </DialogTitle>
+        <DialogContent className="customer-order-edit-quantities-dialog-content">
+          {editQuantitiesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : editQuantitiesRows.length > 0 ? (
+            <Box>
+              {/* Validation errors */}
+              {Object.keys(editQuantitiesErrors).length > 0 && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                    Có lỗi validation:
+                  </Typography>
+                  {Object.entries(editQuantitiesErrors).map(([key, message]) => {
+                    const rowId = key.replace('row_', '');
+                    const row = editQuantitiesRows.find(r => r.id.toString() === rowId);
+                    return (
+                      <Typography key={key} variant="body2" sx={{ color: '#d32f2f', mb: 0.5 }}>
+                        • Sản phẩm "{row?.productName || 'N/A'}": {message}
+                      </Typography>
+                    );
+                  })}
+                </Alert>
+              )}
+              
+              {/* Danh sách sản phẩm */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Danh sách sản phẩm:
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '500px', overflow: 'auto' }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50px', textAlign: 'center', backgroundColor: '#f5f5f5', textTransform: 'capitalize' }}>#</TableCell>
+                        <TableCell sx={{ backgroundColor: '#f5f5f5' }}>Tên Sản Phẩm</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Đơn vị</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Ngày hết hạn</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5' }}>Số lượng</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá trước thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'left', backgroundColor: '#f5f5f5', pl: 2 }}>Thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá sau thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
+                        <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {editQuantitiesRows.map((row, index) => {
+                        const rowError = editQuantitiesErrors[`row_${row.id}`];
+                        return (
+                        <TableRow key={row.id} sx={rowError ? { backgroundColor: '#ffebee' } : {}}>
+                          <TableCell sx={{ textAlign: 'center' }}>{index + 1}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {row.productName}
+                            </Typography>
+                            {rowError && (
+                              <Typography variant="caption" sx={{ color: '#d32f2f', display: 'block', mt: 0.5 }}>
+                                {rowError}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            {row.unitName || '-'}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            {row.expiredDate || '-'}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <TextField
+                              type="number"
+                              value={row.quantity}
+                              onChange={(e) => handleEditQuantityChange(row.id, e.target.value)}
+                              inputProps={{ min: 1, max: 3000, style: { textAlign: 'center' } }}
+                              size="small"
+                              sx={{ width: '100px' }}
+                              helperText={row.quantity >= 3000 ? 'Số lượng tối đa là 3000' : ''}
+                              FormHelperTextProps={{
+                                sx: {
+                                  margin: 0,
+                                  mt: 0.5,
+                                  fontSize: '0.75rem',
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.unitPrice)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'left', pl: 3 }}>
+                            {row.taxText || '-'}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.unitPriceAfterTax)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.subtotal)}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: 'right' }}>
+                            {formatCurrency(row.subtotalAfterTax)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Tổng tiền */}
+              <Box sx={{ mb: 2, textAlign: 'right' }}>
+                <Typography variant="body1" sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <span>Thành tiền trước thuế:</span>
+                  <Box component="span">{formatCurrency(editQuantitiesTotals.before)}</Box>
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <span>Thuế:</span>
+                  <Box component="span">{formatCurrency(editQuantitiesTotals.tax)}</Box>
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1,
+                    alignItems: 'center',
+                    fontSize: '1.25rem',
+                  }}
+                >
+                  <Typography component="span" sx={{ fontWeight: 'bold' }}>
+                    Tổng tiền sau thuế:
+                  </Typography>
+                  <Box component="span" sx={{ fontWeight: 'bold' }}>
+                    {formatCurrency(editQuantitiesTotals.after)}
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          ) : (
+            <Typography variant="body1" color="text.secondary">
+              Không có sản phẩm trong đơn hàng.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditQuantitiesDialog} disabled={editQuantitiesLoading}>
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveQuantities}
+            disabled={editQuantitiesLoading || editQuantitiesRows.length === 0}
+            sx={{
+              backgroundColor: '#155E64',
+              '&:hover': { backgroundColor: '#0D4F52' },
+            }}
+          >
+            {editQuantitiesLoading ? <CircularProgress size={22} color="inherit" /> : 'Cập nhật'}
+          </Button>
         </DialogActions>
       </Dialog>
 
