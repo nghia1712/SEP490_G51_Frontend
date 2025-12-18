@@ -21,6 +21,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -40,10 +41,31 @@ import salesOrderAPI from '../../API/salesOrderAPI';
 import salesQuotationAPI from '../../API/salesQuotationAPI';
 import paymentAPI from '../../API/paymentAPI';
 
+const MANUAL_DEPOSIT_STORAGE_KEY = 'manualDepositPendingOrders';
+
 const headerTextSx = {
   textTransform: 'capitalize',
   fontWeight: 600,
   letterSpacing: '0.03em',
+};
+
+const loadManualDepositMap = () => {
+  try {
+    const raw = localStorage.getItem(MANUAL_DEPOSIT_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveManualDepositMap = (map) => {
+  try {
+    localStorage.setItem(MANUAL_DEPOSIT_STORAGE_KEY, JSON.stringify(map || {}));
+  } catch {
+    // ignore quota / private mode errors
+  }
 };
 
 const CustomerOrderList = () => {
@@ -57,6 +79,7 @@ const CustomerOrderList = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
+  const [searchOrderCode, setSearchOrderCode] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -69,7 +92,8 @@ const CustomerOrderList = () => {
   const [vnPayInitError, setVnPayInitError] = useState('');
   const [vnPayInitLoading, setVnPayInitLoading] = useState(false);
   const [redirectingPayment, setRedirectingPayment] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay'); // 'vnpay', 'transfer', 'cash'
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay'); // 'vnpay', 'manual'
+  const [latestDepositCheck, setLatestDepositCheck] = useState(null);
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const quotationInfoCache = useRef(new Map());
@@ -326,9 +350,17 @@ const CustomerOrderList = () => {
         }
       }
       
+      // Filter by order code search
+      const keyword = (searchOrderCode || '').trim().toLowerCase();
+      if (keyword) {
+        filtered = filtered.filter((order) =>
+          (order.orderCode || '').toLowerCase().includes(keyword),
+        );
+      }
+
       return filtered;
     },
-    [orderStatusFilter, paymentStatusFilter],
+    [orderStatusFilter, paymentStatusFilter, searchOrderCode],
   );
 
   const fetchOrders = useCallback(async () => {
@@ -340,6 +372,8 @@ const CustomerOrderList = () => {
       if (response.data && response.data.data && Array.isArray(response.data.data)) {
         // Map dữ liệu từ API response sang format component
         // Backend trả về PascalCase (SalesOrderId, SalesOrderCode, etc.)
+        const manualDepositMap = loadManualDepositMap();
+
         const mappedOrders = response.data.data.map((order) => {
           // Lấy SalesOrderStatus từ backend (enum hoặc số)
           // Backend trả về SalesOrderStatus (enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6)
@@ -453,8 +487,18 @@ const CustomerOrderList = () => {
               null
           );
 
+          const id = order.SalesOrderId || order.salesOrderId;
+          let manualConfirmPending = !!manualDepositMap[id];
+
+          // Nếu backend đã cập nhật trạng thái thanh toán (không còn Pending) hoặc đã có tiền trả,
+          // tự động bỏ cờ "chờ xác nhận" ở localStorage
+          if (manualConfirmPending && (paymentStatus !== 0 || paidAmountValue > 0)) {
+            manualConfirmPending = false;
+            delete manualDepositMap[id];
+          }
+
           return {
-            id: order.SalesOrderId || order.salesOrderId,
+            id,
             quotationCode: orderCode,
             orderStatus, // Trạng thái đơn hàng
             paymentStatus, // Trạng thái thanh toán
@@ -466,8 +510,11 @@ const CustomerOrderList = () => {
             rejectReason: normalizedRejectReason || '',
             depositPercent: depositPercentValue,
             depositAmount: depositAmountValue,
+            manualConfirmPending,
           };
         });
+
+        saveManualDepositMap(manualDepositMap);
 
         setAllOrders(mappedOrders);
         setOrders(applyStatusFilter(mappedOrders));
@@ -566,7 +613,7 @@ const CustomerOrderList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [orderStatusFilter, paymentStatusFilter, sortConfig]);
+  }, [orderStatusFilter, paymentStatusFilter, sortConfig, searchOrderCode]);
 
   const handleSort = (key) => {
     const isAsc = sortConfig.key === key && sortConfig.direction === 'asc';
@@ -880,6 +927,12 @@ const getPaymentStatusCodeByContext = (paymentStatus, orderStatus, depositInfo, 
 };
 
 const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo, orderData = null, short = false) => {
+  // Trạng thái đặc biệt: khách đã xác nhận thanh toán thủ công (chuyển khoản/tiền mặt)
+  // và đang chờ nhân viên xác nhận
+  if (orderData?.manualConfirmPending) {
+    return short ? 'Chờ xác nhận' : 'Chờ xác nhận thanh toán';
+  }
+
   const statusCode = getPaymentStatusCodeByContext(paymentStatus, orderStatus, depositInfo, orderData);
   // Phân biệt "Chờ cọc" và "Chờ thanh toán" khi statusCode = 0
   if (statusCode === 0 && orderData) {
@@ -1032,6 +1085,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     setVnPayInitLoading(false);
     setRedirectingPayment(false);
     setSelectedPaymentMethod('vnpay');
+    setLatestDepositCheck(null);
     try {
       const response = await salesOrderAPI.viewDetails(orderId);
       if (response.data && response.data.data) {
@@ -1125,6 +1179,56 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         };
 
         setPaymentOrderDetails(normalizedOrder);
+
+        // Lấy thông tin yêu cầu xác nhận thanh toán manual gần nhất cho đơn này (nếu có)
+        try {
+          const dcRes = await paymentAPI.getManualDepositChecks();
+          const dcList = dcRes?.data?.data ?? [];
+          if (Array.isArray(dcList) && dcList.length > 0) {
+            const related = dcList
+              .filter((dc) => dc.salesOrderId === salesOrderId || dc.SalesOrderId === salesOrderId)
+              .sort((a, b) => {
+                const aTime = new Date(a.requestedAt ?? a.RequestedAt ?? 0).getTime();
+                const bTime = new Date(b.requestedAt ?? b.RequestedAt ?? 0).getTime();
+                return bTime - aTime;
+              });
+            if (related.length > 0) {
+              const latest = related[0];
+              const latestId = latest.id ?? latest.Id;
+
+              // Nếu trạng thái là Rejected (3) → lấy chi tiết để có RejectReason
+              if (latest.status === 3 || latest.Status === 3) {
+                try {
+                  const detailRes = await paymentAPI.getManualDepositCheckDetail(latestId);
+                  const detail = detailRes?.data?.data ?? null;
+                  if (detail) {
+                    setLatestDepositCheck(detail);
+                  } else {
+                    setLatestDepositCheck({
+                      id: latestId,
+                      status: latest.status ?? latest.Status,
+                      rejectReason: latest.rejectReason ?? latest.RejectReason ?? null,
+                    });
+                  }
+                } catch {
+                  setLatestDepositCheck({
+                    id: latestId,
+                    status: latest.status ?? latest.Status,
+                    rejectReason: latest.rejectReason ?? latest.RejectReason ?? null,
+                  });
+                }
+              } else {
+                setLatestDepositCheck({
+                  id: latestId,
+                  status: latest.status ?? latest.Status,
+                  rejectReason: null,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Không thể lấy thông tin yêu cầu xác nhận thanh toán:', e);
+        }
 
         // Nếu còn tiền cần cọc và phương thức hiện tại là VNPay thì tự động khởi tạo phiên thanh toán VNPay
         if (normalizedRemainingDeposit > 0 && selectedPaymentMethod === 'vnpay') {
@@ -1229,10 +1333,61 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
   const handleConfirmPayment = async () => {
     if (selectedPaymentMethod === 'vnpay') {
       handleVnPayCheckout();
-    } else {
-      // Với Chuyển khoản và Tiền mặt, hiển thị thông báo
-      const methodName = selectedPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
-      setSnackbarMessage(`Vui lòng liên hệ với nhân viên để xác nhận thanh toán bằng ${methodName}.`);
+      return;
+    }
+
+    if (!paymentOrderDetails?.id) {
+      setSnackbarMessage('Không tìm thấy thông tin đơn hàng để xác nhận thanh toán.');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const targetId = paymentOrderDetails.id;
+
+    try {
+      // Gửi yêu cầu kiểm tra cọc manual cho accountant
+      await salesOrderAPI.createManualDepositCheck(targetId, {
+        requestedAmount: paymentOrderDetails.remainingDeposit ?? null,
+        paymentMethod: 3, // BankTransfer
+        customerNote: null,
+      });
+
+      // Thông báo hướng dẫn cho khách
+      setSnackbarMessage(
+        'Vui lòng thanh toán theo hướng dẫn: Chuyển khoản đến tài khoản 4619300024210402 - chủ sở hữu NGUYEN QUANG TRUNG - Ngân hàng Timo. Sau khi thanh toán thành công, vui lòng chờ nhân viên xác nhận hoặc liên hệ 0398233047.'
+      );
+      setSnackbarOpen(true);
+
+      // Ghi lại vào localStorage để sau khi refresh vẫn biết đơn nào đang "Chờ xác nhận thanh toán"
+      const map = loadManualDepositMap();
+      map[targetId] = true;
+      saveManualDepositMap(map);
+
+      // Cập nhật ngay trên list hiện tại
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === targetId ? { ...order, manualConfirmPending: true } : order,
+        ),
+      );
+
+      setAllOrders((prev) =>
+        prev.map((order) =>
+          order.id === targetId ? { ...order, manualConfirmPending: true } : order,
+        ),
+      );
+
+      setPaymentOrderDetails((prev) =>
+        prev ? { ...prev, manualConfirmPending: true } : prev,
+      );
+
+      // Đóng popup để quay lại màn hình list
+      setPaymentDialogOpen(false);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.Message ||
+        'Không thể gửi yêu cầu xác nhận thanh toán. Vui lòng thử lại.';
+      setSnackbarMessage(errorMessage);
       setSnackbarOpen(true);
     }
   };
@@ -1877,66 +2032,93 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         </Alert>
       )}
 
-      {/* Filter */}
-      <Box className="customer-order-filter-container" sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="order-status-filter-label">Lọc theo trạng thái đơn hàng</InputLabel>
-          <Select
-            labelId="order-status-filter-label"
-            value={orderStatusFilter}
-            label="Lọc theo trạng thái đơn hàng"
-            onChange={(e) => setOrderStatusFilter(e.target.value)}
-          >
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="0">Nháp</MenuItem>
-            <MenuItem value="1">Đã Gửi</MenuItem>
-            <MenuItem value="2">Chấp Thuận</MenuItem>
-            <MenuItem value="3">Từ Chối</MenuItem>
-            <MenuItem value="4">Giao Hàng 1 Phần</MenuItem>
-            <MenuItem value="5">Giao Toàn Bộ Hàng</MenuItem>
-            <MenuItem value="6">Hoàn Thành</MenuItem>
-            <MenuItem value="7">Chưa Hoàn Thành</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="payment-status-filter-label">Lọc theo trạng thái thanh toán</InputLabel>
-          <Select
-            labelId="payment-status-filter-label"
-            value={paymentStatusFilter}
-            label="Lọc theo trạng thái thanh toán"
-            onChange={(e) => setPaymentStatusFilter(e.target.value)}
-          >
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="waiting_deposit">Chờ Cọc</MenuItem>
-            <MenuItem value="0">Chờ Thanh Toán</MenuItem>
-            <MenuItem value="1">Đã Cọc</MenuItem>
-            <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
-            <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
-            <MenuItem value="4">Thất Bại</MenuItem>
-            <MenuItem value="5">Trả Lại Tiền</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Loading */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
+      {/* Filter + List in one Paper */}
+      <Paper
+        elevation={2}
+        sx={{
+          mb: 3,
+          px: 2,
+          py: 2,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 2,
+          boxShadow: 2,
+        }}
+      >
+        {/* Filter */}
+        <Box
+          className="customer-order-filter-container"
+          sx={{
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="order-status-filter-label">Lọc theo trạng thái đơn hàng</InputLabel>
+            <Select
+              labelId="order-status-filter-label"
+              value={orderStatusFilter}
+              label="Lọc theo trạng thái đơn hàng"
+              onChange={(e) => setOrderStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="0">Nháp</MenuItem>
+              <MenuItem value="1">Đã Gửi</MenuItem>
+              <MenuItem value="2">Chấp Thuận</MenuItem>
+              <MenuItem value="3">Từ Chối</MenuItem>
+              <MenuItem value="4">Giao Hàng 1 Phần</MenuItem>
+              <MenuItem value="5">Giao Toàn Bộ Hàng</MenuItem>
+              <MenuItem value="6">Hoàn Thành</MenuItem>
+              <MenuItem value="7">Chưa Hoàn Thành</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="payment-status-filter-label">Lọc theo trạng thái thanh toán</InputLabel>
+            <Select
+              labelId="payment-status-filter-label"
+              value={paymentStatusFilter}
+              label="Lọc theo trạng thái thanh toán"
+              onChange={(e) => setPaymentStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="waiting_deposit">Chờ Cọc</MenuItem>
+              <MenuItem value="0">Chờ Thanh Toán</MenuItem>
+              <MenuItem value="1">Đã Cọc</MenuItem>
+              <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
+              <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
+              <MenuItem value="4">Thất Bại</MenuItem>
+              <MenuItem value="5">Trả Lại Tiền</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            label="Tìm theo mã đơn hàng"
+            placeholder="Nhập mã đơn..."
+            value={searchOrderCode}
+            onChange={(e) => setSearchOrderCode(e.target.value)}
+            sx={{ minWidth: 220 }}
+          />
         </Box>
-      )}
 
-      {/* Table */}
-      {!loading && (
-        <div className="customer-order-list-container">
-          <TableContainer 
-            component={Paper} 
-            sx={{ 
-              boxShadow: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: 2,
-              overflowX: 'auto',
-            }}
-          >
+        {/* Loading */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Table */}
+        {!loading && (
+          <div className="customer-order-list-container">
+            <TableContainer
+              sx={{
+                borderRadius: 2,
+                overflowX: 'auto',
+              }}
+            >
             <Table className="customer-order-list-table" sx={{ tableLayout: 'fixed', minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -2138,6 +2320,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         </TableContainer>
         </div>
       )}
+      </Paper>
 
       {/* Order Detail Dialog */}
       <Dialog
@@ -2590,6 +2773,22 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                       {formatCurrency(getDepositAmountValue(paymentOrderDetails))}
                     </Typography>
                   </Box>
+
+                  {latestDepositCheck && latestDepositCheck.rejectReason && (
+                    <Box sx={{ mb: 2 }}>
+                      <Alert severity="warning">
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Yêu cầu xác nhận thanh toán trước đó đã bị từ chối
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                          Lý do: {latestDepositCheck.rejectReason}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          Bạn có thể kiểm tra lại thông tin chuyển khoản và gửi yêu cầu thanh toán lại.
+                        </Typography>
+                      </Alert>
+                    </Box>
+                  )}
                 </Box>
                 
                 {/* Cột phải */}
@@ -2606,8 +2805,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         onChange={(e) => handlePaymentMethodChange(e.target.value)}
                       >
                         <MenuItem value="vnpay">VNPay</MenuItem>
-                        <MenuItem value="transfer">Chuyển khoản</MenuItem>
-                        <MenuItem value="cash">Tiền mặt</MenuItem>
+                        <MenuItem value="manual">Chuyển khoản / Tiền mặt</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
@@ -2634,32 +2832,19 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                           </>
                         )}
                       </>
-                    ) : selectedPaymentMethod === 'transfer' ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                        <Alert severity="info">
-                          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Chuyển khoản
-                          </Typography>
-                          <Typography variant="body2">
-                            Vui lòng chuyển khoản số tiền{' '}
-                            <strong>{formatCurrency(paymentOrderDetails.remainingDeposit)}</strong> đến tài khoản của chúng tôi.
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Sau khi chuyển khoản, vui lòng liên hệ với nhân viên để xác nhận thanh toán.
-                          </Typography>
-                        </Alert>
-                      </Box>
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                         <Alert severity="info">
                           <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Tiền mặt
+                            Thanh toán bằng Chuyển khoản / Tiền mặt
                           </Typography>
                           <Typography variant="body2">
-                            Số tiền cần thanh toán: <strong>{formatCurrency(paymentOrderDetails.remainingDeposit)}</strong>
+                            Vui lòng chuyển khoản số tiền{' '}
+                            <strong>{formatCurrency(paymentOrderDetails.remainingDeposit)}</strong> đến tài khoản{' '}
+                            <strong>4619300024210402</strong> - chủ sở hữu <strong>NGUYEN QUANG TRUNG</strong> - Ngân hàng <strong>Timo</strong>.
                           </Typography>
                           <Typography variant="body2" sx={{ mt: 1 }}>
-                            Vui lòng liên hệ với nhân viên để thực hiện thanh toán bằng tiền mặt.
+                            Sau khi thanh toán thành công, vui lòng chờ nhân viên để xác nhận thanh toán hoặc liên hệ với nhân viên qua số điện thoại <strong>0398233047</strong>.
                           </Typography>
                         </Alert>
                       </Box>
@@ -2687,9 +2872,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
               ? 'Đang chuyển hướng...' 
               : selectedPaymentMethod === 'vnpay' 
                 ? 'Thanh toán VNPay' 
-                : selectedPaymentMethod === 'transfer'
-                  ? 'Xác nhận Chuyển khoản'
-                  : 'Xác nhận Tiền mặt'}
+                : 'Xác nhận thanh toán'}
           </Button>
         </DialogActions>
       </Dialog>

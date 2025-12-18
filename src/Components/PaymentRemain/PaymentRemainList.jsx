@@ -28,6 +28,7 @@ import {
   DialogActions,
   FormControl,
   InputLabel,
+  TextField,
 } from "@mui/material";
 import { Visibility, Payment as PaymentIcon } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
@@ -48,6 +49,7 @@ const PaymentRemainList = () => {
 
   const [filters, setFilters] = useState({
     status: "",
+    searchCode: "",
   });
 
   const [page, setPage] = useState(1);
@@ -133,6 +135,12 @@ const PaymentRemainList = () => {
           item.RequestCreatedAt ??
           item.createdAt ??
           item.CreatedAt ??
+          null,
+        paymentDate:
+          item.paymentDate ??
+          item.PaymentDate ??
+          item.paidAt ??
+          item.PaidAt ??
           null,
         invoiceId: item.invoiceId ?? item.InvoiceId ?? null,
         salesOrderId: item.salesOrderId ?? item.SalesOrderId ?? null,
@@ -227,6 +235,35 @@ const PaymentRemainList = () => {
     getList();
   }, [customerId, userRole]);
 
+  // Áp dụng filter trạng thái + search trên FE mỗi khi filters/fullList thay đổi
+  useEffect(() => {
+    let filtered = fullList;
+
+    // Lọc theo trạng thái
+    if (filters.status !== "") {
+      const statusVal = Number(filters.status);
+      filtered = filtered.filter(
+        (item) =>
+          (item.vnPayStatus ?? item.VnPayStatus ?? item.paymentStatus ?? -1) ===
+          statusVal
+      );
+    }
+
+    // Lọc theo mã đơn hàng / mã hóa đơn
+    const keyword = (filters.searchCode || "").trim().toLowerCase();
+    if (keyword) {
+      filtered = filtered.filter((item) => {
+        const invoice = (item.invoiceCode || "").toLowerCase();
+        const order = (item.salesOrderCode || "").toLowerCase();
+        return invoice.includes(keyword) || order.includes(keyword);
+      });
+    }
+
+    setList(filtered);
+    setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
+    setPage(1);
+  }, [filters, fullList, pageSize]);
+
 
   // Hàm lấy màu cho trạng thái thanh toán (giống CustomerOrderList)
   const getPaymentStatusColor = (status) => {
@@ -266,39 +303,35 @@ const PaymentRemainList = () => {
     );
   };
 
-  const renderPaymentMethod = (m) => {
-    switch (m) {
-      case 0:
-        return "-";
-      case 1:
-        return "VnPay";
-      case 2:
-        return "Tiền mặt";
-      case 3:
-        return "Chuyển khoản ngân hàng";
-      default:
-        return "Không xác định";
-    }
+  // Format date DD/MM/YYYY
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  const renderPaymentType = (t) => {
-    switch (t) {
-      case 1:
-        return "Thanh toán còn lại";
-      case 0:
-        return "Thanh toán toàn bộ";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  // Format currency
+  // Format currency with "đ" gạch chân (giống màn hóa đơn)
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '-';
     const formatted = new Intl.NumberFormat('vi-VN')
       .format(amount)
       .replace(/\./g, ',');
-    return `${formatted} ₫`;
+    return (
+      <Box
+        component="span"
+        sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}
+      >
+        <Box component="span">{formatted}</Box>
+        <Box component="span" sx={{ textDecoration: 'underline' }}>
+          đ
+        </Box>
+      </Box>
+    );
   };
 
   // Init VNPay for Invoice
@@ -644,58 +677,83 @@ const PaymentRemainList = () => {
         </Typography>
       </Box>
 
-      {/* Filter */}
-      <Box className="payment-remain-filter-container" sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
-          <Select
-            labelId="status-filter-label"
-            value={filters.status === "" ? "all" : String(filters.status)}
-            label="Lọc theo trạng thái"
-            onChange={(e) => {
-              const val = e.target.value === "all" ? "" : Number(e.target.value);
-              setFilters({ ...filters, status: val });
+      {/* Filter + List in one Paper */}
+      <Paper
+        elevation={2}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          boxShadow: 2,
+          mb: 2,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        }}
+      >
+        {/* Filter */}
+        <Box
+          className="payment-remain-filter-container"
+          sx={{
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
+            <Select
+              labelId="status-filter-label"
+              value={filters.status === "" ? "all" : String(filters.status)}
+              label="Lọc theo trạng thái"
+              onChange={(e) => {
+                const val = e.target.value === "all" ? "" : Number(e.target.value);
+                setFilters((prev) => ({ ...prev, status: val }));
+              }}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value={0}>Chờ thanh toán</MenuItem>
+              <MenuItem value={1}>Đã đặt cọc</MenuItem>
+              <MenuItem value={2}>Thanh toán một phần</MenuItem>
+              <MenuItem value={3}>Đã thanh toán</MenuItem>
+              <MenuItem value={4}>Hoàn tiền</MenuItem>
+            </Select>
+          </FormControl>
 
-              let filtered = fullList;
-
-              if (val !== "") {
-                filtered = filtered.filter((item) => item.vnPayStatus === val);
-              }
-
-              setList(filtered);
-              setTotalPages(Math.ceil(filtered.length / pageSize));
-              setPage(1);
+          <TextField
+            size="small"
+            label="Tìm theo mã hóa đơn/ mã đơn hàng"
+            placeholder="Nhập mã hóa đơn hoặc mã đơn hàng..."
+            value={filters.searchCode}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, searchCode: e.target.value }))
+            }
+            sx={{
+              minWidth: 220,
+              maxWidth: 220,
+              '& .MuiInputBase-root': {
+                width: 220,
+              },
             }}
-          >
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value={0}>Chờ thanh toán</MenuItem>
-            <MenuItem value={1}>Đã đặt cọc</MenuItem>
-            <MenuItem value={2}>Thanh toán một phần</MenuItem>
-            <MenuItem value={3}>Đã thanh toán</MenuItem>
-            <MenuItem value={4}>Hoàn tiền</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Loading */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
+          />
         </Box>
-      )}
 
-      {/* Table */}
-      {!loading && (
-        <div className="payment-remain-list-container">
-          <TableContainer 
-            component={Paper} 
-            sx={{ 
-              boxShadow: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: 2,
-              overflowX: 'auto',
-            }}
-          >
+        {/* Loading */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Table */}
+        {!loading && (
+          <div className="payment-remain-list-container">
+            <TableContainer
+              sx={{
+                borderRadius: 2,
+                overflowX: 'auto',
+              }}
+            >
             <Table className="payment-remain-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -712,28 +770,25 @@ const PaymentRemainList = () => {
                   >
                   #
                   </TableCell>
-                  <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Mã đơn hàng
-                  </TableCell>
                   <TableCell sx={{ width: '18%', py: 1.5, px: 2, ...headerTextSx }}>
                     Mã hóa đơn
                   </TableCell>
                   <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Loại thanh toán
+                    Mã đơn hàng
                   </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, textAlign: 'center', ...headerTextSx }}>
-                    Phương thức
+                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                    Ngày yêu cầu
                   </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
+                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                    Ngày thanh toán
+                  </TableCell>
+                  <TableCell sx={{ width: '15%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
                     Số tiền
                   </TableCell>
                   <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
                     Trạng thái
                   </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Ngày yêu cầu
-                  </TableCell>
-                  <TableCell sx={{ width: '10%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
+                  <TableCell sx={{ width: '9%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
                     Hành động
                   </TableCell>
                 </TableRow>
@@ -741,7 +796,7 @@ const PaymentRemainList = () => {
               <TableBody>
                 {paginatedList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} sx={{ textAlign: 'center', py: 3 }}>
+                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 3 }}>
                       <Typography variant="body2" color="text.secondary">
                         Chưa có yêu cầu thanh toán nào.
                       </Typography>
@@ -764,28 +819,17 @@ const PaymentRemainList = () => {
                       }}
                     >
                       <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
+                      <TableCell>{item.invoiceCode}</TableCell>
                       <TableCell>
                         {item.salesOrderCode || item.salesOrderId}
                       </TableCell>
-                      <TableCell>{item.invoiceCode}</TableCell>
-                      <TableCell>
-                        {renderPaymentType(item.paymentType)}
-                      </TableCell>
-                      <TableCell align="center">
-                        {renderPaymentMethod(item.paymentMethod)}
-                      </TableCell>
+                      <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
+                      <TableCell>{formatDate(item.paymentDate)}</TableCell>
                       <TableCell align="right">
-                        {item.amount.toLocaleString()} ₫
+                        {formatCurrency(item.amount)}
                       </TableCell>
                       <TableCell>
                         {renderStatus(item.vnPayStatus)}
-                      </TableCell>
-                      <TableCell>
-                        {item.requestCreatedAt
-                          ? new Date(
-                              item.requestCreatedAt
-                            ).toLocaleDateString("vi-VN")
-                          : "-"}
                       </TableCell>
                       <TableCell align="right">
                         <Stack
@@ -846,6 +890,7 @@ const PaymentRemainList = () => {
           </TableContainer>
         </div>
       )}
+      </Paper>
 
       {/* Detail Dialog */}
       <PaymentRemainDetail

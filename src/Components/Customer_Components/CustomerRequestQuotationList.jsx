@@ -78,6 +78,7 @@ const CustomerRequestQuotationList = () => {
   const [editError, setEditError] = useState(null); // Error riêng cho dialog edit
   const [createError, setCreateError] = useState(null); // Error riêng cho dialog create
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchCode, setSearchCode] = useState('');
   const [quotationDetailDialogOpen, setQuotationDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] = useState(null);
   const [selectedQuotationMeta, setSelectedQuotationMeta] = useState(null);
@@ -538,16 +539,22 @@ const CustomerRequestQuotationList = () => {
   };
 
   const filteredRequests = React.useMemo(() => {
-    if (statusFilter === 'all') return requests.map((req, idx) => ({ ...req, displayIndex: idx }));
-    const statusValue = Number(statusFilter);
-    let counter = 0;
-    return requests
-      .filter((req) => req.status === statusValue)
-      .map((req) => ({
-        ...req,
-        displayIndex: counter++,
-      }));
-  }, [requests, statusFilter]);
+    let base = requests;
+
+    // Lọc theo trạng thái
+    if (statusFilter !== 'all') {
+      const statusValue = Number(statusFilter);
+      base = base.filter((req) => req.status === statusValue);
+    }
+
+    // Lọc theo mã yêu cầu báo giá
+    const keyword = (searchCode || '').trim().toLowerCase();
+    if (keyword) {
+      base = base.filter((req) => (req.code || '').toLowerCase().includes(keyword));
+    }
+
+    return base.map((req, idx) => ({ ...req, displayIndex: idx }));
+  }, [requests, statusFilter, searchCode]);
 
   // Sort requests based on sortConfig
   const sortedRequests = React.useMemo(() => {
@@ -599,7 +606,7 @@ const CustomerRequestQuotationList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, searchCode]);
 
   const totalPages = Math.max(1, Math.ceil(sortedRequests.length / pageSize));
   const paginatedRequests = React.useMemo(() => {
@@ -1517,60 +1524,89 @@ const CustomerRequestQuotationList = () => {
         </Alert>
       )}
 
-      {/* Filter + Create Button */}
-      <Box className="customer-request-quotation-filter-container" sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
-          <Select
-            labelId="status-filter-label"
-            value={statusFilter}
-            label="Lọc theo trạng thái"
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="0">Nháp</MenuItem>
-            <MenuItem value="1">Đã gửi</MenuItem>
-            <MenuItem value="2">Đã báo giá</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreate}
+      {/* Filter + List in one Paper */}
+      <Paper
+        elevation={2}
+        sx={{
+          mb: 3,
+          px: 2,
+          py: 2,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 2,
+          boxShadow: 2,
+        }}
+      >
+        {/* Filter */}
+        <Box
           sx={{
-            backgroundColor: '#155E64',
-            '&:hover': {
-              backgroundColor: '#0D4F52',
-            },
-            borderRadius: '8px',
-            px: 3,
-            py: 1.5,
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
           }}
         >
-          Tạo yêu cầu báo giá
-        </Button>
-      </Box>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
+              <Select
+                labelId="status-filter-label"
+                value={statusFilter}
+                label="Lọc theo trạng thái"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tất cả</MenuItem>
+                <MenuItem value="0">Nháp</MenuItem>
+                <MenuItem value="1">Đã gửi</MenuItem>
+                <MenuItem value="2">Đã báo giá</MenuItem>
+              </Select>
+            </FormControl>
 
-      {/* Loading */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
+            <TextField
+              size="small"
+              label="Tìm theo mã yêu cầu báo giá"
+              placeholder="Nhập mã RSQ..."
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              sx={{ minWidth: 260 }}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreate}
+            sx={{
+              backgroundColor: '#155E64',
+              '&:hover': {
+                backgroundColor: '#0D4F52',
+              },
+              borderRadius: '8px',
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            Tạo yêu cầu báo giá
+          </Button>
         </Box>
-      )}
 
-      {/* Table */}
-      {!loading && (
-        <div className="customer-request-quotation-list-container">
-        <TableContainer 
-          component={Paper} 
-          sx={{ 
-            boxShadow: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: 2,
-            overflowX: 'auto',
-          }}
-        >
+        {/* Loading */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Table */}
+        {!loading && (
+          <div className="customer-request-quotation-list-container">
+          <TableContainer 
+            sx={{ 
+              borderRadius: 2,
+              overflowX: 'auto',
+            }}
+          >
           <Table className="customer-request-quotation-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -1798,6 +1834,7 @@ const CustomerRequestQuotationList = () => {
         </TableContainer>
         </div>
       )}
+      </Paper>
 
       {/* Detail Dialog */}
       <Dialog

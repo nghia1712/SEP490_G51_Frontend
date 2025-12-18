@@ -76,6 +76,7 @@ import PaymentRemainList from "./Components/PaymentRemain/PaymentRemainList.jsx"
 import CustomerDebtList from "./Components/Debt_Components/CustomerDebtList.jsx";
 import AboutPharmacy from "./Components/Guest_Components/AboutPharmacy.jsx";
 import CreatePOFromPQ from "./Components/Purchases_Components/PO/CreatePOFromPQ.jsx";
+import AccountantDepositChecks from "./Components/Accountant_Components/AccountantDepositChecks.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -927,6 +928,16 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["accountant_staff"]}>
                             <PaymentRemainList />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Manual deposit checks - Accountant route */}
+                      <Route
+                        path="/accountant/deposit-checks"
+                        element={
+                          <ProtectedRoute allowedRoles={["accountant_staff"]}>
+                            <AccountantDepositChecks />
                           </ProtectedRoute>
                         }
                       />
