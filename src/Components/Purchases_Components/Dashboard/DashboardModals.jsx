@@ -100,7 +100,7 @@ export const DashboardModals = ({
       >
         <Modal.Header className="border-0 pb-0">
           <Modal.Title className="fw-bold">
-            Chi tiết chi tiêu tháng này
+            Các đơn hàng dự kiến trong tháng này
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={modalBodyStyle}>

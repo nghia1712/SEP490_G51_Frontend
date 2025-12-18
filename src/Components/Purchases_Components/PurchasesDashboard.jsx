@@ -145,7 +145,6 @@ function PurchasesDashboard() {
     if (!poList || !poList.length) return;
 
     const filteredPOs = poList.filter((po) => po.status !== 7);
-    console.log("AAAAAAAAAA", filteredPOs);
     const statusGroups = filteredPOs.reduce((acc, po) => {
       const label = statusMap[po.status]?.label || "Khác";
 
@@ -218,9 +217,13 @@ function PurchasesDashboard() {
         );
 
         return {
-          month: `T${i + 1}`,
+          month: i + 1,
           total: ordersWithName.reduce(
             (sum, o) => sum + Number(o.deposit || 0),
+            0
+          ),
+          debt: ordersWithName.reduce(
+            (sum, o) => sum + Number((o.total || 0) - (o.deposit || 0)),
             0
           ),
           orders: ordersWithName,
@@ -270,8 +273,9 @@ function PurchasesDashboard() {
     ];
 
     const recentOrders = poList
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
+      .filter((po) => po.status !== 7)
+      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+      .slice(0, 10);
 
     setPurchasesData({
       monthlySpending,
@@ -284,7 +288,7 @@ function PurchasesDashboard() {
 
   // ================== FILTERING ==================
   const filteredOrders = purchasesData.recentOrders.filter((order) => {
-    const supplier = order.supplier ?? "";
+    const supplier = order.supplierName ?? "";
     const products = order.products ?? "";
     const poid = `PO-${order.poid}`;
 
@@ -458,7 +462,7 @@ function PurchasesDashboard() {
           <Col lg={8} className="d-flex">
             <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
               <Card.Header className="bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <h5 className="fw-bold mb-0">Đơn hàng gần đây</h5>
+                <h5 className="fw-bold mb-0">Top 10 đơn hàng gần đây</h5>
                 <div className="d-flex gap-2">
                   <InputGroup size="sm" style={{ width: "250px" }}>
                     <InputGroup.Text className="bg-light border-0">
@@ -490,14 +494,19 @@ function PurchasesDashboard() {
               </Card.Header>
 
               <Card.Body className="p-0">
-                <div className="table-responsive">
+                <div
+                  className="table-responsive"
+                  style={{ maxHeight: "300px", overflowY: "auto" }}
+                >
                   <Table hover className="table-borderless align-middle mb-0">
                     <thead className="bg-light text-muted">
                       <tr>
-                        <th className="ps-4 py-3 fw-semibold">Mã Đơn</th>
+                        <th className="ps-4 fw-semibold">Mã Đơn</th>
                         <th className="fw-semibold">Nhà cung cấp</th>
                         <th className="fw-semibold">Ngày tạo</th>
                         <th className="fw-semibold text-end">Tổng tiền</th>
+                        <th className="fw-semibold text-end">Đã trả</th>
+                        <th className="fw-semibold text-end">Còn nợ</th>
                         <th className="pe-4 fw-semibold text-center">
                           Trạng thái
                         </th>
@@ -522,6 +531,14 @@ function PurchasesDashboard() {
                             </td>
                             <td className="fw-bold text-end">
                               {formatCurrency(order.total)}
+                            </td>
+                            <td className="fw-bold text-end text-success">
+                              {formatCurrency(order.deposit || 0)}
+                            </td>
+                            <td className="fw-bold text-end text-danger">
+                              {formatCurrency(
+                                (order.total || 0) - (order.deposit || 0)
+                              )}
                             </td>
                             <td className="pe-4 text-center">
                               {getStatusBadge(order.status)}
