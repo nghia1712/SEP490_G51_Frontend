@@ -44,14 +44,17 @@ import {
   NoteAdd,
   WarningAmber,
   Storefront,
+  Cancel,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
 import useGIN from "../../../Hooks/useGIN";
+import StockExportModal from "./StockExportModal";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function StockExportList() {
-  const { data, loading, refetch, deleteOrder, sendOrder } = useStockExport();
+  const { data, loading, refetch, deleteOrder, sendOrder, cancelSalesOrder } =
+    useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -78,6 +81,30 @@ export default function StockExportList() {
     setUserRole(role);
     refetch();
   }, []);
+
+  const [cancelConfirm, setCancelConfirm] = useState({
+    open: false,
+    salesOrderId: null,
+  });
+
+  const openCancelConfirm = (salesOrderId) =>
+    setCancelConfirm({ open: true, salesOrderId });
+
+  const closeCancelConfirm = () =>
+    setCancelConfirm({ open: false, salesOrderId: null });
+
+  const handleCancelSalesOrder = async () => {
+    const res = await cancelSalesOrder(cancelConfirm.salesOrderId);
+
+    if (res.success) {
+      showSnack(res.message || "Đã hủy đơn hàng", "success");
+      refetch();
+    } else {
+      showSnack(res.message || "Hủy đơn thất bại", "error");
+    }
+
+    closeCancelConfirm();
+  };
 
   const showSnack = (msg, severity = "success") =>
     setSnack({ open: true, message: msg, severity });
@@ -453,6 +480,19 @@ export default function StockExportList() {
                                   </IconButton>
                                 </Tooltip>
                               )}
+                            {userRole === "sales_staff" &&
+                              item.status === 3 && (
+                                <Tooltip title="Xác nhận hủy đơn hàng">
+                                  <IconButton
+                                    color="error"
+                                    onClick={() =>
+                                      openCancelConfirm(item.salesOrderId)
+                                    }
+                                  >
+                                    <Cancel />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
 
                             {userRole === "warehouse_staff" &&
                               item.status === 1 &&
@@ -525,120 +565,25 @@ export default function StockExportList() {
           </CardContent>
         </Card>
       </Container>
-
-      {/* Detail Dialog */}
-      <Dialog
-        open={detailOpen}
-        onClose={handleCloseDetail}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle fontWeight={"bold"}>Chi tiết yêu cầu xuất kho</DialogTitle>
-        <DialogContent dividers>
-          {detailLoading ? (
-            <Stack alignItems="center" p={3}>
-              <CircularProgress />
-            </Stack>
-          ) : detailData ? (
-            <Box>
-              <Typography>
-                <b>Mã đơn hàng:</b> {detailData.salesOrderCode}
-              </Typography>
-              <Typography>
-                <b>Người tạo:</b> {detailData.createBy}
-              </Typography>
-              <Typography>
-                <b>Ngày gửi:</b>{" "}
-                {detailData.requestDate
-                  ? new Date(detailData.requestDate).toLocaleDateString("vi-EN")
-                  : "—"}
-              </Typography>
-              <Typography>
-                <b>Ngày giao hàng:</b>{" "}
-                {detailData.dueDate
-                  ? new Date(detailData.dueDate).toLocaleDateString("vi-EN")
-                  : "—"}
-              </Typography>
-              <Typography>
-                <b>Trạng thái:</b>{" "}
-                <Chip
-                  label={getStatus(detailData.status).label}
-                  color={getStatus(detailData.status).color}
-                  size="small"
-                />
-              </Typography>
-
-              <Typography variant="h6" sx={{ mt: 2 }}>
-                Danh sách sản phẩm
-              </Typography>
-              <Table size="small">
-                <TableHead
-                  sx={{
-                    backgroundColor: "#f5f5f5",
-                    "& .MuiTableCell-root": { fontWeight: "bold" },
-                  }}
-                >
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Tên SP</TableCell>
-                    <TableCell>Hạn dùng</TableCell>
-                    <TableCell>Số lượng</TableCell>
-                    <TableCell>Đơn vị</TableCell>
-                    {/* <TableCell>Kho</TableCell>
-                    <TableCell>Vị trí</TableCell> */}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {detailData.details?.map((d, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{d.productName}</TableCell>
-                      <TableCell>
-                        {new Date(d.expiredDate).toLocaleDateString("vi-EN")}
-                      </TableCell>
-                      <TableCell>{d.quantity}</TableCell>
-                      <TableCell>{d.unit}</TableCell>
-                      {/* <TableCell>{d.warehouseName}</TableCell>
-                      <TableCell>{d.locationName}</TableCell> */}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          ) : (
-            <Typography>Không có dữ liệu</Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetail}>Đóng</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Confirm Delete */}
-      <Dialog open={confirmData.open} onClose={closeConfirm}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>
-          Bạn có chắc chắn muốn xóa yêu cầu này không?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeConfirm}>Hủy</Button>
-          <Button color="error" onClick={handleConfirmDelete}>
-            Xóa
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={2500}
-        onClose={() => setSnack({ ...snack, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={snack.severity} variant="filled">
-          {snack.message}
-        </Alert>
-      </Snackbar>
+      <StockExportModal
+        /* ===== DETAIL ===== */
+        detailOpen={detailOpen}
+        onCloseDetail={handleCloseDetail}
+        detailLoading={detailLoading}
+        detailData={detailData}
+        getStatus={getStatus}
+        /* ===== DELETE ===== */
+        deleteOpen={confirmData.open}
+        onCloseDelete={closeConfirm}
+        onConfirmDelete={handleConfirmDelete}
+        /* ===== CANCEL ===== */
+        cancelOpen={cancelConfirm.open}
+        onCloseCancel={closeCancelConfirm}
+        onConfirmCancel={handleCancelSalesOrder}
+        /* ===== SNACK ===== */
+        snack={snack}
+        onCloseSnack={() => setSnack({ ...snack, open: false })}
+      />
     </Box>
   );
 }

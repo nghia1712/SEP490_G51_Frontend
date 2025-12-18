@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import stockExportApi from "../API/stockExportAPI";
+import salesOrderAPI from "../API/salesOrderAPI";
 
 export const mapStockExportStatus = (status) => {
   switch (status) {
@@ -111,7 +112,7 @@ export default function useStockExport(id = null) {
   }, [id]);
 
   // =========================
-  
+
   // =========================
   const getOrderInfor = async (orderId) => {
     try {
@@ -119,6 +120,26 @@ export default function useStockExport(id = null) {
       return { success: true, data: res.data };
     } catch (err) {
       return { success: false, error: err };
+    }
+  };
+
+  // =========================
+  // CANCEL SALES ORDER (NotComplete)
+  // =========================
+  const cancelSalesOrder = async (salesOrderId) => {
+    try {
+      const res = await salesOrderAPI.markNotComplete(salesOrderId);
+      return {
+        success: res?.data?.success ?? true,
+        message: res?.data?.message,
+        data: res?.data?.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message || "Hủy đơn hàng thất bại",
+        error: err,
+      };
     }
   };
 
@@ -134,5 +155,7 @@ export default function useStockExport(id = null) {
     deleteOrder,
     sendOrder,
     getOrderInfor,
+
+    cancelSalesOrder,
   };
 }
