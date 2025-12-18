@@ -29,8 +29,21 @@ const stockExportApi = {
     authorApi.delete(`${API_URL}/delete-stock-export-order?seoId=${seoId}`),
 
   getOrderInfor: (orderId) =>
-  authorApi.get(`${API_URL}/stock-export-order-form`, { params: { soId: orderId } }),
+    authorApi.get(`${API_URL}/stock-export-order-form`, {
+      params: { soId: orderId },
+    }),
 
+  // ✅ POST: Chờ xuất kho (Sales Staff)
+  awaitStockExport: (seoId) =>
+    authorApi.post(`${API_URL}/await-stock-export-order`, null, {
+      params: { seoId },
+    }),
+
+  // ✅ POST: Kiểm tra sẵn sàng xuất kho (Warehouse Staff)
+  checkReadyToExport: (seoId) =>
+    authorApi.post(`${API_URL}/check-ready-to-export`, null, {
+      params: { seoId },
+    }),
 };
 
 export default stockExportApi;

@@ -32,9 +32,9 @@ export default function StockExportModal({
   onConfirmDelete,
 
   // ===== CANCEL SALES ORDER =====
-  cancelOpen,
-  onCloseCancel,
-  onConfirmCancel,
+  // cancelOpen,
+  // onCloseCancel,
+  // onConfirmCancel,
 
   // ===== SNACKBAR =====
   snack,
@@ -127,25 +127,6 @@ export default function StockExportModal({
           <Button onClick={onCloseDelete}>Hủy</Button>
           <Button color="error" onClick={onConfirmDelete}>
             Xóa
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ================= CANCEL SALES ORDER ================= */}
-      <Dialog open={cancelOpen} onClose={onCloseCancel}>
-        <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Đơn hàng sẽ được chuyển sang <b>Không hoàn thành</b>.
-          </Typography>
-          <Typography color="error" sx={{ mt: 1 }}>
-            Bạn có chắc chắn muốn tiếp tục?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onCloseCancel}>Hủy</Button>
-          <Button color="error" onClick={onConfirmCancel}>
-            Xác nhận
           </Button>
         </DialogActions>
       </Dialog>

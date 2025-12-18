@@ -44,7 +44,7 @@ import {
   NoteAdd,
   WarningAmber,
   Storefront,
-  Cancel,
+  FactCheck,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
@@ -53,7 +53,7 @@ import StockExportModal from "./StockExportModal";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function StockExportList() {
-  const { data, loading, refetch, deleteOrder, sendOrder, cancelSalesOrder } =
+  const { data, loading, refetch, deleteOrder, sendOrder, checkReadyToExport } =
     useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
@@ -93,30 +93,6 @@ export default function StockExportList() {
     }
   }, [state]);
 
-  const [cancelConfirm, setCancelConfirm] = useState({
-    open: false,
-    salesOrderId: null,
-  });
-
-  const openCancelConfirm = (salesOrderId) =>
-    setCancelConfirm({ open: true, salesOrderId });
-
-  const closeCancelConfirm = () =>
-    setCancelConfirm({ open: false, salesOrderId: null });
-
-  const handleCancelSalesOrder = async () => {
-    const res = await cancelSalesOrder(cancelConfirm.salesOrderId);
-
-    if (res.success) {
-      showSnack(res.message || "Đã hủy đơn hàng", "success");
-      refetch();
-    } else {
-      showSnack(res.message || "Hủy đơn thất bại", "error");
-    }
-
-    closeCancelConfirm();
-  };
-
   const showSnack = (msg, severity = "success") =>
     setSnack({ open: true, message: msg, severity });
   const openConfirm = (id) => setConfirmData({ open: true, id });
@@ -152,20 +128,48 @@ export default function StockExportList() {
     }
   };
 
+  const handleCheckReady = async (item) => {
+    const res = await checkReadyToExport(item.id);
+
+    if (res.success) {
+      showSnack(res.message || "Kho đủ hàng, sẵn sàng xuất!", "success");
+
+      setNotEnoughMap((prev) => {
+        const updated = { ...prev, [item.id]: false };
+        localStorage.setItem("notEnoughMap", JSON.stringify(updated));
+        return updated;
+      });
+
+      refetch();
+      return;
+    }
+
+    const msg =
+      res.message || res?.error?.response?.data?.message || "Kho không đủ hàng";
+
+    showSnack(msg, "warning");
+
+    setNotEnoughMap((prev) => {
+      const updated = { ...prev, [item.id]: true };
+      localStorage.setItem("notEnoughMap", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const getStatus = (status) => {
     switch (status) {
       case 0:
         return { label: "Nháp", color: "default" };
       case 1:
-        return { label: "Chở xử lý", color: "info" };
+        return { label: "Chở xử lý", color: "warning" };
       case 2:
         return { label: "Đã có phiếu xuất", color: "success" };
       case 3:
         return { label: "Không đủ hàng", color: "secondary" };
-      case 4:
-        return { label: "Quá hạn", color: "error" };
       case 5:
         return { label: "Đã hủy", color: "error" };
+      case 6:
+        return { label: "Sẵn sàng", color: "primary" };
       default:
         return { label: "Không xác định", color: "default" };
     }
@@ -334,6 +338,7 @@ export default function StockExportList() {
                       <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
                       <MenuItem value={3}>Không đủ hàng</MenuItem>
                       <MenuItem value={5}>Đã hủy</MenuItem>
+                      <MenuItem value={6}>Sẵn sàng</MenuItem>
                     </Select>
                   </FormControl>
 
@@ -479,29 +484,26 @@ export default function StockExportList() {
                                 <Visibility />
                               </IconButton>
                             </Tooltip> */}
+                            {userRole === "warehouse_staff" &&
+                              item.status === 1 && (
+                                <Tooltip title="Kiểm tra sẵn sàng xuất kho">
+                                  <IconButton
+                                    color="success"
+                                    onClick={() => handleCheckReady(item)}
+                                  >
+                                    <FactCheck />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
 
                             {userRole === "warehouse_staff" &&
-                              item.status === 1 &&
-                              !notEnoughMap[item.id] && (
+                              item.status === 6 && (
                                 <Tooltip title="Tạo phiếu xuất kho">
                                   <IconButton
                                     color="secondary"
                                     onClick={() => handleCreateGIN(item)}
                                   >
                                     <NoteAdd />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            {userRole === "sales_staff" &&
-                              item.status === 3 && (
-                                <Tooltip title="Xác nhận hủy đơn hàng">
-                                  <IconButton
-                                    color="error"
-                                    onClick={() =>
-                                      openCancelConfirm(item.salesOrderId)
-                                    }
-                                  >
-                                    <Cancel />
                                   </IconButton>
                                 </Tooltip>
                               )}
@@ -588,10 +590,6 @@ export default function StockExportList() {
         deleteOpen={confirmData.open}
         onCloseDelete={closeConfirm}
         onConfirmDelete={handleConfirmDelete}
-        /* ===== CANCEL ===== */
-        cancelOpen={cancelConfirm.open}
-        onCloseCancel={closeCancelConfirm}
-        onConfirmCancel={handleCancelSalesOrder}
         /* ===== SNACK ===== */
         snack={snack}
         onCloseSnack={() => setSnack({ ...snack, open: false })}

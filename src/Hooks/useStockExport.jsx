@@ -12,8 +12,12 @@ export const mapStockExportStatus = (status) => {
       return "Đã xuất kho";
     case 3:
       return "Quá hạn";
+    case 4:
+      return "Chờ hàng";
     case 5:
       return "Đã hủy";
+    case 6:
+      return "Sẵn sàng";
     default:
       return "Không xác định";
   }
@@ -143,6 +147,48 @@ export default function useStockExport(id = null) {
     }
   };
 
+  // =========================
+  // AWAIT STOCK EXPORT (Sales Staff)
+  // =========================
+  const awaitStockExport = async (seoId) => {
+    try {
+      const res = await stockExportApi.awaitStockExport(seoId);
+      return {
+        success: true,
+        message: res?.data?.message,
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err?.response?.data?.message || "Chuyển sang chờ xuất kho thất bại",
+        error: err,
+      };
+    }
+  };
+
+  // =========================
+  // CHECK READY TO EXPORT (Warehouse Staff)
+  // =========================
+  const checkReadyToExport = async (seoId) => {
+    try {
+      const res = await stockExportApi.checkReadyToExport(seoId);
+      return {
+        success: true,
+        message: res?.data?.message,
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message:
+          err?.response?.data?.message || "Kiểm tra sẵn sàng xuất kho thất bại",
+        error: err,
+      };
+    }
+  };
+
   return {
     data,
     loading,
@@ -157,5 +203,7 @@ export default function useStockExport(id = null) {
     getOrderInfor,
 
     cancelSalesOrder,
+    awaitStockExport,
+    checkReadyToExport,
   };
 }

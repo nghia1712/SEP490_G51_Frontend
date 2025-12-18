@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -40,7 +46,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
-
+import useStockExport from "../../Hooks/useStockExport";
 import salesOrderAPI from "../../API/salesOrderAPI";
 import salesQuotationAPI from "../../API/salesQuotationAPI";
 
@@ -54,16 +60,56 @@ const SalesOrderList = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const { cancelSalesOrder } = useStockExport();
+  const canMarkNotComplete = (order) => {
+    if (!order) return false;
+    return [2, 4].includes(order.status);
+  };
+  const [notCompleteConfirm, setNotCompleteConfirm] = useState(false);
+  const [marking, setMarking] = useState(false);
+
+  const handleMarkNotComplete = async () => {
+    if (!orderDetails?.id) return;
+
+    setMarking(true);
+    try {
+      const res = await cancelSalesOrder(orderDetails.id);
+
+      if (res.success) {
+        setSnackbarMessage(
+          res.message || "Đã xác nhận đơn hàng không hoàn thành"
+        );
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+
+        setNotCompleteConfirm(false);
+        handleCloseDetailDialog();
+        fetchOrders();
+      } else {
+        throw new Error(res.message);
+      }
+    } catch (err) {
+      setSnackbarMessage(
+        err?.message ||
+          err?.response?.data?.message ||
+          "Xác nhận không hoàn thành thất bại"
+      );
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    } finally {
+      setMarking(false);
+    }
+  };
+
   const [orders, setOrders] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const isFetchingRef = useRef(false); // Flag để tránh gọi nhiều lần
 
   const [error, setError] = useState(null);
-
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-
-  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
@@ -426,11 +472,9 @@ const SalesOrderList = () => {
   };
 
   const toNumberOrNull = (value) => {
-    if (value === null || value === undefined || value === '') return null;
+    if (value === null || value === undefined || value === "") return null;
     const sanitized =
-      typeof value === 'string'
-        ? value.replace(/[^0-9.-]/g, '')
-        : value;
+      typeof value === "string" ? value.replace(/[^0-9.-]/g, "") : value;
     const parsed = Number(sanitized);
     return Number.isFinite(parsed) ? parsed : null;
   };
@@ -439,11 +483,11 @@ const SalesOrderList = () => {
     if (!data) return 0;
     const totalAmountValue = toNumberOrNull(
       data.totalAmount ??
-      data.TotalAmount ??
-      data.totalPrice ??
-      data.TotalPrice ??
-      data.grandTotal ??
-      null
+        data.TotalAmount ??
+        data.totalPrice ??
+        data.TotalPrice ??
+        data.grandTotal ??
+        null
     );
     const depositPercentValue = toNumberOrNull(
       data.depositPercent ?? data.DepositPercent ?? null
@@ -463,11 +507,11 @@ const SalesOrderList = () => {
     if (!data) return 0;
     const totalAmountValue = toNumberOrNull(
       data.totalAmount ??
-      data.TotalAmount ??
-      data.totalPrice ??
-      data.TotalPrice ??
-      data.grandTotal ??
-      null
+        data.TotalAmount ??
+        data.totalPrice ??
+        data.TotalPrice ??
+        data.grandTotal ??
+        null
     );
     if (totalAmountValue === null) return 0;
 
@@ -1564,7 +1608,9 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}>
+                    <TableCell
+                      sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}
+                    >
                       <TableSortLabel
                         active={sortConfig.key === "orderStatus"}
                         direction={
@@ -1579,7 +1625,9 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}>
+                    <TableCell
+                      sx={{ width: "13%", py: 1.5, px: 2, textAlign: "left" }}
+                    >
                       <TableSortLabel
                         active={sortConfig.key === "paymentStatus"}
                         direction={
@@ -1594,7 +1642,9 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "13%", py: 0.01, px: 2, textAlign: "left" }}>
+                    <TableCell
+                      sx={{ width: "13%", py: 0.01, px: 2, textAlign: "left" }}
+                    >
                       <TableSortLabel
                         active={sortConfig.key === "paidAmount"}
                         direction={
@@ -1609,7 +1659,9 @@ const SalesOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "15%", py: 1.5, px: 2, textAlign: "left" }}>
+                    <TableCell
+                      sx={{ width: "15%", py: 1.5, px: 2, textAlign: "left" }}
+                    >
                       <TableSortLabel
                         active={sortConfig.key === "totalAmount"}
                         direction={
@@ -1663,206 +1715,217 @@ const SalesOrderList = () => {
                       paymentLabelForList === "Đã cọc";
 
                     return (
-                    <TableRow
-                      key={order.id}
-                      hover
-                      sx={{
-                        "&:nth-of-type(even)": {
-                          backgroundColor: "#f9f9f9",
-                        },
+                      <TableRow
+                        key={order.id}
+                        hover
+                        sx={{
+                          "&:nth-of-type(even)": {
+                            backgroundColor: "#f9f9f9",
+                          },
 
-                        "& td": {
-                          py: 1.5,
+                          "& td": {
+                            py: 1.5,
 
-                          px: 2,
+                            px: 2,
 
-                          verticalAlign: "middle",
-                        },
-                      }}
-                    >
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {(page - 1) * pageSize + index + 1}
-                      </TableCell>
-
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {order.code || "-"}
-                      </TableCell>
-
-                      <TableCell>{order.creator || "-"}</TableCell>
-
-                      <TableCell>{formatDate(order.createdAt)}</TableCell>
-
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {order.orderStatus !== undefined &&
-                        order.orderStatus !== null ? (
-                          <Chip
-                            label={getOrderStatusLabel(order.orderStatus)}
-                            size="small"
-                            sx={getOrderStatusColor(order.orderStatus)}
-                          />
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {order.orderStatus === 1 || order.orderStatus === 3 ? (
-                          "-"
-                        ) : (
-                          <Chip
-                            label={paymentLabelForList}
-                            size="small"
-                            sx={getPaymentStatusColor(order.paymentStatus ?? 0)}
-                          />
-                        )}
-                      </TableCell>
-
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {renderCurrency(order.paidAmount)}
-                      </TableCell>
-
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {renderCurrency(order.totalAmount)}
-                      </TableCell>
-
-                      <TableCell
-                        sx={{ textAlign: "right", verticalAlign: "middle" }}
+                            verticalAlign: "middle",
+                          },
+                        }}
                       >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            gap: 0.5,
-                            alignItems: "center",
-                            justifyContent: "flex-end",
-                            flexWrap: "nowrap",
-                          }}
-                        >
-                          {canCreateExportRequest && (
-                            <Tooltip
-                              title="Tạo yêu cầu xuất kho từ đơn hàng này"
-                              placement="bottom"
-                              arrow
-                            >
-                              <IconButton
-                                size="medium"
-                                onClick={() =>
-                                  navigate("/stock-export/create", {
-                                    state: {
-                                      preselectedSalesOrderId: order.id,
-                                      preselectedSalesOrderCode: order.code,
-                                    },
-                                  })
-                                }
-                                sx={{
-                                  color: "#1976d2",
-                                  width: "40px",
-                                  height: "40px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  "&:hover": {
-                                    backgroundColor: "rgba(25, 118, 210, 0.1)",
-                                  },
-                                }}
-                              >
-                                <Inventory2Icon fontSize="medium" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
 
-                          {order.orderStatus === 1 && (
-                            <>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {order.code || "-"}
+                        </TableCell>
+
+                        <TableCell>{order.creator || "-"}</TableCell>
+
+                        <TableCell>{formatDate(order.createdAt)}</TableCell>
+
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {order.orderStatus !== undefined &&
+                          order.orderStatus !== null ? (
+                            <Chip
+                              label={getOrderStatusLabel(order.orderStatus)}
+                              size="small"
+                              sx={getOrderStatusColor(order.orderStatus)}
+                            />
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {order.orderStatus === 1 ||
+                          order.orderStatus === 3 ? (
+                            "-"
+                          ) : (
+                            <Chip
+                              label={paymentLabelForList}
+                              size="small"
+                              sx={getPaymentStatusColor(
+                                order.paymentStatus ?? 0
+                              )}
+                            />
+                          )}
+                        </TableCell>
+
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {renderCurrency(order.paidAmount)}
+                        </TableCell>
+
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {renderCurrency(order.totalAmount)}
+                        </TableCell>
+
+                        <TableCell
+                          sx={{ textAlign: "right", verticalAlign: "middle" }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 0.5,
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              flexWrap: "nowrap",
+                            }}
+                          >
+                            {canCreateExportRequest && (
                               <Tooltip
-                                title="Chấp thuận"
+                                title="Tạo yêu cầu xuất kho từ đơn hàng này"
                                 placement="bottom"
                                 arrow
                               >
                                 <IconButton
                                   size="medium"
-                                  onClick={() => handleApprove(order.id)}
+                                  onClick={() =>
+                                    navigate("/stock-export/create", {
+                                      state: {
+                                        preselectedSalesOrderId: order.id,
+                                        preselectedSalesOrderCode: order.code,
+                                      },
+                                    })
+                                  }
                                   sx={{
-                                    color: "#4caf50",
-
+                                    color: "#1976d2",
                                     width: "40px",
-
                                     height: "40px",
-
                                     display: "flex",
-
                                     alignItems: "center",
-
                                     justifyContent: "center",
-
                                     "&:hover": {
-                                      backgroundColor: "rgba(76, 175, 80, 0.1)",
+                                      backgroundColor:
+                                        "rgba(25, 118, 210, 0.1)",
                                     },
                                   }}
                                 >
-                                  <TaskAltIcon fontSize="medium" />
+                                  <Inventory2Icon fontSize="medium" />
                                 </IconButton>
                               </Tooltip>
+                            )}
 
-                              <Tooltip title="Từ chối" placement="bottom" arrow>
-                                <IconButton
-                                  size="medium"
-                                  onClick={() => handleReject(order.id)}
-                                  sx={{
-                                    color: "#d32f2f",
-
-                                    width: "40px",
-
-                                    height: "40px",
-
-                                    display: "flex",
-
-                                    alignItems: "center",
-
-                                    justifyContent: "center",
-
-                                    "&:hover": {
-                                      backgroundColor: "rgba(211, 47, 47, 0.1)",
-                                    },
-                                  }}
+                            {order.orderStatus === 1 && (
+                              <>
+                                <Tooltip
+                                  title="Chấp thuận"
+                                  placement="bottom"
+                                  arrow
                                 >
-                                  <HighlightOffIcon fontSize="medium" />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          )}
+                                  <IconButton
+                                    size="medium"
+                                    onClick={() => handleApprove(order.id)}
+                                    sx={{
+                                      color: "#4caf50",
 
-                          <Tooltip
-                            title="Xem chi tiết"
-                            placement="bottom"
-                            arrow
-                          >
-                            <IconButton
-                              size="medium"
-                              onClick={() => handleViewDetails(order.id)}
-                              sx={{
-                                color: "#1976d2",
+                                      width: "40px",
 
-                                width: "40px",
+                                      height: "40px",
 
-                                height: "40px",
+                                      display: "flex",
 
-                                display: "flex",
+                                      alignItems: "center",
 
-                                alignItems: "center",
+                                      justifyContent: "center",
 
-                                justifyContent: "center",
+                                      "&:hover": {
+                                        backgroundColor:
+                                          "rgba(76, 175, 80, 0.1)",
+                                      },
+                                    }}
+                                  >
+                                    <TaskAltIcon fontSize="medium" />
+                                  </IconButton>
+                                </Tooltip>
 
-                                "&:hover": {
-                                  backgroundColor: "rgba(25, 118, 210, 0.1)",
-                                },
-                              }}
+                                <Tooltip
+                                  title="Từ chối"
+                                  placement="bottom"
+                                  arrow
+                                >
+                                  <IconButton
+                                    size="medium"
+                                    onClick={() => handleReject(order.id)}
+                                    sx={{
+                                      color: "#d32f2f",
+
+                                      width: "40px",
+
+                                      height: "40px",
+
+                                      display: "flex",
+
+                                      alignItems: "center",
+
+                                      justifyContent: "center",
+
+                                      "&:hover": {
+                                        backgroundColor:
+                                          "rgba(211, 47, 47, 0.1)",
+                                      },
+                                    }}
+                                  >
+                                    <HighlightOffIcon fontSize="medium" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+
+                            <Tooltip
+                              title="Xem chi tiết"
+                              placement="bottom"
+                              arrow
                             >
-                              <VisibilityIcon fontSize="medium" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  )})}
+                              <IconButton
+                                size="medium"
+                                onClick={() => handleViewDetails(order.id)}
+                                sx={{
+                                  color: "#1976d2",
+
+                                  width: "40px",
+
+                                  height: "40px",
+
+                                  display: "flex",
+
+                                  alignItems: "center",
+
+                                  justifyContent: "center",
+
+                                  "&:hover": {
+                                    backgroundColor: "rgba(25, 118, 210, 0.1)",
+                                  },
+                                }}
+                              >
+                                <VisibilityIcon fontSize="medium" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
 
                   {sortedOrders.length === 0 && (
                     <TableRow>
@@ -2068,7 +2131,9 @@ const SalesOrderList = () => {
                         );
                       }
 
-                      const label = getPaymentStatusLabel(paymentStatusForDisplay);
+                      const label = getPaymentStatusLabel(
+                        paymentStatusForDisplay
+                      );
                       return (
                         <Chip
                           label={label}
@@ -2549,8 +2614,42 @@ const SalesOrderList = () => {
           )}
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {canMarkNotComplete(orderDetails) && (
+            <Button
+              color="error"
+              variant="contained"
+              onClick={() => setNotCompleteConfirm(true)}
+            >
+              Không hoàn thành
+            </Button>
+          )}
+
           <Button onClick={handleCloseDetailDialog}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={notCompleteConfirm}
+        onClose={() => setNotCompleteConfirm(false)}
+      >
+        <DialogTitle>Xác nhận</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn chắc chắn muốn xác nhận đơn hàng này là{" "}
+            <strong>không hoàn thành</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNotCompleteConfirm(false)}>Hủy</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleMarkNotComplete}
+            disabled={marking}
+          >
+            {marking ? "Đang xử lý..." : "Xác nhận"}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -2602,13 +2701,19 @@ const SalesOrderList = () => {
 
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-      />
+        autoHideDuration={3000}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
 export default SalesOrderList;
-
