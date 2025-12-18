@@ -14,8 +14,10 @@ import {
   IconButton,
   TextField,
   Box,
+  Tooltip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { Delete } from "@mui/icons-material";
 
 export default function PODialogs({
@@ -87,14 +89,13 @@ export default function PODialogs({
           <DialogTitle sx={{ m: 0, fontSize: 18, fontWeight: "bold" }}>
             Tạo đơn hàng
           </DialogTitle>
-
           <Button
             color="info"
             size="small"
             onClick={handleUploadExcel}
             disabled={sending}
           >
-            {sending ? <CircularProgress size={20} /> : "Tải lại"}
+            <RefreshIcon fontSize="small" />
           </Button>
         </Box>
 

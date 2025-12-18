@@ -44,6 +44,7 @@ import {
   NoteAdd,
   Delete,
   PriceCheck,
+  Refresh as RefreshIcon ,
 } from "@mui/icons-material";
 import palette from "../../../constants/palette";
 import usePQ from "../../../Hooks/usePQ";
@@ -591,10 +592,11 @@ export default function PQList() {
 
                 <Button
                   color="info"
+                  size="small"
                   onClick={() => openCreatePO(quotationToCreatePo?.quotationId)}
                   disabled={processing}
                 >
-                  {processing ? <CircularProgress size={20} /> : "Tải lại"}
+                  <RefreshIcon fontSize="small" />
                 </Button>
               </Box>
 

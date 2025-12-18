@@ -99,6 +99,11 @@ export default function NotificationMenu() {
   const LOW_STOCK_REGEX =
     /thiếu\/sắp hết|sắp hết|thiếu\s+\d+|tồn kho nhỏ hơn số lượng tối thiểu/i;
 
+  const extractStockExportCode = (message = "") => {
+    const match = message.match(/yêu cầu\s+xuất\s+kho\s+(SEO-[A-Z0-9]+)/i);
+    return match ? match[1].toUpperCase() : "";
+  };
+
   const handleNotificationClick = async (n) => {
     if (!n.isRead) {
       try {
@@ -107,14 +112,23 @@ export default function NotificationMenu() {
         console.error("Mark read failed, continue navigation", err);
       }
     }
+    const stockExportCode = extractStockExportCode(n.message || "");
+
+    if (stockExportCode) {
+      handleClose();
+      navigate("/stock-export", {
+        state: {
+          searchCode: stockExportCode,
+        },
+      });
+      return;
+    }
+
     if (
       userRole === "purchases_staff" &&
       LOW_STOCK_REGEX.test(n.message || "")
     ) {
-const productNames = extractProductNames(n.message);
-
-console.log("Notification message:", n.message);
-console.log("Extracted products:", productNames);
+      const productNames = extractProductNames(n.message);
 
       handleClose();
       navigate("/purchase/prfq/form", {

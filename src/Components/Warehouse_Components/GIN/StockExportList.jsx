@@ -46,7 +46,7 @@ import {
   Storefront,
   Cancel,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
 import useGIN from "../../../Hooks/useGIN";
 import StockExportModal from "./StockExportModal";
@@ -57,6 +57,8 @@ export default function StockExportList() {
     useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { state } = location;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [statusFilter, setStatusFilter] = useState("");
@@ -81,6 +83,15 @@ export default function StockExportList() {
     setUserRole(role);
     refetch();
   }, []);
+  
+  useEffect(() => {
+    if (state?.searchCode) {
+      setSearch(state.searchCode);
+      setPage(1);
+
+      window.history.replaceState({}, document.title);
+    }
+  }, [state]);
 
   const [cancelConfirm, setCancelConfirm] = useState({
     open: false,

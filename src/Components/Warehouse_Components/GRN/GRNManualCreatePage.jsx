@@ -24,7 +24,7 @@ import {
   Select,
   Divider,
 } from "@mui/material";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Add as AddIcon, Delete as DeleteIcon, Refresh } from "@mui/icons-material";
 
 import warehouseApi from "../../../API/warehouseAPI";
 import grnApi from "../../../API/grnAPI";
@@ -486,7 +486,7 @@ export default function GRNManualCreatePage({ poId }) {
             size="small"
             onClick={handleReloadProducts}
           >
-            Tải lại
+            <Refresh />
           </Button>
         </Box>
 

@@ -32,6 +32,7 @@ import viLocale from "date-fns/locale/vi";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
 import salesOrderAPI from "../../../API/salesOrderAPI";
+import { Refresh } from "@mui/icons-material";
 
 export default function StockExportForm() {
   const { id } = useParams();
@@ -449,7 +450,7 @@ export default function StockExportForm() {
                       setForm((prev) => ({ ...prev, details: originalDetails }))
                     }
                   >
-                    Tải lại
+                    <Refresh />
                   </Button>
                 </Box>
                 <TableContainer>

@@ -21,6 +21,7 @@ import {
   Select,
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import usePQ from "../../../Hooks/usePQ";
 import { useNavigate } from "react-router-dom";
 import prfqApi from "../../../API/prfqAPI";
@@ -117,6 +118,8 @@ export default function CreatePOFromPQ() {
     return expire < today;
   };
 
+  const disableReload = processing || !quotationToCreatePo?.quotationId;
+
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -170,10 +173,10 @@ export default function CreatePOFromPQ() {
 
             <Button
               color="info"
-              onClick={() => openCreatePO(quotationToCreatePo?.quotationId)}
-              disabled={processing}
+              onClick={() => openCreatePO(quotationToCreatePo.quotationId)}
+              disabled={disableReload}
             >
-              {processing ? <CircularProgress size={20} /> : "Tải lại"}
+              <RefreshIcon />
             </Button>
           </Box>
 

@@ -102,7 +102,7 @@ export default function PRFQList() {
       case 1:
         return { label: "Chờ xử lý", color: "info" };
       case 2:
-        return { label: "Đã duyệt", color: "success" };
+        return { label: "Chấp thuận", color: "success" };
       case 3:
         return { label: "Từ chối", color: "error" };
       case 4:
