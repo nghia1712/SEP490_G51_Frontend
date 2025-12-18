@@ -392,7 +392,9 @@ const InvoiceList = () => {
               Hóa đơn
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {invoices.length} / {allInvoices.length} hóa đơn
+              {invoices.length === allInvoices.length
+                ? `Tổng: ${allInvoices.length} hóa đơn`
+                : `Tổng: ${invoices.length} / ${allInvoices.length} hóa đơn`}
             </Typography>
           </Box>
 

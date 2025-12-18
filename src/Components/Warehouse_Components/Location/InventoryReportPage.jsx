@@ -292,7 +292,9 @@ export default function InventoryReportPage() {
               Báo cáo kiểm kê
             </Typography>
             <Typography variant="h6" color="textSecondary">
-              Tổng: {sessions.length} / {totalSessions} phiên
+              {sessions.length === totalSessions
+                ? `Tổng: ${totalSessions} phiên`
+                : `Tổng: ${sessions.length} / ${totalSessions} phiên`}
             </Typography>
           </Box>
 

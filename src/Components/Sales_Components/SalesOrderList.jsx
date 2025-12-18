@@ -64,6 +64,9 @@ const SalesOrderList = () => {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const { cancelSalesOrder } = useStockExport();
+  const [notCompleteReason, setNotCompleteReason] = useState("");
+  const [reasonError, setReasonError] = useState(false);
+
   const canMarkNotComplete = (order) => {
     if (!order) return false;
     return [2, 4].includes(order.status);
@@ -74,18 +77,24 @@ const SalesOrderList = () => {
   const handleMarkNotComplete = async () => {
     if (!orderDetails?.id) return;
 
+    if (!notCompleteReason.trim()) {
+      setReasonError(true);
+      return;
+    }
+
     setMarking(true);
     try {
-      const res = await cancelSalesOrder(orderDetails.id);
+      const res = await cancelSalesOrder(orderDetails.id, notCompleteReason);
 
       if (res.success) {
-        setSnackbarMessage(
-          res.message || "Đã xác nhận đơn hàng không hoàn thành"
-        );
+        setSnackbarMessage("Đã xác nhận đơn hàng không hoàn thành");
         setSnackbarSeverity("success");
         setSnackbarOpen(true);
 
         setNotCompleteConfirm(false);
+        setNotCompleteReason("");
+        setReasonError(false);
+
         handleCloseDetailDialog();
         fetchOrders();
       } else {
@@ -416,7 +425,7 @@ const SalesOrderList = () => {
       case 3:
         return "Đã thanh toán"; // Đã thanh toán toàn bộ
       case 4:
-        return "Trả lại tiền"; // Đã hoàn tiền
+        return "Trả lại cọc"; // Đã hoàn tiền
       default:
         return "Không xác định";
     }
@@ -1449,7 +1458,9 @@ const SalesOrderList = () => {
               Đơn hàng
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {filteredOrders.length} / {orders.length} đơn hàng
+              {filteredOrders.length === orders.length
+                ? `Tổng: ${orders.length} đơn hàng`
+                : `Tổng: ${filteredOrders.length} / ${orders.length} đơn hàng`}
             </Typography>
           </Box>
 
@@ -1602,7 +1613,7 @@ const SalesOrderList = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("createdAt")}
-                        sx={headerTextSx}
+                        sx={{ ...headerTextSx, whiteSpace: "nowrap" }}
                       >
                         Thời gian tạo
                       </TableSortLabel>
@@ -1619,7 +1630,7 @@ const SalesOrderList = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("orderStatus")}
-                        sx={headerTextSx}
+                        sx={{ ...headerTextSx, whiteSpace: "nowrap" }}
                       >
                         Trạng thái đơn hàng
                       </TableSortLabel>
@@ -1636,15 +1647,13 @@ const SalesOrderList = () => {
                             : "asc"
                         }
                         onClick={() => handleSort("paymentStatus")}
-                        sx={headerTextSx}
+                        sx={{ ...headerTextSx, whiteSpace: "nowrap" }}
                       >
                         Trạng thái thanh toán
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell
-                      sx={{ width: "13%", py: 0.01, px: 2, textAlign: "left" }}
-                    >
+                    <TableCell sx={{ width: "12%", textAlign: "right" }}>
                       <TableSortLabel
                         active={sortConfig.key === "paidAmount"}
                         direction={
@@ -1655,12 +1664,12 @@ const SalesOrderList = () => {
                         onClick={() => handleSort("paidAmount")}
                         sx={headerTextSx}
                       >
-                        Tiền đã trả
+                        Đã trả
                       </TableSortLabel>
                     </TableCell>
 
                     <TableCell
-                      sx={{ width: "15%", py: 1.5, px: 2, textAlign: "left" }}
+                      sx={{ width: "15%", py: 1.5, textAlign: "right" }}
                     >
                       <TableSortLabel
                         active={sortConfig.key === "totalAmount"}
@@ -1672,7 +1681,7 @@ const SalesOrderList = () => {
                         onClick={() => handleSort("totalAmount")}
                         sx={{ ...headerTextSx, whiteSpace: "nowrap" }}
                       >
-                        Tổng tiền đơn hàng
+                        Tổng đơn hàng
                       </TableSortLabel>
                     </TableCell>
 
@@ -1685,6 +1694,7 @@ const SalesOrderList = () => {
                           alignItems: "center",
                           justifyContent: "flex-end",
                           gap: 0.5,
+                          whiteSpace: "nowrap",
                         }}
                       >
                         <span
@@ -1744,7 +1754,7 @@ const SalesOrderList = () => {
 
                         <TableCell>{formatDate(order.createdAt)}</TableCell>
 
-                        <TableCell sx={{ textAlign: "left" }}>
+                        <TableCell sx={{ textAlign: "center" }}>
                           {order.orderStatus !== undefined &&
                           order.orderStatus !== null ? (
                             <Chip
@@ -1757,7 +1767,7 @@ const SalesOrderList = () => {
                           )}
                         </TableCell>
 
-                        <TableCell sx={{ textAlign: "left" }}>
+                        <TableCell sx={{ textAlign: "center" }}>
                           {order.orderStatus === 1 ||
                           order.orderStatus === 3 ? (
                             "-"
@@ -1772,11 +1782,11 @@ const SalesOrderList = () => {
                           )}
                         </TableCell>
 
-                        <TableCell sx={{ textAlign: "left" }}>
+                        <TableCell sx={{ textAlign: "right" }}>
                           {renderCurrency(order.paidAmount)}
                         </TableCell>
 
-                        <TableCell sx={{ textAlign: "left" }}>
+                        <TableCell sx={{ textAlign: "right" }}>
                           {renderCurrency(order.totalAmount)}
                         </TableCell>
 
@@ -2631,22 +2641,61 @@ const SalesOrderList = () => {
 
       <Dialog
         open={notCompleteConfirm}
-        onClose={() => setNotCompleteConfirm(false)}
+        onClose={() => {
+          setNotCompleteConfirm(false);
+          setNotCompleteReason("");
+          setReasonError(false);
+        }}
+        maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>Xác nhận</DialogTitle>
+        <DialogTitle align="center">Xác nhận</DialogTitle>
+
         <DialogContent>
-          <Typography>
+          <Typography align="center" sx={{ mb: 2 }}>
             Bạn chắc chắn muốn xác nhận đơn hàng này là{" "}
             <strong>không hoàn thành</strong>?
           </Typography>
+
+          <TextField
+            label="Lý do không hoàn thành"
+            placeholder="Nhập lý do..."
+            fullWidth
+            multiline
+            minRows={3}
+            value={notCompleteReason}
+            onChange={(e) => {
+              setNotCompleteReason(e.target.value);
+              if (e.target.value.trim()) setReasonError(false);
+            }}
+            error={reasonError}
+            helperText={reasonError ? "Vui lòng nhập lý do" : ""}
+          />
         </DialogContent>
+
         <DialogActions>
-          <Button onClick={() => setNotCompleteConfirm(false)}>Hủy</Button>
+          <Button
+            onClick={() => {
+              setNotCompleteConfirm(false);
+              setNotCompleteReason("");
+              setReasonError(false);
+            }}
+          >
+            Hủy
+          </Button>
+
           <Button
             color="error"
             variant="contained"
-            onClick={handleMarkNotComplete}
             disabled={marking}
+            onClick={() => {
+              if (!notCompleteReason.trim()) {
+                setReasonError(true);
+                return;
+              }
+
+              handleMarkNotComplete(notCompleteReason);
+            }}
           >
             {marking ? "Đang xử lý..." : "Xác nhận"}
           </Button>

@@ -86,24 +86,24 @@ export default function StockExportForm() {
       const filteredOrders = [];
 
       for (const order of allOrders) {
-        // Backend flag: isDeposited = true khi đơn đã cọc đủ theo % quy định.
-        // Với trường hợp % cọc = 0 (không yêu cầu khách đặt cọc), ta vẫn
-        // cho phép tạo yêu cầu xuất kho giống như đơn "Đã cọc".
-        const rawDepositPercent =
-          order.depositPercent ?? order.DepositPercent ?? null;
-        const depositPercentNum = Number(rawDepositPercent);
-        const isZeroDeposit =
-          rawDepositPercent !== null &&
-          !Number.isNaN(depositPercentNum) &&
-          depositPercentNum === 0;
+        //   // Backend flag: isDeposited = true khi đơn đã cọc đủ theo % quy định.
+        //   // Với trường hợp % cọc = 0 (không yêu cầu khách đặt cọc), ta vẫn
+        //   // cho phép tạo yêu cầu xuất kho giống như đơn "Đã cọc".
+        //   const rawDepositPercent =
+        //     order.depositPercent ?? order.DepositPercent ?? null;
+        //   const depositPercentNum = Number(rawDepositPercent);
+        //   const isZeroDeposit =
+        //     rawDepositPercent !== null &&
+        //     !Number.isNaN(depositPercentNum) &&
+        //     depositPercentNum === 0;
 
-        const isDeposited =
-          order.isDeposited === true ||
-          order.IsDeposited === true ||
-          order.isDeposited === 1 ||
-          order.IsDeposited === 1;
+        //   const isDeposited =
+        //     order.isDeposited === true ||
+        //     order.IsDeposited === true ||
+        //     order.isDeposited === 1 ||
+        //     order.IsDeposited === 1;
 
-        if (!isDeposited && !isZeroDeposit) continue;
+        //   if (!isDeposited && !isZeroDeposit) continue;
 
         const detailRes = await getOrderInfor(order.salesOrderId);
         const details = detailRes.data?.data?.details || [];
@@ -379,9 +379,7 @@ export default function StockExportForm() {
                         }
                         // Fallback: nếu đơn không có trong salesOrderList (vd: đơn cọc 0%),
                         // hiển thị mã đơn từ state điều hướng nếu có
-                        return (
-                          location.state?.preselectedSalesOrderCode || ""
-                        );
+                        return location.state?.preselectedSalesOrderCode || "";
                       }}
                     >
                       {salesOrderList.length === 0 ? (
@@ -469,9 +467,7 @@ export default function StockExportForm() {
                     <TableCell>Kho</TableCell> */}
                         <TableCell>Hạn dùng</TableCell>
                         <TableCell>Số lượng</TableCell>
-                        <TableCell align="center">
-                          Số lượng trong đơn
-                        </TableCell>
+                        <TableCell align="center">Số lượng trong đơn</TableCell>
                         <TableCell></TableCell>
                       </TableRow>
                     </TableHead>

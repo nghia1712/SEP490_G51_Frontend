@@ -578,7 +578,10 @@ const SalesQuotationList = () => {
         let suppliers = [];
         try {
           const supplierResponse = await supplierAPI.getAll();
-          const supplierList = supplierResponse?.data?.data?.data || supplierResponse?.data?.data || [];
+          const supplierList =
+            supplierResponse?.data?.data?.data ||
+            supplierResponse?.data?.data ||
+            [];
           suppliers = Array.isArray(supplierList) ? supplierList : [];
         } catch (supplierError) {
           console.warn("Không thể load danh sách nhà cung cấp:", supplierError);
@@ -587,9 +590,9 @@ const SalesQuotationList = () => {
         // Lấy unique product IDs từ details
         const uniqueProductIds = Array.from(
           new Set(
-            details.map(
-              (detail) => detail.productId || detail.ProductId
-            ).filter(Boolean)
+            details
+              .map((detail) => detail.productId || detail.ProductId)
+              .filter(Boolean)
           )
         );
 
@@ -599,7 +602,9 @@ const SalesQuotationList = () => {
         await Promise.all(
           uniqueProductIds.map(async (productId) => {
             try {
-              const lotResponse = await productAPI.searchLotByProductId(productId);
+              const lotResponse = await productAPI.searchLotByProductId(
+                productId
+              );
               const lots = lotResponse?.data?.data || [];
               const mappedLots = lots.map((lot) => {
                 const supplierId = lot.supplierID || lot.SupplierID || null;
@@ -640,7 +645,7 @@ const SalesQuotationList = () => {
 
         // Lấy supplier names từ API supplier
         const supplierNameMap = new Map();
-        
+
         // Thử lấy từ suppliers state đã load trước đó
         if (suppliers.length > 0) {
           suppliers.forEach((supplier) => {
@@ -662,8 +667,10 @@ const SalesQuotationList = () => {
             missingSupplierIds.map(async (supplierId) => {
               try {
                 const supplierResponse = await supplierAPI.getById(supplierId);
-                const supplierData = supplierResponse?.data?.data || supplierResponse?.data || {};
-                const supplierName = supplierData.name || supplierData.Name || "";
+                const supplierData =
+                  supplierResponse?.data?.data || supplierResponse?.data || {};
+                const supplierName =
+                  supplierData.name || supplierData.Name || "";
                 if (supplierName) {
                   supplierNameMap.set(supplierId, supplierName);
                 }
@@ -682,7 +689,9 @@ const SalesQuotationList = () => {
             if (lot.supplierId) {
               // Nếu đã có supplierName từ API thì giữ nguyên, nếu không thì lấy từ supplierNameMap
               if (!lot.supplierName || lot.supplierName.trim() === "") {
-                lot.supplierName = supplierNameMap.get(lot.supplierId) || `NCC ${lot.supplierId}`;
+                lot.supplierName =
+                  supplierNameMap.get(lot.supplierId) ||
+                  `NCC ${lot.supplierId}`;
               }
             }
           });
@@ -739,45 +748,49 @@ const SalesQuotationList = () => {
                 })
               : null;
           const lotId = lot.lotID || lot.LotID || lot.id || lot.Id || null;
-          
+
           // Tìm supplier info từ lotDataByProductId dựa trên lotId
           const lotDataArray = lotDataByProductId[productId] || [];
           const matchingLotData = lotDataArray.find((l) => l.lotId === lotId);
-          
+
           const finalSupplierId = matchingLotData?.supplierId || null;
-          const finalSupplierName = matchingLotData?.supplierName 
-            || (finalSupplierId ? supplierNameMap.get(finalSupplierId) : null)
-            || "";
-          
+          const finalSupplierName =
+            matchingLotData?.supplierName ||
+            (finalSupplierId ? supplierNameMap.get(finalSupplierId) : null) ||
+            "";
+
           // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
           let displayLabel;
           if (lotId === null || lotId === undefined) {
             displayLabel = "Hết hàng";
           } else if (expiredRaw) {
             // Nếu có expiredDate thì luôn hiển thị (dù format có thành công hay không)
-            displayLabel = formattedExpired && formattedExpired !== "-" 
-              ? formattedExpired 
-              : expiredRaw; // Nếu format không thành công, hiển thị giá trị gốc
+            displayLabel =
+              formattedExpired && formattedExpired !== "-"
+                ? formattedExpired
+                : expiredRaw; // Nếu format không thành công, hiển thị giá trị gốc
           } else {
             // Nếu không có expiredDate thì hiển thị "Không có ngày hết hạn"
             displayLabel = "Không có ngày hết hạn";
           }
-          
+
           const lotData = {
             lotId: lotId,
             salePrice: lot.salePrice || lot.SalePrice || 0,
             expiredDate: expiredRaw,
             supplierId: finalSupplierId,
-            supplierName: finalSupplierName || (finalSupplierId ? `NCC ${finalSupplierId}` : ""),
+            supplierName:
+              finalSupplierName ||
+              (finalSupplierId ? `NCC ${finalSupplierId}` : ""),
             displayLabel: displayLabel,
           };
-          
+
           // Lưu vào cả hai key (string và gốc) để tương thích
           acc[key].push(lotData);
           if (key !== productId) {
             acc[productId].push(lotData);
           }
-          
+
           return acc;
         }, {});
 
@@ -787,7 +800,7 @@ const SalesQuotationList = () => {
           // Chuẩn hóa key thành string để đảm bảo tìm đúng
           const key = productId ? String(productId) : null;
           if (!key) return;
-          
+
           if (!lotsByProduct[key]) {
             lotsByProduct[key] = [];
           }
@@ -795,7 +808,7 @@ const SalesQuotationList = () => {
           if (key !== productId && !lotsByProduct[productId]) {
             lotsByProduct[productId] = [];
           }
-          
+
           apiLots.forEach((apiLot) => {
             // Chỉ thêm nếu lot chưa có trong lotsByProduct
             const exists = lotsByProduct[key].some(
@@ -803,27 +816,31 @@ const SalesQuotationList = () => {
             );
             if (!exists && apiLot.lotId) {
               const expiredLabelRaw = apiLot.expiredDate || null;
-              const formattedExpired = expiredLabelRaw ? formatDate(expiredLabelRaw) : null;
-              
+              const formattedExpired = expiredLabelRaw
+                ? formatDate(expiredLabelRaw)
+                : null;
+
               const apiSupplierId = apiLot.supplierId || null;
-              const apiSupplierName = apiLot.supplierName 
-                || (apiSupplierId ? supplierNameMap.get(apiSupplierId) : null)
-                || (apiSupplierId ? `NCC ${apiSupplierId}` : "");
-              
+              const apiSupplierName =
+                apiLot.supplierName ||
+                (apiSupplierId ? supplierNameMap.get(apiSupplierId) : null) ||
+                (apiSupplierId ? `NCC ${apiSupplierId}` : "");
+
               // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
               let displayLabel;
               if (apiLot.lotId === null || apiLot.lotId === undefined) {
                 displayLabel = "Hết hàng";
               } else if (expiredLabelRaw) {
                 // Nếu có expiredDate thì luôn hiển thị (dù format có thành công hay không)
-                displayLabel = formattedExpired && formattedExpired !== "-" 
-                  ? formattedExpired 
-                  : expiredLabelRaw; // Nếu format không thành công, hiển thị giá trị gốc
+                displayLabel =
+                  formattedExpired && formattedExpired !== "-"
+                    ? formattedExpired
+                    : expiredLabelRaw; // Nếu format không thành công, hiển thị giá trị gốc
               } else {
                 // Nếu không có expiredDate thì hiển thị "Không có ngày hết hạn"
                 displayLabel = "Không có ngày hết hạn";
               }
-              
+
               const lotData = {
                 lotId: apiLot.lotId,
                 salePrice: apiLot.salePrice || 0,
@@ -832,7 +849,7 @@ const SalesQuotationList = () => {
                 supplierName: apiSupplierName,
                 displayLabel: displayLabel,
               };
-              
+
               // Lưu vào cả hai key (string và gốc) để tương thích
               lotsByProduct[key].push(lotData);
               if (key !== productId) {
@@ -869,9 +886,13 @@ const SalesQuotationList = () => {
           // Lấy danh sách lô tương ứng với sản phẩm.
           // Ưu tiên map theo ProductId; nếu không khớp thì map theo tên + đơn vị.
           // Chuẩn hóa productId để tìm đúng key (có thể là string hoặc number)
-          const normalizedProductIdForLotsInitial = productId ? String(productId) : null;
+          const normalizedProductIdForLotsInitial = productId
+            ? String(productId)
+            : null;
           let productLots = normalizedProductIdForLotsInitial
-            ? (lotsByProduct[normalizedProductIdForLotsInitial] || lotsByProduct[productId] || [])
+            ? lotsByProduct[normalizedProductIdForLotsInitial] ||
+              lotsByProduct[productId] ||
+              []
             : [];
           if (!productLots.length) {
             const matchingLots = lotProducts.filter((lot) => {
@@ -894,44 +915,55 @@ const SalesQuotationList = () => {
                     })
                   : null;
               const lotId = lot.lotID || lot.LotID || lot.id || lot.Id || null;
-              
+
               // Tìm supplier info từ lotDataByProductId hoặc lotsByProduct
               let supplierId = null;
               let supplierName = "";
-              
+
               // Tìm từ lotDataByProductId (ưu tiên)
               const normalizedProductId = productId ? String(productId) : null;
-              const apiLotsForProduct = normalizedProductId 
-                ? (lotDataByProductId[normalizedProductId] || lotDataByProductId[productId] || [])
+              const apiLotsForProduct = normalizedProductId
+                ? lotDataByProductId[normalizedProductId] ||
+                  lotDataByProductId[productId] ||
+                  []
                 : [];
-              const matchingApiLot = apiLotsForProduct.find((l) => l.lotId === lotId);
+              const matchingApiLot = apiLotsForProduct.find(
+                (l) => l.lotId === lotId
+              );
               if (matchingApiLot) {
                 supplierId = matchingApiLot.supplierId;
-                supplierName = matchingApiLot.supplierName || supplierNameMap.get(supplierId) || `NCC ${supplierId}`;
+                supplierName =
+                  matchingApiLot.supplierName ||
+                  supplierNameMap.get(supplierId) ||
+                  `NCC ${supplierId}`;
               } else {
                 // Tìm từ lotsByProduct
                 const lotsFromProduct = lotsByProduct[productId] || [];
-                const matchingLotFromProduct = lotsFromProduct.find((l) => l.lotId === lotId);
+                const matchingLotFromProduct = lotsFromProduct.find(
+                  (l) => l.lotId === lotId
+                );
                 if (matchingLotFromProduct) {
                   supplierId = matchingLotFromProduct.supplierId;
-                  supplierName = matchingLotFromProduct.supplierName || `NCC ${supplierId}`;
+                  supplierName =
+                    matchingLotFromProduct.supplierName || `NCC ${supplierId}`;
                 }
               }
-              
+
               // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
               let displayLabel;
               if (lotId === null || lotId === undefined) {
                 displayLabel = "Hết hàng";
               } else if (expiredRaw) {
                 // Nếu có expiredDate thì luôn hiển thị (dù format có thành công hay không)
-                displayLabel = formattedExpired && formattedExpired !== "-" 
-                  ? formattedExpired 
-                  : expiredRaw; // Nếu format không thành công, hiển thị giá trị gốc
+                displayLabel =
+                  formattedExpired && formattedExpired !== "-"
+                    ? formattedExpired
+                    : expiredRaw; // Nếu format không thành công, hiển thị giá trị gốc
               } else {
                 // Nếu không có expiredDate thì hiển thị "Không có ngày hết hạn"
                 displayLabel = "Không có ngày hết hạn";
               }
-              
+
               return {
                 lotId: lotId,
                 salePrice: lot.salePrice || lot.SalePrice || 0,
@@ -949,9 +981,13 @@ const SalesQuotationList = () => {
               if (mappedProductId) {
                 productId = mappedProductId;
                 // Cập nhật lại productLots từ lotsByProduct với productId mới
-                const normalizedProductIdForLots = productId ? String(productId) : null;
+                const normalizedProductIdForLots = productId
+                  ? String(productId)
+                  : null;
                 productLots = normalizedProductIdForLots
-                  ? (lotsByProduct[normalizedProductIdForLots] || lotsByProduct[productId] || [])
+                  ? lotsByProduct[normalizedProductIdForLots] ||
+                    lotsByProduct[productId] ||
+                    []
                   : [];
               }
             }
@@ -983,33 +1019,41 @@ const SalesQuotationList = () => {
           let lotOptions = [];
           // Chuẩn hóa productId để tìm đúng key (có thể là string hoặc number)
           const normalizedProductId = productId ? String(productId) : null;
-          const apiLots = normalizedProductId 
-            ? (lotDataByProductId[normalizedProductId] || lotDataByProductId[productId] || [])
+          const apiLots = normalizedProductId
+            ? lotDataByProductId[normalizedProductId] ||
+              lotDataByProductId[productId] ||
+              []
             : [];
-          
+
           if (apiLots.length > 0) {
             // Ưu tiên sử dụng lot từ API SearchLotProductByproductId
             lotOptions = apiLots.map((apiLot) => {
               const expiredLabelRaw = apiLot.expiredDate || null;
-              const formattedExpired = expiredLabelRaw ? formatDate(expiredLabelRaw) : null;
-              
+              const formattedExpired = expiredLabelRaw
+                ? formatDate(expiredLabelRaw)
+                : null;
+
               // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
               let displayLabel;
               if (apiLot.lotId === null || apiLot.lotId === undefined) {
                 displayLabel = "Hết hàng";
               } else if (expiredLabelRaw) {
                 // Nếu có expiredDate thì luôn hiển thị (dù format có thành công hay không)
-                displayLabel = formattedExpired && formattedExpired !== "-" 
-                  ? formattedExpired 
-                  : expiredLabelRaw; // Nếu format không thành công, hiển thị giá trị gốc
+                displayLabel =
+                  formattedExpired && formattedExpired !== "-"
+                    ? formattedExpired
+                    : expiredLabelRaw; // Nếu format không thành công, hiển thị giá trị gốc
               } else {
                 // Nếu không có expiredDate thì hiển thị "Không có ngày hết hạn"
                 displayLabel = "Không có ngày hết hạn";
               }
-              
+
               // Ưu tiên sử dụng supplierName từ API, nếu không có thì lấy từ supplierNameMap
-              const supplierName = apiLot.supplierName || supplierNameMap.get(apiLot.supplierId) || `NCC ${apiLot.supplierId}`;
-              
+              const supplierName =
+                apiLot.supplierName ||
+                supplierNameMap.get(apiLot.supplierId) ||
+                `NCC ${apiLot.supplierId}`;
+
               return {
                 lotId: apiLot.lotId,
                 salePrice: apiLot.salePrice || 0,
@@ -1026,21 +1070,26 @@ const SalesQuotationList = () => {
               if (lot.supplierId && lot.supplierName) {
                 return lot;
               }
-              
+
               // Tìm supplier info từ lotDataByProductId
               const matchingLot = apiLots.find((l) => l.lotId === lot.lotId);
               if (matchingLot) {
-                const supplierName = matchingLot.supplierName || supplierNameMap.get(matchingLot.supplierId) || `NCC ${matchingLot.supplierId}`;
+                const supplierName =
+                  matchingLot.supplierName ||
+                  supplierNameMap.get(matchingLot.supplierId) ||
+                  `NCC ${matchingLot.supplierId}`;
                 return {
                   ...lot,
                   supplierId: matchingLot.supplierId,
                   supplierName: supplierName,
                 };
               }
-              
+
               // Tìm từ lotsByProduct
               const lotsFromProduct = lotsByProduct[productId] || [];
-              const matchingLotFromProduct = lotsFromProduct.find((l) => l.lotId === lot.lotId);
+              const matchingLotFromProduct = lotsFromProduct.find(
+                (l) => l.lotId === lot.lotId
+              );
               if (matchingLotFromProduct) {
                 return {
                   ...lot,
@@ -1048,7 +1097,7 @@ const SalesQuotationList = () => {
                   supplierName: matchingLotFromProduct.supplierName,
                 };
               }
-              
+
               return lot;
             });
           } else {
@@ -1066,17 +1115,20 @@ const SalesQuotationList = () => {
                 ? formatDate(expiredRaw)
                 : "Không có ngày hết hạn",
             };
-            
+
             // Tìm supplier info từ lotDataByProductId
             if (currentLotId) {
               const apiLots = lotDataByProductId[productId] || [];
               const matchingLot = apiLots.find((l) => l.lotId === currentLotId);
               if (matchingLot) {
                 fallbackLot.supplierId = matchingLot.supplierId;
-                fallbackLot.supplierName = matchingLot.supplierName || supplierNameMap.get(matchingLot.supplierId) || `NCC ${matchingLot.supplierId}`;
+                fallbackLot.supplierName =
+                  matchingLot.supplierName ||
+                  supplierNameMap.get(matchingLot.supplierId) ||
+                  `NCC ${matchingLot.supplierId}`;
               }
             }
-            
+
             lotOptions = [fallbackLot];
           }
 
@@ -1117,7 +1169,10 @@ const SalesQuotationList = () => {
                 .filter((l) => l.supplierId)
                 .map((l) => [
                   l.supplierId,
-                  { id: l.supplierId, name: l.supplierName || `NCC ${l.supplierId}` },
+                  {
+                    id: l.supplierId,
+                    name: l.supplierName || `NCC ${l.supplierId}`,
+                  },
                 ])
             ).values()
           );
@@ -1127,7 +1182,9 @@ const SalesQuotationList = () => {
           if (!supplierId && currentLotId) {
             // Tìm supplierId từ lotDataByProductId dựa trên currentLotId
             // Sử dụng lại biến apiLots đã khai báo ở trên
-            const matchingLot = apiLots.find((lot) => lot.lotId === currentLotId);
+            const matchingLot = apiLots.find(
+              (lot) => lot.lotId === currentLotId
+            );
             if (matchingLot && matchingLot.supplierId) {
               supplierId = matchingLot.supplierId;
             }
@@ -1322,41 +1379,50 @@ const SalesQuotationList = () => {
   };
 
   const handleEditSupplierChange = (rowId, supplierId) => {
-    const normalizedSupplierId = supplierId === "" || supplierId === "NONE" ? null : Number(supplierId);
+    const normalizedSupplierId =
+      supplierId === "" || supplierId === "NONE" ? null : Number(supplierId);
     setEditRows((prevRows) =>
       prevRows.map((row) => {
         if (row.id !== rowId) return row;
-        
+
         // Filter lotOptions theo supplier - so sánh chính xác supplierId
         const allLotOptions = row.allLotOptions || row.lotOptions || [];
         const filteredLotOptions = normalizedSupplierId
           ? allLotOptions.filter((lot) => {
               const lotSupplierId = lot.supplierId;
-              return lotSupplierId !== null && 
-                     lotSupplierId !== undefined && 
-                     Number(lotSupplierId) === normalizedSupplierId;
+              return (
+                lotSupplierId !== null &&
+                lotSupplierId !== undefined &&
+                Number(lotSupplierId) === normalizedSupplierId
+              );
             })
           : [];
-        
+
         // Tự động chọn lot đầu tiên nếu có lot hợp lệ (không phải "Hết hàng")
         const validLots = filteredLotOptions.filter(
           (lot) => lot.lotId !== null && lot.lotId !== undefined
         );
         const defaultLot = validLots.length > 0 ? validLots[0] : null;
         const selectedLotId = defaultLot ? defaultLot.lotId : null;
-        
+
         const minQuantity = 1;
-        const unitPrice = defaultLot ? (defaultLot.salePrice ?? 0) : 0;
-        
+        const unitPrice = defaultLot ? defaultLot.salePrice ?? 0 : 0;
+
         // Lấy tax mặc định
-        const defaultTax = row.taxOptions && row.taxOptions.length > 0 
-          ? row.taxOptions[0] 
-          : null;
-        const taxId = defaultTax ? (defaultTax.id || defaultTax.Id) : null;
-        const taxRate = getTaxRateFromText(defaultTax?.name || defaultTax?.Name || "") || 0;
-        
-        const { beforeTax, afterTax } = calculateTotals(minQuantity, unitPrice, taxRate);
-        
+        const defaultTax =
+          row.taxOptions && row.taxOptions.length > 0
+            ? row.taxOptions[0]
+            : null;
+        const taxId = defaultTax ? defaultTax.id || defaultTax.Id : null;
+        const taxRate =
+          getTaxRateFromText(defaultTax?.name || defaultTax?.Name || "") || 0;
+
+        const { beforeTax, afterTax } = calculateTotals(
+          minQuantity,
+          unitPrice,
+          taxRate
+        );
+
         // Nếu có validLots thì reset lotId, giá và thuế
         if (validLots.length > 0) {
           return {
@@ -1372,7 +1438,7 @@ const SalesQuotationList = () => {
             taxRate: taxRate,
           };
         }
-        
+
         // Nếu không có validLots, reset về trạng thái ban đầu
         return {
           ...row,
@@ -1395,7 +1461,7 @@ const SalesQuotationList = () => {
     setEditRows((prevRows) =>
       prevRows.map((row) => {
         if (row.id !== rowId) return row;
-        
+
         if (!normalizedLotId) {
           // Khi chọn "Hết hàng", thuế và giá sẽ là null (hiển thị "-")
           const { beforeTax, afterTax } = calculateTotals(1, 0, 0);
@@ -1410,11 +1476,11 @@ const SalesQuotationList = () => {
             taxRate: 0,
           };
         }
-        
+
         const selectedLot = (row.lotOptions || []).find(
           (lot) => lot.lotId === normalizedLotId
         );
-        
+
         if (selectedLot) {
           const minQuantity = 1;
           const unitPrice = selectedLot.salePrice ?? 0;
@@ -1640,7 +1706,12 @@ const SalesQuotationList = () => {
     for (const row of editRows) {
       const lotIdValue = row.lotId;
       let hasValidLot = false;
-      if (lotIdValue === null || lotIdValue === undefined || lotIdValue === "NONE" || lotIdValue === "") {
+      if (
+        lotIdValue === null ||
+        lotIdValue === undefined ||
+        lotIdValue === "NONE" ||
+        lotIdValue === ""
+      ) {
         hasValidLot = false;
       } else {
         const lotIdNum = Number(lotIdValue);
@@ -1863,7 +1934,10 @@ const SalesQuotationList = () => {
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
           {/* Header */}
-          <Box className="sales-quotation-list-title-container" sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <Box
+            className="sales-quotation-list-title-container"
+            sx={{ display: "flex", alignItems: "center", mb: 2 }}
+          >
             <PriceCheck sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
             <Typography
               variant="h4"
@@ -1872,8 +1946,14 @@ const SalesQuotationList = () => {
             >
               Báo giá
             </Typography>
-            <Typography variant="h6" color="text.secondary" className="sales-quotation-list-count">
-              Tổng: {filteredQuotations.length} / {quotations.length} báo giá
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              className="sales-quotation-list-count"
+            >
+              {filteredQuotations.length === quotations.length
+                ? `Tổng: ${quotations.length} báo giá`
+                : `Tổng: ${filteredQuotations.length} / ${quotations.length} báo giá`}
             </Typography>
           </Box>
 
@@ -1965,306 +2045,316 @@ const SalesQuotationList = () => {
                     minWidth: 1000, // giống trang thuốc
                   }}
                 >
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableCell
-                      sx={{
-                        width: "8%",
-                        py: 1.5,
-                        px: 2,
-                        textAlign: "left",
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                        letterSpacing: "0.03em",
-                      }}
-                    >
-                      #
-                    </TableCell>
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
-                        active={sortConfig.key === "quotationCode"}
-                        direction={
-                          sortConfig.key === "quotationCode"
-                            ? sortConfig.direction
-                            : "asc"
-                        }
-                        onClick={() => handleSort("quotationCode")}
-                        hideSortIcon
-                        sx={headerTextSx}
-                      >
-                        Mã báo giá
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
-                        active={sortConfig.key === "requestCode"}
-                        direction={
-                          sortConfig.key === "requestCode"
-                            ? sortConfig.direction
-                            : "asc"
-                        }
-                        onClick={() => handleSort("requestCode")}
-                        sx={headerTextSx}
-                      >
-                        Mã yêu cầu báo giá
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
-                        active={sortConfig.key === "quotationDate"}
-                        direction={
-                          sortConfig.key === "quotationDate"
-                            ? sortConfig.direction
-                            : "asc"
-                        }
-                        onClick={() => handleSort("quotationDate")}
-                        sx={headerTextSx}
-                      >
-                        Ngày gửi
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
-                        active={sortConfig.key === "expiredDate"}
-                        direction={
-                          sortConfig.key === "expiredDate"
-                            ? sortConfig.direction
-                            : "asc"
-                        }
-                        onClick={() => handleSort("expiredDate")}
-                        sx={headerTextSx}
-                      >
-                        Ngày hết hạn
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
-                      <TableSortLabel
-                        active={sortConfig.key === "status"}
-                        direction={
-                          sortConfig.key === "status"
-                            ? sortConfig.direction
-                            : "asc"
-                        }
-                        onClick={() => handleSort("status")}
-                        sx={headerTextSx}
-                      >
-                        Trạng thái
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell
-                      sx={{ width: "25%", textAlign: "right", py: 1.5, px: 2 }}
-                    >
-                      <Box
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                      <TableCell
                         sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: 0.5,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <span
-                          style={{
-                            textTransform: "capitalize",
-                            fontWeight: 600,
-                            letterSpacing: "0.03em",
-                          }}
-                        >
-                          Hành động
-                        </span>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedQuotations.map((quotation, index) => (
-                    <TableRow
-                      key={quotation.id || index}
-                      hover
-                      sx={{
-                        "&:nth-of-type(even)": {
-                          backgroundColor: "#f9f9f9",
-                        },
-                        "& td": {
+                          width: "8%",
                           py: 1.5,
                           px: 2,
-                          verticalAlign: "middle",
-                        },
-                      }}
-                    >
-                      <TableCell sx={{ textAlign: "left" }}>
-                        {(page - 1) * pageSize + index + 1}
+                          textAlign: "left",
+                          fontWeight: 600,
+                          textTransform: "capitalize",
+                          letterSpacing: "0.03em",
+                        }}
+                      >
+                        #
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {quotation.quotationCode}
+                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "quotationCode"}
+                          direction={
+                            sortConfig.key === "quotationCode"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("quotationCode")}
+                          hideSortIcon
+                          sx={headerTextSx}
+                        >
+                          Mã báo giá
+                        </TableSortLabel>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>
-                        {quotation.requestCode || "-"}
+                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "requestCode"}
+                          direction={
+                            sortConfig.key === "requestCode"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("requestCode")}
+                          sx={headerTextSx}
+                        >
+                          Mã yêu cầu báo giá
+                        </TableSortLabel>
                       </TableCell>
-                      <TableCell>
-                        {formatDate(quotation.quotationDate)}
+                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "quotationDate"}
+                          direction={
+                            sortConfig.key === "quotationDate"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("quotationDate")}
+                          sx={headerTextSx}
+                        >
+                          Ngày gửi
+                        </TableSortLabel>
                       </TableCell>
-                      <TableCell>{formatDate(quotation.expiredDate)}</TableCell>
-                      <TableCell>
-                        {quotation.status !== undefined &&
-                        quotation.status !== null ? (
-                          <Chip
-                            label={getStatusLabel(quotation.status)}
-                            size="small"
-                            sx={getStatusColor(quotation.status)}
-                          />
-                        ) : (
-                          "-"
-                        )}
+                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "expiredDate"}
+                          direction={
+                            sortConfig.key === "expiredDate"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("expiredDate")}
+                          sx={headerTextSx}
+                        >
+                          Ngày hết hạn
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "status"}
+                          direction={
+                            sortConfig.key === "status"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("status")}
+                          sx={headerTextSx}
+                        >
+                          Trạng thái
+                        </TableSortLabel>
                       </TableCell>
                       <TableCell
                         sx={{
                           width: "25%",
                           textAlign: "right",
-                          verticalAlign: "middle",
+                          py: 1.5,
+                          px: 2,
                         }}
                       >
                         <Box
                           sx={{
                             display: "flex",
-                            gap: 0.5,
                             alignItems: "center",
                             justifyContent: "flex-end",
-                            flexWrap: "nowrap",
+                            gap: 0.5,
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {quotation.status === 0 && (
-                            <>
-                              <Tooltip title="Sửa" placement="bottom" arrow>
-                                <IconButton
-                                  size="medium"
-                                  onClick={() => handleEdit(quotation.id)}
-                                  sx={{
-                                    color: "#1976d2",
-                                    width: "40px",
-                                    height: "40px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    "&:hover": {
-                                      backgroundColor:
-                                        "rgba(25, 118, 210, 0.1)",
-                                    },
-                                  }}
-                                >
-                                  <EditIcon fontSize="medium" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Xóa" placement="bottom" arrow>
-                                <IconButton
-                                  size="medium"
-                                  onClick={() => handleDelete(quotation.id)}
-                                  sx={{
-                                    color: "#d32f2f",
-                                    width: "40px",
-                                    height: "40px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    "&:hover": {
-                                      backgroundColor: "rgba(211, 47, 47, 0.1)",
-                                    },
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="medium" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Gửi" placement="bottom" arrow>
-                                <IconButton
-                                  size="medium"
-                                  onClick={() => handleSend(quotation.id)}
-                                  disabled={sendingQuotationId === quotation.id}
-                                  sx={{
-                                    color: "#1976d2",
-                                    width: "40px",
-                                    height: "40px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    "&:hover": {
-                                      backgroundColor:
-                                        "rgba(25, 118, 210, 0.1)",
-                                    },
-                                    "&:disabled": {
-                                      opacity: 0.6,
-                                    },
-                                  }}
-                                >
-                                  {sendingQuotationId === quotation.id ? (
-                                    <CircularProgress
-                                      size={20}
-                                      color="inherit"
-                                    />
-                                  ) : (
-                                    <SendIcon fontSize="medium" />
-                                  )}
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          )}
-                          <Tooltip
-                            title="Xem chi tiết"
-                            placement="bottom"
-                            arrow
+                          <span
+                            style={{
+                              textTransform: "capitalize",
+                              fontWeight: 600,
+                              letterSpacing: "0.03em",
+                            }}
                           >
-                            <IconButton
-                              size="medium"
-                              onClick={() => handleViewDetails(quotation.id)}
-                              sx={{
-                                color: "#1976d2",
-                                width: "40px",
-                                height: "40px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                "&:hover": {
-                                  backgroundColor: "rgba(25, 118, 210, 0.1)",
-                                },
-                              }}
-                            >
-                              <VisibilityIcon fontSize="medium" />
-                            </IconButton>
-                          </Tooltip>
+                            Hành động
+                          </span>
                         </Box>
                       </TableCell>
                     </TableRow>
-                  ))}
-                  {sortedQuotations.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Chưa có báo giá nào
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              {sortedQuotations.length > 0 && (
-                <Box
-                  sx={{
-                    pt: 2,
-                    pb: 2,
-                    borderTop: "1px solid #e0e0e0",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={(_, value) => setPage(value)}
-                    color="primary"
-                  />
-                </Box>
-              )}
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedQuotations.map((quotation, index) => (
+                      <TableRow
+                        key={quotation.id || index}
+                        hover
+                        sx={{
+                          "&:nth-of-type(even)": {
+                            backgroundColor: "#f9f9f9",
+                          },
+                          "& td": {
+                            py: 1.5,
+                            px: 2,
+                            verticalAlign: "middle",
+                          },
+                        }}
+                      >
+                        <TableCell sx={{ textAlign: "left" }}>
+                          {(page - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {quotation.quotationCode}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500 }}>
+                          {quotation.requestCode || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(quotation.quotationDate)}
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(quotation.expiredDate)}
+                        </TableCell>
+                        <TableCell>
+                          {quotation.status !== undefined &&
+                          quotation.status !== null ? (
+                            <Chip
+                              label={getStatusLabel(quotation.status)}
+                              size="small"
+                              sx={getStatusColor(quotation.status)}
+                            />
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            width: "25%",
+                            textAlign: "right",
+                            verticalAlign: "middle",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 0.5,
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              flexWrap: "nowrap",
+                            }}
+                          >
+                            {quotation.status === 0 && (
+                              <>
+                                <Tooltip title="Sửa" placement="bottom" arrow>
+                                  <IconButton
+                                    size="medium"
+                                    onClick={() => handleEdit(quotation.id)}
+                                    sx={{
+                                      color: "#1976d2",
+                                      width: "40px",
+                                      height: "40px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      "&:hover": {
+                                        backgroundColor:
+                                          "rgba(25, 118, 210, 0.1)",
+                                      },
+                                    }}
+                                  >
+                                    <EditIcon fontSize="medium" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Xóa" placement="bottom" arrow>
+                                  <IconButton
+                                    size="medium"
+                                    onClick={() => handleDelete(quotation.id)}
+                                    sx={{
+                                      color: "#d32f2f",
+                                      width: "40px",
+                                      height: "40px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      "&:hover": {
+                                        backgroundColor:
+                                          "rgba(211, 47, 47, 0.1)",
+                                      },
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="medium" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Gửi" placement="bottom" arrow>
+                                  <IconButton
+                                    size="medium"
+                                    onClick={() => handleSend(quotation.id)}
+                                    disabled={
+                                      sendingQuotationId === quotation.id
+                                    }
+                                    sx={{
+                                      color: "#1976d2",
+                                      width: "40px",
+                                      height: "40px",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      "&:hover": {
+                                        backgroundColor:
+                                          "rgba(25, 118, 210, 0.1)",
+                                      },
+                                      "&:disabled": {
+                                        opacity: 0.6,
+                                      },
+                                    }}
+                                  >
+                                    {sendingQuotationId === quotation.id ? (
+                                      <CircularProgress
+                                        size={20}
+                                        color="inherit"
+                                      />
+                                    ) : (
+                                      <SendIcon fontSize="medium" />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                            <Tooltip
+                              title="Xem chi tiết"
+                              placement="bottom"
+                              arrow
+                            >
+                              <IconButton
+                                size="medium"
+                                onClick={() => handleViewDetails(quotation.id)}
+                                sx={{
+                                  color: "#1976d2",
+                                  width: "40px",
+                                  height: "40px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  "&:hover": {
+                                    backgroundColor: "rgba(25, 118, 210, 0.1)",
+                                  },
+                                }}
+                              >
+                                <VisibilityIcon fontSize="medium" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {sortedQuotations.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Chưa có báo giá nào
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+                {sortedQuotations.length > 0 && (
+                  <Box
+                    sx={{
+                      pt: 2,
+                      pb: 2,
+                      borderTop: "1px solid #e0e0e0",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <Pagination
+                      count={totalPages}
+                      page={page}
+                      onChange={(_, value) => setPage(value)}
+                      color="primary"
+                    />
+                  </Box>
+                )}
+              </TableContainer>
             </div>
           )}
         </CardContent>
@@ -2975,16 +3065,15 @@ const SalesQuotationList = () => {
                       mb: 1,
                     }}
                   >
-                    <Typography
-                      variant="subtitle2"
-                      color="text.secondary"
-                    >
+                    <Typography variant="subtitle2" color="text.secondary">
                       Danh sách sản phẩm:
                     </Typography>
                     <IconButton
                       color="primary"
                       onClick={handleEditResetRows}
-                      disabled={!editInitialRows || editInitialRows.length === 0}
+                      disabled={
+                        !editInitialRows || editInitialRows.length === 0
+                      }
                       size="medium"
                     >
                       <RefreshIcon sx={{ fontSize: 24 }} />
@@ -3059,7 +3148,8 @@ const SalesQuotationList = () => {
                               <TableCell>{row.productName || "-"}</TableCell>
                               <TableCell>{row.unit || "-"}</TableCell>
                               <TableCell sx={{ minWidth: 200 }}>
-                                {row.supplierOptions && row.supplierOptions.length > 0 ? (
+                                {row.supplierOptions &&
+                                row.supplierOptions.length > 0 ? (
                                   <FormControl fullWidth size="small">
                                     <Select
                                       value={row.supplierId || ""}
@@ -3100,7 +3190,8 @@ const SalesQuotationList = () => {
                                   >
                                     Vui lòng chọn nhà cung cấp trước
                                   </Typography>
-                                ) : row.lotOptions && row.lotOptions.length > 0 ? (
+                                ) : row.lotOptions &&
+                                  row.lotOptions.length > 0 ? (
                                   <FormControl fullWidth size="small">
                                     <Select
                                       value={
@@ -3147,22 +3238,34 @@ const SalesQuotationList = () => {
                                 {(() => {
                                   const lotIdValue = row.lotId;
                                   let hasValidLot = false;
-                                  if (lotIdValue === null || lotIdValue === undefined || lotIdValue === "NONE" || lotIdValue === "") {
+                                  if (
+                                    lotIdValue === null ||
+                                    lotIdValue === undefined ||
+                                    lotIdValue === "NONE" ||
+                                    lotIdValue === ""
+                                  ) {
                                     hasValidLot = false;
                                   } else {
                                     const lotIdNum = Number(lotIdValue);
-                                    hasValidLot = !isNaN(lotIdNum) && lotIdNum > 0;
+                                    hasValidLot =
+                                      !isNaN(lotIdNum) && lotIdNum > 0;
                                   }
 
                                   if (!hasValidLot) {
                                     return (
-                                      <Typography variant="body2" color="text.secondary">
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
                                         -
                                       </Typography>
                                     );
                                   }
 
-                                  if (row.taxOptions && row.taxOptions.length > 0) {
+                                  if (
+                                    row.taxOptions &&
+                                    row.taxOptions.length > 0
+                                  ) {
                                     return (
                                       <FormControl fullWidth size="small">
                                         <Select
@@ -3206,11 +3309,17 @@ const SalesQuotationList = () => {
                                 {(() => {
                                   const lotIdValue = row.lotId;
                                   let hasValidLot = false;
-                                  if (lotIdValue === null || lotIdValue === undefined || lotIdValue === "NONE" || lotIdValue === "") {
+                                  if (
+                                    lotIdValue === null ||
+                                    lotIdValue === undefined ||
+                                    lotIdValue === "NONE" ||
+                                    lotIdValue === ""
+                                  ) {
                                     hasValidLot = false;
                                   } else {
                                     const lotIdNum = Number(lotIdValue);
-                                    hasValidLot = !isNaN(lotIdNum) && lotIdNum > 0;
+                                    hasValidLot =
+                                      !isNaN(lotIdNum) && lotIdNum > 0;
                                   }
 
                                   if (!hasValidLot) {
@@ -3225,11 +3334,17 @@ const SalesQuotationList = () => {
                                 {(() => {
                                   const lotIdValue = row.lotId;
                                   let hasValidLot = false;
-                                  if (lotIdValue === null || lotIdValue === undefined || lotIdValue === "NONE" || lotIdValue === "") {
+                                  if (
+                                    lotIdValue === null ||
+                                    lotIdValue === undefined ||
+                                    lotIdValue === "NONE" ||
+                                    lotIdValue === ""
+                                  ) {
                                     hasValidLot = false;
                                   } else {
                                     const lotIdNum = Number(lotIdValue);
-                                    hasValidLot = !isNaN(lotIdNum) && lotIdNum > 0;
+                                    hasValidLot =
+                                      !isNaN(lotIdNum) && lotIdNum > 0;
                                   }
 
                                   if (!hasValidLot) {
@@ -3261,7 +3376,9 @@ const SalesQuotationList = () => {
                                   <IconButton
                                     size="small"
                                     color="primary"
-                                    onClick={() => handleEditDuplicateRow(row.id)}
+                                    onClick={() =>
+                                      handleEditDuplicateRow(row.id)
+                                    }
                                     title="Thêm dòng báo giá cho sản phẩm này"
                                   >
                                     <AddIcon fontSize="small" />

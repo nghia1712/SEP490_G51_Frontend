@@ -114,7 +114,9 @@ export default function GRNListPage() {
                 Phiếu nhập kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredData.length} / {data.length} phiếu
+                {filteredData.length === data.length
+                  ? `Tổng: ${data.length} phiếu`
+                  : `Tổng: ${filteredData.length} / ${data.length} phiếu`}
               </Typography>
             </Box>
 

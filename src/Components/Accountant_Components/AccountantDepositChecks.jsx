@@ -205,7 +205,9 @@ const AccountantDepositChecks = () => {
                 Xác nhận thanh toán
               </Typography>
               <Typography variant="h6" color="text.secondary" sx={{ mr: 2 }}>
-                Tổng: {filteredItems.length} / {items.length} yêu cầu
+                {filteredItems.length === items.length
+                  ? `Tổng: ${items.length} yêu cầu`
+                  : `Tổng: ${filteredItems.length} / ${items.length} yêu cầu`}
               </Typography>
             </Box>
 
@@ -265,86 +267,97 @@ const AccountantDepositChecks = () => {
             {/* TABLE */}
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Số tiền yêu cầu</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Thời gian yêu cầu</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>
-                Thao tác
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Đang tải...
-                </TableCell>
-              </TableRow>
-            ) : filteredItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Không có yêu cầu xác nhận thanh toán nào.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredItems.map((item, index) => (
-                <TableRow key={item.id || index} hover>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{item.salesOrderCode || "-"}</TableCell>
-                  <TableCell>{item.customerName || "-"}</TableCell>
-                  <TableCell>
-                    {formatCurrency(item.requestedAmount ?? item.amount)}
-                  </TableCell>
-                  <TableCell>{getStatusChip(item.status)}</TableCell>
-                  <TableCell>{formatDateTime(item.requestedAt)}</TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                      {(item.status === 0 || item.status === 1) && (
-                        <>
-                          <Tooltip title="Chấp nhận thanh toán">
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => handleApprove(item.id)}
-                              sx={{ ml: 0.5 }}
-                            >
-                              <CheckCircleOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Từ chối yêu cầu">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleOpenReject(item)}
-                              sx={{ ml: 0.5 }}
-                            >
-                              <HighlightOffIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                      <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenDetail(item)}
-                          sx={{ ml: 0.5 }}
-                        >
-                          <VisibilityIcon fontSize="small" color="primary" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      Số tiền yêu cầu
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      Thời gian yêu cầu
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      Thao tác
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        Đang tải...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        Không có yêu cầu xác nhận thanh toán nào.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredItems.map((item, index) => (
+                      <TableRow key={item.id || index} hover>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{item.salesOrderCode || "-"}</TableCell>
+                        <TableCell>{item.customerName || "-"}</TableCell>
+                        <TableCell>
+                          {formatCurrency(item.requestedAmount ?? item.amount)}
+                        </TableCell>
+                        <TableCell>{getStatusChip(item.status)}</TableCell>
+                        <TableCell>
+                          {formatDateTime(item.requestedAt)}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Box
+                            sx={{ display: "flex", justifyContent: "flex-end" }}
+                          >
+                            {(item.status === 0 || item.status === 1) && (
+                              <>
+                                <Tooltip title="Chấp nhận thanh toán">
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => handleApprove(item.id)}
+                                    sx={{ ml: 0.5 }}
+                                  >
+                                    <CheckCircleOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Từ chối yêu cầu">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleOpenReject(item)}
+                                    sx={{ ml: 0.5 }}
+                                  >
+                                    <HighlightOffIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenDetail(item)}
+                                sx={{ ml: 0.5 }}
+                              >
+                                <VisibilityIcon
+                                  fontSize="small"
+                                  color="primary"
+                                />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </CardContent>
         </Card>
       </Container>
@@ -361,17 +374,21 @@ const AccountantDepositChecks = () => {
           {selectedItem && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <Typography>
-                <strong>Mã đơn hàng:</strong> {selectedItem.salesOrderCode || "-"}
+                <strong>Mã đơn hàng:</strong>{" "}
+                {selectedItem.salesOrderCode || "-"}
               </Typography>
               <Typography>
                 <strong>Khách hàng:</strong> {selectedItem.customerName || "-"}
               </Typography>
               <Typography>
                 <strong>Số tiền khách báo đã thanh toán:</strong>{" "}
-                {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
+                {formatCurrency(
+                  selectedItem.requestedAmount ?? selectedItem.amount
+                )}
               </Typography>
               <Typography>
-                <strong>Trạng thái:</strong> {getStatusChip(selectedItem.status)}
+                <strong>Trạng thái:</strong>{" "}
+                {getStatusChip(selectedItem.status)}
               </Typography>
               <Typography>
                 <strong>Thời gian yêu cầu:</strong>{" "}
@@ -393,27 +410,28 @@ const AccountantDepositChecks = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Đóng</Button>
-          {selectedItem && (selectedItem.status === 0 || selectedItem.status === 1) && (
-            <>
-              <Button
-                color="error"
-                onClick={() => handleOpenReject(selectedItem)}
-                disabled={actionLoading}
-                startIcon={<HighlightOffIcon />}
-              >
-                Từ chối
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<CheckCircleOutlineIcon />}
-                onClick={() => handleApprove(selectedItem.id)}
-                disabled={actionLoading}
-              >
-                Chấp nhận thanh toán
-              </Button>
-            </>
-          )}
+          {selectedItem &&
+            (selectedItem.status === 0 || selectedItem.status === 1) && (
+              <>
+                <Button
+                  color="error"
+                  onClick={() => handleOpenReject(selectedItem)}
+                  disabled={actionLoading}
+                  startIcon={<HighlightOffIcon />}
+                >
+                  Từ chối
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<CheckCircleOutlineIcon />}
+                  onClick={() => handleApprove(selectedItem.id)}
+                  disabled={actionLoading}
+                >
+                  Chấp nhận thanh toán
+                </Button>
+              </>
+            )}
         </DialogActions>
       </Dialog>
 
@@ -455,5 +473,3 @@ const AccountantDepositChecks = () => {
 };
 
 export default AccountantDepositChecks;
-
-
