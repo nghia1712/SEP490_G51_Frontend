@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -45,6 +46,7 @@ const CustomerInvoiceList = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchCode, setSearchCode] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
   const [page, setPage] = useState(1);
   const pageSize = 5;
@@ -63,28 +65,43 @@ const CustomerInvoiceList = () => {
 
   const applyStatusFilter = useCallback(
     (data) => {
-      if (statusFilter === 'all') return data;
-      
-      return data.filter((invoice) => {
-        const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
-        const totalRemain = invoice.totalRemain ?? 0;
-        
-        switch (statusFilter) {
-          case 'unpaid':
-            // Chưa thanh toán: invoice đã được gửi (status = 1) và chưa thanh toán toàn bộ (paymentStatus != 3 và totalRemain > 0)
-            return invoice.status === 1 && paymentStatus !== 3 && totalRemain > 0;
-          case 'paid':
-            // Đã thanh toán: paymentStatus = 3 HOẶC totalRemain = 0
-            return paymentStatus === 3 || totalRemain === 0;
-          case 'cancelled':
-            // Đã hủy: status = 2
-            return invoice.status === 2;
-          default:
-            return true;
-        }
-      });
+      let filtered = data;
+
+      // Lọc theo trạng thái
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter((invoice) => {
+          const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
+          const totalRemain = invoice.totalRemain ?? 0;
+
+          switch (statusFilter) {
+            case 'unpaid':
+              // Chưa thanh toán: invoice đã được gửi (status = 1) và chưa thanh toán toàn bộ (paymentStatus != 3 và totalRemain > 0)
+              return invoice.status === 1 && paymentStatus !== 3 && totalRemain > 0;
+            case 'paid':
+              // Đã thanh toán: paymentStatus = 3 HOẶC totalRemain = 0
+              return paymentStatus === 3 || totalRemain === 0;
+            case 'cancelled':
+              // Đã hủy: status = 2
+              return invoice.status === 2;
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Lọc theo mã hóa đơn / mã đơn hàng (chung 1 ô search)
+      const keyword = (searchCode || '').trim().toLowerCase();
+      if (keyword) {
+        filtered = filtered.filter((invoice) => {
+          const inv = (invoice.invoiceCode || '').toLowerCase();
+          const order = (invoice.orderCode || '').toLowerCase();
+          return inv.includes(keyword) || order.includes(keyword);
+        });
+      }
+
+      return filtered;
     },
-    [statusFilter],
+    [statusFilter, searchCode],
   );
 
   const fetchInvoices = useCallback(async () => {
@@ -179,7 +196,7 @@ const CustomerInvoiceList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, searchCode]);
 
   const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
 
@@ -577,43 +594,74 @@ const CustomerInvoiceList = () => {
         Danh sách hóa đơn
       </Typography>
 
-      <Box className="customer-invoice-filter-container" sx={{ mb: 3, maxWidth: 220 }}>
-        <FormControl size="small" fullWidth>
-          <InputLabel>Trạng Thái</InputLabel>
-          <Select
-            value={statusFilter}
-            label="Trạng Thái"
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
-            <MenuItem value="paid">Đã thanh toán</MenuItem>
-            <MenuItem value="cancelled">Đã hủy</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <div className="customer-invoice-list-container">
-        <TableContainer
-          component={Paper}
+      {/* Filter + List in one Paper */}
+      <Paper
+        elevation={2}
+        sx={{
+          mb: 3,
+          px: 2,
+          py: 2,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 2,
+          boxShadow: 2,
+        }}
+      >
+        {/* Filter */}
+        <Box
+          className="customer-invoice-filter-container"
           sx={{
-            boxShadow: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: 2,
-            overflowX: 'auto',
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
           }}
         >
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Trạng Thái</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Trạng Thái"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">Tất cả</MenuItem>
+              <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
+              <MenuItem value="paid">Đã thanh toán</MenuItem>
+              <MenuItem value="cancelled">Đã hủy</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Tìm theo mã hóa đơn/ mã đơn hàng"
+            placeholder="Nhập mã hóa đơn hoặc mã đơn hàng..."
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value)}
+            sx={{ minWidth: 220 }}
+          />
+        </Box>
+
+        {/* Error */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Loading / Table */}
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <div className="customer-invoice-list-container">
+          <TableContainer
+            sx={{
+              borderRadius: 2,
+              overflowX: 'auto',
+            }}
+          >
           <Table className="customer-invoice-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
@@ -816,6 +864,7 @@ const CustomerInvoiceList = () => {
         </TableContainer>
         </div>
       )}
+      </Paper>
 
       <Snackbar
         open={snackbarOpen}

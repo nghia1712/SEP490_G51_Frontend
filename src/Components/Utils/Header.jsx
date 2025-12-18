@@ -487,6 +487,7 @@ function Header() {
     customerManagement: {
       label: "Khách hàng",
       items: [
+        { label: "Xác nhận thanh toán", path: "/accountant/deposit-checks" },
         { label: "Phiếu xuất kho", path: "/gin" },
         { label: "Hóa đơn", path: "/accountant/invoices" },
         { label: "Yêu cầu thanh toán", path: "/payment-remain" },

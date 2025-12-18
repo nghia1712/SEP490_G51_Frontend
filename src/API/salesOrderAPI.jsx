@@ -84,6 +84,10 @@ const salesOrderAPI = {
   // PUT /api/SalesOrder/{salesOrderId}/mark-not-complete
   markNotComplete: (salesOrderId) =>
     authorApi.put(`${API_URL}/${salesOrderId}/mark-not-complete`),
+
+  // POST /api/SalesOrder/{salesOrderId}/deposit-checks/manual
+  createManualDepositCheck: (salesOrderId, payload) =>
+    authorApi.post(`${API_URL}/${salesOrderId}/deposit-checks/manual`, payload),
 };
 
 export default salesOrderAPI;
