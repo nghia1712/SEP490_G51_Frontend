@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import Header from "./Components/Utils/Header";
@@ -301,6 +302,28 @@ const ChangePasswordWithBackground = () => (
     <ChangePassword />
   </Box>
 );
+
+const CustomerFooterWrapper = () => {
+  const location = useLocation();
+  const role = getUserRoleFromToken();
+
+  const allowedPaths = [
+    "/customer",
+    "/customer/request-quotation",
+    "/customer/orders",
+    "/customer/invoices",
+    "/customer/payment-remain",
+    "/profile",
+    "/edit-profile",
+  ];
+
+  const shouldShow =
+    role === "customer" &&
+    allowedPaths.includes(location.pathname);
+
+  if (!shouldShow) return null;
+  return <Footer />;
+};
 
 function App() {
   return (
@@ -1164,7 +1187,7 @@ function App() {
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </Box>
-                  <Footer />
+                  <CustomerFooterWrapper />
                 </Box>
               }
             />

@@ -34,35 +34,18 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
     }
   };
 
-  const renderPaymentMethod = (m) => {
-    switch (m) {
-      case 0:
-        return "-";
-      case 1:
-        return "VnPay";
-      case 2:
-        return "Tiền mặt";
-      case 3:
-        return "Chuyển khoản ngân hàng";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const renderPaymentType = (t) => {
-    switch (t) {
-      case 1:
-        return "Thanh toán còn lại";
-      case 0:
-        return "Thanh toán toàn bộ";
-      default:
-        return "Không xác định";
-    }
-  };
-
   const formatCurrency = (value) => {
     const number = Number(value) || 0;
-    return number.toLocaleString();
+    const formatted = number
+      .toLocaleString("vi-VN")
+      .replace(/\./g, ",");
+
+    return (
+      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 4 }}>
+        <span>{formatted}</span>
+        <span style={{ textDecoration: "underline" }}>đ</span>
+      </span>
+    );
   };
 
   const formatDateTime = (date) =>
@@ -72,8 +55,6 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
   const detailRows = [
     ["Mã đơn hàng", data.salesOrderCode || data.salesOrderId],
     ["Mã hóa đơn", data.invoiceCode || "-"],
-    ["Loại thanh toán", renderPaymentType(data.paymentType)],
-    ["Phương thức", renderPaymentMethod(data.paymentMethod)],
     [
       "Tổng giá trị đơn hàng",
       formatCurrency(data.salesOrderTotalPrice),
@@ -93,9 +74,6 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
     ["Trạng thái đơn hàng", renderStatus(data.vnPayStatus)],
     ["Ngày tạo yêu cầu", formatDateTime(data.requestCreatedAt)],
     ["Ngày thanh toán", formatDateTime(data.paidAt)],
-    ["Tham chiếu giao dịch", data.gatewayTransactionRef || "-"],
-    ["Cổng thanh toán", data.gateway || "-"],
-    ["Khách hàng", data.customerName || "-"],
   ];
 
   return (

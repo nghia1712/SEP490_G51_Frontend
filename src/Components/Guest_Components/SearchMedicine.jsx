@@ -271,6 +271,78 @@ const SearchMedicine = () => {
           )}
         </Box>
 
+        {/* Danh mục sản phẩm */}
+        {categories.length > 0 && (
+          <Box
+            sx={{
+              mb: { xs: 2, sm: 3, md: 4 },
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                mb: 1.5,
+                textTransform: "uppercase",
+                color: "#155E64",
+              }}
+            >
+              Danh mục sản phẩm
+            </Typography>
+            <Grid container spacing={2}>
+              {categories.map((cat) => {
+                const name = cat.name || cat.Name || "";
+                return (
+                  <Grid
+                    item
+                    xs={6}
+                    sm={4}
+                    md={3}
+                    key={cat.categoryID || cat.CategoryID || name}
+                  >
+                    <Paper
+                      elevation={1}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        border: "1px solid #e0e0e0",
+                        "&:hover": {
+                          borderColor: "#2e7d32",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                          transform: "translateY(-2px)",
+                        },
+                        transition: "all 0.2s ease",
+                        backgroundColor: "#ffffff",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          backgroundColor: "#2e7d32",
+                        }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500 }}
+                        noWrap
+                        title={name}
+                      >
+                        {name}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+        )}
+
         {/* Search Input */}
         <Box
           className="search-medicine-search-container"

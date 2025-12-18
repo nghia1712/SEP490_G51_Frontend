@@ -234,11 +234,6 @@ function Header() {
 
   const navItems = [
     {
-      label: "Giới thiệu",
-      path: "/about-me",
-      allowedRoles: ["customer"],
-    },
-    {
       label: "Tổng quan",
       path: "/sales-dashboard",
       allowedRoles: ["sales_staff"],
