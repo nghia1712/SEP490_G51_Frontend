@@ -27,7 +27,7 @@ const salesOrderAPI = {
 
   // POST /api/SalesOrder/reject/{orderId}
   rejectOrder: (payload) =>
-    authorApi.post(`${API_URL}/reject/${payload?.salesOrderId ?? ''}`, payload),
+    authorApi.post(`${API_URL}/reject/${payload?.salesOrderId ?? ""}`, payload),
 
   // POST /api/SalesOrder/complete/{orderId}
   completeOrder: (orderId) => authorApi.post(`${API_URL}/complete/${orderId}`),
@@ -70,7 +70,8 @@ const salesOrderAPI = {
     authorApi.get(`${API_URL}/list-sales-order-not-delivered`),
 
   // POST /api/SalesOrder/check-delivered-sales-order
-  checkDelivered: () => authorApi.post(`${API_URL}/check-delivered-sales-order`),
+  checkDelivered: () =>
+    authorApi.post(`${API_URL}/check-delivered-sales-order`),
 
   // ====================== SALES DASHBOARD STATISTICS ======================
   // GET /api/SalesOrder/revenue/{year}
@@ -79,6 +80,10 @@ const salesOrderAPI = {
   // GET /api/SalesOrder/sales-product-quantity/{year}
   getSalesProductQuantityByYear: (year) =>
     authorApi.get(`${API_URL}/sales-product-quantity/${year}`),
+
+  // PUT /api/SalesOrder/{salesOrderId}/mark-not-complete
+  markNotComplete: (salesOrderId) =>
+    authorApi.put(`${API_URL}/${salesOrderId}/mark-not-complete`),
 };
 
 export default salesOrderAPI;

@@ -459,7 +459,7 @@ function ListCategory() {
               Quản lý danh mục
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {filteredCategories.length} danh mục
+              Tổng: {filteredCategories.length} / {categories.length} danh mục
             </Typography>
           </Box>
 

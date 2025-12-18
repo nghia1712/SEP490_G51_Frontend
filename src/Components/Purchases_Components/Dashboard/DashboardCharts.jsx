@@ -16,6 +16,25 @@ import {
 } from "recharts";
 import { Inventory } from "@mui/icons-material";
 
+const formatChartCurrency = (value) => {
+  if (value >= 1_000_000_000) {
+    const v = value / 1_000_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tỷ`;
+  }
+
+  if (value >= 1_000_000) {
+    const v = value / 1_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tr`;
+  }
+
+  if (value >= 1_000) {
+    const v = value / 1_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)}k`;
+  }
+
+  return value;
+};
+
 export const DashboardCharts = ({
   yearlyChartData,
   statusChartData,
@@ -74,7 +93,6 @@ export const DashboardCharts = ({
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={yearlyChartData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -83,32 +101,43 @@ export const DashboardCharts = ({
                     />
                     <XAxis
                       dataKey="month"
+                      tickFormatter={(m) => `T${m}`}
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#6c757d" }}
                     />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value) =>
-                        new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                          minimumFractionDigits: 0,
-                        }).format(value)
-                      }
-                    />
+                    <YAxis tickFormatter={formatChartCurrency} />
                     <Tooltip
+                      labelFormatter={(label) => `Tháng ${label}`}
                       cursor={{ fill: "transparent" }}
                       contentStyle={{
                         borderRadius: "8px",
                         border: "none",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                       }}
-                      formatter={(value) => [formatCurrency(value), "Chi phí"]}
+                      formatter={(value, name) => [
+                        formatCurrency(value),
+                        name === "total" ? "Chi phí" : "Còn nợ",
+                      ]}
                     />
+
                     <Bar
                       dataKey="total"
                       fill="#0d6efd"
+                      radius={[4, 4, 0, 0]}
+                      barSize={30}
+                      onClick={(data, index) => {
+                        const monthData = yearlyChartData[index];
+                        if (monthData?.orders) {
+                          setMonthlyOrders(monthData.orders);
+                          setSelectedMonth(index + 1);
+                          setShowMonthlyChartModal(true);
+                        }
+                      }}
+                    />
+                    <Bar
+                      dataKey="debt"
+                      fill="#dc3545"
                       radius={[4, 4, 0, 0]}
                       barSize={30}
                       onClick={(data, index) => {

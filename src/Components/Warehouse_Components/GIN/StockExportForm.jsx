@@ -406,7 +406,7 @@ export default function StockExportForm() {
                     locale={viLocale}
                   >
                     <DatePicker
-                      label="Ngày xuất"
+                      label="Ngày xuất dự kiến"
                       value={form.dueDate ? new Date(form.dueDate) : null}
                       onChange={(newValue) => {
                         if (!newValue) return;
@@ -469,7 +469,7 @@ export default function StockExportForm() {
                         <TableCell>Hạn dùng</TableCell>
                         <TableCell>Số lượng</TableCell>
                         <TableCell align="center">
-                          Số lượng có thể xuất
+                          Số lượng trong đơn
                         </TableCell>
                         <TableCell></TableCell>
                       </TableRow>

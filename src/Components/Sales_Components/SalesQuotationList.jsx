@@ -1873,7 +1873,7 @@ const SalesQuotationList = () => {
               Báo giá
             </Typography>
             <Typography variant="h6" color="text.secondary" className="sales-quotation-list-count">
-              Tổng: {filteredQuotations.length} báo giá
+              Tổng: {filteredQuotations.length} / {quotations.length} báo giá
             </Typography>
           </Box>
 

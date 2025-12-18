@@ -35,7 +35,7 @@ export default function CustomerDebtList() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const rowsPerPage = 5;
 
   // Filter & Search
   const [statusFilter, setStatusFilter] = useState("");
@@ -212,12 +212,12 @@ export default function CustomerDebtList() {
                           <TableCell align="center">
                             {new Date(item.dueDate).toLocaleDateString("vi-VN")}
                           </TableCell>
-                      <TableCell align="right">
-                        {renderCurrency(item.totalAmount)}
-                      </TableCell>
-                      <TableCell align="right">
-                        {renderCurrency(item.debtAmount)}
-                      </TableCell>
+                          <TableCell align="right">
+                            {renderCurrency(item.totalAmount)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {renderCurrency(item.debtAmount)}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}

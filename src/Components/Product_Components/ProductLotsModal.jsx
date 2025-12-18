@@ -14,6 +14,7 @@ import {
   Snackbar,
   Alert,
   Portal,
+  Box,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import warehouseAPI from "../../API/warehouseAPI";
@@ -159,7 +160,16 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
             alignItems: "center",
           }}
         >
-          Danh sách lô của {productName}
+          <span>
+            Danh sách lô hàng của{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 700, color: "primary.main" }}
+            >
+              {productName}
+            </Box>
+          </span>
+
           <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>
@@ -172,17 +182,22 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
             <Table>
               <TableHead>
                 <TableRow
-                  sx={{ "& .MuiTableCell-root": { whiteSpace: "nowrap" } }}
+                  sx={{
+                    "& .MuiTableCell-root": {
+                      whiteSpace: "nowrap",
+                      fontWeight: 600,
+                    },
+                  }}
                 >
                   <TableCell>Lô hàng</TableCell>
                   <TableCell>Ngày nhập</TableCell>
-                  <TableCell>Giá nhập</TableCell>
-                  <TableCell>Giá bán</TableCell>
-                  <TableCell>Số lượng</TableCell>
+                  <TableCell align="right">Giá nhập</TableCell>
+                  <TableCell align="right">Giá bán</TableCell>
+                  <TableCell align="right">Số lượng</TableCell>
                   <TableCell>Hạn sử dụng</TableCell>
                   <TableCell>Vị trí kho</TableCell>
                   <TableCell>Nhà cung cấp</TableCell>
-                  <TableCell>Mã sản phẩm</TableCell>
+                  {/* <TableCell>Mã sản phẩm</TableCell> */}
                   <TableCell>Ngày kiểm tra cuối</TableCell>
                   {canEdit && <TableCell>Hành động</TableCell>}
                 </TableRow>
@@ -212,10 +227,10 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                             ? inputDate.toLocaleDateString("vi-VN")
                             : "-"}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align="right">
                           {lot.inputPrice?.toLocaleString("vi-VN")} ₫
                         </TableCell>
-                        <TableCell>
+                        <TableCell align="right">
                           {editingLotId === lot.lotID ? (
                             <TextField
                               size="small"
@@ -233,17 +248,17 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell>{lot.lotQuantity}</TableCell>
+                        <TableCell align="right">{lot.lotQuantity}</TableCell>
                         <TableCell>
                           {expiredDate
                             ? expiredDate.toLocaleDateString("vi-VN")
                             : "-"}
                         </TableCell>
-                        <TableCell>{lot.warehouselocationID}</TableCell>
+                        <TableCell>{lot.warehouseName}</TableCell>
                         <TableCell>
                           {supplierNames[lot.supplierID] || lot.supplierID}
                         </TableCell>
-                        <TableCell>{lot.productID}</TableCell>
+                        {/* <TableCell align="center">{lot.productID}</TableCell> */}
                         <TableCell>
                           {lastChecked && lastChecked.getFullYear() !== 1
                             ? lastChecked.toLocaleDateString("vi-VN")

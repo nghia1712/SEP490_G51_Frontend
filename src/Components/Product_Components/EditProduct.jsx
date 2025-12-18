@@ -348,7 +348,7 @@ const EditProduct = ({
       const productId = getProductIdValue(product);
       const response = await productAPI.update(productId, formData);
 
-      if (response?.data?.message !== "Thành công") {
+      if (!response?.data?.success) {
         setErrors((prev) => ({
           ...prev,
           general: response?.data?.message || "Cập nhật thất bại",
