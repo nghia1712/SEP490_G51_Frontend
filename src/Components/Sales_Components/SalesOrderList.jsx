@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -57,6 +57,7 @@ const SalesOrderList = () => {
   const [orders, setOrders] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const isFetchingRef = useRef(false); // Flag để tránh gọi nhiều lần
 
   const [error, setError] = useState(null);
 
@@ -92,6 +93,12 @@ const SalesOrderList = () => {
   const pageSize = 5;
 
   const fetchOrders = useCallback(async (showLoading = true) => {
+    // Tránh gọi nhiều lần cùng lúc
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    isFetchingRef.current = true;
     if (showLoading) {
       setLoading(true);
     }
@@ -99,7 +106,9 @@ const SalesOrderList = () => {
     setError(null);
 
     try {
+      console.log("SalesOrderList - Calling API...");
       const response = await salesOrderAPI.listSalesOrder();
+      console.log("SalesOrderList - API response received:", response?.data);
 
       if (response.data && Array.isArray(response.data.data)) {
         // Debug: Log first order to see structure
@@ -268,6 +277,7 @@ const SalesOrderList = () => {
         setOrders([]);
       }
     } catch (err) {
+      console.error("SalesOrderList - fetchOrders error:", err);
       const errorMessage =
         err.response?.data?.message || "Không thể tải danh sách đơn hàng";
 
@@ -279,6 +289,8 @@ const SalesOrderList = () => {
 
       setOrders([]);
     } finally {
+      console.log("SalesOrderList - fetchOrders completed");
+      isFetchingRef.current = false;
       if (showLoading) {
         setLoading(false);
       }
@@ -286,8 +298,12 @@ const SalesOrderList = () => {
   }, []);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    // Chỉ gọi một lần khi component mount, không gọi lại khi re-render
+    if (!isFetchingRef.current && orders.length === 0 && !loading) {
+      fetchOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Chỉ chạy một lần khi mount
 
   const getOrderStatusLabel = (status) => {
     // SalesOrderStatus enum: Draft=0, Send=1, Approved=2, Rejected=3, Delivered=4, Complete=5, NotComplete=6
@@ -652,7 +668,7 @@ const SalesOrderList = () => {
   }, [sortedOrders, page]);
 
   useEffect(() => {
-    if (page > totalPages) {
+    if (totalPages > 0 && page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
@@ -1419,15 +1435,14 @@ const SalesOrderList = () => {
                 disabled={loading}
               >
                 <InputLabel id="order-status-filter-label">
-                  Lọc theo đơn hàng
+                  Lọc theo trạng thái đơn hàng
                 </InputLabel>
                 <Select
                   labelId="order-status-filter-label"
                   value={orderStatusFilter}
-                  label="Lọc theo đơn hàng"
+                  label="Lọc theo trạng thái đơn hàng"
                   onChange={(e) => {
                     setOrderStatusFilter(e.target.value);
-                    setLoading(true);
                   }}
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
@@ -1453,7 +1468,6 @@ const SalesOrderList = () => {
                   label="Lọc theo trạng thái thanh toán"
                   onChange={(e) => {
                     setPaymentStatusFilter(e.target.value);
-                    setLoading(true);
                   }}
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
