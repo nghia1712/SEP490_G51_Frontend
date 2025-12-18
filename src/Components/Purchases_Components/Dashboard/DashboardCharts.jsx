@@ -15,6 +15,7 @@ import {
   Legend,
 } from "recharts";
 import { Inventory } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 const formatChartCurrency = (value) => {
   if (value >= 1_000_000_000) {
@@ -50,8 +51,9 @@ export const DashboardCharts = ({
   showStatusModal,
   selectedStatus,
   filteredOrdersByStatus,
-  getStatusBadge,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <>
       <Row>
@@ -91,9 +93,7 @@ export const DashboardCharts = ({
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={yearlyChartData}
-                  >
+                  <BarChart data={yearlyChartData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
