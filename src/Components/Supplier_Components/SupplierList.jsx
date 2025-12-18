@@ -316,7 +316,7 @@ const SupplierList = () => {
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       console.log("Updating status for supplier ID:", id, "to:", newStatus);
-      
+
       if (!id) {
         console.error("ID is undefined or null");
         return;
@@ -327,12 +327,15 @@ const SupplierList = () => {
       } else {
         await supplierAPI.disable(id);
       }
-      
+
       // Refresh danh sách sau khi cập nhật
       await fetchSuppliers();
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      alert("Không thể cập nhật trạng thái. Lỗi: " + (error.response?.data?.message || error.message));
+      alert(
+        "Không thể cập nhật trạng thái. Lỗi: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
 
@@ -391,7 +394,9 @@ const SupplierList = () => {
       // Validation trùng lặp tên nhà cung cấp (không phân biệt chữ hoa chữ thường)
       const normalizedNewName = data.name.trim().toLowerCase();
       const duplicateName = suppliers.find((supplier) => {
-        const supplierName = (supplier.name || supplier.Name || "").trim().toLowerCase();
+        const supplierName = (supplier.name || supplier.Name || "")
+          .trim()
+          .toLowerCase();
         return supplierName === normalizedNewName;
       });
 
@@ -417,11 +422,19 @@ const SupplierList = () => {
     }
 
     // bankAccountNumber và myDebt là optional - chỉ validate format nếu có giá trị
-    if (data.bankAccountNumber && data.bankAccountNumber.trim() && !/^\d{8,20}$/.test(data.bankAccountNumber.trim())) {
+    if (
+      data.bankAccountNumber &&
+      data.bankAccountNumber.trim() &&
+      !/^\d{8,20}$/.test(data.bankAccountNumber.trim())
+    ) {
       errors.bankAccountNumber = "Số tài khoản chỉ gồm số và dài 8–20 ký tự";
     }
 
-    if (data.myDebt && data.myDebt.trim() && !/^\d+$/.test(data.myDebt.trim())) {
+    if (
+      data.myDebt &&
+      data.myDebt.trim() &&
+      !/^\d+$/.test(data.myDebt.trim())
+    ) {
       errors.myDebt = "Số nợ chỉ được chứa số";
     }
 
@@ -493,8 +506,11 @@ const SupplierList = () => {
       console.log("Response data:", response?.data);
 
       // Check success: status 201/200 hoặc response.data.success === true
-      const isSuccess = (response?.status === 201 || response?.status === 200) || response?.data?.success === true;
-      
+      const isSuccess =
+        response?.status === 201 ||
+        response?.status === 200 ||
+        response?.data?.success === true;
+
       if (isSuccess) {
         // Hiển thị thông báo thành công
         console.log("=== SUCCESS MESSAGE SET ===");
@@ -506,8 +522,8 @@ const SupplierList = () => {
         setFormErrors({});
         setAddLoading(false);
         setAddSuccessMessage("Tạo nhà cung cấp thành công!");
-        console.log('Success message set');
-        
+        console.log("Success message set");
+
         // Đóng modal và refresh danh sách sau 1.5 giây
         setTimeout(() => {
           setOpenAddModal(false);
@@ -587,15 +603,15 @@ const SupplierList = () => {
       if (hasActiveFilter) {
         // Check if supplier is active: status === "active" or status === 1 or status === true
         const isActiveSupplier =
-          supplier.status === "active" || 
-          supplier.status === 1 || 
+          supplier.status === "active" ||
+          supplier.status === 1 ||
           supplier.status === true ||
           supplier.status === "1";
-        
+
         // Check if supplier is inactive: status === "inactive" or status === 0 or status === false
         const isInactiveSupplier =
-          supplier.status === "inactive" || 
-          supplier.status === 0 || 
+          supplier.status === "inactive" ||
+          supplier.status === 0 ||
           supplier.status === false ||
           supplier.status === "0";
 
@@ -631,7 +647,10 @@ const SupplierList = () => {
   );
   const productPageStart = (productsPage - 1) * productsPerPage;
   const productPageEnd = productsPage * productsPerPage;
-  const paginatedProducts = supplierProducts.slice(productPageStart, productPageEnd);
+  const paginatedProducts = supplierProducts.slice(
+    productPageStart,
+    productPageEnd
+  );
 
   const getStatusChip = (status) => {
     const isActive = status === "active" || status === 1;
@@ -703,15 +722,30 @@ const SupplierList = () => {
       // Handle response from /api/Supplier/detail
       let products = [];
       const responseData = response.data?.data || response.data;
-      
+
       // Check if response contains products array
       if (responseData?.products && Array.isArray(responseData.products)) {
         products = responseData.products;
-        console.log("Found products in supplier detail - found", products.length, "products");
-      } else if (responseData?.supplierProducts && Array.isArray(responseData.supplierProducts)) {
+        console.log(
+          "Found products in supplier detail - found",
+          products.length,
+          "products"
+        );
+      } else if (
+        responseData?.supplierProducts &&
+        Array.isArray(responseData.supplierProducts)
+      ) {
         products = responseData.supplierProducts;
-        console.log("Found supplierProducts in supplier detail - found", products.length, "products");
-      } else if (response.data?.success && response.data?.data && Array.isArray(response.data.data)) {
+        console.log(
+          "Found supplierProducts in supplier detail - found",
+          products.length,
+          "products"
+        );
+      } else if (
+        response.data?.success &&
+        response.data?.data &&
+        Array.isArray(response.data.data)
+      ) {
         // New format: { success: true, data: [...], total: x, timestamp: y }
         products = response.data.data;
         console.log("Using new format - found", products.length, "products");
@@ -720,7 +754,10 @@ const SupplierList = () => {
         products = response.data;
         console.log("Using legacy format - found", products.length, "products");
       } else {
-        console.warn("No products found in response. Response structure:", response.data);
+        console.warn(
+          "No products found in response. Response structure:",
+          response.data
+        );
         products = [];
       }
 
@@ -753,751 +790,770 @@ const SupplierList = () => {
   };
 
   return (
-      <Container
-        maxWidth="xl"
-        sx={{ mt: 0, mb: 4, pt: 4 }}
+    <Container maxWidth="xl" sx={{ mt: 0, mb: 4, pt: 4 }}>
+      <Card
+        elevation={3}
+        sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
       >
-        <Card
-          elevation={3}
-          sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            {/* Header */}
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <BusinessIcon sx={{ fontSize: 40, color: "#1976d2", mr: 2 }} />
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
-                >
-                  Quản lý nhà cung cấp
-                </Typography>
-                <Typography variant="h6" color="textSecondary">
-                  Tổng: {filteredSuppliers.length} / {suppliers.length} nhà cung cấp
-                </Typography>
-              </Box>
-
-              {/* Toolbar với tìm kiếm và bộ lọc */}
-              <Paper
-                elevation={1}
-                sx={{ p: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}
+        <CardContent sx={{ p: 3 }}>
+          {/* Header */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <BusinessIcon sx={{ fontSize: 40, color: "#1976d2", mr: 2 }} />
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
               >
-                <Stack
-                  direction={{ xs: "column", lg: "row" }}
-                  spacing={2}
-                  alignItems="center"
-                >
-                  {/* Tìm kiếm + Bộ lọc + Clear filter */}
-                  <Stack
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                    flexWrap="wrap"
-                    sx={{ flexGrow: 1 }}
-                  >
-                    {/* Tìm kiếm */}
-                    <TextField
-                      placeholder="Tìm kiếm theo tên nhà cung cấp..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      size="small"
-                      sx={{ minWidth: 300 }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon color="action" />
-                          </InputAdornment>
-                        ),
-                        endAdornment: search && (
-                          <InputAdornment position="end">
-                            <IconButton
-                              size="small"
-                              onClick={handleClearSearch}
-                            >
-                              <ClearIcon />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    {/* Bộ lọc trạng thái */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <FormGroup row>
-                        {["Còn cung cấp", "Ngừng cung cấp"].map((status) => (
-                          <FormControlLabel
-                            key={status}
-                            control={
-                              <Checkbox
-                                name={status}
-                                checked={filterStatus[status]}
-                                onChange={handleFilterChange}
-                                size="small"
-                                color="primary"
-                              />
-                            }
-                            label={
-                              <Typography variant="body2">{status}</Typography>
-                            }
-                          />
-                        ))}
-                      </FormGroup>
-                    </Box>
-
-                    {/* Nút xóa bộ lọc */}
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      onClick={handleClearFilters}
-                    >
-                      Xóa lọc
-                    </Button>
-                  </Stack>
-
-                  {/* Nút thêm nhà cung cấp (bên phải) */}
-                  <Box>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => {
-                        console.log("Add button clicked, opening modal...");
-                        setOpenAddModal(true);
-                      }}
-                      sx={{
-                        backgroundColor: "#155E64",
-                        "&:hover": { backgroundColor: "#0D4F52" },
-                        borderRadius: "8px",
-                        px: { xs: 2, sm: 3 },
-                        py: 1.5,
-                        fontWeight: "600",
-                      }}
-                    >
-                      THÊM NHÀ CUNG CẤP
-                    </Button>
-                  </Box>
-                </Stack>
-              </Paper>
+                Quản lý nhà cung cấp
+              </Typography>
+              <Typography variant="h6" color="textSecondary">
+                {filteredSuppliers.length === suppliers.length
+                  ? `Tổng: ${suppliers.length} nhà cung cấp`
+                  : `Tổng: ${filteredSuppliers.length} / ${suppliers.length} nhà cung cấp`}
+              </Typography>
             </Box>
 
-            {/* Bảng danh sách */}
-            <TableContainer
-              component={Paper}
-              sx={{ maxHeight: 600, borderRadius: 2, boxShadow: 1 }}
+            {/* Toolbar với tìm kiếm và bộ lọc */}
+            <Paper
+              elevation={1}
+              sx={{ p: 3, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              <Table stickyHeader aria-label="supplier table">
+              <Stack
+                direction={{ xs: "column", lg: "row" }}
+                spacing={2}
+                alignItems="center"
+              >
+                {/* Tìm kiếm + Bộ lọc + Clear filter */}
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  sx={{ flexGrow: 1 }}
+                >
+                  {/* Tìm kiếm */}
+                  <TextField
+                    placeholder="Tìm kiếm theo tên nhà cung cấp..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    size="small"
+                    sx={{ minWidth: 300 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: search && (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={handleClearSearch}>
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  {/* Bộ lọc trạng thái */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <FormGroup row>
+                      {["Còn cung cấp", "Ngừng cung cấp"].map((status) => (
+                        <FormControlLabel
+                          key={status}
+                          control={
+                            <Checkbox
+                              name={status}
+                              checked={filterStatus[status]}
+                              onChange={handleFilterChange}
+                              size="small"
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Typography variant="body2">{status}</Typography>
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </Box>
+
+                  {/* Nút xóa bộ lọc */}
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={handleClearFilters}
+                  >
+                    Xóa lọc
+                  </Button>
+                </Stack>
+
+                {/* Nút thêm nhà cung cấp (bên phải) */}
+                <Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      console.log("Add button clicked, opening modal...");
+                      setOpenAddModal(true);
+                    }}
+                    sx={{
+                      backgroundColor: "#155E64",
+                      "&:hover": { backgroundColor: "#0D4F52" },
+                      borderRadius: "8px",
+                      px: { xs: 2, sm: 3 },
+                      py: 1.5,
+                      fontWeight: "600",
+                    }}
+                  >
+                    THÊM NHÀ CUNG CẤP
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+
+          {/* Bảng danh sách */}
+          <TableContainer
+            component={Paper}
+            sx={{ maxHeight: 600, borderRadius: 2, boxShadow: 1 }}
+          >
+            <Table stickyHeader aria-label="supplier table">
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    #
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    <TableSortLabel
+                      active={orderBy === "name"}
+                      direction={orderBy === "name" ? order : "asc"}
+                      onClick={() => handleRequestSort("name")}
+                    >
+                      Tên nhà cung cấp
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    Địa chỉ
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    Liên hệ
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    Email
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
+                  >
+                    <TableSortLabel
+                      active={orderBy === "status"}
+                      direction={orderBy === "status" ? order : "asc"}
+                      onClick={() => handleRequestSort("status")}
+                    >
+                      Trạng thái
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      backgroundColor: "#e3f2fd",
+                      textAlign: "center",
+                    }}
+                  >
+                    Hành động
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedSuppliers.length > 0 ? (
+                  paginatedSuppliers.map((supplier, index) => (
+                    <React.Fragment
+                      key={`supplier-${supplier.id || supplier._id || index}`}
+                    >
+                      <TableRow
+                        hover
+                        onClick={() =>
+                          fetchSupplierDetails(supplier._id || supplier.id)
+                        }
+                        sx={{
+                          "&:nth-of-type(odd)": {
+                            backgroundColor: "#fafafa",
+                          },
+                          "&:hover": {
+                            backgroundColor: "#f0f7ff",
+                            cursor: "pointer",
+                            transform: "scale(1.01)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                          },
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {pageStart + index + 1}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: "medium",
+                              cursor: "pointer",
+                              "&:hover": {
+                                color: "#1976d2",
+                                textDecoration: "underline",
+                              },
+                            }}
+                            onClick={() =>
+                              fetchSupplierDetails(supplier._id || supplier.id)
+                            }
+                          >
+                            {supplier.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{ maxWidth: 200 }}
+                            noWrap
+                          >
+                            {supplier.address || "Chưa cập nhật"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontFamily: "monospace" }}
+                          >
+                            {formatPhoneNumber(supplier)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{ maxWidth: 180 }}
+                            noWrap
+                          >
+                            {supplier.email || "Chưa cập nhật"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{getStatusChip(supplier.status)}</TableCell>
+                        <TableCell>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                            alignItems="center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Tooltip title="Xem sản phẩm" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  handleExpandRow(supplier._id || supplier.id)
+                                }
+                                sx={{
+                                  color: blue[600],
+                                  "&:hover": {
+                                    backgroundColor: blue[50],
+                                    transform: "scale(1.1)",
+                                  },
+                                  transition: "all 0.2s",
+                                }}
+                              >
+                                <InventoryIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Chỉnh sửa" arrow>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => setEditingSupplier(supplier)}
+                                  disabled={false}
+                                  sx={{
+                                    color: orange[600],
+                                    "&:hover": {
+                                      backgroundColor: orange[50],
+                                      transform: "scale(1.1)",
+                                    },
+                                    transition: "all 0.2s",
+                                    opacity: 1,
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+
+                            {/* Nút kích hoạt/ngừng cung cấp */}
+                            {supplier.status === "active" ||
+                            supplier.status === 1 ? (
+                              <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={() =>
+                                  handleUpdateStatus(
+                                    supplier._id || supplier.id,
+                                    "inactive"
+                                  )
+                                }
+                                sx={{
+                                  minWidth: 130,
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                Ngừng cung cấp
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="contained"
+                                color="success"
+                                size="small"
+                                onClick={() =>
+                                  handleUpdateStatus(
+                                    supplier._id || supplier.id,
+                                    "active"
+                                  )
+                                }
+                                sx={{
+                                  minWidth: 130,
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                Kích hoạt
+                              </Button>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ textAlign: "center", py: 6 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <BusinessIcon
+                          sx={{ fontSize: 48, color: "grey.300" }}
+                        />
+                        <Typography variant="h6" color="textSecondary">
+                          Không tìm thấy nhà cung cấp nào
+                        </Typography>
+                        {(search || activeFiltersCount > 0) && (
+                          <Button
+                            variant="outlined"
+                            onClick={handleClearFilters}
+                            size="small"
+                          >
+                            Xóa bộ lọc
+                          </Button>
+                        )}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Pagination - chỉ hiện khi > 1 trang, căn phải */}
+          {filteredSuppliers.length > 0 && totalPages > 1 && (
+            <Box
+              sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}
+            >
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, v) => setPage(v)}
+                color="primary"
+              />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Menu hành động */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { minWidth: 200 },
+        }}
+      >
+        {selectedSupplierForMenu?.status === "active" ? (
+          <MenuItem
+            onClick={() =>
+              handleUpdateStatus(
+                selectedSupplierForMenu._id || selectedSupplierForMenu.id,
+                "inactive"
+              )
+            }
+            sx={{ color: red[600] }}
+          >
+            <BlockIcon sx={{ mr: 1, fontSize: 20 }} />
+            Ngừng cung cấp
+          </MenuItem>
+        ) : (
+          <MenuItem
+            onClick={() =>
+              handleUpdateStatus(
+                selectedSupplierForMenu._id || selectedSupplierForMenu.id,
+                "active"
+              )
+            }
+            sx={{ color: green[600] }}
+          >
+            <RestartAltIcon sx={{ mr: 1, fontSize: 20 }} />
+            Tái cung cấp
+          </MenuItem>
+        )}
+        <Divider />
+        <MenuItem
+          onClick={() =>
+            navigate(
+              `/manager/supplier-products/${
+                selectedSupplierForMenu?._id || selectedSupplierForMenu?.id
+              }`
+            )
+          }
+        >
+          <BusinessIcon sx={{ mr: 1, fontSize: 20 }} />
+          Quản lý sản phẩm
+        </MenuItem>
+      </Menu>
+
+      {/* Modal chỉnh sửa */}
+      <EditSupplier
+        user={editingSupplier}
+        closeModal={() => setEditingSupplier(null)}
+        users={suppliers}
+        setUsers={setSuppliers}
+        onUpdateSuccess={() => {
+          // Refresh danh sách nhà cung cấp
+          fetchSuppliers();
+        }}
+      />
+
+      {/* Add Supplier Modal */}
+      <AddSupplier
+        open={openAddModal}
+        onClose={() => setOpenAddModal(false)}
+        formData={formData}
+        setFormData={setFormData}
+        formErrors={formErrors}
+        onSubmit={handleSubmit}
+        palette={palette}
+        loading={addLoading}
+        successMessage={addSuccessMessage}
+      />
+
+      {/* Modal chi tiết nhà cung cấp */}
+      <Dialog
+        open={openDetailsModal}
+        onClose={() => setOpenDetailsModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            backgroundColor: "#fff", // bỏ header xanh
+            color: "#1976d2",
+            display: "flex",
+            alignItems: "center",
+            pb: 2,
+            borderBottom: "1px solid #e0e0e0",
+          }}
+        >
+          <BusinessIcon sx={{ mr: 1, color: "#1976d2" }} />
+          <Typography
+            component="span"
+            sx={{ fontSize: 25, fontWeight: 700, mr: 2 }}
+          >
+            Chi tiết nhà cung cấp
+          </Typography>
+          <IconButton
+            onClick={() => setOpenDetailsModal(false)}
+            sx={{
+              ml: "auto",
+              color: "#1976d2",
+              "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {loadingDetails ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : supplierDetails ? (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Card variant="outlined" sx={{ p: 3 }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: "#1976d2" }}>
+                    Thông tin cơ bản
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Tên nhà cung cấp
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+                        {supplierDetails.name ||
+                          supplierDetails.Name ||
+                          "Chưa cập nhật"}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Email
+                      </Typography>
+                      <Typography variant="body1">
+                        {supplierDetails.email ||
+                          supplierDetails.Email ||
+                          "Chưa cập nhật"}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Địa chỉ
+                      </Typography>
+                      <Typography variant="body1">
+                        {supplierDetails.address ||
+                          supplierDetails.Address ||
+                          "Chưa cập nhật"}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Số điện thoại
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontFamily: "monospace" }}
+                      >
+                        {formatPhoneNumber(supplierDetails)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Card variant="outlined" sx={{ p: 3 }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: "#1976d2" }}>
+                    Thông tin khác
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Trạng thái
+                      </Typography>
+                      {getStatusChip(supplierDetails.status)}
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Mô tả
+                      </Typography>
+                      <Typography variant="body1">
+                        {supplierDetails.description ||
+                          supplierDetails.Description ||
+                          "Không có mô tả"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Card>
+              </Grid>
+            </Grid>
+          ) : (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="h6" color="textSecondary">
+                Không thể tải thông tin chi tiết
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Modal */}
+      <Dialog
+        open={openProductsModal}
+        onClose={() => setOpenProductsModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            backgroundColor: "#1976d2",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            pb: 2,
+          }}
+        >
+          <InventoryIcon sx={{ mr: 1 }} />
+          Sản phẩm của nhà cung cấp - {selectedSupplier?.name}
+          <IconButton
+            onClick={() => setOpenProductsModal(false)}
+            sx={{
+              ml: "auto",
+              color: "white",
+              "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {loadingProducts ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : paginatedProducts.length > 0 ? (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
+                    <TableCell sx={{ width: "60px", textAlign: "center" }}>
                       #
                     </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
-                      <TableSortLabel
-                        active={orderBy === "name"}
-                        direction={orderBy === "name" ? order : "asc"}
-                        onClick={() => handleRequestSort("name")}
-                      >
-                        Tên nhà cung cấp
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
-                      Địa chỉ
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
-                      Liên hệ
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
-                      Email
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
-                    >
-                      <TableSortLabel
-                        active={orderBy === "status"}
-                        direction={orderBy === "status" ? order : "asc"}
-                        onClick={() => handleRequestSort("status")}
-                      >
-                        Trạng thái
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontWeight: "bold",
-                        backgroundColor: "#e3f2fd",
-                        textAlign: "center",
-                      }}
-                    >
-                      Hành động
-                    </TableCell>
+                    <TableCell>Tên sản phẩm</TableCell>
+                    <TableCell align="right">Giá</TableCell>
+                    <TableCell align="right">Tồn kho</TableCell>
+                    <TableCell align="right">Ngày hết hạn</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedSuppliers.length > 0 ? (
-                    paginatedSuppliers.map((supplier, index) => (
-                      <React.Fragment
-                        key={`supplier-${supplier.id || supplier._id || index}`}
-                      >
-                        <TableRow
-                          hover
-                          onClick={() =>
-                            fetchSupplierDetails(supplier._id || supplier.id)
-                          }
-                          sx={{
-                            "&:nth-of-type(odd)": {
-                              backgroundColor: "#fafafa",
-                            },
-                            "&:hover": {
-                              backgroundColor: "#f0f7ff",
-                              cursor: "pointer",
-                              transform: "scale(1.01)",
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            },
-                            transition: "all 0.2s",
-                          }}
-                        >
-                            <TableCell>
-                              <Typography variant="body2" color="textSecondary">
-                                {pageStart + index + 1}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body1"
-                                sx={{
-                                  fontWeight: "medium",
-                                  cursor: "pointer",
-                                  "&:hover": {
-                                    color: "#1976d2",
-                                    textDecoration: "underline",
-                                  },
-                                }}
-                                onClick={() =>
-                                  fetchSupplierDetails(
-                                    supplier._id || supplier.id
-                                  )
-                                }
-                              >
-                                {supplier.name}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ maxWidth: 200 }}
-                                noWrap
-                              >
-                                {supplier.address || "Chưa cập nhật"}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontFamily: "monospace" }}
-                              >
-                                {formatPhoneNumber(supplier)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ maxWidth: 180 }}
-                                noWrap
-                              >
-                                {supplier.email || "Chưa cập nhật"}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusChip(supplier.status)}
-                            </TableCell>
-                            <TableCell>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                justifyContent="center"
-                                alignItems="center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Tooltip title="Xem sản phẩm" arrow>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() =>
-                                      handleExpandRow(supplier._id || supplier.id)
-                                    }
-                                    sx={{
-                                      color: blue[600],
-                                      "&:hover": {
-                                        backgroundColor: blue[50],
-                                        transform: "scale(1.1)",
-                                      },
-                                      transition: "all 0.2s",
-                                    }}
-                                  >
-                                    <InventoryIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-
-                                <Tooltip title="Chỉnh sửa" arrow>
-                                  <span>
-                                    <IconButton
-                                      size="small"
-                                      onClick={() =>
-                                        setEditingSupplier(supplier)
-                                      }
-                                      disabled={false}
-                                      sx={{
-                                        color: orange[600],
-                                        "&:hover": {
-                                          backgroundColor: orange[50],
-                                          transform: "scale(1.1)",
-                                        },
-                                        transition: "all 0.2s",
-                                        opacity: 1,
-                                      }}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-
-                                {/* Nút kích hoạt/ngừng cung cấp */}
-                                {supplier.status === "active" ||
-                                supplier.status === 1 ? (
-                                  <Button
-                                    variant="contained"
-                                    color="error"
-                                    size="small"
-                                    onClick={() =>
-                                      handleUpdateStatus(
-                                        supplier._id || supplier.id,
-                                        "inactive"
-                                      )
-                                    }
-                                    sx={{
-                                      minWidth: 130,
-                                      fontSize: "0.75rem",
-                                    }}
-                                  >
-                                    Ngừng cung cấp
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="contained"
-                                    color="success"
-                                    size="small"
-                                    onClick={() =>
-                                      handleUpdateStatus(
-                                        supplier._id || supplier.id,
-                                        "active"
-                                      )
-                                    }
-                                    sx={{
-                                      minWidth: 130,
-                                      fontSize: "0.75rem",
-                                    }}
-                                  >
-                                    Kích hoạt
-                                  </Button>
-                                )}
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        sx={{ textAlign: "center", py: 6 }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 2,
-                          }}
-                        >
-                          <BusinessIcon
-                            sx={{ fontSize: 48, color: "grey.300" }}
-                          />
-                          <Typography variant="h6" color="textSecondary">
-                            Không tìm thấy nhà cung cấp nào
-                          </Typography>
-                          {(search || activeFiltersCount > 0) && (
-                            <Button
-                              variant="outlined"
-                              onClick={handleClearFilters}
-                              size="small"
-                            >
-                              Xóa bộ lọc
-                            </Button>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            {/* Pagination - chỉ hiện khi > 1 trang, căn phải */}
-            {filteredSuppliers.length > 0 && totalPages > 1 && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
-                <Pagination
-                  count={totalPages}
-                  page={page}
-                  onChange={(_, v) => setPage(v)}
-                  color="primary"
-                />
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Menu hành động */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            elevation: 3,
-            sx: { minWidth: 200 },
-          }}
-        >
-          {selectedSupplierForMenu?.status === "active" ? (
-            <MenuItem
-              onClick={() =>
-                handleUpdateStatus(selectedSupplierForMenu._id || selectedSupplierForMenu.id, "inactive")
-              }
-              sx={{ color: red[600] }}
-            >
-              <BlockIcon sx={{ mr: 1, fontSize: 20 }} />
-              Ngừng cung cấp
-            </MenuItem>
-          ) : (
-            <MenuItem
-              onClick={() => handleUpdateStatus(selectedSupplierForMenu._id || selectedSupplierForMenu.id, "active")}
-              sx={{ color: green[600] }}
-            >
-              <RestartAltIcon sx={{ mr: 1, fontSize: 20 }} />
-              Tái cung cấp
-            </MenuItem>
-          )}
-          <Divider />
-          <MenuItem
-            onClick={() =>
-              navigate(`/manager/supplier-products/${selectedSupplierForMenu?._id || selectedSupplierForMenu?.id}`)
-            }
-          >
-            <BusinessIcon sx={{ mr: 1, fontSize: 20 }} />
-            Quản lý sản phẩm
-          </MenuItem>
-        </Menu>
-
-        {/* Modal chỉnh sửa */}
-        <EditSupplier
-          user={editingSupplier}
-          closeModal={() => setEditingSupplier(null)}
-          users={suppliers}
-          setUsers={setSuppliers}
-          onUpdateSuccess={() => {
-            // Refresh danh sách nhà cung cấp
-            fetchSuppliers();
-          }}
-        />
-
-        {/* Add Supplier Modal */}
-        <AddSupplier
-          open={openAddModal}
-          onClose={() => setOpenAddModal(false)}
-          formData={formData}
-          setFormData={setFormData}
-          formErrors={formErrors}
-          onSubmit={handleSubmit}
-          palette={palette}
-          loading={addLoading}
-          successMessage={addSuccessMessage}
-        />
-
-        {/* Modal chi tiết nhà cung cấp */}
-        <Dialog
-          open={openDetailsModal}
-          onClose={() => setOpenDetailsModal(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              backgroundColor: "#fff", // bỏ header xanh
-              color: "#1976d2",
-              display: "flex",
-              alignItems: "center",
-              pb: 2,
-              borderBottom: "1px solid #e0e0e0",
-            }}
-          >
-            <BusinessIcon sx={{ mr: 1, color: "#1976d2" }} />
-            <Typography
-              component="span"
-              sx={{ fontSize: 25, fontWeight: 700, mr: 2 }}
-            >
-              Chi tiết nhà cung cấp
-            </Typography>
-            <IconButton
-              onClick={() => setOpenDetailsModal(false)}
-              sx={{
-                ml: "auto",
-                color: "#1976d2",
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ p: 3 }}>
-            {loadingDetails ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : supplierDetails ? (
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ mb: 2, color: "#1976d2" }}>
-                      Thông tin cơ bản
-                    </Typography>
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Tên nhà cung cấp
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontWeight: "medium" }}
-                        >
-                          {supplierDetails.name ||
-                            supplierDetails.Name ||
-                            "Chưa cập nhật"}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Email
-                        </Typography>
-                        <Typography variant="body1">
-                          {supplierDetails.email ||
-                            supplierDetails.Email ||
-                            "Chưa cập nhật"}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Địa chỉ
-                        </Typography>
-                        <Typography variant="body1">
-                          {supplierDetails.address ||
-                            supplierDetails.Address ||
-                            "Chưa cập nhật"}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Số điện thoại
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{ fontFamily: "monospace" }}
-                        >
-                          {formatPhoneNumber(supplierDetails)}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Card variant="outlined" sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ mb: 2, color: "#1976d2" }}>
-                      Thông tin khác
-                    </Typography>
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Trạng thái
-                        </Typography>
-                        {getStatusChip(supplierDetails.status)}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Mô tả
-                        </Typography>
-                        <Typography variant="body1">
-                          {supplierDetails.description ||
-                            supplierDetails.Description ||
-                            "Không có mô tả"}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Card>
-                </Grid>
-              </Grid>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 4 }}>
-                <Typography variant="h6" color="textSecondary">
-                  Không thể tải thông tin chi tiết
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Product Modal */}
-        <Dialog
-          open={openProductsModal}
-          onClose={() => setOpenProductsModal(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              backgroundColor: "#1976d2",
-              color: "white",
-              display: "flex",
-              alignItems: "center",
-              pb: 2,
-            }}
-          >
-            <InventoryIcon sx={{ mr: 1 }} />
-            Sản phẩm của nhà cung cấp - {selectedSupplier?.name}
-            <IconButton
-              onClick={() => setOpenProductsModal(false)}
-              sx={{
-                ml: "auto",
-                color: "white",
-                "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ p: 3 }}>
-            {loadingProducts ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : paginatedProducts.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: "60px", textAlign: "center" }}>#</TableCell>
-                      <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell align="right">Giá</TableCell>
-                      <TableCell align="right">Tồn kho</TableCell>
-                      <TableCell align="right">Ngày hết hạn</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedProducts.map((product, index) => {
-                      // Parse inputPrice to number
-                      const price = product.inputPrice !== undefined && product.inputPrice !== null
-                        ? (typeof product.inputPrice === 'string' ? parseFloat(product.inputPrice) : Number(product.inputPrice))
+                  {paginatedProducts.map((product, index) => {
+                    // Parse inputPrice to number
+                    const price =
+                      product.inputPrice !== undefined &&
+                      product.inputPrice !== null
+                        ? typeof product.inputPrice === "string"
+                          ? parseFloat(product.inputPrice)
+                          : Number(product.inputPrice)
                         : null;
-                      
-                      // Get lotQuantity
-                      const stock = product.lotQuantity !== undefined && product.lotQuantity !== null
+
+                    // Get lotQuantity
+                    const stock =
+                      product.lotQuantity !== undefined &&
+                      product.lotQuantity !== null
                         ? product.lotQuantity
                         : null;
-                      
-                      // Format expiredDate to DD/MM/YYYY
-                      let expiredDate = null;
-                      if (product.expiredDate) {
-                        try {
-                          const date = new Date(product.expiredDate);
-                          if (!isNaN(date.getTime())) {
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const year = date.getFullYear();
-                            expiredDate = `${day}/${month}/${year}`;
-                          }
-                        } catch (e) {
-                          expiredDate = product.expiredDate;
+
+                    // Format expiredDate to DD/MM/YYYY
+                    let expiredDate = null;
+                    if (product.expiredDate) {
+                      try {
+                        const date = new Date(product.expiredDate);
+                        if (!isNaN(date.getTime())) {
+                          const day = String(date.getDate()).padStart(2, "0");
+                          const month = String(date.getMonth() + 1).padStart(
+                            2,
+                            "0"
+                          );
+                          const year = date.getFullYear();
+                          expiredDate = `${day}/${month}/${year}`;
                         }
+                      } catch (e) {
+                        expiredDate = product.expiredDate;
                       }
-                      
-                      // Create unique key combining productID and warehouselocationID or index
-                      const uniqueKey = product.productID && product.warehouselocationID
+                    }
+
+                    // Create unique key combining productID and warehouselocationID or index
+                    const uniqueKey =
+                      product.productID && product.warehouselocationID
                         ? `${product.productID}-${product.warehouselocationID}`
                         : product.productID
                         ? `${product.productID}-${index}`
                         : `product-${index}`;
-                      
-                      return (
-                        <TableRow key={uniqueKey}>
-                          <TableCell sx={{ width: "60px", textAlign: "center" }}>
-                            {productPageStart + index + 1}
-                          </TableCell>
-                          <TableCell>{product.productName || "Không có tên"}</TableCell>
-                          <TableCell align="right">
-                            {price !== null && !isNaN(price)
-                              ? (
-                                  <>
-                                    {new Intl.NumberFormat("vi-VN").format(price)} <span style={{ textDecoration: "underline" }}>đ</span>
-                                  </>
-                                )
-                              : "N/A"}
-                          </TableCell>
-                          <TableCell align="right">
-                            {stock !== null ? stock : "N/A"}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 500 }}>
-                            {expiredDate || "N/A"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
-                Nhà cung cấp này chưa có sản phẩm nào.
-              </Typography>
-            )}
-          </DialogContent>
-          {paginatedProducts.length > 0 && totalProductPages > 1 && (
-            <DialogActions sx={{ p: 3, justifyContent: "flex-end" }}>
-              <Pagination
-                count={totalProductPages}
-                page={productsPage}
-                onChange={(_, value) => setProductsPage(value)}
-                color="primary"
-              />
-            </DialogActions>
+
+                    return (
+                      <TableRow key={uniqueKey}>
+                        <TableCell sx={{ width: "60px", textAlign: "center" }}>
+                          {productPageStart + index + 1}
+                        </TableCell>
+                        <TableCell>
+                          {product.productName || "Không có tên"}
+                        </TableCell>
+                        <TableCell align="right">
+                          {price !== null && !isNaN(price) ? (
+                            <>
+                              {new Intl.NumberFormat("vi-VN").format(price)}{" "}
+                              <span style={{ textDecoration: "underline" }}>
+                                đ
+                              </span>
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {stock !== null ? stock : "N/A"}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 500 }}>
+                          {expiredDate || "N/A"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 2 }}
+            >
+              Nhà cung cấp này chưa có sản phẩm nào.
+            </Typography>
           )}
-        </Dialog>
-      </Container>
+        </DialogContent>
+        {paginatedProducts.length > 0 && totalProductPages > 1 && (
+          <DialogActions sx={{ p: 3, justifyContent: "flex-end" }}>
+            <Pagination
+              count={totalProductPages}
+              page={productsPage}
+              onChange={(_, value) => setProductsPage(value)}
+              color="primary"
+            />
+          </DialogActions>
+        )}
+      </Dialog>
+    </Container>
   );
 };
 

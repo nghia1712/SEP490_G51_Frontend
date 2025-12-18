@@ -77,6 +77,7 @@ export default function POList() {
     fetchPOs,
     poList,
   } = usePO();
+
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
   const userRole = getUserRoleFromToken();
@@ -134,7 +135,9 @@ export default function POList() {
                 Đơn nhập hàng
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredPOsWithFilter.length} / {poList.length} đơn hàng
+                {filteredPOsWithFilter.length === poList.length
+                  ? `Tổng: ${poList.length} đơn hàng`
+                  : `Tổng: ${filteredPOsWithFilter.length} / ${poList.length} đơn hàng`}
               </Typography>
             </Box>
 

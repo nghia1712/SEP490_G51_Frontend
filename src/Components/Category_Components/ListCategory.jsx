@@ -439,10 +439,7 @@ function ListCategory() {
   };
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{ mt: 0, mb: 4, pt: 4 }}
-    >
+    <Container maxWidth="xl" sx={{ mt: 0, mb: 4, pt: 4 }}>
       <Card
         elevation={3}
         sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
@@ -459,7 +456,9 @@ function ListCategory() {
               Quản lý danh mục
             </Typography>
             <Typography variant="h6" color="text.secondary">
-              Tổng: {filteredCategories.length} / {categories.length} danh mục
+              {filteredCategories.length === categories.length
+                ? `Tổng: ${categories.length} danh mục`
+                : `Tổng: ${filteredCategories.length} / ${categories.length} danh mục`}
             </Typography>
           </Box>
 
@@ -480,11 +479,14 @@ function ListCategory() {
               justifyContent="space-between"
             >
               {/* LEFT: Lọc trạng thái + tìm kiếm */}
-              <Stack 
-                direction={{ xs: "column", sm: "row" }} 
-                spacing={2} 
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
                 alignItems={{ xs: "stretch", sm: "center" }}
-                sx={{ width: { xs: "100%", md: "auto" }, flex: { xs: "1 1 auto", md: "0 1 auto" } }}
+                sx={{
+                  width: { xs: "100%", md: "auto" },
+                  flex: { xs: "1 1 auto", md: "0 1 auto" },
+                }}
               >
                 {/* Search */}
                 <TextField
@@ -542,7 +544,7 @@ function ListCategory() {
                     },
                   }}
                 >
-                  <FormGroup 
+                  <FormGroup
                     row={true}
                     sx={{
                       display: "flex",
@@ -552,8 +554,8 @@ function ListCategory() {
                       width: "100%",
                       "& .MuiFormControlLabel-root": {
                         marginRight: 0,
-                        whiteSpace: "nowrap"
-                      }
+                        whiteSpace: "nowrap",
+                      },
                     }}
                   >
                     {[
@@ -577,9 +579,7 @@ function ListCategory() {
                             color="primary"
                           />
                         }
-                        label={
-                          <Typography variant="body2">{label}</Typography>
-                        }
+                        label={<Typography variant="body2">{label}</Typography>}
                       />
                     ))}
                   </FormGroup>
@@ -602,10 +602,12 @@ function ListCategory() {
               </Stack>
 
               {/* RIGHT: Nút thêm danh mục */}
-              <Box sx={{ 
-                marginLeft: { xs: 0, md: "auto" },
-                width: { xs: "100%", md: "auto" }
-              }}>
+              <Box
+                sx={{
+                  marginLeft: { xs: 0, md: "auto" },
+                  width: { xs: "100%", md: "auto" },
+                }}
+              >
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -637,17 +639,20 @@ function ListCategory() {
           {!loading && (
             <TableContainer
               component={Paper}
-              sx={{ 
-                borderRadius: 2, 
+              sx={{
+                borderRadius: 2,
                 boxShadow: 1,
                 overflowX: "auto",
                 WebkitOverflowScrolling: "touch",
               }}
             >
-              <Table className="category-list-table" sx={{ 
-                tableLayout: "auto", 
-                minWidth: 1000,
-              }}>
+              <Table
+                className="category-list-table"
+                sx={{
+                  tableLayout: "auto",
+                  minWidth: 1000,
+                }}
+              >
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableCell
@@ -658,7 +663,11 @@ function ListCategory() {
                         textAlign: "left",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
-                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -674,13 +683,19 @@ function ListCategory() {
                         #
                       </TableSortLabel>
                     </TableCell>
-                    <TableCell sx={{ 
-                      width: "20%", 
-                      py: { xs: 1, sm: 1.5 }, 
-                      px: { xs: 1, sm: 2 },
-                      fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
-                      whiteSpace: "nowrap",
-                    }}>
+                    <TableCell
+                      sx={{
+                        width: "20%",
+                        py: { xs: 1, sm: 1.5 },
+                        px: { xs: 1, sm: 2 },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       <TableSortLabel
                         active={sortConfig.key === "categoryName"}
                         direction={
@@ -706,7 +721,11 @@ function ListCategory() {
                         textAlign: "left",
                         fontWeight: 600,
                         letterSpacing: "0.03em",
-                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
                       }}
                     >
                       Mô tả
@@ -718,7 +737,11 @@ function ListCategory() {
                         px: { xs: 1, sm: 2 },
                         textAlign: "left",
                         whiteSpace: "nowrap",
-                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
                       }}
                     >
                       <TableSortLabel
@@ -739,12 +762,16 @@ function ListCategory() {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ 
-                        width: "15%", 
-                        py: { xs: 1, sm: 1.5 }, 
-                        px: { xs: 1, sm: 2 }, 
+                      sx={{
+                        width: "15%",
+                        py: { xs: 1, sm: 1.5 },
+                        px: { xs: 1, sm: 2 },
                         textAlign: "center",
-                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -765,12 +792,16 @@ function ListCategory() {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ 
-                        width: "18%", 
-                        textAlign: "right", 
-                        py: { xs: 1, sm: 1.5 }, 
+                      sx={{
+                        width: "18%",
+                        textAlign: "right",
+                        py: { xs: 1, sm: 1.5 },
                         px: { xs: 1, sm: 2 },
-                        fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                        fontSize: {
+                          xs: "0.7rem",
+                          sm: "0.8rem",
+                          md: "0.875rem",
+                        },
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -821,7 +852,11 @@ function ListCategory() {
                               py: { xs: 1, sm: 1.5 },
                               px: { xs: 1, sm: 2 },
                               verticalAlign: "middle",
-                              fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                              fontSize: {
+                                xs: "0.7rem",
+                                sm: "0.8rem",
+                                md: "0.875rem",
+                              },
                             },
                           }}
                         >
@@ -1153,7 +1188,9 @@ function ListCategory() {
 
           {/* Pagination - giống quản lý nhà cung cấp, căn phải */}
           {filteredCategories.length > 0 && totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}
+            >
               <Pagination
                 count={totalPages}
                 page={currentPage}

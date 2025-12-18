@@ -169,7 +169,7 @@ export default function StockExportList() {
       case 5:
         return { label: "Đã hủy", color: "error" };
       case 6:
-        return { label: "Sẵn sàng", color: "primary" };
+        return { label: "Có thể xuất", color: "primary" };
       default:
         return { label: "Không xác định", color: "default" };
     }
@@ -278,7 +278,9 @@ export default function StockExportList() {
                 Yêu cầu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filteredList.length} / {data.length} yêu cầu
+                {filteredList.length === data.length
+                  ? `Tổng: ${data.length} yêu cầu`
+                  : `Tổng: ${filteredList.length} / ${data.length} yêu cầu`}
               </Typography>
             </Box>
 
@@ -338,7 +340,7 @@ export default function StockExportList() {
                       <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
                       <MenuItem value={3}>Không đủ hàng</MenuItem>
                       <MenuItem value={5}>Đã hủy</MenuItem>
-                      <MenuItem value={6}>Sẵn sàng</MenuItem>
+                      <MenuItem value={6}>Có thể xuất</MenuItem>
                     </Select>
                   </FormControl>
 

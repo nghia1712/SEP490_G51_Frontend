@@ -44,7 +44,7 @@ import {
   NoteAdd,
   Delete,
   PriceCheck,
-  Refresh as RefreshIcon ,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import palette from "../../../constants/palette";
 import usePQ from "../../../Hooks/usePQ";
@@ -184,7 +184,9 @@ export default function PQList() {
                 Báo giá nhập
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filtered.length} / {quotations.length} báo giá
+                {filtered.length === quotations.length
+                  ? `Tổng: ${quotations.length} báo giá`
+                  : `Tổng: ${filtered.length} / ${quotations.length} báo giá`}
               </Typography>
             </Box>
 

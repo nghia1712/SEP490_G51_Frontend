@@ -341,40 +341,39 @@ const ListProduct = () => {
   }
 
   return (
-      <Container
-        maxWidth="xl"
-        sx={{ mt: 0, mb: 4, pt: 4 }}
+    <Container maxWidth="xl" sx={{ mt: 0, mb: 4, pt: 4 }}>
+      <Card
+        elevation={3}
+        sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
       >
-        <Card
-          elevation={3}
-          sx={{ borderRadius: 2, backgroundColor: "rgba(255, 255, 255, 0.95)" }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            {/* Title */}
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <MedicationIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
-              <Typography
-                variant="h4"
-                component="h1"
-                sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
-              >
-                Quản lý thuốc
-              </Typography>
-              <Typography variant="h6" color="textSecondary">
-                Tổng: {filteredProducts.length} / {products.length} sản phẩm
-              </Typography>
-            </Box>
-
-            {/* FILTER */}
-            <Paper
-              className="product-list-filter-container"
-              sx={{
-                p: 2,
-                mb: 2,
-                backgroundColor: "#f8fafc",
-                borderRadius: 2,
-              }}
+        <CardContent sx={{ p: 3 }}>
+          {/* Title */}
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <MedicationIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{ color: "#1976d2", fontWeight: "bold", flexGrow: 1 }}
             >
+              Quản lý thuốc
+            </Typography>
+            <Typography variant="h6" color="textSecondary">
+              {filteredProducts.length === products.length
+                ? `Tổng: ${products.length} sản phẩm`
+                : `Tổng: ${filteredProducts.length} / ${products.length} sản phẩm`}
+            </Typography>
+          </Box>
+
+          {/* FILTER */}
+          <Paper
+            className="product-list-filter-container"
+            sx={{
+              p: 2,
+              mb: 2,
+              backgroundColor: "#f8fafc",
+              borderRadius: 2,
+            }}
+          >
             <Stack
               direction={{ xs: "column", md: "row" }}
               alignItems={{ xs: "stretch", md: "center" }}
@@ -382,11 +381,14 @@ const ListProduct = () => {
               justifyContent="space-between"
             >
               {/* LEFT: Lọc trạng thái + tìm kiếm */}
-              <Stack 
-                direction={{ xs: "column", sm: "row" }} 
-                spacing={2} 
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
                 alignItems={{ xs: "stretch", sm: "center" }}
-                sx={{ width: { xs: "100%", md: "auto" }, flex: { xs: "1 1 auto", md: "0 1 auto" } }}
+                sx={{
+                  width: { xs: "100%", md: "auto" },
+                  flex: { xs: "1 1 auto", md: "0 1 auto" },
+                }}
               >
                 {/* Search */}
                 <TextField
@@ -444,13 +446,15 @@ const ListProduct = () => {
                     },
                   }}
                 >
-                  <Box sx={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1,
-                    flexDirection: { xs: "column", sm: "row" },
-                    width: { xs: "100%", sm: "auto" }
-                  }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      flexDirection: { xs: "column", sm: "row" },
+                      width: { xs: "100%", sm: "auto" },
+                    }}
+                  >
                     <FormGroup row={!isMobile}>
                       {[
                         { key: "Còn cung cấp", label: "Đang bán" },
@@ -487,10 +491,12 @@ const ListProduct = () => {
               </Stack>
 
               {/* RIGHT: Nút thêm thuốc */}
-              <Box sx={{ 
-                marginLeft: { xs: 0, md: "auto" },
-                width: { xs: "100%", md: "auto" }
-              }}>
+              <Box
+                sx={{
+                  marginLeft: { xs: 0, md: "auto" },
+                  width: { xs: "100%", md: "auto" },
+                }}
+              >
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -522,18 +528,18 @@ const ListProduct = () => {
           {!loading && (
             <TableContainer
               component={Paper}
-              sx={{ 
-                borderRadius: 2, 
+              sx={{
+                borderRadius: 2,
                 boxShadow: 1,
                 overflowX: "auto",
                 WebkitOverflowScrolling: "touch",
               }}
             >
-              <Table 
-                className="product-list-table" 
-                sx={{ 
-                  tableLayout: "auto", 
-                  borderSpacing: 0, 
+              <Table
+                className="product-list-table"
+                sx={{
+                  tableLayout: "auto",
+                  borderSpacing: 0,
                   borderCollapse: "collapse",
                   minWidth: 1000, // Đảm bảo table rộng hơn container để có scroll ngang
                 }}
@@ -546,22 +552,44 @@ const ListProduct = () => {
                         align={headCell.align || "left"}
                         sx={{
                           py: { xs: 1, sm: 1.5 },
-                          px: { 
-                            xs: 1, 
-                            sm: idx === 0 ? 2 : idx === 1 ? 0 : idx === 4 ? 0 : idx === 5 ? 0 : 2 
+                          px: {
+                            xs: 1,
+                            sm:
+                              idx === 0
+                                ? 2
+                                : idx === 1
+                                ? 0
+                                : idx === 4
+                                ? 0
+                                : idx === 5
+                                ? 0
+                                : 2,
                           },
-                          pr: { 
-                            xs: 1, 
-                            sm: idx === 0 ? 0 : idx === 1 ? 1 : idx === 4 ? 0 : idx === 5 ? 1 : 2 
+                          pr: {
+                            xs: 1,
+                            sm:
+                              idx === 0
+                                ? 0
+                                : idx === 1
+                                ? 1
+                                : idx === 4
+                                ? 0
+                                : idx === 5
+                                ? 1
+                                : 2,
                           },
-                          pl: { 
-                            xs: 1, 
-                            sm: idx === 4 ? 1 : idx === 5 ? 0 : undefined 
+                          pl: {
+                            xs: 1,
+                            sm: idx === 4 ? 1 : idx === 5 ? 0 : undefined,
                           },
                           textAlign: headCell.align || "left",
                           fontWeight: 600,
                           letterSpacing: "0.03em",
-                          fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                          fontSize: {
+                            xs: "0.7rem",
+                            sm: "0.8rem",
+                            md: "0.875rem",
+                          },
                           whiteSpace: "nowrap", // Prevent text wrapping in headers
                         }}
                         sortDirection={
@@ -629,7 +657,11 @@ const ListProduct = () => {
                               py: { xs: 1, sm: 1.5 },
                               px: { xs: 1, sm: 2 },
                               verticalAlign: "middle",
-                              fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
+                              fontSize: {
+                                xs: "0.7rem",
+                                sm: "0.8rem",
+                                md: "0.875rem",
+                              },
                             },
                             "& td:nth-of-type(5)": {
                               px: 0,
@@ -705,7 +737,14 @@ const ListProduct = () => {
                               product.ProductName ||
                               "Tên không xác định"}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "left", width: "15%", pr: 1, pl: 3 }}>
+                          <TableCell
+                            sx={{
+                              textAlign: "left",
+                              width: "15%",
+                              pr: 1,
+                              pl: 3,
+                            }}
+                          >
                             {(() => {
                               const categoryId =
                                 product.categoryID ??
@@ -728,15 +767,22 @@ const ListProduct = () => {
                               );
                             })()}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "left", width: "15%", pr: 0, pl: 1 }}>
+                          <TableCell
+                            sx={{
+                              textAlign: "left",
+                              width: "15%",
+                              pr: 0,
+                              pl: 1,
+                            }}
+                          >
                             {product.Unit ?? product.unit}
                           </TableCell>
                           <TableCell
-                            sx={{ 
-                              width: "10%", 
-                              textAlign: "left", 
-                              pl: 0, 
-                              pr: 1
+                            sx={{
+                              width: "10%",
+                              textAlign: "left",
+                              pl: 0,
+                              pr: 1,
                             }}
                           >
                             <Box
@@ -807,7 +853,8 @@ const ListProduct = () => {
                                         width: "40px",
                                         height: "40px",
                                         "&:hover": {
-                                          backgroundColor: "rgba(237, 108, 2, 0.1)",
+                                          backgroundColor:
+                                            "rgba(237, 108, 2, 0.1)",
                                         },
                                       }}
                                     >
@@ -819,7 +866,8 @@ const ListProduct = () => {
                                     color={(() => {
                                       const status =
                                         product.status ?? product.Status;
-                                      return status === true || status === "active"
+                                      return status === true ||
+                                        status === "active"
                                         ? "error"
                                         : "success";
                                     })()}
@@ -843,7 +891,8 @@ const ListProduct = () => {
                                     {(() => {
                                       const status =
                                         product.status ?? product.Status;
-                                      return status === true || status === "active"
+                                      return status === true ||
+                                        status === "active"
                                         ? "NGỪNG BÁN"
                                         : "KÍCH HOẠT";
                                     })()}
@@ -880,7 +929,9 @@ const ListProduct = () => {
 
           {/* Pagination - chỉ hiện khi > 1 trang, căn phải */}
           {!loading && filteredProducts.length > 0 && totalPages > 1 && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "flex-end", mt: 2, mb: 1 }}
+            >
               <Pagination
                 count={totalPages}
                 page={page}
@@ -969,7 +1020,7 @@ const ListProduct = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
-      </Container>
+    </Container>
   );
 };
 

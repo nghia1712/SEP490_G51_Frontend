@@ -28,6 +28,24 @@ import {
   Legend,
 } from "recharts";
 import salesOrderAPI from "../../API/salesOrderAPI";
+const formatChartCurrency = (value) => {
+  if (value >= 1_000_000_000) {
+    const v = value / 1_000_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tỷ`;
+  }
+
+  if (value >= 1_000_000) {
+    const v = value / 1_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tr`;
+  }
+
+  if (value >= 1_000) {
+    const v = value / 1_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)}k`;
+  }
+
+  return value;
+};
 
 // ================= UI HELPER =================
 const StatCard = ({ title, value, icon, color, subText }) => (
@@ -69,12 +87,17 @@ const StatCard = ({ title, value, icon, color, subText }) => (
   </Card>
 );
 
-const COLORS = ["#0d6efd", "#198754", "#ffc107", "#dc3545", "#20c997", "#6f42c1"];
+const COLORS = [
+  "#0d6efd",
+  "#198754",
+  "#ffc107",
+  "#dc3545",
+  "#20c997",
+  "#6f42c1",
+];
 
 function SalesDashboard() {
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear()
-  );
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [revenueData, setRevenueData] = useState([]);
   const [productData, setProductData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -103,15 +126,9 @@ function SalesDashboard() {
 
       const rawRevenue = revenueRes?.data?.data ?? revenueRes?.data ?? [];
       const normalizedRevenue = (rawRevenue || []).map((item, idx) => ({
-        month:
-          item.monthLabel ||
-          item.monthName ||
-          `T${item.month ?? idx + 1}`,
-        total: Number(
-          item.totalRevenue ?? item.total ?? item.amount ?? 0
-        ),
-        orders:
-          item.orderCount ?? item.ordersCount ?? item.totalOrders ?? 0,
+        month: item.monthLabel || item.monthName || `T${item.month ?? idx + 1}`,
+        total: Number(item.totalRevenue ?? item.total ?? item.amount ?? 0),
+        orders: item.orderCount ?? item.ordersCount ?? item.totalOrders ?? 0,
       }));
 
       const rawProducts = productRes?.data?.data ?? productRes?.data ?? [];
@@ -119,9 +136,7 @@ function SalesDashboard() {
         name: p.productName ?? p.name ?? "Không rõ",
         quantity:
           p.totalQuantity ?? p.quantity ?? p.soldQuantity ?? p.sold ?? 0,
-        revenue: Number(
-          p.totalRevenue ?? p.revenue ?? p.amount ?? 0
-        ),
+        revenue: Number(p.totalRevenue ?? p.revenue ?? p.amount ?? 0),
       }));
 
       // ===== Aggregated data from sales orders (for charts & tables) =====
@@ -304,8 +319,11 @@ function SalesDashboard() {
   const currentMonthRevenue = useMemo(() => {
     const currentMonth = new Date().getMonth() + 1;
     const found =
-      revenueData.find((m, idx) => (m.monthNumber ?? m.monthIndex ?? m.month) === currentMonth || idx + 1 === currentMonth) ||
-      null;
+      revenueData.find(
+        (m, idx) =>
+          (m.monthNumber ?? m.monthIndex ?? m.month) === currentMonth ||
+          idx + 1 === currentMonth
+      ) || null;
     return found?.total || 0;
   }, [revenueData]);
 
@@ -398,7 +416,7 @@ function SalesDashboard() {
                 style={{ fontSize: "32px" }}
               />
               Thống kê Bán hàng
-          </h2>
+            </h2>
             <h4 className="text-muted mb-0">
               Tổng quan doanh thu và sản phẩm bán ra
             </h4>
@@ -425,9 +443,7 @@ function SalesDashboard() {
         {error && (
           <div className="mb-4">
             <Card className="border-0 shadow-sm">
-              <Card.Body className="text-danger">
-                {error}
-              </Card.Body>
+              <Card.Body className="text-danger">{error}</Card.Body>
             </Card>
           </div>
         )}
@@ -460,8 +476,8 @@ function SalesDashboard() {
               color="warning"
               subText="Tổng số lượng sản phẩm bán ra"
             />
-        </Col>
-      </Row>
+          </Col>
+        </Row>
 
         {/* Charts */}
         <Row className="g-4 mb-5">
@@ -472,8 +488,7 @@ function SalesDashboard() {
               </Card.Header>
 
               <Card.Body className="px-4 pb-4" style={{ height: "350px" }}>
-                {!revenueData.length ||
-                revenueData.every((m) => !m.total) ? (
+                {!revenueData.length || revenueData.every((m) => !m.total) ? (
                   <div className="h-100 d-flex flex-column justify-content-center align-items-center text-muted">
                     <Inventory
                       style={{ fontSize: 48, opacity: 0.2 }}
@@ -498,16 +513,7 @@ function SalesDashboard() {
                         tickLine={false}
                         tick={{ fill: "#6c757d" }}
                       />
-                      <YAxis
-                        tick={{ fontSize: 12 }}
-                        tickFormatter={(value) =>
-                          new Intl.NumberFormat("vi-VN", {
-                            style: "currency",
-                            currency: "VND",
-                            minimumFractionDigits: 0,
-                          }).format(value)
-                        }
-                      />
+                      <YAxis tickFormatter={formatChartCurrency} />
                       <Tooltip
                         cursor={{ fill: "transparent" }}
                         contentStyle={{
@@ -529,16 +535,14 @@ function SalesDashboard() {
                     </BarChart>
                   </ResponsiveContainer>
                 )}
-            </Card.Body>
-          </Card>
-        </Col>
+              </Card.Body>
+            </Card>
+          </Col>
 
           <Col xs={12} lg={5}>
             <Card className="border-0 shadow-sm rounded-4 mb-4">
               <Card.Header className="bg-white border-0 pt-4 px-4">
-                <h5 className="fw-bold mb-0">
-                  Đơn hàng theo trạng thái
-                </h5>
+                <h5 className="fw-bold mb-0">Đơn hàng theo trạng thái</h5>
               </Card.Header>
 
               <Card.Body style={{ height: 350 }}>
@@ -565,7 +569,9 @@ function SalesDashboard() {
                         {statusChartData.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={`var(--bs-${entry.color}, ${COLORS[index % COLORS.length]})`}
+                            fill={`var(--bs-${entry.color}, ${
+                              COLORS[index % COLORS.length]
+                            })`}
                           />
                         ))}
                       </Pie>
@@ -579,10 +585,10 @@ function SalesDashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
         {/* Bảng chi tiết đơn hàng + Top 5 khách hàng tiềm năng */}
         <Row className="g-4 mb-5 align-items-stretch">
@@ -597,7 +603,7 @@ function SalesDashboard() {
                     {ordersForTable.length.toLocaleString("vi-VN")}
                   </span>
                 </Badge>
-            </Card.Header>
+              </Card.Header>
               <Card.Body className="p-0">
                 <div className="table-responsive">
                   <table className="table table-borderless align-middle mb-0">
@@ -608,9 +614,9 @@ function SalesDashboard() {
                         <th>Ngày tạo</th>
                         <th className="text-end">Tổng tiền</th>
                         <th className="text-center">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {ordersForTable.length ? (
                         ordersForTable.map((o, idx) => (
                           <tr key={idx}>
@@ -642,22 +648,22 @@ function SalesDashboard() {
                             className="text-center py-4 text-muted"
                           >
                             Không có đơn hàng trong năm.
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
                       )}
-                </tbody>
+                    </tbody>
                   </table>
                 </div>
-            </Card.Body>
-          </Card>
-        </Col>
+              </Card.Body>
+            </Card>
+          </Col>
 
           {/* RIGHT: Top 5 khách hàng tiềm năng */}
           <Col lg={4} className="d-flex">
             <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
               <Card.Header className="bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                 <h5 className="fw-bold mb-0">Top 5 khách hàng tiềm năng</h5>
-            </Card.Header>
+              </Card.Header>
               <Card.Body className="p-0">
                 <div className="table-responsive">
                   <table className="table table-borderless align-middle mb-0">
@@ -666,9 +672,9 @@ function SalesDashboard() {
                         <th className="ps-4">Khách hàng</th>
                         <th className="text-center">Số đơn</th>
                         <th className="text-end pe-4">Doanh thu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {topCustomers.length ? (
                         topCustomers.map((c, idx) => (
                           <tr key={idx}>
@@ -686,17 +692,17 @@ function SalesDashboard() {
                             className="text-center py-4 text-muted"
                           >
                             Không có dữ liệu khách hàng.
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
                       )}
-                  </tbody>
+                    </tbody>
                   </table>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
     </div>
   );
 }

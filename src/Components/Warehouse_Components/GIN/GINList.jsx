@@ -72,10 +72,10 @@ export default function GRNList() {
     renderGINStatus,
     exportedLotProduct,
   } = useGIN();
-  
-    useEffect(() => {
-      fetchList();
-    }, []);
+
+  useEffect(() => {
+    fetchList();
+  }, []);
 
   const [filtered, setFiltered] = useState([]);
   const [page, setPage] = useState(1);
@@ -182,7 +182,9 @@ export default function GRNList() {
                 Phiếu xuất kho
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                Tổng: {filtered.length} / {data.length} phiếu
+                {filtered.length === data.length
+                  ? `Tổng: ${data.length} phiếu`
+                  : `Tổng: ${filtered.length} / ${data.length} phiếu`}
               </Typography>
             </Box>
 
@@ -380,17 +382,18 @@ export default function GRNList() {
                             )}
 
                             {/* NÚT TẠO HÓA ĐƠN (chỉ cho kế toán và phiếu đã xuất kho) */}
-                            {role === "accountant_staff" && row.status === 2 && (
-                              <Tooltip title="Tạo hóa đơn từ phiếu này">
-                                <IconButton
-                                  color="primary"
-                                  size="small"
-                                  onClick={() => handleOpenInvoiceDialog(row)}
-                                >
-                                  <ReceiptLong />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                            {role === "accountant_staff" &&
+                              row.status === 2 && (
+                                <Tooltip title="Tạo hóa đơn từ phiếu này">
+                                  <IconButton
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => handleOpenInvoiceDialog(row)}
+                                  >
+                                    <ReceiptLong />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -501,9 +504,7 @@ export default function GRNList() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <Typography color="text.secondary">
-                        Ngày tạo:
-                      </Typography>
+                      <Typography color="text.secondary">Ngày tạo:</Typography>
                       <Typography fontWeight={500}>
                         {selectedExport.createAt
                           ? new Date(
@@ -520,9 +521,7 @@ export default function GRNList() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <Typography color="text.secondary">
-                        Người tạo:
-                      </Typography>
+                      <Typography color="text.secondary">Người tạo:</Typography>
                       <Typography fontWeight={500}>
                         {selectedExport.createBy}
                       </Typography>
@@ -588,9 +587,9 @@ export default function GRNList() {
                             <TableCell>{item.warehouseLocationName}</TableCell>
                             <TableCell>
                               {item.expiredDate
-                                ? new Date(
-                                    item.expiredDate
-                                  ).toLocaleDateString("vi-VN")
+                                ? new Date(item.expiredDate).toLocaleDateString(
+                                    "vi-VN"
+                                  )
                                 : "-"}
                             </TableCell>
                           </TableRow>
