@@ -83,7 +83,7 @@ export default function StockExportList() {
     setUserRole(role);
     refetch();
   }, []);
-  
+
   useEffect(() => {
     if (state?.searchCode) {
       setSearch(state.searchCode);
@@ -333,6 +333,7 @@ export default function StockExportList() {
                       <MenuItem value={1}>Chờ xử lý</MenuItem>
                       <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
                       <MenuItem value={3}>Không đủ hàng</MenuItem>
+                      <MenuItem value={5}>Đã hủy</MenuItem>
                     </Select>
                   </FormControl>
 
