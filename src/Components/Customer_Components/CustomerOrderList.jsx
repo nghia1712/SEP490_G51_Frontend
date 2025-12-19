@@ -598,7 +598,7 @@ const CustomerOrderList = () => {
       let filtered = data;
 
       
-
+      
       // Lọc theo trạng thái đơn hàng
 
       if (orderStatusFilter !== 'all') {
@@ -610,7 +610,7 @@ const CustomerOrderList = () => {
       }
 
       
-
+      
       // Lọc theo trạng thái thanh toán
 
       if (paymentStatusFilter !== 'all') {
@@ -642,7 +642,7 @@ const CustomerOrderList = () => {
             const paidAmount = order.paidAmount ?? 0;
 
             
-
+            
             // "Chờ cọc" khi: đơn đã chấp thuận, có yêu cầu cọc, chưa thanh toán gì
 
             return order.orderStatus === 2 && 
@@ -682,7 +682,7 @@ const CustomerOrderList = () => {
             }
 
             
-
+            
             // Nếu filter là "Chờ Thanh Toán" (0), loại trừ các đơn hàng "Chờ cọc"
 
             if (filterPaymentStatus === 0) {
@@ -696,7 +696,7 @@ const CustomerOrderList = () => {
               const paidAmount = order.paidAmount ?? 0;
 
               
-
+              
               // Loại trừ nếu có yêu cầu cọc và chưa thanh toán (đó là "Chờ cọc", không phải "Chờ thanh toán")
 
               if (hasDepositRequirement && paidAmount === 0) {
@@ -708,7 +708,7 @@ const CustomerOrderList = () => {
             }
 
             
-
+            
             return order.paymentStatus === filterPaymentStatus;
 
           });
@@ -718,7 +718,7 @@ const CustomerOrderList = () => {
       }
 
       
-
+      
       // Filter by order code search
 
       const keyword = (searchOrderCode || '').trim().toLowerCase();
@@ -755,15 +755,15 @@ const CustomerOrderList = () => {
 
       const response = await salesOrderAPI.myListSalesOrder();
 
-        // Backend trả về: { success, message, data }
+      // Backend trả về: { success, message, data }
 
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
 
-          // Map dữ liệu từ API response sang format component
+        // Map dữ liệu từ API response sang format component
 
-          // Backend trả về PascalCase (SalesOrderId, SalesOrderCode, etc.)
+        // Backend trả về PascalCase (SalesOrderId, SalesOrderCode, etc.)
 
-          const manualDepositMap = loadManualDepositMap();
+        const manualDepositMap = loadManualDepositMap();
           
           // Lấy danh sách deposit checks để tìm reject reason
           let depositChecksMap = {};
@@ -808,7 +808,7 @@ const CustomerOrderList = () => {
             order.status ?? 
 
             null;
-
+          
           
 
           // Convert enum string thành số nếu cần
@@ -906,7 +906,7 @@ const CustomerOrderList = () => {
             })() : null) ??
 
             null;
-
+          
           
 
           // Convert enum string thành số nếu cần
@@ -1317,7 +1317,7 @@ const CustomerOrderList = () => {
       ? sortConfig 
 
       : { key: 'createdAt', direction: 'desc' };
-
+    
     
 
     if (!effectiveSortConfig.key) return orders;
@@ -2793,7 +2793,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         }
 
         
-
+        
         const salesOrderId = data.salesOrderId ?? data.SalesOrderId;
 
 
@@ -2977,7 +2977,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     setVnPayInitError('');
 
     
-
+    
     if (method === 'vnpay' && paymentOrderDetails?.id) {
 
       // Khởi tạo VNPay khi chọn phương thức VNPay
@@ -3017,7 +3017,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     paymentWindowRef.current = window.open(vnPayInitData.paymentUrl, '_blank', 'noopener,noreferrer');
 
     
-
+    
     // Lắng nghe message từ tab thanh toán khi hoàn thành
 
     const handleMessage = (event) => {
@@ -3075,11 +3075,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     };
 
     
-
+    
     window.addEventListener('message', handleMessage);
 
     
-
+    
     // Kiểm tra định kỳ xem tab đã đóng chưa (fallback nếu không nhận được message)
 
     let checkCount = 0;
@@ -3099,7 +3099,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         window.removeEventListener('message', handleMessage);
 
         
-
+        
         // Đợi 2 giây để backend xử lý callback từ VNPay
 
         setTimeout(() => {
@@ -3117,7 +3117,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       }
 
       
-
+      
       // Dừng kiểm tra sau 10 phút
 
       if (checkCount >= 600) {
@@ -3353,7 +3353,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         } = await buildDepositInfo(data, totalAmount);
 
         
-
+        
         // Process details with tax information from backend
 
         const rawDetails =
@@ -3543,7 +3543,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         });
 
         
-
+        
         let quotationDetailsList = [];
 
         let quotationInfoData = null;
@@ -3985,7 +3985,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
     const hasDepositRequirement = depositPercentNum !== null && depositPercentNum > 0;
 
     
-
+    
     const showPaymentButton =
 
       status === 2 &&
@@ -4009,6 +4009,12 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
       totalAmount > 0 &&
       paidAmount >= totalAmount && // Tiền đã trả = Tổng tiền đơn hàng
       status !== 6; // Chưa phải Complete
+
+    // Tính statusCode để kiểm tra điều kiện hiển thị nút xem lý do từ chối
+    const paymentStatusCode = getPaymentStatusCodeByContext(order.paymentStatus, effectiveStatus, {
+      percent: order.depositPercent,
+      amount: order.depositAmount,
+    }, order);
 
     return (
 
@@ -4257,8 +4263,8 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
           </Tooltip>
 
         )}
-        {/* Nút xem lý do từ chối thanh toán (deposit check reject) */}
-        {order.depositCheckRejectReason && order.orderStatus === 2 && (
+        {/* Nút xem lý do từ chối thanh toán (deposit check reject) - chỉ hiển thị khi trạng thái là "Chờ cọc" */}
+        {order.depositCheckRejectReason && order.orderStatus === 2 && paymentStatusCode === 0 && (
           <Tooltip title="Xem lý do từ chối thanh toán" placement="bottom" arrow>
             <IconButton
               size="medium"
@@ -5337,7 +5343,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                       if (!orderDetails) return <Typography variant="body1">-</Typography>;
 
                       
-
+                      
                       // Nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) → không hiển thị trạng thái thanh toán
 
                       if (detailOrderStatus === 0 || detailOrderStatus === 1 || detailOrderStatus === 3) {
@@ -5383,20 +5389,20 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                         false
 
                       );
-
+                      
                       
 
                       return (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip
+                        <Chip
 
                             label={label}
-                            size="small"
+                          size="small"
 
                             sx={getPaymentStatusColor(statusCode, effectiveStatus, orderDetails)}
                           />
-                          {/* Nút xem lý do từ chối thanh toán nếu có */}
-                          {orderDetails.depositCheckRejectReason && detailOrderStatus === 2 && (
+                          {/* Nút xem lý do từ chối thanh toán nếu có - chỉ hiển thị khi trạng thái là "Chờ cọc" */}
+                          {orderDetails.depositCheckRejectReason && detailOrderStatus === 2 && statusCode === 0 && (
                             <Tooltip title="Xem lý do từ chối thanh toán" arrow>
                               <IconButton
                                 size="small"
@@ -5427,7 +5433,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                 </Box>
 
                 
-
+                
                 {/* Phần 2 - Ở giữa: Thời gian tạo, Ngày hết hạn đơn hàng, Cọc, Thời hạn hết hạn cọc */}
 
                 <Box sx={{ flex: 1 }}>
@@ -5503,7 +5509,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                 </Box>
 
                 
-
+                
                 {/* Phần 3 - Bên phải: Số tiền đã trả, Số tiền cần cọc, Số tiền sau cọc */}
 
                 <Box sx={{ flex: 1 }}>
@@ -5561,7 +5567,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
               </Box>
 
               
-
+              
               {/* Danh sách sản phẩm */}
 
               <Box sx={{ mb: 2 }}>
@@ -5677,7 +5683,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                             detail.TaxPolicyName ??
 
                             '-';
-
+                          
                           
 
                           return (
@@ -5745,7 +5751,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
               </Box>
 
               
-
+              
               {/* Tổng tiền */}
 
               {orderDetails.details && orderDetails.details.length > 0 && (
@@ -6070,7 +6076,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
                 </Box>
 
                 
-
+                
                 {/* Cột phải */}
 
                 <Box sx={{ flex: 1 }}>

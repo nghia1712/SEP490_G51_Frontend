@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Button,
@@ -28,7 +28,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Pagination,
 } from "@mui/material";
+import { useLocation } from "react-router-dom";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -65,9 +67,9 @@ const getStatusChip = (status) => {
     case 1:
       return <Chip label="Chờ xử lý" size="small" color="warning" />;
     case 2:
-      return <Chip label="Đã chấp nhận" size="small" color="success" />;
+      return <Chip label="Chấp nhận" size="small" color="success" />;
     case 3:
-      return <Chip label="Đã từ chối" size="small" color="error" />;
+      return <Chip label="Từ chối" size="small" color="error" />;
     default:
       return <Chip label="Không rõ" size="small" />;
   }
@@ -88,6 +90,7 @@ const mapPaymentMethod = (method) => {
 };
 
 const AccountantDepositChecks = () => {
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
@@ -98,6 +101,8 @@ const AccountantDepositChecks = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
   const fetchData = async () => {
     setLoading(true);
@@ -120,6 +125,46 @@ const AccountantDepositChecks = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Tự động mở dialog chi tiết khi có openRequestId từ notification
+  useEffect(() => {
+    const openRequestId = location.state?.openRequestId;
+    console.log("AccountantDepositChecks - useEffect triggered:", {
+      openRequestId,
+      loading,
+      itemsLength: items.length,
+      locationState: location.state
+    });
+
+    if (openRequestId) {
+      // Nếu đang loading hoặc chưa có items, đợi fetchData hoàn thành
+      if (loading || items.length === 0) {
+        console.log("AccountantDepositChecks - Waiting for data to load...");
+        return;
+      }
+
+      // Tìm matching item
+      const matchingItem = items.find((item) => {
+        const itemId = item.id || item.Id || item.requestId || item.RequestId;
+        console.log("AccountantDepositChecks - Comparing:", { itemId, openRequestId, match: itemId === openRequestId });
+        return itemId === openRequestId;
+      });
+
+      if (matchingItem) {
+        console.log("AccountantDepositChecks - Found matching item, opening dialog:", matchingItem);
+        setSelectedItem(matchingItem);
+        setDetailDialogOpen(true);
+        // Clear state để tránh mở lại khi refresh
+        window.history.replaceState({}, document.title);
+      } else {
+        console.warn("AccountantDepositChecks - No matching item found for requestId:", openRequestId);
+        console.warn("AccountantDepositChecks - Available items:", items.map(item => ({
+          id: item.id || item.Id,
+          salesOrderCode: item.salesOrderCode || item.SalesOrderCode
+        })));
+      }
+    }
+  }, [location.state, items, loading]);
 
   const handleOpenDetail = (item) => {
     setSelectedItem(item);
@@ -178,24 +223,43 @@ const AccountantDepositChecks = () => {
     }
   };
 
-  const filteredItems = items
-    .filter((item) => {
-      if (statusFilter === "") return true;
-      // "pending" = cả Draft (0) và Pending (1)
-      if (statusFilter === "pending") {
-        return item.status === 0 || item.status === 1;
-      }
-      return item.status === Number(statusFilter);
-    })
-    .filter((item) => {
-      const keyword = search.toLowerCase().trim();
-      if (!keyword) return true;
-      return (
-        (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
-        (item.customerName || "").toLowerCase().includes(keyword)
-      );
-    })
-    .sort((a, b) => (b.id || 0) - (a.id || 0));
+  const filteredItems = useMemo(() => {
+    return items
+      .filter((item) => {
+        if (statusFilter === "") return true;
+        // "pending" = cả Draft (0) và Pending (1)
+        if (statusFilter === "pending") {
+          return item.status === 0 || item.status === 1;
+        }
+        return item.status === Number(statusFilter);
+      })
+      .filter((item) => {
+        const keyword = search.toLowerCase().trim();
+        if (!keyword) return true;
+        return (
+          (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
+          (item.customerName || "").toLowerCase().includes(keyword)
+        );
+      })
+      .sort((a, b) => (b.id || 0) - (a.id || 0));
+  }, [items, statusFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -310,9 +374,9 @@ const AccountantDepositChecks = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredItems.map((item, index) => (
+                    paginatedItems.map((item, index) => (
                       <TableRow key={item.id || index} hover>
-                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                         <TableCell>{item.salesOrderCode || "-"}</TableCell>
                         <TableCell>{item.customerName || "-"}</TableCell>
                         <TableCell>
@@ -369,6 +433,25 @@ const AccountantDepositChecks = () => {
                   )}
                 </TableBody>
               </Table>
+              {paginatedItems.length > 0 && totalPages >= 2 && (
+                <Box
+                  sx={{
+                    pt: 2,
+                    pb: 2,
+                    borderTop: "1px solid #e0e0e0",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    backgroundColor: "#fff",
+                  }}
+                >
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={(_, value) => setPage(value)}
+                    color="primary"
+                  />
+                </Box>
+              )}
             </TableContainer>
           </CardContent>
         </Card>

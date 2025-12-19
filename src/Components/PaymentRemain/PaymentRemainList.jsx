@@ -29,8 +29,11 @@ import {
   FormControl,
   InputLabel,
   TextField,
+  Card,
+  CardContent,
+  InputAdornment,
 } from "@mui/material";
-import { Visibility, Payment as PaymentIcon } from "@mui/icons-material";
+import { Visibility, Payment as PaymentIcon, Search as SearchIcon } from "@mui/icons-material";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import paymentAPI from "../../API/paymentAPI";
 import userAPI from "../../API/userAPI";
@@ -659,238 +662,396 @@ const PaymentRemainList = () => {
     letterSpacing: '0.03em',
   };
 
+  // Render UI khác nhau cho accountant và customer
+  const isAccountant = userRole === "accountant_staff";
+
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 } }}>
-      {/* Title */}
-      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 }, textAlign: 'center' }}>
-        <Typography
-          variant="h4"
-          component="h1"
-          className="payment-remain-list-title"
-          sx={{
-            fontWeight: 'bold',
-            color: '#155E64',
-            mb: 2,
-          }}
-        >
-          Danh sách yêu cầu thanh toán
-        </Typography>
-      </Box>
+      {isAccountant ? (
+        // Giao diện cho accountant (giống InvoiceList)
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
+          <CardContent>
+            {/* HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <PaymentIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+              >
+                Yêu cầu thanh toán
+              </Typography>
+              <Typography variant="h6" color="text.secondary">
+                {list.length === fullList.length
+                  ? `Tổng: ${fullList.length} yêu cầu`
+                  : `Tổng: ${list.length} / ${fullList.length} yêu cầu`}
+              </Typography>
+            </Box>
 
-      {/* Filter + List in one Paper */}
-      <Paper
-        elevation={2}
-        sx={{
-          p: 2,
-          borderRadius: 2,
-          boxShadow: 2,
-          mb: 2,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        }}
-      >
-        {/* Filter */}
-        <Box
-          className="payment-remain-filter-container"
-          sx={{
-            mb: 2,
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
-            <Select
-              labelId="status-filter-label"
-              value={filters.status === "" ? "all" : String(filters.status)}
-              label="Lọc theo trạng thái"
-              onChange={(e) => {
-                const val = e.target.value === "all" ? "" : Number(e.target.value);
-                setFilters((prev) => ({ ...prev, status: val }));
-              }}
+            {/* FILTER */}
+            <Paper
+              sx={{ p: 2, mb: 2, backgroundColor: "#f8fafc", borderRadius: 2 }}
             >
-              <MenuItem value="all">Tất cả</MenuItem>
-              <MenuItem value={0}>Chờ thanh toán</MenuItem>
-              <MenuItem value={1}>Đã đặt cọc</MenuItem>
-              <MenuItem value={2}>Thanh toán một phần</MenuItem>
-              <MenuItem value={3}>Đã thanh toán</MenuItem>
-              <MenuItem value={4}>Hoàn tiền</MenuItem>
-            </Select>
-          </FormControl>
-
-          <TextField
-            size="small"
-            label="Tìm theo mã hóa đơn/ mã đơn hàng"
-            placeholder="Nhập mã hóa đơn hoặc mã đơn hàng..."
-            value={filters.searchCode}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, searchCode: e.target.value }))
-            }
-            sx={{
-              minWidth: 220,
-              maxWidth: 220,
-              '& .MuiInputBase-root': {
-                width: 220,
-              },
-            }}
-          />
-        </Box>
-
-        {/* Loading */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {/* Table */}
-        {!loading && (
-          <div className="payment-remain-list-container">
-            <TableContainer
-              sx={{
-                borderRadius: 2,
-                overflowX: 'auto',
-              }}
-            >
-            <Table className="payment-remain-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                alignItems="center"
+                spacing={2}
+                justifyContent="space-between"
+                sx={{ width: "100%" }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
+                  <TextField
+                    placeholder="Tìm kiếm..."
+                    size="small"
+                    value={filters.searchCode}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, searchCode: e.target.value }))
+                    }
                     sx={{
-                      width: '8%',
-                      py: 1.5,
-                      px: 2,
-                      textAlign: 'left',
-                      fontWeight: 600,
-                    textTransform: 'capitalize',
-                      letterSpacing: '0.03em',
+                      maxWidth: { xs: "100%", md: 300 },
                     }}
-                  >
-                  #
-                  </TableCell>
-                  <TableCell sx={{ width: '18%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Mã hóa đơn
-                  </TableCell>
-                  <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Mã đơn hàng
-                  </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Ngày yêu cầu
-                  </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Ngày thanh toán
-                  </TableCell>
-                  <TableCell sx={{ width: '15%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
-                    Số tiền
-                  </TableCell>
-                  <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
-                    Trạng thái
-                  </TableCell>
-                  <TableCell sx={{ width: '9%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
-                    Hành động
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedList.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 3 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Chưa có yêu cầu thanh toán nào.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedList.map((item, index) => (
-                    <TableRow
-                      key={item.id}
-                      hover
-                      sx={{
-                        '&:nth-of-type(even)': {
-                          backgroundColor: '#f9f9f9',
-                        },
-                        '& td': {
-                          py: 1.5,
-                          px: 2,
-                          verticalAlign: 'middle',
-                        }
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <InputLabel>Trạng thái</InputLabel>
+                    <Select
+                      value={filters.status === "" ? "all" : String(filters.status)}
+                      label="Trạng thái"
+                      onChange={(e) => {
+                        const val = e.target.value === "all" ? "" : Number(e.target.value);
+                        setFilters((prev) => ({ ...prev, status: val }));
                       }}
                     >
-                      <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                      <TableCell>{item.invoiceCode}</TableCell>
-                      <TableCell>
-                        {item.salesOrderCode || item.salesOrderId}
-                      </TableCell>
-                      <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
-                      <TableCell>{formatDate(item.paymentDate)}</TableCell>
-                      <TableCell align="right">
-                        {formatCurrency(item.amount)}
-                      </TableCell>
-                      <TableCell>
-                        {renderStatus(item.vnPayStatus)}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="flex-end"
-                        >
-                          {userRole === "customer" && item.vnPayStatus === 0 && (
-                            <Tooltip title="Thanh toán hóa đơn">
-                              <span>
-                                <IconButton
-                                  color="success"
-                                  onClick={() => handlePaymentInvoice(item)}
-                                  disabled={loading}
-                                >
-                                  <PaymentIcon />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              color="primary"
-                              size="small"
-                              onClick={() => handleViewDetail(item)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
+                      <MenuItem value="all">Tất cả</MenuItem>
+                      <MenuItem value={0}>Chờ thanh toán</MenuItem>
+                      <MenuItem value={1}>Đã đặt cọc</MenuItem>
+                      <MenuItem value={2}>Thanh toán một phần</MenuItem>
+                      <MenuItem value={3}>Đã thanh toán</MenuItem>
+                      <MenuItem value={4}>Hoàn tiền</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Stack>
+              </Stack>
+            </Paper>
+
+            {/* Table cho accountant */}
+            <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Mã hóa đơn</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Ngày yêu cầu</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Ngày thanh toán</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Số tiền</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Hành động</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center">
+                        Đang tải...
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            {paginatedList.length > 0 && totalPages > 1 && (
-              <Box
+                  ) : paginatedList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center">
+                        Chưa có yêu cầu thanh toán nào.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedList.map((item, index) => (
+                      <TableRow key={item.id} hover>
+                        <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
+                        <TableCell>{item.invoiceCode}</TableCell>
+                        <TableCell>{item.salesOrderCode || item.salesOrderId}</TableCell>
+                        <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
+                        <TableCell>{formatDate(item.paymentDate)}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
+                        <TableCell>{renderStatus(item.vnPayStatus)}</TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                color="primary"
+                                size="small"
+                                onClick={() => handleViewDetail(item)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {paginatedList.length > 0 && totalPages >= 2 && (
+                <Box
+                  sx={{
+                    pt: 2,
+                    pb: 2,
+                    borderTop: "1px solid #e0e0e0",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    backgroundColor: "#fff",
+                  }}
+                >
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={(_, value) => setPage(value)}
+                    color="primary"
+                  />
+                </Box>
+              )}
+            </TableContainer>
+          </CardContent>
+        </Card>
+      ) : (
+        // Giao diện cho customer (giữ nguyên)
+        <>
+          {/* Title */}
+          <Box sx={{ mb: { xs: 2, sm: 3, md: 4 }, textAlign: 'center' }}>
+            <Typography
+              variant="h4"
+              component="h1"
+              className="payment-remain-list-title"
+              sx={{
+                fontWeight: 'bold',
+                color: '#155E64',
+                mb: 2,
+              }}
+            >
+              Danh sách yêu cầu thanh toán
+            </Typography>
+          </Box>
+
+          {/* Filter + List in one Paper */}
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              boxShadow: 2,
+              mb: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
+            {/* Filter */}
+            <Box
+              className="payment-remain-filter-container"
+              sx={{
+                mb: 2,
+                display: 'flex',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel id="status-filter-label">Lọc theo trạng thái</InputLabel>
+                <Select
+                  labelId="status-filter-label"
+                  value={filters.status === "" ? "all" : String(filters.status)}
+                  label="Lọc theo trạng thái"
+                  onChange={(e) => {
+                    const val = e.target.value === "all" ? "" : Number(e.target.value);
+                    setFilters((prev) => ({ ...prev, status: val }));
+                  }}
+                >
+                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem value={0}>Chờ thanh toán</MenuItem>
+                  <MenuItem value={1}>Đã đặt cọc</MenuItem>
+                  <MenuItem value={2}>Thanh toán một phần</MenuItem>
+                  <MenuItem value={3}>Đã thanh toán</MenuItem>
+                  <MenuItem value={4}>Hoàn tiền</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                size="small"
+                label="Tìm theo mã hóa đơn/ mã đơn hàng"
+                placeholder="Nhập mã hóa đơn hoặc mã đơn hàng..."
+                value={filters.searchCode}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, searchCode: e.target.value }))
+                }
                 sx={{
-                  pt: 2,
-                  pb: 2,
-                  borderTop: '1px solid #e0e0e0',
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  backgroundColor: '#fff',
+                  minWidth: 220,
+                  maxWidth: 220,
+                  '& .MuiInputBase-root': {
+                    width: 220,
+                  },
                 }}
-              >
-                <Pagination
-                  count={totalPages}
-                  page={page}
-                  onChange={(_, value) => setPage(value)}
-                  color="primary"
-                  siblingCount={1}
-                  boundaryCount={2}
-                />
+              />
+            </Box>
+
+            {/* Loading */}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
               </Box>
             )}
-          </TableContainer>
-        </div>
+
+            {/* Table */}
+            {!loading && (
+              <div className="payment-remain-list-container">
+                <TableContainer
+                  sx={{
+                    borderRadius: 2,
+                    overflowX: 'auto',
+                  }}
+                >
+                  <Table className="payment-remain-list-table" sx={{ tableLayout: 'fixed', minWidth: 1000 }}>
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                        <TableCell
+                          sx={{
+                            width: '8%',
+                            py: 1.5,
+                            px: 2,
+                            textAlign: 'left',
+                            fontWeight: 600,
+                            textTransform: 'capitalize',
+                            letterSpacing: '0.03em',
+                          }}
+                        >
+                          #
+                        </TableCell>
+                        <TableCell sx={{ width: '18%', py: 1.5, px: 2, ...headerTextSx }}>
+                          Mã hóa đơn
+                        </TableCell>
+                        <TableCell sx={{ width: '15%', py: 1.5, px: 2, ...headerTextSx }}>
+                          Mã đơn hàng
+                        </TableCell>
+                        <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                          Ngày yêu cầu
+                        </TableCell>
+                        <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                          Ngày thanh toán
+                        </TableCell>
+                        <TableCell sx={{ width: '15%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
+                          Số tiền
+                        </TableCell>
+                        <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
+                          Trạng thái
+                        </TableCell>
+                        <TableCell sx={{ width: '9%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
+                          Hành động
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} sx={{ textAlign: 'center', py: 3 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Chưa có yêu cầu thanh toán nào.
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paginatedList.map((item, index) => (
+                          <TableRow
+                            key={item.id}
+                            hover
+                            sx={{
+                              '&:nth-of-type(even)': {
+                                backgroundColor: '#f9f9f9',
+                              },
+                              '& td': {
+                                py: 1.5,
+                                px: 2,
+                                verticalAlign: 'middle',
+                              }
+                            }}
+                          >
+                            <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
+                            <TableCell>{item.invoiceCode}</TableCell>
+                            <TableCell>
+                              {item.salesOrderCode || item.salesOrderId}
+                            </TableCell>
+                            <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
+                            <TableCell>{formatDate(item.paymentDate)}</TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(item.amount)}
+                            </TableCell>
+                            <TableCell>
+                              {renderStatus(item.vnPayStatus)}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                justifyContent="flex-end"
+                              >
+                                {userRole === "customer" && item.vnPayStatus === 0 && (
+                                  <Tooltip title="Thanh toán hóa đơn">
+                                    <span>
+                                      <IconButton
+                                        color="success"
+                                        onClick={() => handlePaymentInvoice(item)}
+                                        disabled={loading}
+                                      >
+                                        <PaymentIcon />
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
+                                )}
+                                <Tooltip title="Xem chi tiết">
+                                  <IconButton
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => handleViewDetail(item)}
+                                  >
+                                    <Visibility />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                  {paginatedList.length > 0 && totalPages > 1 && (
+                    <Box
+                      sx={{
+                        pt: 2,
+                        pb: 2,
+                        borderTop: '1px solid #e0e0e0',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        backgroundColor: '#fff',
+                      }}
+                    >
+                      <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={(_, value) => setPage(value)}
+                        color="primary"
+                        siblingCount={1}
+                        boundaryCount={2}
+                      />
+                    </Box>
+                  )}
+                </TableContainer>
+              </div>
+            )}
+          </Paper>
+        </>
       )}
-      </Paper>
 
       {/* Detail Dialog */}
       <PaymentRemainDetail

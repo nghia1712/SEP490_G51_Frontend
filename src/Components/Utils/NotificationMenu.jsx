@@ -860,6 +860,76 @@ export default function NotificationMenu() {
       }
     }
 
+    // Xử lý notification "Khách hàng yêu cầu kiểm tra cọc" cho accountant_staff
+    if (
+      userRole === "accountant_staff" &&
+      /yêu cầu kiểm tra cọc|kiểm tra cọc cho đơn hàng/i.test(n.message || "")
+    ) {
+      handleClose();
+      const messageText = n.message || "";
+      const parsedOrderCode = extractOrderCodeFromMessage(messageText);
+      
+      if (parsedOrderCode) {
+        console.log("NotificationMenu (Accountant) - Deposit check request, parsed orderCode:", parsedOrderCode);
+        
+        try {
+          const depositChecksResponse = await paymentAPI.getAllManualDepositChecks();
+          if (depositChecksResponse?.data?.data) {
+            const depositChecksList = Array.isArray(depositChecksResponse.data.data)
+              ? depositChecksResponse.data.data
+              : [];
+
+            // Tìm deposit check request có salesOrderCode matching
+            const matchingRequest = depositChecksList.find((request) => {
+              const code = normalizeOrderCode(
+                request.salesOrderCode ||
+                request.SalesOrderCode ||
+                ""
+              );
+              return code === parsedOrderCode;
+            });
+
+            if (matchingRequest) {
+              const requestId = matchingRequest.id || matchingRequest.Id || matchingRequest.requestId || matchingRequest.RequestId;
+              console.log("NotificationMenu (Accountant) - Found matching request:", {
+                matchingRequest,
+                requestId,
+                salesOrderCode: matchingRequest.salesOrderCode || matchingRequest.SalesOrderCode
+              });
+              if (requestId) {
+                // Mở trang deposit checks với requestId để tự động mở dialog chi tiết
+                console.log("NotificationMenu (Accountant) - Navigating with openRequestId:", Number(requestId));
+                navigate("/accountant/deposit-checks", {
+                  state: { openRequestId: Number(requestId) },
+                });
+                return;
+              } else {
+                console.warn("NotificationMenu (Accountant) - No requestId found in matchingRequest");
+              }
+            } else {
+              console.warn(
+                "NotificationMenu (Accountant) - Deposit check request not found with orderCode:",
+                parsedOrderCode
+              );
+              console.warn("NotificationMenu (Accountant) - Available requests:", depositChecksList.map(r => ({
+                id: r.id || r.Id,
+                salesOrderCode: r.salesOrderCode || r.SalesOrderCode
+              })));
+            }
+          } else {
+            console.warn("NotificationMenu (Accountant) - No deposit checks data found");
+          }
+        } catch (err) {
+          console.error(
+            "NotificationMenu (Accountant) - Error handling deposit check request notification:",
+            err
+          );
+        }
+      }
+      navigate("/accountant/deposit-checks");
+      return;
+    }
+
     if (userRole === "accountant_staff") {
       const match = n.message.match(/Đơn hàng[:\s]+(\d+).*yêu cầu thanh toán/i);
       if (match) poId = Number(match[1]);

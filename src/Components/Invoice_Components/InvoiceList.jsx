@@ -32,12 +32,15 @@ import {
   Card,
   CardContent,
   Stack,
+  InputAdornment,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SendIcon from "@mui/icons-material/Send";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PaidIcon from "@mui/icons-material/Paid";
+import DescriptionIcon from "@mui/icons-material/Description";
+import SearchIcon from "@mui/icons-material/Search";
 import invoiceAPI from "../../API/invoiceAPI";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import { filterProps } from "framer-motion";
@@ -57,6 +60,7 @@ const InvoiceList = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -71,11 +75,28 @@ const InvoiceList = () => {
 
   const applyStatusFilter = useCallback(
     (data) => {
-      if (statusFilter === "all") return data;
-      const filterStatus = Number(statusFilter);
-      return data.filter((invoice) => invoice.status === filterStatus);
+      let filtered = data;
+      
+      // Apply status filter
+      if (statusFilter !== "all") {
+        const filterStatus = Number(statusFilter);
+        filtered = filtered.filter((invoice) => invoice.status === filterStatus);
+      }
+      
+      // Apply search filter
+      if (search.trim()) {
+        const keyword = search.toLowerCase().trim();
+        filtered = filtered.filter(
+          (invoice) =>
+            (invoice.invoiceCode || "").toLowerCase().includes(keyword) ||
+            (invoice.orderCode || "").toLowerCase().includes(keyword) ||
+            (invoice.customerCode || "").toLowerCase().includes(keyword)
+        );
+      }
+      
+      return filtered;
     },
-    [statusFilter]
+    [statusFilter, search]
   );
 
   const fetchInvoices = useCallback(async () => {
@@ -137,7 +158,7 @@ const InvoiceList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
 
@@ -385,6 +406,7 @@ const InvoiceList = () => {
       <Card elevation={3} sx={{ borderRadius: 2 }}>
         <CardContent>
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <DescriptionIcon sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
             <Typography
               variant="h4"
               sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
@@ -405,20 +427,40 @@ const InvoiceList = () => {
               direction={{ xs: "column", md: "row" }}
               alignItems="center"
               spacing={2}
+              justifyContent="space-between"
+              sx={{ width: "100%" }}
             >
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Trạng Thái</InputLabel>
-                <Select
-                  value={statusFilter}
-                  label="Trạng Thái"
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <MenuItem value="all">Tất cả</MenuItem>
-                  <MenuItem value="0">Nháp</MenuItem>
-                  <MenuItem value="1">Đã Gửi</MenuItem>
-                  <MenuItem value="2">Đã Hủy</MenuItem>
-                </Select>
-              </FormControl>
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ flexGrow: 1 }}>
+                <TextField
+                  placeholder="Tìm kiếm..."
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  sx={{
+                    maxWidth: { xs: "100%", md: 300 },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Trạng Thái</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Trạng Thái"
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">Tất cả</MenuItem>
+                    <MenuItem value="0">Nháp</MenuItem>
+                    <MenuItem value="1">Đã Gửi</MenuItem>
+                    <MenuItem value="2">Đã Hủy</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
             </Stack>
           </Paper>
           {error && (

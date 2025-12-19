@@ -35,7 +35,7 @@ import {
   CardContent,
   InputAdornment,
 } from "@mui/material";
-import { PriceCheck } from "@mui/icons-material";
+import { PriceCheck, Search as SearchIcon } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -73,6 +73,7 @@ const SalesQuotationList = () => {
     direction: "desc",
   }); // Mặc định sort theo ngày báo giá từ mới nhất đến cũ nhất
   const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] =
     useState(null);
@@ -437,12 +438,30 @@ const SalesQuotationList = () => {
     setSortConfig({ key, direction: isAsc ? "desc" : "asc" });
   };
 
-  // Filter quotations by status
+  // Filter quotations by status and search
   const filteredQuotations = useMemo(() => {
-    if (statusFilter === "all") return quotations;
-    const filterStatus = parseInt(statusFilter, 10);
-    return quotations.filter((quotation) => quotation.status === filterStatus);
-  }, [quotations, statusFilter]);
+    let filtered = quotations;
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      const filterStatus = parseInt(statusFilter, 10);
+      filtered = filtered.filter((quotation) => quotation.status === filterStatus);
+    }
+
+    // Filter by search
+    if (search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (quotation) =>
+          (quotation.quotationCode &&
+            quotation.quotationCode.toLowerCase().includes(searchLower)) ||
+          (quotation.requestCode &&
+            quotation.requestCode.toLowerCase().includes(searchLower))
+      );
+    }
+
+    return filtered;
+  }, [quotations, statusFilter, search]);
 
   // Sort quotations
   const sortedQuotations = useMemo(() => {
@@ -491,7 +510,7 @@ const SalesQuotationList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(sortedQuotations.length / pageSize));
 
@@ -1985,15 +2004,27 @@ const SalesQuotationList = () => {
               spacing={2}
               justifyContent="space-between"
             >
-              {/* Left - Filter trạng thái */}
+              {/* Left - Filter trạng thái và Search */}
               <Stack
                 direction="row"
                 spacing={2}
                 alignItems="center"
                 flexWrap="wrap"
+                sx={{ flexGrow: 1 }}
               >
-                <FormControl size="small" sx={{ minWidth: 220 }}>
-                  <InputLabel id="status-filter-label">
+                <TextField
+                  placeholder="Tìm kiếm theo mã báo giá/ mã yêu cầu báo giá"
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  sx={{
+                    width: { xs: "100%", md: 220 },
+                    maxWidth: { xs: "100%", md: 220 },
+                    flexShrink: 1,
+                  }}
+                />
+                <FormControl size="small" sx={{ minWidth: 150, maxWidth: 150, width: 150, flexShrink: 0 }}>
+                  <InputLabel id="status-filter-label" shrink>
                     Lọc theo trạng thái
                   </InputLabel>
                   <Select
@@ -2001,6 +2032,12 @@ const SalesQuotationList = () => {
                     value={statusFilter}
                     label="Lọc theo trạng thái"
                     onChange={(e) => setStatusFilter(e.target.value)}
+                    sx={{ 
+                      '& .MuiSelect-select': {
+                        minWidth: 'auto !important',
+                        width: '100%',
+                      }
+                    }}
                   >
                     <MenuItem value="all">Tất cả</MenuItem>
                     <MenuItem value="0">Nháp</MenuItem>
