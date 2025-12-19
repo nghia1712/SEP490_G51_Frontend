@@ -45,6 +45,8 @@ import {
   WarningAmber,
   Storefront,
   FactCheck,
+  HourglassEmpty,
+  Cancel,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useStockExport from "../../../Hooks/useStockExport";
@@ -53,8 +55,16 @@ import StockExportModal from "./StockExportModal";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 
 export default function StockExportList() {
-  const { data, loading, refetch, deleteOrder, sendOrder, checkReadyToExport } =
-    useStockExport();
+  const {
+    data,
+    loading,
+    refetch,
+    deleteOrder,
+    sendOrder,
+    checkReadyToExport,
+    awaitStockExport,
+    cancelStockExport,
+  } = useStockExport();
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,6 +72,10 @@ export default function StockExportList() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [statusFilter, setStatusFilter] = useState("");
+  const [cancelConfirm, setCancelConfirm] = useState({
+    open: false,
+    item: null,
+  });
 
   const [userRole, setUserRole] = useState(null);
   const [search, setSearch] = useState("");
@@ -128,6 +142,33 @@ export default function StockExportList() {
     }
   };
 
+  const handleAwaitStock = async (item) => {
+    const res = await awaitStockExport(item.id);
+
+    if (res.success) {
+      showSnack("Đã chuyển sang trạng thái chờ hàng!", "success");
+      refetch();
+    } else {
+      showSnack(res.message || "Chuyển trạng thái thất bại", "error");
+    }
+  };
+
+  const handleCancelStockExport = async () => {
+    const item = cancelConfirm.item;
+    if (!item) return;
+
+    const res = await cancelStockExport(item.id);
+
+    if (res.success) {
+      showSnack("Đã hủy yêu cầu xuất kho!", "success");
+      refetch();
+    } else {
+      showSnack(res.message || "Hủy yêu cầu thất bại", "error");
+    }
+
+    setCancelConfirm({ open: false, item: null });
+  };
+
   const handleCheckReady = async (item) => {
     const res = await checkReadyToExport(item.id);
 
@@ -166,6 +207,8 @@ export default function StockExportList() {
         return { label: "Đã có phiếu xuất", color: "success" };
       case 3:
         return { label: "Không đủ hàng", color: "secondary" };
+      case 4:
+        return { label: "Chờ hàng", color: "default" };
       case 5:
         return { label: "Đã hủy", color: "error" };
       case 6:
@@ -339,6 +382,7 @@ export default function StockExportList() {
                       <MenuItem value={1}>Chờ xử lý</MenuItem>
                       <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
                       <MenuItem value={3}>Không đủ hàng</MenuItem>
+                      <MenuItem value={4}>Chờ hàng</MenuItem>
                       <MenuItem value={5}>Đã hủy</MenuItem>
                       <MenuItem value={6}>Đủ hàng</MenuItem>
                     </Select>
@@ -487,7 +531,7 @@ export default function StockExportList() {
                               </IconButton>
                             </Tooltip> */}
                             {userRole === "warehouse_staff" &&
-                              item.status === 1 && (
+                              [1, 4].includes(Number(item.status)) && (
                                 <Tooltip title="Kiểm tra sẵn sàng xuất kho">
                                   <IconButton
                                     color="success"
@@ -521,6 +565,30 @@ export default function StockExportList() {
                                     <WarningAmber />
                                   </IconButton>
                                 </Tooltip>
+                              )}
+                            {userRole === "sales_staff" &&
+                              item.status === 3 && (
+                                <>
+                                  <Tooltip title="Chờ hàng">
+                                    <IconButton
+                                      color="primary"
+                                      onClick={() => handleAwaitStock(item)}
+                                    >
+                                      <HourglassEmpty />
+                                    </IconButton>
+                                  </Tooltip>
+
+                                  <Tooltip title="Hủy yêu cầu xuất kho">
+                                    <IconButton
+                                      color="error"
+                                      onClick={() =>
+                                        setCancelConfirm({ open: true, item })
+                                      }
+                                    >
+                                      <Cancel />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
                               )}
 
                             {item.status === 0 && (
@@ -581,6 +649,41 @@ export default function StockExportList() {
           </CardContent>
         </Card>
       </Container>
+      <Dialog
+        open={cancelConfirm.open}
+        onClose={() => setCancelConfirm({ open: false, item: null })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xác nhận hủy</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn <strong>hủy yêu cầu xuất kho</strong> này
+            không?
+          </Typography>
+          {cancelConfirm.item && (
+            <Typography sx={{ mt: 1 }} color="text.secondary">
+              Mã yêu cầu:{" "}
+              <strong>{cancelConfirm.item.stockExportOrderCode}</strong>
+            </Typography>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setCancelConfirm({ open: false, item: null })}>
+            Không
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={handleCancelStockExport}
+          >
+            Xác nhận hủy
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <StockExportModal
         /* ===== DETAIL ===== */
         detailOpen={detailOpen}

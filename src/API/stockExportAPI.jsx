@@ -44,6 +44,16 @@ const stockExportApi = {
     authorApi.post(`${API_URL}/check-ready-to-export`, null, {
       params: { seoId },
     }),
+
+  cancelStockExport: (seoId) =>
+    authorApi.post(`${API_URL}/cancel-stock-export-order`, null, {
+      params: { seoId },
+    }),
+
+  CheckSoWithSeoNotEnough: (soId) =>
+    authorApi.post(`${API_URL}/check-so-have-seo-cancel`, null, {
+      params: { soId },
+    }),
 };
 
 export default stockExportApi;

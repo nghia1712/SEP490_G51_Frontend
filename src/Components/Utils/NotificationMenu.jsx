@@ -87,13 +87,28 @@ export default function NotificationMenu() {
   };
 
   function extractProductNames(message = "") {
-    const parts = message.split(":");
-    if (parts.length < 2) return [];
+    if (message.startsWith("Các mặt hàng thiếu")) {
+      const content = message.split(":").slice(1).join(":").trim();
 
-    return parts[1]
-      .split(",")
-      .map((p) => p.replace(/\s*\([^)]*\)/g, "").trim())
-      .filter(Boolean);
+      return content
+        .split(";")
+        .map((item) => {
+          const match = item.match(/(.*?)\s*\(Lô\s*\d+\)/i);
+          return match ? match[1].trim() : null;
+        })
+        .filter(Boolean);
+    }
+
+    if (message.includes("tồn kho nhỏ hơn số lượng tối thiểu")) {
+      const content = message.split(":").slice(1).join(":").trim();
+
+      return content
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+    }
+
+    return [];
   }
 
   const LOW_STOCK_REGEX =
@@ -333,10 +348,13 @@ export default function NotificationMenu() {
       handleClose();
       const messageText = n.message || "";
       const parsedOrderCode = extractOrderCodeFromMessage(messageText);
-      
+
       if (parsedOrderCode) {
-        console.log("NotificationMenu (Customer) - Deposit check reject, parsed orderCode:", parsedOrderCode);
-        
+        console.log(
+          "NotificationMenu (Customer) - Deposit check reject, parsed orderCode:",
+          parsedOrderCode
+        );
+
         try {
           const orderListResponse = await salesOrderAPI.myListSalesOrder();
           if (orderListResponse?.data?.data) {
@@ -398,10 +416,13 @@ export default function NotificationMenu() {
       handleClose();
       const messageText = n.message || "";
       const parsedOrderCode = extractOrderCodeFromMessage(messageText);
-      
+
       if (parsedOrderCode) {
-        console.log("NotificationMenu (Customer) - Deposit check approved, parsed orderCode:", parsedOrderCode);
-        
+        console.log(
+          "NotificationMenu (Customer) - Deposit check approved, parsed orderCode:",
+          parsedOrderCode
+        );
+
         try {
           const orderListResponse = await salesOrderAPI.myListSalesOrder();
           if (orderListResponse?.data?.data) {
@@ -868,56 +889,79 @@ export default function NotificationMenu() {
       handleClose();
       const messageText = n.message || "";
       const parsedOrderCode = extractOrderCodeFromMessage(messageText);
-      
+
       if (parsedOrderCode) {
-        console.log("NotificationMenu (Accountant) - Deposit check request, parsed orderCode:", parsedOrderCode);
-        
+        console.log(
+          "NotificationMenu (Accountant) - Deposit check request, parsed orderCode:",
+          parsedOrderCode
+        );
+
         try {
-          const depositChecksResponse = await paymentAPI.getAllManualDepositChecks();
+          const depositChecksResponse =
+            await paymentAPI.getAllManualDepositChecks();
           if (depositChecksResponse?.data?.data) {
-            const depositChecksList = Array.isArray(depositChecksResponse.data.data)
+            const depositChecksList = Array.isArray(
+              depositChecksResponse.data.data
+            )
               ? depositChecksResponse.data.data
               : [];
 
             // Tìm deposit check request có salesOrderCode matching
             const matchingRequest = depositChecksList.find((request) => {
               const code = normalizeOrderCode(
-                request.salesOrderCode ||
-                request.SalesOrderCode ||
-                ""
+                request.salesOrderCode || request.SalesOrderCode || ""
               );
               return code === parsedOrderCode;
             });
 
             if (matchingRequest) {
-              const requestId = matchingRequest.id || matchingRequest.Id || matchingRequest.requestId || matchingRequest.RequestId;
-              console.log("NotificationMenu (Accountant) - Found matching request:", {
-                matchingRequest,
-                requestId,
-                salesOrderCode: matchingRequest.salesOrderCode || matchingRequest.SalesOrderCode
-              });
+              const requestId =
+                matchingRequest.id ||
+                matchingRequest.Id ||
+                matchingRequest.requestId ||
+                matchingRequest.RequestId;
+              console.log(
+                "NotificationMenu (Accountant) - Found matching request:",
+                {
+                  matchingRequest,
+                  requestId,
+                  salesOrderCode:
+                    matchingRequest.salesOrderCode ||
+                    matchingRequest.SalesOrderCode,
+                }
+              );
               if (requestId) {
                 // Mở trang deposit checks với requestId để tự động mở dialog chi tiết
-                console.log("NotificationMenu (Accountant) - Navigating with openRequestId:", Number(requestId));
+                console.log(
+                  "NotificationMenu (Accountant) - Navigating with openRequestId:",
+                  Number(requestId)
+                );
                 navigate("/accountant/deposit-checks", {
                   state: { openRequestId: Number(requestId) },
                 });
                 return;
               } else {
-                console.warn("NotificationMenu (Accountant) - No requestId found in matchingRequest");
+                console.warn(
+                  "NotificationMenu (Accountant) - No requestId found in matchingRequest"
+                );
               }
             } else {
               console.warn(
                 "NotificationMenu (Accountant) - Deposit check request not found with orderCode:",
                 parsedOrderCode
               );
-              console.warn("NotificationMenu (Accountant) - Available requests:", depositChecksList.map(r => ({
-                id: r.id || r.Id,
-                salesOrderCode: r.salesOrderCode || r.SalesOrderCode
-              })));
+              console.warn(
+                "NotificationMenu (Accountant) - Available requests:",
+                depositChecksList.map((r) => ({
+                  id: r.id || r.Id,
+                  salesOrderCode: r.salesOrderCode || r.SalesOrderCode,
+                }))
+              );
             }
           } else {
-            console.warn("NotificationMenu (Accountant) - No deposit checks data found");
+            console.warn(
+              "NotificationMenu (Accountant) - No deposit checks data found"
+            );
           }
         } catch (err) {
           console.error(

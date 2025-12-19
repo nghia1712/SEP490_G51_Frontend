@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import stockExportApi from "../API/stockExportAPI";
 import salesOrderAPI from "../API/salesOrderAPI";
+import { message } from "antd";
 
 export const mapStockExportStatus = (status) => {
   switch (status) {
@@ -172,6 +173,40 @@ export default function useStockExport(id = null) {
     }
   };
 
+  const cancelStockExport = async (seoId) => {
+    try {
+      const res = await stockExportApi.cancelStockExport(seoId);
+      return {
+        success: true,
+        message: res?.data?.message,
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message,
+        error: err,
+      };
+    }
+  };
+
+  const CheckSoWithSeoNotEnough = async (seoId) => {
+    try {
+      const res = await stockExportApi.CheckSoWithSeoNotEnough(seoId);
+      return {
+        success: true,
+        message: res?.data?.message,
+        data: res.data,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.response?.data?.message,
+        error: err,
+      };
+    }
+  };
+
   // =========================
   // CHECK READY TO EXPORT (Warehouse Staff)
   // =========================
@@ -209,5 +244,7 @@ export default function useStockExport(id = null) {
     cancelSalesOrder,
     awaitStockExport,
     checkReadyToExport,
+    cancelStockExport,
+    CheckSoWithSeoNotEnough,
   };
 }

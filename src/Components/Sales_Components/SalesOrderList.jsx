@@ -59,18 +59,70 @@ const headerTextSx = {
 const SalesOrderList = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
 
+  const [loading, setLoading] = useState(false);
+  const isFetchingRef = useRef(false); // Flag để tránh gọi nhiều lần
+
+  const [error, setError] = useState(null);
+
+  const [sortConfig, setSortConfig] = useState({
+    key: "createdAt",
+    direction: "desc",
+  }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
+
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [searchOrderCode, setSearchOrderCode] = useState("");
+  const [searchCustomerName, setSearchCustomerName] = useState("");
+
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const [detailError, setDetailError] = useState(null);
+
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  const [orderDetails, setOrderDetails] = useState(null);
+
+  const [page, setPage] = useState(1);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectOrderId, setRejectOrderId] = useState(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectError, setRejectError] = useState(null);
+
+  const pageSize = 5;
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  const { cancelSalesOrder } = useStockExport();
+  const { cancelSalesOrder, CheckSoWithSeoNotEnough } = useStockExport();
   const [notCompleteReason, setNotCompleteReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
+  const [canNotCompleteByStock, setCanNotCompleteByStock] = useState(false);
+  const [checkingNotComplete, setCheckingNotComplete] = useState(false);
+
+  useEffect(() => {
+    if (!orderDetails?.id) return;
+
+    console.log("CALL CheckSoWithSeoNotEnough WITH ID:", orderDetails.id);
+
+    const checkNotEnough = async () => {
+      const res = await CheckSoWithSeoNotEnough(orderDetails.id);
+      console.log("API RESPONSE:", res);
+      setCanNotCompleteByStock(res?.message === "Có");
+    };
+
+    checkNotEnough();
+  }, [orderDetails?.id]);
 
   const canMarkNotComplete = (order) => {
     if (!order) return false;
-    return [2, 4].includes(order.status);
+
+    return [2, 4].includes(order.status) && canNotCompleteByStock;
   };
+
   const [notCompleteConfirm, setNotCompleteConfirm] = useState(false);
   const [marking, setMarking] = useState(false);
 
@@ -113,6 +165,7 @@ const SalesOrderList = () => {
     }
   };
 
+<<<<<<< HEAD
   const [orders, setOrders] = useState([]);
 
   const [loading, setLoading] = useState(false);
@@ -3078,6 +3131,7 @@ const SalesOrderList = () => {
             <Button
               color="error"
               variant="contained"
+              disabled={checkingNotComplete}
               onClick={() => setNotCompleteConfirm(true)}
             >
               Không hoàn thành
