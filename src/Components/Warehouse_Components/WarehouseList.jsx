@@ -263,7 +263,7 @@ export default function WarehouseList() {
                     <TableCell>Tên kho</TableCell>
                     <TableCell>Địa chỉ</TableCell>
                     <TableCell align="center">Trạng thái</TableCell>
-                    <TableCell align="center">Hành động</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

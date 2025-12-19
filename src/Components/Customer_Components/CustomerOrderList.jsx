@@ -4966,7 +4966,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
                   <span style={{ textTransform: 'capitalize', fontWeight: 600, letterSpacing: '0.03em' }}>
 
-                      Hành động
+                      Thao tác
 
                     </span>
 

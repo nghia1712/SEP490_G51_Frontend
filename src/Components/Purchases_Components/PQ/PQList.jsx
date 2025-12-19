@@ -136,7 +136,7 @@ export default function PQList() {
     if (!quotationToCreatePo.items || quotationToCreatePo.items.length === 0) {
       setSnackbar({
         open: true,
-        message: "Không thể tạo PO vì danh sách sản phẩm đang trống!",
+        message: "Không thể tạo đơn hàng vì danh sách sản phẩm đang trống!",
         severity: "error",
       });
       return;
@@ -315,7 +315,7 @@ export default function PQList() {
                       Ngày hết hạn
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }} align="center">
-                      Hành động
+                      Thao tác
                     </TableCell>
                   </TableRow>
                 </TableHead>

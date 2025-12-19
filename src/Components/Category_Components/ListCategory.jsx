@@ -819,7 +819,7 @@ function ListCategory() {
                             letterSpacing: "0.03em",
                           }}
                         >
-                          Hành động
+                          Thao tác
                         </span>
                       </Box>
                     </TableCell>

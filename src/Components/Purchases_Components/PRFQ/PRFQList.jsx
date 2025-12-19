@@ -222,7 +222,7 @@ export default function PRFQList() {
                       sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
                       align="center"
                     >
-                      Hành động
+                      Thao tác
                     </TableCell>
                   </TableRow>
                 </TableHead>

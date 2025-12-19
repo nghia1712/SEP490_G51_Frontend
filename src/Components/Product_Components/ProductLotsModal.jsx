@@ -199,7 +199,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                   <TableCell>Nhà cung cấp</TableCell>
                   {/* <TableCell>Mã sản phẩm</TableCell> */}
                   <TableCell>Ngày kiểm tra cuối</TableCell>
-                  {canEdit && <TableCell>Hành động</TableCell>}
+                  {canEdit && <TableCell>Thao tác</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>

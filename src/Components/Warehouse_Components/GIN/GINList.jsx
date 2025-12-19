@@ -130,60 +130,72 @@ export default function GRNList() {
     }
 
     let salesOrderCode = row.salesOrderCode || "";
-    
+
     // Nếu không có salesOrderCode trong row, thử lấy từ API chi tiết GIN
     if (!salesOrderCode && row.id) {
       try {
         const detailRes = await ginApi.getDetail(row.id);
         const detail = detailRes.data?.data;
-        
+
         // Lấy StockExportOrderId từ GIN detail
-        const stockExportOrderId = detail?.stockExportOrderId || 
-                                   detail?.StockExportOrderId ||
-                                   detail?.stockExportOrder?.id ||
-                                   detail?.StockExportOrder?.Id;
-        
+        const stockExportOrderId =
+          detail?.stockExportOrderId ||
+          detail?.StockExportOrderId ||
+          detail?.stockExportOrder?.id ||
+          detail?.StockExportOrder?.Id;
+
         // Nếu có StockExportOrderId, gọi API chi tiết StockExportOrder để lấy SalesOrderCode
         if (stockExportOrderId) {
           try {
-            const seoDetailRes = await stockExportApi.details(stockExportOrderId);
+            const seoDetailRes = await stockExportApi.details(
+              stockExportOrderId
+            );
             const seoDetail = seoDetailRes.data?.data;
-            salesOrderCode = seoDetail?.salesOrderCode || 
-                           seoDetail?.SalesOrderCode ||
-                           seoDetail?.salesOrder?.salesOrderCode ||
-                           seoDetail?.SalesOrder?.SalesOrderCode ||
-                           "";
+            salesOrderCode =
+              seoDetail?.salesOrderCode ||
+              seoDetail?.SalesOrderCode ||
+              seoDetail?.salesOrder?.salesOrderCode ||
+              seoDetail?.SalesOrder?.SalesOrderCode ||
+              "";
           } catch (seoErr) {
-            console.warn('GINList - Could not fetch StockExportOrder detail:', seoErr);
+            console.warn(
+              "GINList - Could not fetch StockExportOrder detail:",
+              seoErr
+            );
           }
         }
-        
+
         // Fallback: thử lấy trực tiếp từ GIN detail
         if (!salesOrderCode) {
-          salesOrderCode = detail?.stockExportOrder?.salesOrderCode || 
-                          detail?.StockExportOrder?.SalesOrderCode ||
-                          detail?.salesOrderCode ||
-                          detail?.SalesOrderCode ||
-                          "";
+          salesOrderCode =
+            detail?.stockExportOrder?.salesOrderCode ||
+            detail?.StockExportOrder?.SalesOrderCode ||
+            detail?.salesOrderCode ||
+            detail?.SalesOrderCode ||
+            "";
         }
       } catch (err) {
-        console.warn('GINList - Could not fetch GIN detail for salesOrderCode:', err);
+        console.warn(
+          "GINList - Could not fetch GIN detail for salesOrderCode:",
+          err
+        );
       }
     }
-    
+
     const context = {
-      goodsIssueNoteCode: row.goodsIssueNoteCode || row.GoodsIssueNoteCode || "",
+      goodsIssueNoteCode:
+        row.goodsIssueNoteCode || row.GoodsIssueNoteCode || "",
       salesOrderCode: salesOrderCode || "",
     };
-    
-    console.log('GINList - handleOpenInvoiceDialog:', {
+
+    console.log("GINList - handleOpenInvoiceDialog:", {
       row,
       context,
       goodsIssueNoteCode: row?.goodsIssueNoteCode,
       salesOrderCode: context.salesOrderCode,
       stockExportOrderCode: row?.stockExportOrderCode,
     });
-    
+
     setInvoiceDialogContext(context);
     setInvoiceDialogOpen(true);
   };
@@ -281,7 +293,6 @@ export default function GRNList() {
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
                       <MenuItem value="">Tất cả</MenuItem>
-                      <MenuItem value={0}>Nháp</MenuItem>
                       <MenuItem value={1}>Chờ xử lý</MenuItem>
                       <MenuItem value={2}>Đã xuất kho</MenuItem>
                     </Select>
@@ -362,11 +373,11 @@ export default function GRNList() {
                     <TableCell>Phiếu xuất kho</TableCell>
                     <TableCell>Kho</TableCell>
                     <TableCell>Mã yêu cầu</TableCell>
-                    <TableCell>Mô tả</TableCell>
+                    <TableCell>Đơn hàng</TableCell>
                     <TableCell>Người tạo</TableCell>
-                    <TableCell>Trạng thái</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell>Ngày tạo</TableCell>
-                    <TableCell align="center">Hành động</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -394,8 +405,11 @@ export default function GRNList() {
                         <TableCell>{row.goodsIssueNoteCode}</TableCell>
                         <TableCell>{row.warehouseName}</TableCell>
                         <TableCell>{row.stockExportOrderCode}</TableCell>
-
-                        <TableCell>{row.note}</TableCell>
+                        <TableCell>
+                          {row.note
+                            ? row.note.match(/SO\d+/)?.[0] || row.note
+                            : ""}
+                        </TableCell>
                         <TableCell>{row.createBy}</TableCell>
                         <TableCell align="center">
                           {renderGINStatus(row.status)}
@@ -589,11 +603,13 @@ export default function GRNList() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <Typography color="text.secondary">Mô tả:</Typography>
+                      <Typography color="text.secondary">
+                        Mã đơn hàng:
+                      </Typography>
                       <Typography
                         sx={{ textAlign: "right", whiteSpace: "pre-wrap" }}
                       >
-                        {selectedExport.note || "-"}
+                        {selectedExport.note?.match(/SO\d+/)?.[0] || "-"}
                       </Typography>
                     </Box>
                   </Stack>

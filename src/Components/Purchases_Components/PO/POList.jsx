@@ -288,7 +288,7 @@ export default function POList() {
                       Người tạo
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }} align="center">
-                      Hành động
+                      Thao tác
                     </TableCell>
                   </TableRow>
                 </TableHead>

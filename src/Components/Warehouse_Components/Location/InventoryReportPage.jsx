@@ -408,7 +408,7 @@ export default function InventoryReportPage() {
                   <TableCell>Phiên kiểm kê</TableCell>
                   <TableCell>Thời gian bắt đầu</TableCell>
                   <TableCell>Thời gian hoàn tất</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
+                  <TableCell align="center">Thao tác</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

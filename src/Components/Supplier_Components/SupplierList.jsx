@@ -970,7 +970,7 @@ const SupplierList = () => {
                       textAlign: "center",
                     }}
                   >
-                    Hành động
+                    Thao tác
                   </TableCell>
                 </TableRow>
               </TableHead>

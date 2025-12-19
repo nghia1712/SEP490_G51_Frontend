@@ -747,7 +747,7 @@ const CustomerInvoiceList = () => {
                     ...headerTextSx,
                   }}
                 >
-                  Hành động
+                  Thao tác
                 </TableCell>
               </TableRow>
             </TableHead>

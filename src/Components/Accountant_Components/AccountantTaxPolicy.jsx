@@ -283,7 +283,7 @@ const AccountantTaxPolicy = () => {
                     <TableCell>Mô tả</TableCell>
                     <TableCell sx={{ width: 160 }}>Trạng thái</TableCell>
                     <TableCell sx={{ width: 120, textAlign: "center" }}>
-                      Hành động
+                      Thao tác
                     </TableCell>
                   </TableRow>
                 </TableHead>

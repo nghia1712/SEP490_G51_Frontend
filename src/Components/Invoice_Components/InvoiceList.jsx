@@ -592,7 +592,7 @@ const InvoiceList = () => {
                         ...headerTextSx,
                       }}
                     >
-                      Hành động
+                      Thao tác
                     </TableCell>
                   </TableRow>
                 </TableHead>

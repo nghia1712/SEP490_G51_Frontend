@@ -751,7 +751,7 @@ const PaymentRemainList = () => {
                     <TableCell sx={{ fontWeight: 600 }}>Ngày thanh toán</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Số tiền</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Hành động</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -948,7 +948,7 @@ const PaymentRemainList = () => {
                           Trạng thái
                         </TableCell>
                         <TableCell sx={{ width: '9%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
-                          Hành động
+                          Thao tác
                         </TableCell>
                       </TableRow>
                     </TableHead>

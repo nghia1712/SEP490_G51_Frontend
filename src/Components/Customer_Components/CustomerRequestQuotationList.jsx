@@ -1667,7 +1667,7 @@ const CustomerRequestQuotationList = () => {
                 <TableCell sx={{ width: '16%', textAlign: 'right', py: 1.5, px: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                     <span style={{ textTransform: 'capitalize', fontWeight: 600, letterSpacing: '0.03em' }}>
-                      Hành động
+                      Thao tác
                     </span>
                   </Box>
                 </TableCell>
@@ -2832,7 +2832,7 @@ const CustomerRequestQuotationList = () => {
                       <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Đơn giá sau thuế</TableCell>
                       <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền trước thuế</TableCell>
                       <TableCell sx={{ textAlign: 'right', backgroundColor: '#f5f5f5' }}>Thành tiền sau thuế</TableCell>
-                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', width: '80px' }}>Hành Động</TableCell>
+                        <TableCell sx={{ textAlign: 'center', backgroundColor: '#f5f5f5', width: '80px' }}>Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

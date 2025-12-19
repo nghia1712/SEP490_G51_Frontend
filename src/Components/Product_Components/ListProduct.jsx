@@ -322,7 +322,7 @@ const ListProduct = () => {
     { id: "status", label: "Trạng Thái", sortable: true, width: "10%" },
     {
       id: "actions",
-      label: "Hành Động",
+      label: "Thao tác",
       sortable: false,
       align: "right",
       width: "25%",

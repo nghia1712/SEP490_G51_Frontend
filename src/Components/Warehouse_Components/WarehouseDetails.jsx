@@ -231,7 +231,7 @@ export default function WarehouseDetailPage() {
                         <TableCell>#</TableCell>
                         <TableCell>Tên vị trí</TableCell>
                         <TableCell>Trạng thái</TableCell>
-                        <TableCell align="center">Hành động</TableCell>
+                        <TableCell align="center">Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
