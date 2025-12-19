@@ -78,6 +78,7 @@ import CustomerDebtList from "./Components/Debt_Components/CustomerDebtList.jsx"
 import AboutPharmacy from "./Components/Guest_Components/AboutPharmacy.jsx";
 import CreatePOFromPQ from "./Components/Purchases_Components/PO/CreatePOFromPQ.jsx";
 import AccountantDepositChecks from "./Components/Accountant_Components/AccountantDepositChecks.jsx";
+import ProductLotLookup from "./Components/Warehouse_Components/ProductLotLookup.jsx";
 
 // Tạo AuthContext để quản lý trạng thái xác thực toàn cục
 const AuthContext = createContext();
@@ -318,8 +319,7 @@ const CustomerFooterWrapper = () => {
   ];
 
   const shouldShow =
-    role === "customer" &&
-    allowedPaths.includes(location.pathname);
+    role === "customer" && allowedPaths.includes(location.pathname);
 
   if (!shouldShow) return null;
   return <Footer />;
@@ -444,7 +444,9 @@ function App() {
                       {/* Accountant route cũ chuyển thẳng về dashboard kế toán */}
                       <Route
                         path="/accountant-staff"
-                        element={<Navigate to="/accountant-dashboard" replace />}
+                        element={
+                          <Navigate to="/accountant-dashboard" replace />
+                        }
                       />
                       <Route path="/manager" element={<Landing />} />
 
@@ -609,13 +611,14 @@ function App() {
                           </ProtectedRoute>
                         }
                       />
-                      <Route path="/po/create" element={
-                        <ProtectedRoute
-                          allowedRoles={["purchases_staff"]}
-                        >
-                          <CreatePOFromPQ />
-                        </ProtectedRoute>
-                      }/>
+                      <Route
+                        path="/po/create"
+                        element={
+                          <ProtectedRoute allowedRoles={["purchases_staff"]}>
+                            <CreatePOFromPQ />
+                          </ProtectedRoute>
+                        }
+                      />
 
                       {/* Routes cho GRN */}
                       <Route
@@ -706,6 +709,14 @@ function App() {
                             ]}
                           >
                             <WarehouseList />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/product-lot-lookup"
+                        element={
+                          <ProtectedRoute allowedRoles={["warehouse_staff"]}>
+                            <ProductLotLookup />
                           </ProtectedRoute>
                         }
                       />

@@ -129,7 +129,7 @@ function Header() {
   const userRole = getUserRole() || "guest";
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [profile, setProfile] = useState(null);
   const [customerStatus, setCustomerStatus] = useState(null);
@@ -158,7 +158,8 @@ function Header() {
       getProfile()
         .then((response) => {
           // useUser.getProfile trả về { data: { data: {...} } }
-          const profileData = response?.data?.data || response?.data || response;
+          const profileData =
+            response?.data?.data || response?.data || response;
           setProfile(profileData);
         })
         .catch(console.error);
@@ -177,17 +178,20 @@ function Header() {
   // Helper để lấy avatar URL - giống với ViewProfile
   const getAvatarUrl = (avatarPath) => {
     console.log("Header getAvatarUrl called with:", avatarPath);
-    
+
     if (!avatarPath) {
       console.log("No avatar path, returning default");
       return "/images/avatar/image1.png";
     }
-    
-    if (typeof avatarPath === "string" && (avatarPath.startsWith("http://") || avatarPath.startsWith("https://"))) {
+
+    if (
+      typeof avatarPath === "string" &&
+      (avatarPath.startsWith("http://") || avatarPath.startsWith("https://"))
+    ) {
       console.log("Full URL detected:", avatarPath);
       return avatarPath;
     }
-    
+
     if (typeof avatarPath === "string" && avatarPath.startsWith("/images/")) {
       console.log("Local images path detected:", avatarPath);
       const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(avatarPath);
@@ -201,9 +205,12 @@ function Header() {
         return fullUrl;
       }
     }
-    
+
     // Ảnh do backend trả về (đường dẫn tĩnh), bổ sung host
-    const normalized = typeof avatarPath === "string" && avatarPath.startsWith("/") ? avatarPath : `/${avatarPath || ""}`;
+    const normalized =
+      typeof avatarPath === "string" && avatarPath.startsWith("/")
+        ? avatarPath
+        : `/${avatarPath || ""}`;
     const fullUrl = `https://api.bbpharmacy.site${normalized}`;
     console.log("Normalized path:", fullUrl);
     return fullUrl;
@@ -243,7 +250,7 @@ function Header() {
       path: "/purchases-dashboard",
       allowedRoles: ["purchases_staff"],
     },
-        {
+    {
       label: "Tổng quan",
       path: "/warehouse-dashboard",
       allowedRoles: ["warehouse_staff"],
@@ -447,6 +454,10 @@ function Header() {
       items: [
         { label: "Kho hàng", path: "/warehouse" },
         { label: "Báo cáo kiểm kê", path: "/inventory-report" },
+        {
+          label: "Tra cứu sản phẩm",
+          path: "/product-lot-lookup",
+        },
       ],
     },
     importManagement: {
@@ -497,7 +508,8 @@ function Header() {
   const handleOrderMenuClose = () => setOrderMenuAnchor(null);
   const handleSalesMenuOpen = (e) => setSalesMenuAnchor(e.currentTarget);
   const handleSalesMenuClose = () => setSalesMenuAnchor(null);
-  const handleWarehouseMenuOpen = (e) => setWarehouseMenuAnchor(e.currentTarget);
+  const handleWarehouseMenuOpen = (e) =>
+    setWarehouseMenuAnchor(e.currentTarget);
   const handleWarehouseMenuClose = () => setWarehouseMenuAnchor(null);
   const handleImportMenuOpen = (e) => setImportMenuAnchor(e.currentTarget);
   const handleImportMenuClose = () => setImportMenuAnchor(null);
@@ -553,13 +565,22 @@ function Header() {
           </Typography>
 
           {/* Desktop Navigation */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: 1, ml: 3 }}>
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              alignItems: "center",
+              gap: 1,
+              ml: 3,
+            }}
+          >
             {userRole === "purchases_staff" ? (
               <>
                 {/* Tổng quan */}
                 <Button
                   color="inherit"
-                  onClick={() => handleNavigate(purchasesStaffMenuItems.overview.path)}
+                  onClick={() =>
+                    handleNavigate(purchasesStaffMenuItems.overview.path)
+                  }
                   sx={
                     isActiveNavItem(purchasesStaffMenuItems.overview.path)
                       ? activeNavStyle
@@ -575,8 +596,8 @@ function Header() {
                   onClick={handleProductMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={
-                    purchasesStaffMenuItems.productManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    purchasesStaffMenuItems.productManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle
@@ -598,7 +619,9 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: productMenuAnchor ? `${productMenuAnchor.offsetWidth}px` : 'auto',
+                      width: productMenuAnchor
+                        ? `${productMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -621,18 +644,20 @@ function Header() {
                     },
                   }}
                 >
-                  {purchasesStaffMenuItems.productManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleProductMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {purchasesStaffMenuItems.productManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleProductMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
 
                 {/* Quản lý nhập hàng - Dropdown */}
@@ -641,7 +666,7 @@ function Header() {
                   onClick={handleOrderMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={
-                    purchasesStaffMenuItems.orderManagement.items.some(item =>
+                    purchasesStaffMenuItems.orderManagement.items.some((item) =>
                       isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
@@ -664,7 +689,9 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: orderMenuAnchor ? `${orderMenuAnchor.offsetWidth}px` : 'auto',
+                      width: orderMenuAnchor
+                        ? `${orderMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -706,7 +733,9 @@ function Header() {
                 {/* Tổng quan */}
                 <Button
                   color="inherit"
-                  onClick={() => handleNavigate(salesStaffMenuItems.overview.path)}
+                  onClick={() =>
+                    handleNavigate(salesStaffMenuItems.overview.path)
+                  }
                   sx={
                     isActiveNavItem(salesStaffMenuItems.overview.path)
                       ? activeNavStyle
@@ -719,7 +748,9 @@ function Header() {
                 {/* Thuốc */}
                 <Button
                   color="inherit"
-                  onClick={() => handleNavigate(salesStaffMenuItems.product.path)}
+                  onClick={() =>
+                    handleNavigate(salesStaffMenuItems.product.path)
+                  }
                   sx={
                     isActiveNavItem(salesStaffMenuItems.product.path)
                       ? activeNavStyle
@@ -758,7 +789,9 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: salesMenuAnchor ? `${salesMenuAnchor.offsetWidth}px` : 'auto',
+                      width: salesMenuAnchor
+                        ? `${salesMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -800,7 +833,9 @@ function Header() {
                 {/* Tổng quan */}
                 <Button
                   color="inherit"
-                  onClick={() => handleNavigate(warehouseStaffMenuItems.overview.path)}
+                  onClick={() =>
+                    handleNavigate(warehouseStaffMenuItems.overview.path)
+                  }
                   sx={
                     isActiveNavItem(warehouseStaffMenuItems.overview.path)
                       ? activeNavStyle
@@ -816,12 +851,15 @@ function Header() {
                   onClick={handleWarehouseMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    ...(warehouseStaffMenuItems.warehouseManagement.items.some(item =>
-                      isActiveNavItem(item.path) && location.pathname !== warehouseStaffMenuItems.overview.path
+                    ...(warehouseStaffMenuItems.warehouseManagement.items.some(
+                      (item) =>
+                        isActiveNavItem(item.path) &&
+                        location.pathname !==
+                          warehouseStaffMenuItems.overview.path
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    minWidth: '150px',
+                    minWidth: "150px",
                   }}
                 >
                   {warehouseStaffMenuItems.warehouseManagement.label}
@@ -840,7 +878,9 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: warehouseMenuAnchor ? `${warehouseMenuAnchor.offsetWidth}px` : 'auto',
+                      width: warehouseMenuAnchor
+                        ? `${warehouseMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -863,18 +903,20 @@ function Header() {
                     },
                   }}
                 >
-                  {warehouseStaffMenuItems.warehouseManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleWarehouseMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {warehouseStaffMenuItems.warehouseManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleWarehouseMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
 
                 {/* Nhập kho - Dropdown */}
@@ -883,12 +925,12 @@ function Header() {
                   onClick={handleImportMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    ...(warehouseStaffMenuItems.importManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    ...(warehouseStaffMenuItems.importManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    minWidth: '150px',
+                    minWidth: "150px",
                   }}
                 >
                   {warehouseStaffMenuItems.importManagement.label}
@@ -907,7 +949,11 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: warehouseMenuAnchor ? `${warehouseMenuAnchor.offsetWidth}px` : (importMenuAnchor ? `${importMenuAnchor.offsetWidth}px` : 'auto'),
+                      width: warehouseMenuAnchor
+                        ? `${warehouseMenuAnchor.offsetWidth}px`
+                        : importMenuAnchor
+                        ? `${importMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -930,18 +976,20 @@ function Header() {
                     },
                   }}
                 >
-                  {warehouseStaffMenuItems.importManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleImportMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {warehouseStaffMenuItems.importManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleImportMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
 
                 {/* Xuất kho - Dropdown */}
@@ -950,12 +998,12 @@ function Header() {
                   onClick={handleExportMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    ...(warehouseStaffMenuItems.exportManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    ...(warehouseStaffMenuItems.exportManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    minWidth: '150px',
+                    minWidth: "150px",
                   }}
                 >
                   {warehouseStaffMenuItems.exportManagement.label}
@@ -974,7 +1022,11 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: warehouseMenuAnchor ? `${warehouseMenuAnchor.offsetWidth}px` : (exportMenuAnchor ? `${exportMenuAnchor.offsetWidth}px` : 'auto'),
+                      width: warehouseMenuAnchor
+                        ? `${warehouseMenuAnchor.offsetWidth}px`
+                        : exportMenuAnchor
+                        ? `${exportMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -997,18 +1049,20 @@ function Header() {
                     },
                   }}
                 >
-                  {warehouseStaffMenuItems.exportManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleExportMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {warehouseStaffMenuItems.exportManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleExportMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
               </>
             ) : userRole === "accountant_staff" ? (
@@ -1016,7 +1070,9 @@ function Header() {
                 {/* Tổng quan */}
                 <Button
                   color="inherit"
-                  onClick={() => handleNavigate(accountantStaffMenuItems.overview.path)}
+                  onClick={() =>
+                    handleNavigate(accountantStaffMenuItems.overview.path)
+                  }
                   sx={
                     isActiveNavItem(accountantStaffMenuItems.overview.path)
                       ? activeNavStyle
@@ -1032,12 +1088,12 @@ function Header() {
                   onClick={handleSupplierMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    ...(accountantStaffMenuItems.supplierManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    ...(accountantStaffMenuItems.supplierManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    width: '200px',
+                    width: "200px",
                   }}
                 >
                   {accountantStaffMenuItems.supplierManagement.label}
@@ -1056,7 +1112,9 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: supplierMenuAnchor ? `${supplierMenuAnchor.offsetWidth}px` : 'auto',
+                      width: supplierMenuAnchor
+                        ? `${supplierMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -1079,18 +1137,20 @@ function Header() {
                     },
                   }}
                 >
-                  {accountantStaffMenuItems.supplierManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleSupplierMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {accountantStaffMenuItems.supplierManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleSupplierMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
 
                 {/* Khách hàng - Dropdown */}
@@ -1099,12 +1159,12 @@ function Header() {
                   onClick={handleCustomerMenuOpen}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    ...(accountantStaffMenuItems.customerManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    ...(accountantStaffMenuItems.customerManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    width: '200px',
+                    width: "200px",
                   }}
                 >
                   {accountantStaffMenuItems.customerManagement.label}
@@ -1123,7 +1183,11 @@ function Header() {
                   }}
                   PaperProps={{
                     sx: {
-                      width: supplierMenuAnchor ? `${supplierMenuAnchor.offsetWidth}px` : (customerMenuAnchor ? `${customerMenuAnchor.offsetWidth}px` : 'auto'),
+                      width: supplierMenuAnchor
+                        ? `${supplierMenuAnchor.offsetWidth}px`
+                        : customerMenuAnchor
+                        ? `${customerMenuAnchor.offsetWidth}px`
+                        : "auto",
                       mt: 1,
                       boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                       borderRadius: 2,
@@ -1146,34 +1210,36 @@ function Header() {
                     },
                   }}
                 >
-                  {accountantStaffMenuItems.customerManagement.items.map((item) => (
-                    <MenuItem
-                      key={item.path}
-                      onClick={() => {
-                        handleNavigate(item.path);
-                        handleCustomerMenuClose();
-                      }}
-                      selected={isActiveNavItem(item.path)}
-                    >
-                      {item.label}
-                    </MenuItem>
-                  ))}
+                  {accountantStaffMenuItems.customerManagement.items.map(
+                    (item) => (
+                      <MenuItem
+                        key={item.path}
+                        onClick={() => {
+                          handleNavigate(item.path);
+                          handleCustomerMenuClose();
+                        }}
+                        selected={isActiveNavItem(item.path)}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    )
+                  )}
                 </Menu>
               </>
             ) : (
               visibleNavItems.map((item) => (
-              <Button
-                key={item.path}
-                color="inherit"
-                onClick={() => handleNavigate(item.path)}
-                sx={
-                  isActiveNavItem(item.path)
-                    ? activeNavStyle
-                    : navButtonHoverStyle
-                }
-              >
-                {item.label}
-              </Button>
+                <Button
+                  key={item.path}
+                  color="inherit"
+                  onClick={() => handleNavigate(item.path)}
+                  sx={
+                    isActiveNavItem(item.path)
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  {item.label}
+                </Button>
               ))
             )}
           </Box>
@@ -1188,12 +1254,12 @@ function Header() {
                 color="inherit"
                 aria-label="open drawer"
                 onClick={handleMobileMenuToggle}
-                sx={{ padding: '4px' }}
+                sx={{ padding: "4px" }}
               >
                 <MenuIcon />
               </IconButton>
             )}
-            
+
             {currentToken ? (
               <>
                 <NotificationMenu />
@@ -1203,18 +1269,34 @@ function Header() {
                     const IconComponent = roleInfo.IconComponent;
                     return (
                       <>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
                           <Tooltip
-                            title={`${profile?.fullName || profile?.FullName || "Tài khoản"} - ${roleInfo.label
-                              }`}
+                            title={`${
+                              profile?.fullName ||
+                              profile?.FullName ||
+                              "Tài khoản"
+                            } - ${roleInfo.label}`}
                           >
                             {userRole === "customer" ? (
                               <Avatar
-                                src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
-                                alt={profile?.fullName || profile?.FullName || "Khách hàng"}
+                                src={getAvatarUrl(
+                                  profile?.avatar || profile?.Avatar
+                                )}
+                                alt={
+                                  profile?.fullName ||
+                                  profile?.FullName ||
+                                  "Khách hàng"
+                                }
                                 onClick={() => navigate("/profile")}
                                 onError={(e) => {
-                                  console.log("Failed to load avatar:", getAvatarUrl(profile?.avatar || profile?.Avatar));
+                                  console.log(
+                                    "Failed to load avatar:",
+                                    getAvatarUrl(
+                                      profile?.avatar || profile?.Avatar
+                                    )
+                                  );
                                   e.target.src = "/images/avatar/image1.png";
                                 }}
                                 sx={{
@@ -1231,17 +1313,25 @@ function Header() {
                               <Chip
                                 icon={<IconComponent />}
                                 label={roleInfo.label}
-                                onClick={userRole !== "admin" && userRole !== "manager" ? () => navigate("/profile") : undefined}
+                                onClick={
+                                  userRole !== "admin" && userRole !== "manager"
+                                    ? () => navigate("/profile")
+                                    : undefined
+                                }
                                 size={isMobile ? "small" : "medium"}
                                 sx={{
                                   backgroundColor: roleInfo.bgColor,
                                   color: roleInfo.color,
                                   fontWeight: 600,
-                                  cursor: userRole !== "admin" && userRole !== "manager" ? "pointer" : "default",
+                                  cursor:
+                                    userRole !== "admin" &&
+                                    userRole !== "manager"
+                                      ? "pointer"
+                                      : "default",
                                   "& .MuiChip-icon": { color: roleInfo.color },
-                                  fontSize: { xs: '0.7rem', md: '0.875rem' },
+                                  fontSize: { xs: "0.7rem", md: "0.875rem" },
                                   height: { xs: 24, md: 32 },
-                                  display: { xs: 'none', md: 'flex' }, // Ẩn badge trên mobile cho các role khác customer
+                                  display: { xs: "none", md: "flex" }, // Ẩn badge trên mobile cho các role khác customer
                                 }}
                               />
                             )}
@@ -1257,10 +1347,12 @@ function Header() {
                                   backgroundColor: roleInfo.bgColor,
                                   opacity: 0.9,
                                 },
-                                padding: { xs: '4px', md: '8px' },
+                                padding: { xs: "4px", md: "8px" },
                               }}
                             >
-                              <LogoutIcon fontSize={isMobile ? "small" : "medium"} />
+                              <LogoutIcon
+                                fontSize={isMobile ? "small" : "medium"}
+                              />
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -1276,8 +1368,8 @@ function Header() {
                   sx={{
                     backgroundColor: palette.dark,
                     "&:hover": { backgroundColor: "#104c50" },
-                    fontSize: { xs: '0.75rem', md: '0.875rem' },
-                    padding: { xs: '4px 8px', md: '6px 16px' },
+                    fontSize: { xs: "0.75rem", md: "0.875rem" },
+                    padding: { xs: "4px 8px", md: "6px 16px" },
                   }}
                   onClick={() => navigate("/login")}
                 >
@@ -1290,8 +1382,8 @@ function Header() {
                     ml: { xs: 1, md: 2 },
                     color: palette.white,
                     borderColor: palette.white,
-                    fontSize: { xs: '0.75rem', md: '0.875rem' },
-                    padding: { xs: '4px 8px', md: '6px 16px' },
+                    fontSize: { xs: "0.75rem", md: "0.875rem" },
+                    padding: { xs: "4px 8px", md: "6px 16px" },
                   }}
                   onClick={() => navigate("/register")}
                 >
@@ -1310,11 +1402,11 @@ function Header() {
         onClose={handleMobileMenuClose}
         className="mobile-header-drawer"
         sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
             width: 220,
-            boxSizing: 'border-box',
-            backgroundColor: '#f5f5f5',
+            boxSizing: "border-box",
+            backgroundColor: "#f5f5f5",
           },
         }}
       >
@@ -1322,15 +1414,17 @@ function Header() {
           {/* User Info Section */}
           {currentToken && profile && (
             <>
-              <Box sx={{ px: 2, pb: 2, borderBottom: '1px solid #e0e0e0' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ px: 2, pb: 2, borderBottom: "1px solid #e0e0e0" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   {(() => {
                     const roleInfo = getRoleInfo(userRole);
                     const IconComponent = roleInfo.IconComponent;
                     return userRole === "customer" ? (
                       <Avatar
                         src={getAvatarUrl(profile?.avatar || profile?.Avatar)}
-                        alt={profile?.fullName || profile?.FullName || "Khách hàng"}
+                        alt={
+                          profile?.fullName || profile?.FullName || "Khách hàng"
+                        }
                         sx={{
                           width: 40,
                           height: 40,
@@ -1361,34 +1455,54 @@ function Header() {
               <>
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMobileNavigate(purchasesStaffMenuItems.overview.path)}
-                    selected={isActiveNavItem(purchasesStaffMenuItems.overview.path)}
+                    onClick={() =>
+                      handleMobileNavigate(
+                        purchasesStaffMenuItems.overview.path
+                      )
+                    }
+                    selected={isActiveNavItem(
+                      purchasesStaffMenuItems.overview.path
+                    )}
                   >
-                    <ListItemText primary={purchasesStaffMenuItems.overview.label} />
+                    <ListItemText
+                      primary={purchasesStaffMenuItems.overview.label}
+                    />
                   </ListItemButton>
                 </ListItem>
-                
+
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileProductMenuOpen(!mobileProductMenuOpen)}
+                    onClick={() =>
+                      setMobileProductMenuOpen(!mobileProductMenuOpen)
+                    }
                   >
-                    <ListItemText primary={purchasesStaffMenuItems.productManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileProductMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={purchasesStaffMenuItems.productManagement.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileProductMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileProductMenuOpen && (
                   <List component="div" disablePadding>
-                    {purchasesStaffMenuItems.productManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {purchasesStaffMenuItems.productManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
 
@@ -1396,23 +1510,33 @@ function Header() {
                   <ListItemButton
                     onClick={() => setMobileOrderMenuOpen(!mobileOrderMenuOpen)}
                   >
-                    <ListItemText primary={purchasesStaffMenuItems.orderManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileOrderMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={purchasesStaffMenuItems.orderManagement.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileOrderMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileOrderMenuOpen && (
                   <List component="div" disablePadding>
-                    {purchasesStaffMenuItems.orderManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {purchasesStaffMenuItems.orderManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
               </>
@@ -1420,16 +1544,24 @@ function Header() {
               <>
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMobileNavigate(salesStaffMenuItems.overview.path)}
-                    selected={isActiveNavItem(salesStaffMenuItems.overview.path)}
+                    onClick={() =>
+                      handleMobileNavigate(salesStaffMenuItems.overview.path)
+                    }
+                    selected={isActiveNavItem(
+                      salesStaffMenuItems.overview.path
+                    )}
                   >
-                    <ListItemText primary={salesStaffMenuItems.overview.label} />
+                    <ListItemText
+                      primary={salesStaffMenuItems.overview.label}
+                    />
                   </ListItemButton>
                 </ListItem>
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMobileNavigate(salesStaffMenuItems.product.path)}
+                    onClick={() =>
+                      handleMobileNavigate(salesStaffMenuItems.product.path)
+                    }
                     selected={isActiveNavItem(salesStaffMenuItems.product.path)}
                   >
                     <ListItemText primary={salesStaffMenuItems.product.label} />
@@ -1439,12 +1571,20 @@ function Header() {
                 <ListItem disablePadding>
                   <ListItemButton
                     onClick={() => setMobileSalesMenuOpen(!mobileSalesMenuOpen)}
-                    selected={salesStaffMenuItems.salesManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    selected={salesStaffMenuItems.salesManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )}
                   >
-                    <ListItemText primary={salesStaffMenuItems.salesManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileSalesMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={salesStaffMenuItems.salesManagement.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileSalesMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileSalesMenuOpen && (
@@ -1467,91 +1607,140 @@ function Header() {
               <>
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMobileNavigate(warehouseStaffMenuItems.overview.path)}
-                    selected={isActiveNavItem(warehouseStaffMenuItems.overview.path)}
+                    onClick={() =>
+                      handleMobileNavigate(
+                        warehouseStaffMenuItems.overview.path
+                      )
+                    }
+                    selected={isActiveNavItem(
+                      warehouseStaffMenuItems.overview.path
+                    )}
                   >
-                    <ListItemText primary={warehouseStaffMenuItems.overview.label} />
+                    <ListItemText
+                      primary={warehouseStaffMenuItems.overview.label}
+                    />
                   </ListItemButton>
                 </ListItem>
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileWarehouseMenuOpen(!mobileWarehouseMenuOpen)}
-                    selected={warehouseStaffMenuItems.warehouseManagement.items.some(item =>
-                      isActiveNavItem(item.path) && location.pathname !== warehouseStaffMenuItems.overview.path
+                    onClick={() =>
+                      setMobileWarehouseMenuOpen(!mobileWarehouseMenuOpen)
+                    }
+                    selected={warehouseStaffMenuItems.warehouseManagement.items.some(
+                      (item) =>
+                        isActiveNavItem(item.path) &&
+                        location.pathname !==
+                          warehouseStaffMenuItems.overview.path
                     )}
                   >
-                    <ListItemText primary={warehouseStaffMenuItems.warehouseManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileWarehouseMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={
+                        warehouseStaffMenuItems.warehouseManagement.label
+                      }
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileWarehouseMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileWarehouseMenuOpen && (
                   <List component="div" disablePadding>
-                    {warehouseStaffMenuItems.warehouseManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {warehouseStaffMenuItems.warehouseManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileImportMenuOpen(!mobileImportMenuOpen)}
-                    selected={warehouseStaffMenuItems.importManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    onClick={() =>
+                      setMobileImportMenuOpen(!mobileImportMenuOpen)
+                    }
+                    selected={warehouseStaffMenuItems.importManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )}
                   >
-                    <ListItemText primary={warehouseStaffMenuItems.importManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileImportMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={warehouseStaffMenuItems.importManagement.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileImportMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileImportMenuOpen && (
                   <List component="div" disablePadding>
-                    {warehouseStaffMenuItems.importManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {warehouseStaffMenuItems.importManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileExportMenuOpen(!mobileExportMenuOpen)}
-                    selected={warehouseStaffMenuItems.exportManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    onClick={() =>
+                      setMobileExportMenuOpen(!mobileExportMenuOpen)
+                    }
+                    selected={warehouseStaffMenuItems.exportManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )}
                   >
-                    <ListItemText primary={warehouseStaffMenuItems.exportManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileExportMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={warehouseStaffMenuItems.exportManagement.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileExportMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileExportMenuOpen && (
                   <List component="div" disablePadding>
-                    {warehouseStaffMenuItems.exportManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {warehouseStaffMenuItems.exportManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
               </>
@@ -1559,64 +1748,100 @@ function Header() {
               <>
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMobileNavigate(accountantStaffMenuItems.overview.path)}
-                    selected={isActiveNavItem(accountantStaffMenuItems.overview.path)}
+                    onClick={() =>
+                      handleMobileNavigate(
+                        accountantStaffMenuItems.overview.path
+                      )
+                    }
+                    selected={isActiveNavItem(
+                      accountantStaffMenuItems.overview.path
+                    )}
                   >
-                    <ListItemText primary={accountantStaffMenuItems.overview.label} />
+                    <ListItemText
+                      primary={accountantStaffMenuItems.overview.label}
+                    />
                   </ListItemButton>
                 </ListItem>
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileSupplierMenuOpen(!mobileSupplierMenuOpen)}
-                    selected={accountantStaffMenuItems.supplierManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    onClick={() =>
+                      setMobileSupplierMenuOpen(!mobileSupplierMenuOpen)
+                    }
+                    selected={accountantStaffMenuItems.supplierManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )}
                   >
-                    <ListItemText primary={accountantStaffMenuItems.supplierManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileSupplierMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={
+                        accountantStaffMenuItems.supplierManagement.label
+                      }
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileSupplierMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileSupplierMenuOpen && (
                   <List component="div" disablePadding>
-                    {accountantStaffMenuItems.supplierManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {accountantStaffMenuItems.supplierManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
 
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => setMobileCustomerMenuOpen(!mobileCustomerMenuOpen)}
-                    selected={accountantStaffMenuItems.customerManagement.items.some(item =>
-                      isActiveNavItem(item.path)
+                    onClick={() =>
+                      setMobileCustomerMenuOpen(!mobileCustomerMenuOpen)
+                    }
+                    selected={accountantStaffMenuItems.customerManagement.items.some(
+                      (item) => isActiveNavItem(item.path)
                     )}
                   >
-                    <ListItemText primary={accountantStaffMenuItems.customerManagement.label} />
-                    <ArrowDropDownIcon sx={{ transform: mobileCustomerMenuOpen ? 'rotate(180deg)' : 'none' }} />
+                    <ListItemText
+                      primary={
+                        accountantStaffMenuItems.customerManagement.label
+                      }
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileCustomerMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
                   </ListItemButton>
                 </ListItem>
                 {mobileCustomerMenuOpen && (
                   <List component="div" disablePadding>
-                    {accountantStaffMenuItems.customerManagement.items.map((item) => (
-                      <ListItem key={item.path} disablePadding>
-                        <ListItemButton
-                          sx={{ pl: 4 }}
-                          onClick={() => handleMobileNavigate(item.path)}
-                          selected={isActiveNavItem(item.path)}
-                        >
-                          <ListItemText primary={item.label} />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                    {accountantStaffMenuItems.customerManagement.items.map(
+                      (item) => (
+                        <ListItem key={item.path} disablePadding>
+                          <ListItemButton
+                            sx={{ pl: 4 }}
+                            onClick={() => handleMobileNavigate(item.path)}
+                            selected={isActiveNavItem(item.path)}
+                          >
+                            <ListItemText primary={item.label} />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    )}
                   </List>
                 )}
               </>
@@ -1640,7 +1865,9 @@ function Header() {
           {currentToken && userRole !== "admin" && userRole !== "manager" && (
             <List>
               <ListItem disablePadding>
-                <ListItemButton onClick={() => handleMobileNavigate("/profile")}>
+                <ListItemButton
+                  onClick={() => handleMobileNavigate("/profile")}
+                >
                   <ListItemText primary="Tài khoản" />
                 </ListItemButton>
               </ListItem>

@@ -221,7 +221,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
 
                     return (
                       <TableRow key={lot.lotID}>
-                        <TableCell>{lot.lotID}</TableCell>
+                        <TableCell align="center">{lot.lotID}</TableCell>
                         <TableCell>
                           {inputDate
                             ? inputDate.toLocaleDateString("vi-VN")
@@ -249,7 +249,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                           )}
                         </TableCell>
                         <TableCell align="right">{lot.lotQuantity}</TableCell>
-                        <TableCell>
+                        <TableCell align="center">
                           {expiredDate
                             ? expiredDate.toLocaleDateString("vi-VN")
                             : "-"}
@@ -259,13 +259,13 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                           {supplierNames[lot.supplierID] || lot.supplierID}
                         </TableCell>
                         {/* <TableCell align="center">{lot.productID}</TableCell> */}
-                        <TableCell>
+                        <TableCell align="center">
                           {lastChecked && lastChecked.getFullYear() !== 1
                             ? lastChecked.toLocaleDateString("vi-VN")
                             : "-"}
                         </TableCell>
                         {canEdit && (
-                          <TableCell>
+                          <TableCell align="center">
                             <IconButton
                               color="primary"
                               size="small"

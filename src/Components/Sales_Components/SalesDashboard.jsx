@@ -126,7 +126,7 @@ function SalesDashboard() {
 
       const rawRevenue = revenueRes?.data?.data ?? revenueRes?.data ?? [];
       const normalizedRevenue = (rawRevenue || []).map((item, idx) => ({
-        month: item.monthLabel || item.monthName || `T${item.month ?? idx + 1}`,
+        month: item.monthLabel || item.monthName || (item.month ?? idx + 1),
         total: Number(item.totalRevenue ?? item.total ?? item.amount ?? 0),
         orders: item.orderCount ?? item.ordersCount ?? item.totalOrders ?? 0,
       }));
@@ -507,12 +507,7 @@ function SalesDashboard() {
                         vertical={false}
                         stroke="#e0e0e0"
                       />
-                      <XAxis
-                        dataKey="month"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#6c757d" }}
-                      />
+                      <XAxis dataKey="month" tickFormatter={(m) => `T ${m}`} />
                       <YAxis tickFormatter={formatChartCurrency} />
                       <Tooltip
                         cursor={{ fill: "transparent" }}
@@ -521,6 +516,7 @@ function SalesDashboard() {
                           border: "none",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                         }}
+                        labelFormatter={(label) => `Tháng ${label}`}
                         formatter={(value) => [
                           formatCurrency(value),
                           "Doanh thu",
