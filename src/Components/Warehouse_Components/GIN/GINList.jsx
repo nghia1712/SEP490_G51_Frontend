@@ -129,56 +129,80 @@ export default function GRNList() {
       return;
     }
 
-    let salesOrderCode = row.salesOrderCode || "";
+    let salesOrderCode = row.salesOrderCode || row.SalesOrderCode || "";
 
-    // Nếu không có salesOrderCode trong row, thử lấy từ API chi tiết GIN
-    if (!salesOrderCode && row.id) {
+    // Ưu tiên lấy từ GIN detail API vì backend đã có SalesOrder trong GIN
+    if (row.id) {
       try {
         const detailRes = await ginApi.getDetail(row.id);
         const detail = detailRes.data?.data;
 
-        // Lấy StockExportOrderId từ GIN detail
-        const stockExportOrderId =
-          detail?.stockExportOrderId ||
-          detail?.StockExportOrderId ||
-          detail?.stockExportOrder?.id ||
-          detail?.StockExportOrder?.Id;
+        console.log("GINList - GIN detail response:", {
+          detail,
+          salesOrderCodeFromDetail: detail?.salesOrderCode || detail?.SalesOrderCode,
+          stockExportOrder: detail?.stockExportOrder || detail?.StockExportOrder,
+        });
 
-        // Nếu có StockExportOrderId, gọi API chi tiết StockExportOrder để lấy SalesOrderCode
-        if (stockExportOrderId) {
-          try {
-            const seoDetailRes = await stockExportApi.details(
-              stockExportOrderId
-            );
-            const seoDetail = seoDetailRes.data?.data;
-            salesOrderCode =
-              seoDetail?.salesOrderCode ||
-              seoDetail?.SalesOrderCode ||
-              seoDetail?.salesOrder?.salesOrderCode ||
-              seoDetail?.SalesOrder?.SalesOrderCode ||
-              "";
-          } catch (seoErr) {
-            console.warn(
-              "GINList - Could not fetch StockExportOrder detail:",
-              seoErr
-            );
-          }
+        // Ưu tiên lấy SalesOrderCode từ GIN detail (backend đã map sẵn trong GoodsIssueNoteListDTO)
+        // GoodsIssueNoteWithDetailsDTO kế thừa từ GoodsIssueNoteListDTO nên có SalesOrderCode
+        if (!salesOrderCode) {
+          salesOrderCode =
+            detail?.salesOrderCode ||
+            detail?.SalesOrderCode ||
+            "";
         }
 
-        // Fallback: thử lấy trực tiếp từ GIN detail
+        // Nếu vẫn không có, thử lấy từ nested objects
         if (!salesOrderCode) {
           salesOrderCode =
             detail?.stockExportOrder?.salesOrderCode ||
             detail?.StockExportOrder?.SalesOrderCode ||
-            detail?.salesOrderCode ||
-            detail?.SalesOrderCode ||
+            detail?.stockExportOrder?.salesOrder?.salesOrderCode ||
+            detail?.StockExportOrder?.SalesOrder?.SalesOrderCode ||
             "";
+        }
+
+        // Nếu vẫn không có, thử lấy từ StockExportOrder detail
+        if (!salesOrderCode) {
+          const stockExportOrderId =
+            detail?.stockExportOrderId ||
+            detail?.StockExportOrderId ||
+            detail?.stockExportOrder?.id ||
+            detail?.StockExportOrder?.Id;
+
+          if (stockExportOrderId) {
+            try {
+              const seoDetailRes = await stockExportApi.details(
+                stockExportOrderId
+              );
+              const seoDetail = seoDetailRes.data?.data;
+              salesOrderCode =
+                seoDetail?.salesOrderCode ||
+                seoDetail?.SalesOrderCode ||
+                seoDetail?.salesOrder?.salesOrderCode ||
+                seoDetail?.SalesOrder?.SalesOrderCode ||
+                "";
+            } catch (seoErr) {
+              console.warn(
+                "GINList - Could not fetch StockExportOrder detail:",
+                seoErr
+              );
+            }
+          }
         }
       } catch (err) {
         console.warn(
           "GINList - Could not fetch GIN detail for salesOrderCode:",
           err
         );
+      }
+    }
+
+    // Fallback: thử lấy từ row.note nếu có pattern SO...
+    if (!salesOrderCode && row.note) {
+      const soMatch = row.note.match(/SO\d+/);
+      if (soMatch && soMatch[0]) {
+        salesOrderCode = soMatch[0];
       }
     }
 
@@ -194,6 +218,7 @@ export default function GRNList() {
       goodsIssueNoteCode: row?.goodsIssueNoteCode,
       salesOrderCode: context.salesOrderCode,
       stockExportOrderCode: row?.stockExportOrderCode,
+      rowSalesOrderCode: row?.salesOrderCode || row?.SalesOrderCode,
     });
 
     setInvoiceDialogContext(context);

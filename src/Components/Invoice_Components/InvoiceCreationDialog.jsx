@@ -67,18 +67,14 @@ const InvoiceCreationDialog = ({
 
   // Cập nhật selectedSalesOrder khi defaultSalesOrderCode thay đổi và salesOrderCodes đã được load
   useEffect(() => {
-    if (open && defaultSalesOrderCode && salesOrderCodes.length > 0) {
-      // Chỉ set nếu mã đơn hàng có trong danh sách
-      if (salesOrderCodes.includes(defaultSalesOrderCode)) {
-        console.log('InvoiceCreationDialog - useEffect setting selectedSalesOrder:', defaultSalesOrderCode);
-        setSelectedSalesOrder(defaultSalesOrderCode);
-      } else {
-        console.warn('InvoiceCreationDialog - useEffect: defaultSalesOrderCode not in salesOrderCodes:', {
-          defaultSalesOrderCode,
-          currentSelected: selectedSalesOrder,
-          availableCodes: salesOrderCodes.slice(0, 10)
-        });
+    if (open && defaultSalesOrderCode) {
+      // Nếu mã đơn hàng chưa có trong danh sách, thêm nó vào
+      if (salesOrderCodes.length > 0 && !salesOrderCodes.includes(defaultSalesOrderCode)) {
+        setSalesOrderCodes(prev => [defaultSalesOrderCode, ...prev]);
       }
+      // Set selectedSalesOrder
+      console.log('InvoiceCreationDialog - useEffect setting selectedSalesOrder:', defaultSalesOrderCode);
+      setSelectedSalesOrder(defaultSalesOrderCode);
     }
   }, [open, defaultSalesOrderCode, salesOrderCodes]);
 
@@ -95,6 +91,13 @@ const InvoiceCreationDialog = ({
       const res = await invoiceAPI.getSalesOrderCodes();
       const payload = res.data?.data ?? res.data ?? [];
       const codes = Array.isArray(payload) ? payload : [];
+      
+      // Nếu có defaultSalesOrderCode nhưng không có trong danh sách, thêm nó vào
+      if (defaultSalesOrderCode && !codes.includes(defaultSalesOrderCode)) {
+        codes.unshift(defaultSalesOrderCode); // Thêm vào đầu danh sách
+        console.log('InvoiceCreationDialog - Added defaultSalesOrderCode to codes:', defaultSalesOrderCode);
+      }
+      
       setSalesOrderCodes(codes);
       
       console.log('InvoiceCreationDialog - fetchSalesOrderCodes completed:', {
@@ -105,18 +108,13 @@ const InvoiceCreationDialog = ({
         codes: codes.slice(0, 5) // Log first 5 codes
       });
       
-      // Sau khi load xong danh sách, nếu có defaultSalesOrderCode và nó có trong danh sách, thì set selectedSalesOrder
-      if (open && defaultSalesOrderCode && codes.includes(defaultSalesOrderCode)) {
+      // Sau khi load xong danh sách, nếu có defaultSalesOrderCode thì set selectedSalesOrder
+      if (open && defaultSalesOrderCode) {
         console.log('InvoiceCreationDialog - Setting selectedSalesOrder to:', defaultSalesOrderCode);
         setSelectedSalesOrder(defaultSalesOrderCode);
       } else if (!defaultSalesOrderCode) {
         // Nếu không có defaultSalesOrderCode, giữ nguyên giá trị rỗng
         setSelectedSalesOrder("");
-      } else if (open && defaultSalesOrderCode && !codes.includes(defaultSalesOrderCode)) {
-        console.warn('InvoiceCreationDialog - defaultSalesOrderCode not found in codes:', {
-          defaultSalesOrderCode,
-          availableCodes: codes.slice(0, 10)
-        });
       }
     } catch (error) {
       setAlertState({

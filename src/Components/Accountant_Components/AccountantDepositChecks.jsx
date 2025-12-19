@@ -28,6 +28,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Pagination,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
@@ -63,9 +64,9 @@ const getStatusChip = (status) => {
     case 0:
       return <Chip label="Chờ xử lý" size="small" color="warning" />;
     case 1:
-      return <Chip label="Đã chấp nhận" size="small" color="success" />;
+      return <Chip label="Chấp nhận" size="small" color="success" />;
     case 2:
-      return <Chip label="Đã từ chối" size="small" color="error" />;
+      return <Chip label="Từ chối" size="small" color="error" />;
     default:
       return <Chip label="Không rõ" size="small" />;
   }
@@ -96,6 +97,8 @@ const AccountantDepositChecks = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 7;
 
   const fetchData = async () => {
     setLoading(true);
@@ -238,6 +241,18 @@ const AccountantDepositChecks = () => {
     })
     .sort((a, b) => (b.id || 0) - (a.id || 0));
 
+  // Phân trang
+  const totalPages = Math.ceil(filteredItems.length / pageSize);
+  const paginatedItems = filteredItems.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  // Reset về trang 1 khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
+
   return (
     <Box sx={{ p: 3 }}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
@@ -301,8 +316,8 @@ const AccountantDepositChecks = () => {
                     >
                       <MenuItem value="">Tất cả</MenuItem>
                       <MenuItem value="pending">Chờ xử lý</MenuItem>
-                      <MenuItem value="1">Đã chấp nhận</MenuItem>
-                      <MenuItem value="2">Đã từ chối</MenuItem>
+                      <MenuItem value="1">Chấp nhận</MenuItem>
+                      <MenuItem value="2">Từ chối</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -320,7 +335,7 @@ const AccountantDepositChecks = () => {
               <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Số tiền yêu cầu</TableCell>
@@ -345,9 +360,9 @@ const AccountantDepositChecks = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredItems.map((item, index) => (
+              paginatedItems.map((item, index) => (
                 <TableRow key={item.id || index} hover>
-                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                   <TableCell>{item.salesOrderCode || "-"}</TableCell>
                   <TableCell>{item.customerName || "-"}</TableCell>
                   <TableCell>
@@ -398,6 +413,18 @@ const AccountantDepositChecks = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+            {/* PAGINATION */}
+            {filteredItems.length > 0 && totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Container>

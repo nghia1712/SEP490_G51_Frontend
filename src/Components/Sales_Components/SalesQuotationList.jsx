@@ -74,6 +74,7 @@ const SalesQuotationList = () => {
   }); // Mặc định sort theo ngày báo giá từ mới nhất đến cũ nhất
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [searchCustomerName, setSearchCustomerName] = useState("");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotationDetails, setSelectedQuotationDetails] =
     useState(null);
@@ -380,7 +381,7 @@ const SalesQuotationList = () => {
         });
 
         const mappedData = data.map((item) => {
-          const customerName = resolveCustomerUsername(item);
+          const customerName = resolveCustomerName(item);
           const backendStatus =
             item.Status !== undefined && item.Status !== null
               ? item.Status
@@ -460,8 +461,18 @@ const SalesQuotationList = () => {
       );
     }
 
+    // Filter by customer name search
+    if (searchCustomerName.trim()) {
+      const searchTerm = searchCustomerName.trim().toLowerCase();
+      filtered = filtered.filter(
+        (quotation) =>
+          quotation.customerName &&
+          quotation.customerName.toLowerCase().includes(searchTerm)
+      );
+    }
+
     return filtered;
-  }, [quotations, statusFilter, search]);
+  }, [quotations, statusFilter, search, searchCustomerName]);
 
   // Sort quotations
   const sortedQuotations = useMemo(() => {
@@ -483,6 +494,10 @@ const SalesQuotationList = () => {
       } else if (effectiveSortConfig.key === "status") {
         aValue = aValue !== undefined && aValue !== null ? aValue : -1;
         bValue = bValue !== undefined && bValue !== null ? bValue : -1;
+      } else if (effectiveSortConfig.key === "customerName") {
+        // Convert to string for comparison, handle null/undefined
+        aValue = aValue ? String(aValue).toLowerCase() : "";
+        bValue = bValue ? String(bValue).toLowerCase() : "";
       }
 
       if (aValue < bValue) {
@@ -510,7 +525,7 @@ const SalesQuotationList = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, search]);
+  }, [statusFilter, search, searchCustomerName]);
 
   const totalPages = Math.max(1, Math.ceil(sortedQuotations.length / pageSize));
 
@@ -2021,7 +2036,27 @@ const SalesQuotationList = () => {
                     width: { xs: "100%", md: 220 },
                     maxWidth: { xs: "100%", md: 220 },
                     flexShrink: 1,
+                    backgroundColor: "white",
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "white",
+                    },
                   }}
+                />
+                <TextField
+                  size="small"
+                  label="Tìm kiếm tên khách hàng"
+                  value={searchCustomerName}
+                  onChange={(e) => setSearchCustomerName(e.target.value)}
+                  sx={{
+                    width: { xs: "100%", md: 160 },
+                    maxWidth: { xs: "100%", md: 160 },
+                    flexShrink: 1,
+                    backgroundColor: "white",
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "white",
+                    },
+                  }}
+                  placeholder="Nhập tên khách hàng..."
                 />
                 <FormControl size="small" sx={{ minWidth: 150, maxWidth: 150, width: 150, flexShrink: 0 }}>
                   <InputLabel id="status-filter-label" shrink>
@@ -2126,7 +2161,21 @@ const SalesQuotationList = () => {
                           Mã yêu cầu báo giá
                         </TableSortLabel>
                       </TableCell>
-                      <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                      <TableCell sx={{ width: "12%", py: 1.5, px: 2 }}>
+                        <TableSortLabel
+                          active={sortConfig.key === "customerName"}
+                          direction={
+                            sortConfig.key === "customerName"
+                              ? sortConfig.direction
+                              : "asc"
+                          }
+                          onClick={() => handleSort("customerName")}
+                          sx={headerTextSx}
+                        >
+                          Khách hàng
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell sx={{ width: "12%", py: 1.5, px: 2 }}>
                         <TableSortLabel
                           active={sortConfig.key === "quotationDate"}
                           direction={
@@ -2222,6 +2271,9 @@ const SalesQuotationList = () => {
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>
                           {quotation.requestCode || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {quotation.customerName || "-"}
                         </TableCell>
                         <TableCell>
                           {formatDate(quotation.quotationDate)}
