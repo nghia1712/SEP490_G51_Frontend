@@ -6492,6 +6492,3 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
 
 export default CustomerOrderList;
-
-
-
