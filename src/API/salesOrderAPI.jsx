@@ -82,8 +82,10 @@ const salesOrderAPI = {
     authorApi.get(`${API_URL}/sales-product-quantity/${year}`),
 
   // PUT /api/SalesOrder/{salesOrderId}/mark-not-complete
-  markNotComplete: (salesOrderId) =>
-    authorApi.put(`${API_URL}/${salesOrderId}/mark-not-complete`),
+  markNotComplete: (salesOrderId, rejectReason) =>
+    authorApi.put(`${API_URL}/${salesOrderId}/mark-not-complete`, {
+      rejectReason,
+    }),
 
   // POST /api/SalesOrder/{salesOrderId}/deposit-checks/manual
   createManualDepositCheck: (salesOrderId, payload) =>

@@ -3143,7 +3143,7 @@ const SalesOrderList = () => {
                 return;
               }
 
-              handleMarkNotComplete(notCompleteReason);
+              handleMarkNotComplete();
             }}
           >
             {marking ? "Đang xử lý..." : "Xác nhận"}

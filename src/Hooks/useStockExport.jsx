@@ -130,9 +130,13 @@ export default function useStockExport(id = null) {
   // =========================
   // CANCEL SALES ORDER (NotComplete)
   // =========================
-  const cancelSalesOrder = async (salesOrderId) => {
+  const cancelSalesOrder = async (salesOrderId, rejectReason) => {
     try {
-      const res = await salesOrderAPI.markNotComplete(salesOrderId);
+      const res = await salesOrderAPI.markNotComplete(
+        salesOrderId,
+        rejectReason
+      );
+
       return {
         success: res?.data?.success ?? true,
         message: res?.data?.message,
