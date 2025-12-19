@@ -162,7 +162,7 @@ const CustomerOrderList = () => {
 
   const [searchOrderCode, setSearchOrderCode] = useState('');
 
-  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
+  const [sortConfig, setSortConfig] = useState({ key: 'orderCode', direction: 'desc' }); // Mặc định sort theo mã đơn hàng từ mới nhất đến cũ nhất
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -775,7 +775,7 @@ const CustomerOrderList = () => {
               dcList.forEach((dc) => {
                 const orderId = dc.salesOrderId ?? dc.SalesOrderId;
                 const status = dc.status ?? dc.Status;
-                if (orderId && status === 3) { // Rejected
+                if (orderId && status === 2) { // Rejected (2 = Từ chối)
                   const existing = depositChecksMap[orderId];
                   const dcTime = new Date(dc.requestedAt ?? dc.RequestedAt ?? 0).getTime();
                   const existingTime = existing ? new Date(existing.requestedAt ?? existing.RequestedAt ?? 0).getTime() : 0;
@@ -1028,7 +1028,7 @@ const CustomerOrderList = () => {
             : '';
 
           // Nếu có deposit check bị reject, không hiển thị "Chờ xác nhận" nữa
-          if (depositCheck && depositCheck.status === 3) {
+          if (depositCheck && depositCheck.status === 2) { // 2 = Từ chối
             manualConfirmPending = false;
             // Xóa khỏi localStorage vì đã bị reject
             delete manualDepositMap[id];
@@ -1310,13 +1310,13 @@ const CustomerOrderList = () => {
 
   const sortedOrders = useMemo(() => {
 
-    // Nếu không có sortConfig.key, mặc định sort theo createdAt từ mới nhất đến cũ nhất
+    // Nếu không có sortConfig.key, mặc định sort theo orderCode từ mới nhất đến cũ nhất
 
     const effectiveSortConfig = sortConfig.key 
 
       ? sortConfig 
 
-      : { key: 'createdAt', direction: 'desc' };
+      : { key: 'orderCode', direction: 'desc' };
     
     
 
@@ -1335,6 +1335,12 @@ const CustomerOrderList = () => {
         aValue = (a.quotationCode || '').toLowerCase();
 
         bValue = (b.quotationCode || '').toLowerCase();
+
+      } else if (effectiveSortConfig.key === 'orderCode') {
+
+        aValue = (a.orderCode || '').toLowerCase();
+
+        bValue = (b.orderCode || '').toLowerCase();
 
       } else if (effectiveSortConfig.key === 'createdAt') {
 
@@ -2868,9 +2874,9 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
 
 
-              // Nếu trạng thái là Rejected (3) → lấy chi tiết để có RejectReason
+              // Nếu trạng thái là Rejected (2) → lấy chi tiết để có RejectReason
 
-              if (latest.status === 3 || latest.Status === 3) {
+              if (latest.status === 2 || latest.Status === 2) { // 2 = Từ chối
 
                 try {
 
@@ -3846,7 +3852,7 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
               });
             if (related.length > 0) {
               const latest = related[0];
-              if (latest.status === 3 || latest.Status === 3) {
+              if (latest.status === 2 || latest.Status === 2) { // 2 = Từ chối
                 // Rejected - lấy chi tiết để có reject reason
                 try {
                   const detailRes = await paymentAPI.getManualDepositCheckDetail(latest.id ?? latest.Id);
@@ -4832,11 +4838,11 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
                   <TableSortLabel
 
-                    active={sortConfig.key === 'quotationCode'}
+                    active={sortConfig.key === 'orderCode'}
 
-                    direction={sortConfig.key === 'quotationCode' ? sortConfig.direction : 'asc'}
+                    direction={sortConfig.key === 'orderCode' ? sortConfig.direction : 'desc'}
 
-                    onClick={() => handleSort('quotationCode')}
+                    onClick={() => handleSort('orderCode')}
 
                     sx={headerTextSx}
 
