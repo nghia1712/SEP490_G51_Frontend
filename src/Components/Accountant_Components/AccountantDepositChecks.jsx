@@ -43,10 +43,13 @@ const formatCurrency = (value) => {
   if (value === null || value === undefined) return "-";
   const number = Number(value);
   if (Number.isNaN(number)) return "-";
-  return number.toLocaleString("vi-VN", {
-    style: "currency",
-    currency: "VND",
+  // Format với dấu phẩy (,) thay vì dấu chấm (.)
+  const formatted = number.toLocaleString("vi-VN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
+  // Thay dấu chấm thành dấu phẩy và thêm ký hiệu ₫
+  return formatted.replace(/\./g, ",") + " ₫";
 };
 
 const formatDateTime = (value) => {
@@ -436,39 +439,114 @@ const AccountantDepositChecks = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Chi tiết yêu cầu xác nhận thanh toán</DialogTitle>
+        <DialogTitle
+          fontWeight={"bold"}
+          sx={{ textAlign: "center", fontSize: "1.4rem" }}
+        >
+          Chi tiết yêu cầu xác nhận thanh toán
+        </DialogTitle>
         <DialogContent dividers>
           {selectedItem && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Typography>
-                <strong>Mã đơn hàng:</strong> {selectedItem.salesOrderCode || "-"}
-              </Typography>
-              <Typography>
-                <strong>Khách hàng:</strong> {selectedItem.customerName || "-"}
-              </Typography>
-              <Typography>
-                <strong>Số tiền khách báo đã thanh toán:</strong>{" "}
-                {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
-              </Typography>
-              <Typography>
-                <strong>Trạng thái:</strong> {getStatusChip(selectedItem.status)}
-              </Typography>
-              <Typography>
-                <strong>Thời gian yêu cầu:</strong>{" "}
-                {formatDateTime(selectedItem.requestedAt)}
-              </Typography>
-              {selectedItem.customerNote && (
-                <Typography>
-                  <strong>Ghi chú của khách hàng:</strong>{" "}
-                  {selectedItem.customerNote}
-                </Typography>
-              )}
-              {selectedItem.Reason && (
-                <Typography color="error">
-                  <strong>Lý do từ chối:</strong> {selectedItem.Reason}
-                </Typography>
-              )}
-            </Box>
+            <Stack spacing={1.2}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Mã đơn hàng:</Typography>
+                  <Typography fontWeight={500}>
+                    {selectedItem.salesOrderCode || "-"}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Khách hàng:</Typography>
+                  <Typography fontWeight={500}>
+                    {selectedItem.customerName || "-"}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">
+                    Số tiền khách báo đã thanh toán:
+                  </Typography>
+                  <Typography fontWeight={500}>
+                    {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography color="text.secondary">Trạng thái:</Typography>
+                  {getStatusChip(selectedItem.status)}
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Thời gian yêu cầu:</Typography>
+                  <Typography fontWeight={500}>
+                    {formatDateTime(selectedItem.requestedAt)}
+                  </Typography>
+                </Box>
+                {selectedItem.customerNote && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">
+                      Ghi chú của khách hàng:
+                    </Typography>
+                    <Typography fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
+                      {selectedItem.customerNote}
+                    </Typography>
+                  </Box>
+                )}
+                {selectedItem.Reason && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="error">Lý do từ chối:</Typography>
+                    <Typography color="error" fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
+                      {selectedItem.Reason}
+                    </Typography>
+                  </Box>
+                )}
+            </Stack>
           )}
         </DialogContent>
         <DialogActions>
