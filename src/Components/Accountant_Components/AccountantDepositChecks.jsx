@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -28,9 +28,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Pagination,
 } from "@mui/material";
-import { useLocation } from "react-router-dom";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -60,16 +58,14 @@ const formatDateTime = (value) => {
 };
 
 const getStatusChip = (status) => {
-  // DepositCheckStatus: 0 = Draft, 1 = Pending, 2 = Approved, 3 = Rejected
+  // DepositCheckStatus: 0 = Chờ xử lý, 1 = Chấp nhận, 2 = Từ chối
   switch (status) {
     case 0:
       return <Chip label="Chờ xử lý" size="small" color="warning" />;
     case 1:
-      return <Chip label="Chờ xử lý" size="small" color="warning" />;
+      return <Chip label="Đã chấp nhận" size="small" color="success" />;
     case 2:
-      return <Chip label="Chấp nhận" size="small" color="success" />;
-    case 3:
-      return <Chip label="Từ chối" size="small" color="error" />;
+      return <Chip label="Đã từ chối" size="small" color="error" />;
     default:
       return <Chip label="Không rõ" size="small" />;
   }
@@ -90,19 +86,16 @@ const mapPaymentMethod = (method) => {
 };
 
 const AccountantDepositChecks = () => {
-  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [error, setError] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
+  const [Reason, setReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 6;
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,46 +119,6 @@ const AccountantDepositChecks = () => {
     fetchData();
   }, []);
 
-  // Tự động mở dialog chi tiết khi có openRequestId từ notification
-  useEffect(() => {
-    const openRequestId = location.state?.openRequestId;
-    console.log("AccountantDepositChecks - useEffect triggered:", {
-      openRequestId,
-      loading,
-      itemsLength: items.length,
-      locationState: location.state
-    });
-
-    if (openRequestId) {
-      // Nếu đang loading hoặc chưa có items, đợi fetchData hoàn thành
-      if (loading || items.length === 0) {
-        console.log("AccountantDepositChecks - Waiting for data to load...");
-        return;
-      }
-
-      // Tìm matching item
-      const matchingItem = items.find((item) => {
-        const itemId = item.id || item.Id || item.requestId || item.RequestId;
-        console.log("AccountantDepositChecks - Comparing:", { itemId, openRequestId, match: itemId === openRequestId });
-        return itemId === openRequestId;
-      });
-
-      if (matchingItem) {
-        console.log("AccountantDepositChecks - Found matching item, opening dialog:", matchingItem);
-        setSelectedItem(matchingItem);
-        setDetailDialogOpen(true);
-        // Clear state để tránh mở lại khi refresh
-        window.history.replaceState({}, document.title);
-      } else {
-        console.warn("AccountantDepositChecks - No matching item found for requestId:", openRequestId);
-        console.warn("AccountantDepositChecks - Available items:", items.map(item => ({
-          id: item.id || item.Id,
-          salesOrderCode: item.salesOrderCode || item.SalesOrderCode
-        })));
-      }
-    }
-  }, [location.state, items, loading]);
-
   const handleOpenDetail = (item) => {
     setSelectedItem(item);
     setDetailDialogOpen(true);
@@ -176,11 +129,30 @@ const AccountantDepositChecks = () => {
     setActionLoading(true);
     try {
       await paymentAPI.approveManualDepositCheck(id);
-      await fetchData();
+      
+      // Optimistic update: Update local state immediately
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === id ? { ...item, status: 1 } : item // 1 = Chấp nhận
+        )
+      );
+      
+      // Update selectedItem if it's the same item
+      if (selectedItem && selectedItem.id === id) {
+        setSelectedItem({ ...selectedItem, status: 1 }); // Chấp nhận
+      }
+      
+      // Close dialog
       setDetailDialogOpen(false);
+      
+      // Then fetch fresh data from server (with a small delay to ensure backend has updated)
+      setTimeout(async () => {
+        await fetchData();
+      }, 500);
     } catch (err) {
-      // Optional: you can add snackbar if needed
       console.error("Approve deposit check error:", err);
+      // Revert optimistic update on error by fetching fresh data
+      await fetchData();
     } finally {
       setActionLoading(false);
     }
@@ -190,76 +162,81 @@ const AccountantDepositChecks = () => {
     if (item) {
       setSelectedItem(item);
     }
-    setRejectReason("");
+    setReason("");
     setRejectDialogOpen(true);
   };
 
   const handleConfirmReject = async () => {
     if (!selectedItem?.id) return;
-    // Validate: Reason là bắt buộc
-    const trimmedReason = (rejectReason || "").trim();
-    if (!trimmedReason) {
-      setError("Vui lòng nhập lý do từ chối.");
+    // Validate Reason is not empty (backend requirement)
+    const rejectReason = Reason?.trim();
+    if (!rejectReason) {
+      alert("Vui lòng nhập lý do từ chối.");
       return;
     }
+    const itemId = selectedItem.id;
     setActionLoading(true);
     try {
-      await paymentAPI.rejectManualDepositCheck(selectedItem.id, {
-        Reason: trimmedReason,
+      await paymentAPI.rejectManualDepositCheck(itemId, {
+        Reason: rejectReason,
       });
-      await fetchData();
+      
+      // Optimistic update: Update local state immediately
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === itemId
+            ? { ...item, status: 2, Reason: rejectReason } // 2 = Từ chối
+            : item
+        )
+      );
+      
+      // Update selectedItem immediately
+      if (selectedItem) {
+        setSelectedItem({
+          ...selectedItem,
+          status: 2, // Từ chối
+          Reason: rejectReason,
+        });
+      }
+      
+      // Close dialogs
       setRejectDialogOpen(false);
       setDetailDialogOpen(false);
-      setRejectReason("");
-      setError(null);
+      setReason("");
+      
+      // Then fetch fresh data from server (with a small delay to ensure backend has updated)
+      setTimeout(async () => {
+        await fetchData();
+      }, 500);
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || 
-                      err?.response?.data?.Message ||
-                      "Không thể từ chối yêu cầu. Vui lòng thử lại.";
-      setError(errorMsg);
       console.error("Reject deposit check error:", err);
+      const errorMsg = err?.response?.data?.message || err?.response?.data?.Message || "Có lỗi xảy ra khi từ chối yêu cầu.";
+      alert(errorMsg);
+      // Revert optimistic update on error by fetching fresh data
+      await fetchData();
     } finally {
       setActionLoading(false);
     }
   };
 
-  const filteredItems = useMemo(() => {
-    return items
-      .filter((item) => {
-        if (statusFilter === "") return true;
-        // "pending" = cả Draft (0) và Pending (1)
-        if (statusFilter === "pending") {
-          return item.status === 0 || item.status === 1;
-        }
-        return item.status === Number(statusFilter);
-      })
-      .filter((item) => {
-        const keyword = search.toLowerCase().trim();
-        if (!keyword) return true;
-        return (
-          (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
-          (item.customerName || "").toLowerCase().includes(keyword)
-        );
-      })
-      .sort((a, b) => (b.id || 0) - (a.id || 0));
-  }, [items, statusFilter, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-
-  const paginatedItems = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, page]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, search]);
+  const filteredItems = items
+    .filter((item) => {
+      if (statusFilter === "") return true;
+      // "pending" = Chờ xử lý (0)
+      if (statusFilter === "pending") {
+        return item.status === 0;
+      }
+      return item.status === Number(statusFilter);
+    })
+    .filter((item) => {
+      const keyword = search.toLowerCase().trim();
+      if (!keyword) return true;
+      return (
+        (item.salesOrderCode || "").toLowerCase().includes(keyword) ||
+        (item.customerName || "").toLowerCase().includes(keyword)
+      );
+    })
+    .sort((a, b) => (b.id || 0) - (a.id || 0));
 
   return (
     <Box sx={{ p: 3 }}>
@@ -281,9 +258,7 @@ const AccountantDepositChecks = () => {
                 Xác nhận thanh toán
               </Typography>
               <Typography variant="h6" color="text.secondary" sx={{ mr: 2 }}>
-                {filteredItems.length === items.length
-                  ? `Tổng: ${items.length} yêu cầu`
-                  : `Tổng: ${filteredItems.length} / ${items.length} yêu cầu`}
+                Tổng: {filteredItems.length} / {items.length} yêu cầu
               </Typography>
             </Box>
 
@@ -326,8 +301,8 @@ const AccountantDepositChecks = () => {
                     >
                       <MenuItem value="">Tất cả</MenuItem>
                       <MenuItem value="pending">Chờ xử lý</MenuItem>
-                      <MenuItem value="2">Đã chấp nhận</MenuItem>
-                      <MenuItem value="3">Đã từ chối</MenuItem>
+                      <MenuItem value="1">Đã chấp nhận</MenuItem>
+                      <MenuItem value="2">Đã từ chối</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -343,116 +318,86 @@ const AccountantDepositChecks = () => {
             {/* TABLE */}
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      Số tiền yêu cầu
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      Thời gian yêu cầu
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      Thao tác
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        Đang tải...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        Không có yêu cầu xác nhận thanh toán nào.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedItems.map((item, index) => (
-                      <TableRow key={item.id || index} hover>
-                        <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                        <TableCell>{item.salesOrderCode || "-"}</TableCell>
-                        <TableCell>{item.customerName || "-"}</TableCell>
-                        <TableCell>
-                          {formatCurrency(item.requestedAmount ?? item.amount)}
-                        </TableCell>
-                        <TableCell>{getStatusChip(item.status)}</TableCell>
-                        <TableCell>
-                          {formatDateTime(item.requestedAt)}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box
-                            sx={{ display: "flex", justifyContent: "flex-end" }}
-                          >
-                            {(item.status === 0 || item.status === 1) && (
-                              <>
-                                <Tooltip title="Chấp nhận thanh toán">
-                                  <IconButton
-                                    size="small"
-                                    color="success"
-                                    onClick={() => handleApprove(item.id)}
-                                    sx={{ ml: 0.5 }}
-                                  >
-                                    <CheckCircleOutlineIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Từ chối yêu cầu">
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() => handleOpenReject(item)}
-                                    sx={{ ml: 0.5 }}
-                                  >
-                                    <HighlightOffIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                            <Tooltip title="Xem chi tiết">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleOpenDetail(item)}
-                                sx={{ ml: 0.5 }}
-                              >
-                                <VisibilityIcon
-                                  fontSize="small"
-                                  color="primary"
-                                />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-              {paginatedItems.length > 0 && totalPages >= 2 && (
-                <Box
-                  sx={{
-                    pt: 2,
-                    pb: 2,
-                    borderTop: "1px solid #e0e0e0",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={(_, value) => setPage(value)}
-                    color="primary"
-                  />
-                </Box>
-              )}
-            </TableContainer>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Số tiền yêu cầu</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Thời gian yêu cầu</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>
+                Thao tác
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            ) : filteredItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Không có yêu cầu xác nhận thanh toán nào.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredItems.map((item, index) => (
+                <TableRow key={item.id || index} hover>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{item.salesOrderCode || "-"}</TableCell>
+                  <TableCell>{item.customerName || "-"}</TableCell>
+                  <TableCell>
+                    {formatCurrency(item.requestedAmount ?? item.amount)}
+                  </TableCell>
+                  <TableCell>{getStatusChip(item.status)}</TableCell>
+                  <TableCell>{formatDateTime(item.requestedAt)}</TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                      {item.status === 0 && (
+                        <>
+                          <Tooltip title="Chấp nhận thanh toán">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleApprove(item.id)}
+                              sx={{ ml: 0.5 }}
+                            >
+                              <CheckCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Từ chối yêu cầu">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleOpenReject(item)}
+                              sx={{ ml: 0.5 }}
+                            >
+                              <HighlightOffIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDetail(item)}
+                          sx={{ ml: 0.5 }}
+                        >
+                          <VisibilityIcon fontSize="small" color="primary" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
           </CardContent>
         </Card>
       </Container>
@@ -469,21 +414,17 @@ const AccountantDepositChecks = () => {
           {selectedItem && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <Typography>
-                <strong>Mã đơn hàng:</strong>{" "}
-                {selectedItem.salesOrderCode || "-"}
+                <strong>Mã đơn hàng:</strong> {selectedItem.salesOrderCode || "-"}
               </Typography>
               <Typography>
                 <strong>Khách hàng:</strong> {selectedItem.customerName || "-"}
               </Typography>
               <Typography>
                 <strong>Số tiền khách báo đã thanh toán:</strong>{" "}
-                {formatCurrency(
-                  selectedItem.requestedAmount ?? selectedItem.amount
-                )}
+                {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
               </Typography>
               <Typography>
-                <strong>Trạng thái:</strong>{" "}
-                {getStatusChip(selectedItem.status)}
+                <strong>Trạng thái:</strong> {getStatusChip(selectedItem.status)}
               </Typography>
               <Typography>
                 <strong>Thời gian yêu cầu:</strong>{" "}
@@ -495,9 +436,9 @@ const AccountantDepositChecks = () => {
                   {selectedItem.customerNote}
                 </Typography>
               )}
-              {selectedItem.rejectReason && (
+              {selectedItem.Reason && (
                 <Typography color="error">
-                  <strong>Lý do từ chối:</strong> {selectedItem.rejectReason}
+                  <strong>Lý do từ chối:</strong> {selectedItem.Reason}
                 </Typography>
               )}
             </Box>
@@ -505,28 +446,27 @@ const AccountantDepositChecks = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Đóng</Button>
-          {selectedItem &&
-            (selectedItem.status === 0 || selectedItem.status === 1) && (
-              <>
-                <Button
-                  color="error"
-                  onClick={() => handleOpenReject(selectedItem)}
-                  disabled={actionLoading}
-                  startIcon={<HighlightOffIcon />}
-                >
-                  Từ chối
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<CheckCircleOutlineIcon />}
-                  onClick={() => handleApprove(selectedItem.id)}
-                  disabled={actionLoading}
-                >
-                  Chấp nhận thanh toán
-                </Button>
-              </>
-            )}
+          {selectedItem && selectedItem.status === 0 && (
+            <>
+              <Button
+                color="error"
+                onClick={() => handleOpenReject(selectedItem)}
+                disabled={actionLoading}
+                startIcon={<HighlightOffIcon />}
+              >
+                Từ chối
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<CheckCircleOutlineIcon />}
+                onClick={() => handleApprove(selectedItem.id)}
+                disabled={actionLoading}
+              >
+                Chấp nhận thanh toán
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -546,25 +486,21 @@ const AccountantDepositChecks = () => {
             fullWidth
             multiline
             minRows={3}
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
+            value={Reason}
+            onChange={(e) => setReason(e.target.value)}
             placeholder="Lý do từ chối..."
+            error={!Reason?.trim() && Reason !== ""}
+            helperText={!Reason?.trim() && Reason !== "" ? "Lý do từ chối là bắt buộc" : ""}
             required
-            error={!rejectReason.trim() && rejectReason !== ""}
-            helperText={!rejectReason.trim() && rejectReason !== "" ? "Lý do từ chối là bắt buộc" : ""}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setRejectDialogOpen(false);
-            setRejectReason("");
-            setError(null);
-          }}>Hủy</Button>
+          <Button onClick={() => setRejectDialogOpen(false)}>Hủy</Button>
           <Button
             color="error"
             variant="contained"
             onClick={handleConfirmReject}
-            disabled={actionLoading || !rejectReason.trim()}
+            disabled={actionLoading || !Reason?.trim()}
           >
             Xác nhận từ chối
           </Button>
@@ -575,3 +511,4 @@ const AccountantDepositChecks = () => {
 };
 
 export default AccountantDepositChecks;
+
