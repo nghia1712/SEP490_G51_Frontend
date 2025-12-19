@@ -151,15 +151,27 @@ const AccountantDepositChecks = () => {
 
   const handleConfirmReject = async () => {
     if (!selectedItem?.id) return;
+    // Validate: Reason là bắt buộc
+    const trimmedReason = (rejectReason || "").trim();
+    if (!trimmedReason) {
+      setError("Vui lòng nhập lý do từ chối.");
+      return;
+    }
     setActionLoading(true);
     try {
       await paymentAPI.rejectManualDepositCheck(selectedItem.id, {
-        rejectReason: rejectReason || null,
+        Reason: trimmedReason,
       });
       await fetchData();
       setRejectDialogOpen(false);
       setDetailDialogOpen(false);
+      setRejectReason("");
+      setError(null);
     } catch (err) {
+      const errorMsg = err?.response?.data?.message || 
+                      err?.response?.data?.Message ||
+                      "Không thể từ chối yêu cầu. Vui lòng thử lại.";
+      setError(errorMsg);
       console.error("Reject deposit check error:", err);
     } finally {
       setActionLoading(false);
@@ -445,7 +457,7 @@ const AccountantDepositChecks = () => {
         <DialogTitle>Từ chối yêu cầu xác nhận thanh toán</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            Vui lòng nhập lý do từ chối (không bắt buộc).
+            Vui lòng nhập lý do từ chối <strong>(bắt buộc)</strong>.
           </Typography>
           <TextField
             fullWidth
@@ -454,15 +466,22 @@ const AccountantDepositChecks = () => {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Lý do từ chối..."
+            required
+            error={!rejectReason.trim() && rejectReason !== ""}
+            helperText={!rejectReason.trim() && rejectReason !== "" ? "Lý do từ chối là bắt buộc" : ""}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)}>Hủy</Button>
+          <Button onClick={() => {
+            setRejectDialogOpen(false);
+            setRejectReason("");
+            setError(null);
+          }}>Hủy</Button>
           <Button
             color="error"
             variant="contained"
             onClick={handleConfirmReject}
-            disabled={actionLoading}
+            disabled={actionLoading || !rejectReason.trim()}
           >
             Xác nhận từ chối
           </Button>

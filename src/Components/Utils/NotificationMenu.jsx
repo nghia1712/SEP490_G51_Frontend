@@ -325,6 +325,136 @@ export default function NotificationMenu() {
       return;
     }
 
+    // Xử lý notification về từ chối xác nhận cọc (deposit check reject)
+    if (
+      userRole === "customer" &&
+      /xác nhận cọc|yêu cầu xác nhận.*đã bị từ chối/i.test(n.message || "")
+    ) {
+      handleClose();
+      const messageText = n.message || "";
+      const parsedOrderCode = extractOrderCodeFromMessage(messageText);
+      
+      if (parsedOrderCode) {
+        console.log("NotificationMenu (Customer) - Deposit check reject, parsed orderCode:", parsedOrderCode);
+        
+        try {
+          const orderListResponse = await salesOrderAPI.myListSalesOrder();
+          if (orderListResponse?.data?.data) {
+            const orderList = Array.isArray(orderListResponse.data.data)
+              ? orderListResponse.data.data
+              : [];
+
+            const matchingOrder = orderList.find((order) => {
+              const code = normalizeOrderCode(
+                order.SalesOrderCode ||
+                  order.salesOrderCode ||
+                  order.OrderCode ||
+                  order.orderCode ||
+                  order.Code ||
+                  order.code ||
+                  ""
+              );
+              return code === parsedOrderCode;
+            });
+
+            if (matchingOrder) {
+              const orderId =
+                matchingOrder.SalesOrderId ||
+                matchingOrder.salesOrderId ||
+                matchingOrder.Id ||
+                matchingOrder.id;
+              if (orderId) {
+                // Mở dialog chi tiết đơn hàng
+                navigate("/customer/orders", {
+                  state: { openOrderDetailId: Number(orderId) },
+                });
+                return;
+              }
+            } else {
+              console.warn(
+                "NotificationMenu (Customer) - Order not found with code:",
+                parsedOrderCode
+              );
+            }
+          } else {
+            console.warn("NotificationMenu (Customer) - No orders data found");
+          }
+        } catch (err) {
+          console.error(
+            "NotificationMenu (Customer) - Error handling deposit check reject notification:",
+            err
+          );
+        }
+      }
+      navigate("/customer/orders");
+      return;
+    }
+
+    // Xử lý notification về xác nhận cọc thành công (deposit check approved)
+    if (
+      userRole === "customer" &&
+      /đã được xác nhận cọc|đã xác nhận cọc/i.test(n.message || "")
+    ) {
+      handleClose();
+      const messageText = n.message || "";
+      const parsedOrderCode = extractOrderCodeFromMessage(messageText);
+      
+      if (parsedOrderCode) {
+        console.log("NotificationMenu (Customer) - Deposit check approved, parsed orderCode:", parsedOrderCode);
+        
+        try {
+          const orderListResponse = await salesOrderAPI.myListSalesOrder();
+          if (orderListResponse?.data?.data) {
+            const orderList = Array.isArray(orderListResponse.data.data)
+              ? orderListResponse.data.data
+              : [];
+
+            const matchingOrder = orderList.find((order) => {
+              const code = normalizeOrderCode(
+                order.SalesOrderCode ||
+                  order.salesOrderCode ||
+                  order.OrderCode ||
+                  order.orderCode ||
+                  order.Code ||
+                  order.code ||
+                  ""
+              );
+              return code === parsedOrderCode;
+            });
+
+            if (matchingOrder) {
+              const orderId =
+                matchingOrder.SalesOrderId ||
+                matchingOrder.salesOrderId ||
+                matchingOrder.Id ||
+                matchingOrder.id;
+              if (orderId) {
+                // Mở dialog chi tiết đơn hàng
+                navigate("/customer/orders", {
+                  state: { openOrderDetailId: Number(orderId) },
+                });
+                return;
+              }
+            } else {
+              console.warn(
+                "NotificationMenu (Customer) - Order not found with code:",
+                parsedOrderCode
+              );
+            }
+          } else {
+            console.warn("NotificationMenu (Customer) - No orders data found");
+          }
+        } catch (err) {
+          console.error(
+            "NotificationMenu (Customer) - Error handling deposit check approved notification:",
+            err
+          );
+        }
+      }
+      navigate("/customer/orders");
+      return;
+    }
+
     const messageText = n.message || "";
     const parsedOrderCode = extractOrderCodeFromMessage(messageText);
     const isApprovedMessage = /chấp thuận/i.test(messageText);
@@ -332,7 +462,8 @@ export default function NotificationMenu() {
     const isOrderDecisionNotification =
       userRole === "customer" &&
       parsedOrderCode &&
-      (isApprovedMessage || isRejectedMessage);
+      (isApprovedMessage || isRejectedMessage) &&
+      !/xác nhận cọc|yêu cầu xác nhận/i.test(messageText); // Loại trừ notification về deposit check
 
     if (isOrderDecisionNotification) {
       handleClose();

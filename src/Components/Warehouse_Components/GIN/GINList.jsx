@@ -41,6 +41,8 @@ import {
 } from "@mui/icons-material";
 import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialog";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
+import ginApi from "../../../API/ginAPI";
+import stockExportApi from "../../../API/stockExportAPI";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { vi as viLocale } from "date-fns/locale";
@@ -120,16 +122,69 @@ export default function GRNList() {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
 
-  const handleOpenInvoiceDialog = (row) => {
-    setInvoiceDialogContext(
-      row
-        ? {
-            goodsIssueNoteCode: row.goodsIssueNoteCode,
-            salesOrderCode:
-              row.salesOrderCode || row.stockExportOrderCode || "",
+  const handleOpenInvoiceDialog = async (row) => {
+    if (!row) {
+      setInvoiceDialogContext({ goodsIssueNoteCode: "", salesOrderCode: "" });
+      setInvoiceDialogOpen(true);
+      return;
+    }
+
+    let salesOrderCode = row.salesOrderCode || "";
+    
+    // Nếu không có salesOrderCode trong row, thử lấy từ API chi tiết GIN
+    if (!salesOrderCode && row.id) {
+      try {
+        const detailRes = await ginApi.getDetail(row.id);
+        const detail = detailRes.data?.data;
+        
+        // Lấy StockExportOrderId từ GIN detail
+        const stockExportOrderId = detail?.stockExportOrderId || 
+                                   detail?.StockExportOrderId ||
+                                   detail?.stockExportOrder?.id ||
+                                   detail?.StockExportOrder?.Id;
+        
+        // Nếu có StockExportOrderId, gọi API chi tiết StockExportOrder để lấy SalesOrderCode
+        if (stockExportOrderId) {
+          try {
+            const seoDetailRes = await stockExportApi.details(stockExportOrderId);
+            const seoDetail = seoDetailRes.data?.data;
+            salesOrderCode = seoDetail?.salesOrderCode || 
+                           seoDetail?.SalesOrderCode ||
+                           seoDetail?.salesOrder?.salesOrderCode ||
+                           seoDetail?.SalesOrder?.SalesOrderCode ||
+                           "";
+          } catch (seoErr) {
+            console.warn('GINList - Could not fetch StockExportOrder detail:', seoErr);
           }
-        : { goodsIssueNoteCode: "", salesOrderCode: "" }
-    );
+        }
+        
+        // Fallback: thử lấy trực tiếp từ GIN detail
+        if (!salesOrderCode) {
+          salesOrderCode = detail?.stockExportOrder?.salesOrderCode || 
+                          detail?.StockExportOrder?.SalesOrderCode ||
+                          detail?.salesOrderCode ||
+                          detail?.SalesOrderCode ||
+                          "";
+        }
+      } catch (err) {
+        console.warn('GINList - Could not fetch GIN detail for salesOrderCode:', err);
+      }
+    }
+    
+    const context = {
+      goodsIssueNoteCode: row.goodsIssueNoteCode || row.GoodsIssueNoteCode || "",
+      salesOrderCode: salesOrderCode || "",
+    };
+    
+    console.log('GINList - handleOpenInvoiceDialog:', {
+      row,
+      context,
+      goodsIssueNoteCode: row?.goodsIssueNoteCode,
+      salesOrderCode: context.salesOrderCode,
+      stockExportOrderCode: row?.stockExportOrderCode,
+    });
+    
+    setInvoiceDialogContext(context);
     setInvoiceDialogOpen(true);
   };
 
@@ -144,7 +199,7 @@ export default function GRNList() {
       severity: "success",
       message: message || "Tạo hóa đơn từ phiếu xuất kho thành công",
     });
-    refetch();
+    fetchList();
     handleCloseInvoiceDialog();
   };
 
@@ -157,7 +212,7 @@ export default function GRNList() {
         severity: "success",
         message: res.message || "Xác nhận xuất kho thành công",
       });
-      refetch();
+      fetchList();
     } else {
       setSnack({
         open: true,

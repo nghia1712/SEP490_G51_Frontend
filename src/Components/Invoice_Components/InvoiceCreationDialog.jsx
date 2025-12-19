@@ -46,25 +46,78 @@ const InvoiceCreationDialog = ({
 
   const resetState = useCallback(() => {
     setAlertState(null);
-    setSelectedSalesOrder(defaultSalesOrderCode || "");
+    // Không set selectedSalesOrder ở đây, sẽ set sau khi load xong danh sách
+    setSelectedSalesOrder("");
     setSelectedGoodsCodes(
       defaultGoodsIssueNoteCode ? [defaultGoodsIssueNoteCode] : [],
     );
-  }, [defaultGoodsIssueNoteCode, defaultSalesOrderCode]);
+  }, [defaultGoodsIssueNoteCode]);
 
   useEffect(() => {
     if (open) {
       resetState();
       fetchSalesOrderCodes();
+    } else {
+      // Reset khi đóng dialog
+      setSelectedSalesOrder("");
+      setSelectedGoodsCodes([]);
+      setSalesOrderCodes([]);
     }
   }, [open, resetState]);
+
+  // Cập nhật selectedSalesOrder khi defaultSalesOrderCode thay đổi và salesOrderCodes đã được load
+  useEffect(() => {
+    if (open && defaultSalesOrderCode && salesOrderCodes.length > 0) {
+      // Chỉ set nếu mã đơn hàng có trong danh sách
+      if (salesOrderCodes.includes(defaultSalesOrderCode)) {
+        console.log('InvoiceCreationDialog - useEffect setting selectedSalesOrder:', defaultSalesOrderCode);
+        setSelectedSalesOrder(defaultSalesOrderCode);
+      } else {
+        console.warn('InvoiceCreationDialog - useEffect: defaultSalesOrderCode not in salesOrderCodes:', {
+          defaultSalesOrderCode,
+          currentSelected: selectedSalesOrder,
+          availableCodes: salesOrderCodes.slice(0, 10)
+        });
+      }
+    }
+  }, [open, defaultSalesOrderCode, salesOrderCodes]);
+
+  // Cập nhật selectedGoodsCodes khi defaultGoodsIssueNoteCode thay đổi (kể cả khi dialog đã mở)
+  useEffect(() => {
+    if (open && defaultGoodsIssueNoteCode) {
+      setSelectedGoodsCodes([defaultGoodsIssueNoteCode]);
+    }
+  }, [open, defaultGoodsIssueNoteCode]);
 
   const fetchSalesOrderCodes = async () => {
     setSalesOrderLoading(true);
     try {
       const res = await invoiceAPI.getSalesOrderCodes();
       const payload = res.data?.data ?? res.data ?? [];
-      setSalesOrderCodes(Array.isArray(payload) ? payload : []);
+      const codes = Array.isArray(payload) ? payload : [];
+      setSalesOrderCodes(codes);
+      
+      console.log('InvoiceCreationDialog - fetchSalesOrderCodes completed:', {
+        open,
+        defaultSalesOrderCode,
+        codesLength: codes.length,
+        codesIncludesDefault: codes.includes(defaultSalesOrderCode),
+        codes: codes.slice(0, 5) // Log first 5 codes
+      });
+      
+      // Sau khi load xong danh sách, nếu có defaultSalesOrderCode và nó có trong danh sách, thì set selectedSalesOrder
+      if (open && defaultSalesOrderCode && codes.includes(defaultSalesOrderCode)) {
+        console.log('InvoiceCreationDialog - Setting selectedSalesOrder to:', defaultSalesOrderCode);
+        setSelectedSalesOrder(defaultSalesOrderCode);
+      } else if (!defaultSalesOrderCode) {
+        // Nếu không có defaultSalesOrderCode, giữ nguyên giá trị rỗng
+        setSelectedSalesOrder("");
+      } else if (open && defaultSalesOrderCode && !codes.includes(defaultSalesOrderCode)) {
+        console.warn('InvoiceCreationDialog - defaultSalesOrderCode not found in codes:', {
+          defaultSalesOrderCode,
+          availableCodes: codes.slice(0, 10)
+        });
+      }
     } catch (error) {
       setAlertState({
         severity: "error",
