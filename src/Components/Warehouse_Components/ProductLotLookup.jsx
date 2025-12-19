@@ -18,10 +18,16 @@ import {
   Container,
   Card,
   CardContent,
+  IconButton,
+  Collapse,
 } from "@mui/material";
+import {
+  Search,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+} from "@mui/icons-material";
 import productAPI from "../../API/productAPI";
 import supllierAPI from "../../API/supplierAPI";
-import { Search } from "@mui/icons-material";
 
 /* ================= DATE PARSER ================= */
 const parseDate = (dateStr) => {
@@ -34,11 +40,36 @@ const parseDate = (dateStr) => {
   return new Date(dateStr);
 };
 
+/* ================= GROUP BY EXPIRED + SUPPLIER ================= */
+const groupLots = (lots) => {
+  const map = {};
+
+  lots.forEach((lot) => {
+    const key = [lot.expiredDate, lot.supplierID].join("|");
+
+    if (!map[key]) {
+      map[key] = {
+        expiredDate: lot.expiredDate,
+        supplierID: lot.supplierID,
+        warehouseName: lot.warehouseName,
+        totalQuantity: Number(lot.lotQuantity) || 0,
+        details: [lot],
+      };
+    } else {
+      map[key].totalQuantity += Number(lot.lotQuantity) || 0;
+      map[key].details.push(lot);
+    }
+  });
+
+  return Object.values(map);
+};
+
 const ProductLotLookup = () => {
   const [products, setProducts] = useState([]);
-  const [lots, setLots] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [supplierNames, setSupplierNames] = useState({});
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [loadingLot, setLoadingLot] = useState(false);
@@ -73,7 +104,8 @@ const ProductLotLookup = () => {
   /* ================= LOAD LOT ================= */
   const loadLots = async (product) => {
     setSelectedProduct(product);
-    setLots([]);
+    setGroups([]);
+    setExpanded({});
 
     if (!product) return;
 
@@ -89,10 +121,10 @@ const ProductLotLookup = () => {
         ? res.data
         : [];
 
-      setLots(list);
+      setGroups(groupLots(list));
     } catch (err) {
       console.error(err);
-      setLots([]);
+      setGroups([]);
     } finally {
       setLoadingLot(false);
     }
@@ -100,12 +132,12 @@ const ProductLotLookup = () => {
 
   /* ================= LOAD SUPPLIER ================= */
   useEffect(() => {
-    if (!lots.length) return;
+    if (!groups.length) return;
 
-    const fetchSuppliers = async () => {
-      const ids = [...new Set(lots.map((l) => l.supplierID))];
+    const ids = [...new Set(groups.map((g) => g.supplierID))];
+
+    const fetch = async () => {
       const map = {};
-
       for (const id of ids) {
         try {
           const res = await supllierAPI.getById(id);
@@ -117,22 +149,30 @@ const ProductLotLookup = () => {
       setSupplierNames(map);
     };
 
-    fetchSuppliers();
-  }, [lots]);
+    fetch();
+  }, [groups]);
+
+  const toggleExpand = (idx) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+  };
 
   return (
     <Box sx={{ p: 3 }}>
-      <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
-        <Card elevation={3} sx={{ borderRadius: 2 }}>
+      <Container maxWidth="xl">
+        <Card>
           <CardContent>
             <Stack spacing={2}>
-              {/* ================= SEARCH BOX ================= */}
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Search sx={{ fontSize: 40, mr: 2, color: "#1976d2" }} />
+              {/* ================= SEARCH ================= */}
+              <Paper sx={{ p: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Search sx={{ fontSize: 36, mr: 2, color: "primary.main" }} />
                   <Typography
                     variant="h4"
-                    sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
+                    fontWeight={700}
+                    sx={{ color: "primary.main" }}
                   >
                     Tra cứu sản phẩm
                   </Typography>
@@ -141,9 +181,7 @@ const ProductLotLookup = () => {
                 <Autocomplete
                   options={products}
                   loading={loadingProduct}
-                  noOptionsText="Không có sản phẩm tương ứng"
                   getOptionLabel={(p) => p.productName || ""}
-                  isOptionEqualToValue={(o, v) => o.productID === v.productID}
                   onChange={(e, val) => loadLots(val)}
                   onInputChange={(e, val, reason) => {
                     if (reason === "input") {
@@ -155,39 +193,32 @@ const ProductLotLookup = () => {
                     }
                   }}
                   renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      placeholder="Nhập tên sản phẩm"
-                      fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingProduct && (
-                              <CircularProgress size={18} sx={{ mr: 1 }} />
-                            )}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
+                    <TextField {...params} size="small" />
                   )}
                 />
               </Paper>
 
-              {/* ================= LOT TABLE (LUÔN HIỂN THỊ) ================= */}
-              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-                <Typography fontWeight={700} mb={1}>
-                  📦 Danh sách lô hàng{" "}
-                  {selectedProduct && (
-                    <Box component="span" color="primary.main">
-                      – {selectedProduct.productName}
-                    </Box>
-                  )}
-                </Typography>
-
-                <Divider sx={{ mb: 1 }} />
+              {/* ================= TABLE ================= */}
+              <Paper sx={{ p: 2 }}>
+                {/* ===== TITLE ===== */}
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  mb={1}
+                >
+                  <Typography fontWeight={700}>
+                    📦 Danh sách lô hàng
+                    {selectedProduct && (
+                      <Box
+                        component="span"
+                        sx={{ ml: 1, color: "primary.main", fontWeight: 600 }}
+                      >
+                        – {selectedProduct.productName}
+                      </Box>
+                    )}
+                  </Typography>
+                </Box>
 
                 {loadingLot ? (
                   <Box textAlign="center" py={4}>
@@ -201,79 +232,132 @@ const ProductLotLookup = () => {
                       borderRadius: 1,
                     }}
                   >
-                    <Table stickyHeader size="small">
+                    <Table size="small" stickyHeader>
+                      {/* ===== HEADER ===== */}
                       <TableHead>
                         <TableRow
                           sx={{
                             "& .MuiTableCell-root": {
-                              fontWeight: 600,
+                              fontWeight: 700,
                               backgroundColor: "#f5f7fa",
                               whiteSpace: "nowrap",
                             },
                           }}
                         >
-                          <TableCell align="center">Lô hàng</TableCell>
-                          <TableCell>Ngày nhập</TableCell>
-                          <TableCell align="center">Tồn kho</TableCell>
-                          <TableCell align="center">Hạn dùng</TableCell>
-                          <TableCell>Kho</TableCell>
+                          <TableCell align="center" width={120}>
+                            Tồn kho
+                          </TableCell>
+                          <TableCell align="center" width={140}>
+                            Hạn dùng
+                          </TableCell>
                           <TableCell>Nhà cung cấp</TableCell>
-                          <TableCell align="center">Kiểm tra cuối</TableCell>
                         </TableRow>
                       </TableHead>
 
+                      {/* ===== BODY ===== */}
                       <TableBody>
-                        {!selectedProduct ? (
-                          <TableRow>
-                            <TableCell colSpan={7} align="center">
-                              Vui lòng chọn sản phẩm để xem lô hàng
-                            </TableCell>
-                          </TableRow>
-                        ) : lots.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} align="center">
-                              Không có lô hàng
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          lots.map((lot) => {
-                            const inputDate = parseDate(lot.inputDate);
-                            const expiredDate = parseDate(lot.expiredDate);
-                            const lastChecked = parseDate(lot.lastCheckedDate);
+                        {groups.map((g, idx) => {
+                          const expired = parseDate(g.expiredDate);
+                          const open = expanded[idx];
 
-                            return (
-                              <TableRow key={lot.lotID} hover>
+                          return (
+                            <React.Fragment key={idx}>
+                              {/* ===== SUMMARY ROW ===== */}
+                              <TableRow
+                                hover
+                                onClick={() => toggleExpand(idx)}
+                                sx={{
+                                  cursor: "pointer",
+                                  backgroundColor: open ? "#f0f6ff" : "inherit",
+                                  "&:hover": { backgroundColor: "#f5faff" },
+                                }}
+                              >
                                 <TableCell align="center">
-                                  {lot.lotID}
+                                  {g.totalQuantity}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {expired
+                                    ? expired.toLocaleDateString("vi-VN")
+                                    : "-"}
                                 </TableCell>
                                 <TableCell>
-                                  {inputDate
-                                    ? inputDate.toLocaleDateString("vi-VN")
-                                    : "-"}
-                                </TableCell>
-                                <TableCell align="center">
-                                  {lot.lotQuantity}
-                                </TableCell>
-                                <TableCell align="center">
-                                  {expiredDate
-                                    ? expiredDate.toLocaleDateString("vi-VN")
-                                    : "-"}
-                                </TableCell>
-                                <TableCell>{lot.warehouseName}</TableCell>
-                                <TableCell>
-                                  {supplierNames[lot.supplierID] ||
-                                    lot.supplierID}
-                                </TableCell>
-                                <TableCell align="center">
-                                  {lastChecked &&
-                                  lastChecked.getFullYear() !== 1
-                                    ? lastChecked.toLocaleDateString("vi-VN")
-                                    : "-"}
+                                  {supplierNames[g.supplierID] || g.supplierID}
                                 </TableCell>
                               </TableRow>
-                            );
-                          })
-                        )}
+
+                              {/* ===== DETAIL ROW ===== */}
+                              <TableRow>
+                                <TableCell
+                                  colSpan={3}
+                                  sx={{
+                                    p: 0,
+                                    backgroundColor: "#fafafa",
+                                    borderBottom: open
+                                      ? "1px solid #e0e0e0"
+                                      : "none",
+                                  }}
+                                >
+                                  <Collapse
+                                    in={open}
+                                    timeout="auto"
+                                    unmountOnExit
+                                  >
+                                    <Box p={2} pl={4}>
+                                      <Table size="small">
+                                        <TableHead>
+                                          <TableRow
+                                            sx={{
+                                              "& .MuiTableCell-root": {
+                                                fontWeight: 600,
+                                                backgroundColor: "#f9f9f9",
+                                              },
+                                            }}
+                                          >
+                                            <TableCell>Kho</TableCell>
+                                            <TableCell align="center">
+                                              Ngày nhập
+                                            </TableCell>
+                                            <TableCell align="center">
+                                              Số lượng
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableHead>
+
+                                        <TableBody>
+                                          {g.details.map((d, i) => {
+                                            const input = parseDate(
+                                              d.inputDate
+                                            );
+                                            return (
+                                              <TableRow key={i}>
+                                                <TableCell>
+                                                  {d.warehouseName}
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                  {input
+                                                    ? input.toLocaleDateString(
+                                                        "vi-VN"
+                                                      )
+                                                    : "-"}
+                                                </TableCell>
+                                                <TableCell
+                                                  align="center"
+                                                  sx={{ fontWeight: 500 }}
+                                                >
+                                                  {d.lotQuantity}
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </Box>
+                                  </Collapse>
+                                </TableCell>
+                              </TableRow>
+                            </React.Fragment>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>

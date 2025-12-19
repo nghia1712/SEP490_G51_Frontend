@@ -142,7 +142,7 @@ export default function DebtList() {
                 variant="h4"
                 sx={{ fontWeight: "bold", flexGrow: 1, color: "#1976d2" }}
               >
-                Quản lý thanh toán
+                Danh sách nợ nhà cung cấp
               </Typography>
             </Box>
 
@@ -177,10 +177,10 @@ export default function DebtList() {
                     <TableRow>
                       <TableCell align="center">#</TableCell>
                       {/* <TableCell align="center">Thể loại nợ</TableCell> */}
-                      <TableCell align="center">Thuộc về</TableCell>
-                      <TableCell align="right">Phải trả</TableCell>
+                      <TableCell align="center">Nhà cung cấp</TableCell>
+                      <TableCell align="right">Số tiền nợ</TableCell>
                       {/* <TableCell align="center">Dư nợ</TableCell> */}
-                      <TableCell align="center">Ngày trả gần nhất</TableCell>
+                      {/* <TableCell align="center">Ngày trả gần nhất</TableCell> */}
                       {/* <TableCell align="center">Hành động</TableCell> */}
                     </TableRow>
                   </TableHead>
@@ -219,13 +219,13 @@ export default function DebtList() {
                           {/* <TableCell align="center">
                             {item.currentDebt.toLocaleString()} đ
                           </TableCell> */}
-                          <TableCell align="center">
+                          {/* <TableCell align="center">
                             {item.payday
                               ? new Date(item.payday).toLocaleDateString(
                                   "vi-VN"
                                 )
                               : "-"}
-                          </TableCell>
+                          </TableCell> */}
                           {/* <TableCell align="center">
                             <Tooltip title="Chi tiết">
                               <IconButton
@@ -282,12 +282,12 @@ export default function DebtList() {
                   </Stack> */}
 
                   <Stack direction="row" justifyContent="space-between">
-                    <Typography>Thuộc về:</Typography>
+                    <Typography>Nhà cung cấp:</Typography>
                     <Typography>{selectedDebt.debtName}</Typography>
                   </Stack>
 
                   <Stack direction="row" justifyContent="space-between">
-                    <Typography>Phải trả:</Typography>
+                    <Typography>Số tiền còn nợ:</Typography>
                     <Typography>
                       {renderCurrency(selectedDebt.payables)}
                     </Typography>
@@ -299,7 +299,7 @@ export default function DebtList() {
                       {selectedDebt.currentDebt?.toLocaleString()} đ
                     </Typography>
                   </Stack> */}
-                  <Stack direction="row" justifyContent="space-between">
+                  {/* <Stack direction="row" justifyContent="space-between">
                     <Typography>Ngày thanh toán gần nhất:</Typography>
                     <Typography>
                       {selectedDebt.payday
@@ -308,7 +308,7 @@ export default function DebtList() {
                           )
                         : "-"}
                     </Typography>
-                  </Stack>
+                  </Stack> */}
 
                   <Stack
                     direction="row"
@@ -339,44 +339,66 @@ export default function DebtList() {
                       <TableRow>
                         <TableCell align="center">Đơn hàng</TableCell>
                         <TableCell align="right">Tổng tiền</TableCell>
+                        <TableCell align="right">Còn nợ</TableCell>
                         <TableCell align="center">Trạng thái</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {selectedDebt.viewDebtPODTOs
-                        .filter(
-                          (po) =>
-                            approvedStatuses.includes(po.status) ||
-                            po.status === fullyPaidStatus
-                        )
-                        .map((po) => (
-                          <TableRow key={po.poid}>
-                            <TableCell align="center">{`PO-${po.poid}`}</TableCell>
+                       .filter((po) => [0, 3, 4].includes(po.status))
+                        .map((po) => {
+                          // Nếu PO đang "Chấp thuận" => còn nợ = tổng tiền
+                          const debtAmount =
+                            po.status === 0 ? po.toatlPo : po.debt;
 
-                            {/* TOTAL */}
-                            <TableCell
-                              align="right"
-                              sx={{
-                                fontWeight: po.status === 5 ? "bold" : "normal",
-                                color: po.status === 5 ? "green" : "inherit",
-                              }}
-                            >
-                              {renderCurrency(po.toatlPo)}
-                            </TableCell>
+                          return (
+                            <TableRow key={po.poid}>
+                              <TableCell align="center">{`PO-${po.poid}`}</TableCell>
 
-                            {/* STATUS */}
-                            <TableCell align="center">
-                              <Chip
-                                label={
-                                  statusMap[po.status]?.label ||
-                                  "Không xác định"
-                                }
-                                color={statusMap[po.status]?.color || "default"}
-                                size="small"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              {/* TOTAL */}
+                              <TableCell
+                                align="right"
+                                sx={{
+                                  fontWeight:
+                                    debtAmount === 0 ? "normal" : "bold",
+                                  color:
+                                    debtAmount === 0
+                                      ? "inherit"
+                                      : "primary.main",
+                                }}
+                              >
+                                {renderCurrency(po.toatlPo)}
+                              </TableCell>
+
+                              {/* DEBT */}
+                              <TableCell
+                                align="right"
+                                sx={{
+                                  fontWeight:
+                                    debtAmount > 0 ? "bold" : "normal",
+                                  color:
+                                    debtAmount > 0 ? "error.main" : "inherit",
+                                }}
+                              >
+                                {renderCurrency(debtAmount)}
+                              </TableCell>
+
+                              {/* STATUS */}
+                              <TableCell align="center">
+                                <Chip
+                                  label={
+                                    statusMap[po.status]?.label ||
+                                    "Không xác định"
+                                  }
+                                  color={
+                                    statusMap[po.status]?.color || "default"
+                                  }
+                                  size="small"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                     </TableBody>
                   </Table>
                 </Paper>

@@ -169,7 +169,7 @@ export default function StockExportList() {
       case 5:
         return { label: "Đã hủy", color: "error" };
       case 6:
-        return { label: "Có thể xuất", color: "primary" };
+        return { label: "Đủ hàng", color: "primary" };
       default:
         return { label: "Không xác định", color: "default" };
     }
@@ -340,7 +340,7 @@ export default function StockExportList() {
                       <MenuItem value={2}>Đã có phiếu xuất</MenuItem>
                       <MenuItem value={3}>Không đủ hàng</MenuItem>
                       <MenuItem value={5}>Đã hủy</MenuItem>
-                      <MenuItem value={6}>Có thể xuất</MenuItem>
+                      <MenuItem value={6}>Đủ hàng</MenuItem>
                     </Select>
                   </FormControl>
 
@@ -416,8 +416,8 @@ export default function StockExportList() {
                     <TableCell>#</TableCell>
                     <TableCell align="center">Yêu cầu xuất kho</TableCell>
                     <TableCell>Mã đơn hàng</TableCell>
-                    <TableCell>Ngày gửi yêu cầu</TableCell>
-                    <TableCell>Ngày xuất kho dự kiến</TableCell>
+                    <TableCell align="center">Ngày gửi yêu cầu</TableCell>
+                    <TableCell align="center">Ngày xuất kho dự kiến</TableCell>
                     <TableCell align="center">Trạng thái</TableCell>
                     <TableCell>Người tạo</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
@@ -451,14 +451,14 @@ export default function StockExportList() {
                           {item.stockExportOrderCode}
                         </TableCell>
                         <TableCell>{item.salesOrderCode}</TableCell>
-                        <TableCell>
+                        <TableCell align="center">
                           {item.requestDate
                             ? new Date(item.requestDate).toLocaleDateString(
                                 "vi-VN"
                               )
                             : ""}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align="center">
                           {item.dueDate
                             ? new Date(item.dueDate).toLocaleDateString("vi-VN")
                             : ""}

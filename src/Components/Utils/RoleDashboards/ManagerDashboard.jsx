@@ -25,6 +25,25 @@ import usePO from "../../../Hooks/usePO";
 import useSupplier from "../../../Hooks/useSupplier";
 import salesOrderAPI from "../../../API/salesOrderAPI";
 
+const formatChartCurrency = (value) => {
+  if (value >= 1_000_000_000) {
+    const v = value / 1_000_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tỷ`;
+  }
+
+  if (value >= 1_000_000) {
+    const v = value / 1_000_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)} tr`;
+  }
+
+  if (value >= 1_000) {
+    const v = value / 1_000;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)}k`;
+  }
+
+  return value;
+};
+
 /* ===================== STAT CARD ===================== */
 const StatCard = ({ title, value, icon, color, onClick, subText }) => (
   <Card
@@ -259,7 +278,7 @@ export default function ManagerDashboard() {
               <BarChart data={yearlyChartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" />
-                <YAxis tickFormatter={formatCurrency} width={90} />
+                <YAxis tickFormatter={formatChartCurrency}/>
                 <Tooltip formatter={(v) => formatCurrency(v)} />
                 <Legend />
                 <Bar

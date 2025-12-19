@@ -43,18 +43,24 @@ export default function CustomerDebtList() {
 
   // Filter & search
   const filteredData = useMemo(() => {
-    return data
-      .filter((item) =>
-        statusFilter === "" ? true : item.status === statusFilter
-      )
-      .filter((item) =>
-        searchText === ""
-          ? true
-          : item.customerName
-              .toLowerCase()
-              .includes(searchText.toLowerCase()) ||
-            item.salesOrderCode.toLowerCase().includes(searchText.toLowerCase())
-      );
+    return (
+      data
+        // chỉ lấy những bản ghi còn nợ
+        .filter((item) => Number(item.debtAmount) > 0)
+        .filter((item) =>
+          statusFilter === "" ? true : item.status === statusFilter
+        )
+        .filter((item) =>
+          searchText === ""
+            ? true
+            : item.customerName
+                .toLowerCase()
+                .includes(searchText.toLowerCase()) ||
+              item.salesOrderCode
+                .toLowerCase()
+                .includes(searchText.toLowerCase())
+        )
+    );
   }, [data, statusFilter, searchText]);
 
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
@@ -139,10 +145,8 @@ export default function CustomerDebtList() {
                     <MenuItem value="">Tất cả</MenuItem>
                     <MenuItem value={0}>Chưa trả</MenuItem>
                     <MenuItem value={1}>Trả một phần</MenuItem>
-                    <MenuItem value={2}>Hết nợ</MenuItem>
                     <MenuItem value={3}>Nợ xấu</MenuItem>
                     <MenuItem value={4}>Quá hạn</MenuItem>
-                    <MenuItem value={5}>Đơn bị hủy</MenuItem>
                   </Select>
                 </FormControl>
 

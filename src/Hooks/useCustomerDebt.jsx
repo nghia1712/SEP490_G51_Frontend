@@ -6,7 +6,7 @@ import customerDebtApi from "../API/customerDebtAPI";
 // MAP STATUS
 // =========================
 export const debtStatusMap = {
-  0: { label: "Chưa trả nợ", color: "error" },
+  0: { label: "Chưa trả", color: "error" },
   1: { label: "Trả một phần", color: "warning" },
   2: { label: "Hết nợ", color: "success" },
   3: { label: "Nợ xấu", color: "default" },
@@ -49,8 +49,7 @@ export default function useCustomerDebt() {
     severity: "success",
   });
 
-  const handleSnackClose = () =>
-    setSnack((prev) => ({ ...prev, open: false }));
+  const handleSnackClose = () => setSnack((prev) => ({ ...prev, open: false }));
 
   // =========================
   // FETCH LIST
@@ -69,8 +68,7 @@ export default function useCustomerDebt() {
         severity: "success",
       });
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Lấy danh sách nợ thất bại";
+      const msg = err?.response?.data?.message || "Lấy danh sách nợ thất bại";
 
       setError(err);
       setSnack({
@@ -100,8 +98,7 @@ export default function useCustomerDebt() {
       });
     } catch (err) {
       const msg =
-        err?.response?.data?.message ||
-        "Lấy dữ liệu theo tháng thất bại";
+        err?.response?.data?.message || "Lấy dữ liệu theo tháng thất bại";
 
       setSnack({
         open: true,
