@@ -190,11 +190,12 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                   }}
                 >
                   <TableCell>Lô hàng</TableCell>
-                  <TableCell>Ngày nhập</TableCell>
+                  {/* <TableCell>Ngày nhập</TableCell> */}
                   <TableCell align="right">Giá nhập</TableCell>
                   <TableCell align="right">Giá bán</TableCell>
                   <TableCell align="right">Số lượng</TableCell>
                   <TableCell>Hạn sử dụng</TableCell>
+                  <TableCell>Kho</TableCell>
                   <TableCell>Vị trí kho</TableCell>
                   <TableCell>Nhà cung cấp</TableCell>
                   {/* <TableCell>Mã sản phẩm</TableCell> */}
@@ -215,18 +216,18 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                   </TableRow>
                 ) : (
                   localLots.map((lot) => {
-                    const inputDate = parseDate(lot.inputDate);
+                    // const inputDate = parseDate(lot.inputDate);
                     const expiredDate = parseDate(lot.expiredDate);
                     const lastChecked = parseDate(lot.lastCheckedDate);
 
                     return (
                       <TableRow key={lot.lotID}>
                         <TableCell align="center">{lot.lotID}</TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           {inputDate
                             ? inputDate.toLocaleDateString("vi-VN")
                             : "-"}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell align="right">
                           {lot.inputPrice?.toLocaleString("vi-VN")} ₫
                         </TableCell>
@@ -254,6 +255,7 @@ const ProductLotsModal = ({ open, onClose, productName, lots, loading }) => {
                             ? expiredDate.toLocaleDateString("vi-VN")
                             : "-"}
                         </TableCell>
+                        <TableCell>{lot.warehouseName2}</TableCell>
                         <TableCell>{lot.warehouseName}</TableCell>
                         <TableCell>
                           {supplierNames[lot.supplierID] || lot.supplierID}

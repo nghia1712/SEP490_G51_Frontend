@@ -372,11 +372,12 @@ export default function GRNList() {
                     <TableCell>#</TableCell>
                     <TableCell>Phiếu xuất kho</TableCell>
                     <TableCell>Kho</TableCell>
-                    <TableCell>Mã yêu cầu</TableCell>
+                    <TableCell>Mã đơn hàng</TableCell>
                     <TableCell>Đơn hàng</TableCell>
                     <TableCell>Người tạo</TableCell>
-                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell>Ngày tạo</TableCell>
+                    <TableCell>Ngày Dự kiến/Xuất</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
@@ -411,13 +412,25 @@ export default function GRNList() {
                             : ""}
                         </TableCell>
                         <TableCell>{row.createBy}</TableCell>
-                        <TableCell align="center">
-                          {renderGINStatus(row.status)}
-                        </TableCell>
                         <TableCell>
                           {row.createAt
                             ? new Date(row.createAt).toLocaleDateString("vi-VN")
                             : "-"}
+                        </TableCell>
+                        <TableCell align="center">
+                          {row.exportedAt
+                            ? new Date(row.exportedAt).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : row.deliveryDate
+                            ? new Date(row.deliveryDate).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : "-"}
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {renderGINStatus(row.status)}
                         </TableCell>
                         <TableCell align="center">
                           <Stack

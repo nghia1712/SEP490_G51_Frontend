@@ -303,7 +303,7 @@ export default function PRFQCreate() {
           message: "Vui lòng chọn sản phẩm!",
           severity: "warning",
         });
-        setLoading(false); // ❗Trường hợp lỗi thì cho phép bấm lại
+        setLoading(false);
         return;
       }
 
@@ -345,7 +345,6 @@ export default function PRFQCreate() {
         severity: "success",
       });
 
-      // ❗GIỮ loading = true CHO ĐẾN KHI CHUYỂN TRANG
       setTimeout(() => navigate("/purchase/prfq"), 1200);
     } catch (error) {
       console.error("Lỗi Submit:", error);
@@ -354,7 +353,7 @@ export default function PRFQCreate() {
         message: error.response?.data?.message || "Có lỗi xảy ra!",
         severity: "error",
       });
-      setLoading(false); // lỗi → bật lại nút
+      setLoading(false);
     }
   };
 
@@ -509,15 +508,24 @@ export default function PRFQCreate() {
               </Tooltip>
             </Box>
           </Stack>
-          <TableContainer>
-            <Table>
+          <TableContainer
+            sx={{
+              maxHeight: 320,
+              overflowY: "auto",
+              mt: 2,
+            }}
+          >
+            <Table stickyHeader>
               <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableRow>
-                  <TableCell>STT</TableCell>
-                  <TableCell>Sản phẩm</TableCell>
-                  <TableCell align="center">Thao tác</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Sản phẩm</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="center">
+                    Thao tác
+                  </TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
                 {formData.items.map((item, index) => (
                   <TableRow key={index}>
@@ -881,7 +889,7 @@ export default function PRFQCreate() {
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
-          onClose={handleCloseSnackbar}
+          onClick={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: "100%" }}
           variant="filled"

@@ -953,6 +953,7 @@ const SupplierList = () => {
                     Email
                   </TableCell>
                   <TableCell
+                    align="center"
                     sx={{ fontWeight: "bold", backgroundColor: "#e3f2fd" }}
                   >
                     <TableSortLabel
@@ -1047,7 +1048,9 @@ const SupplierList = () => {
                             {supplier.email || "Chưa cập nhật"}
                           </Typography>
                         </TableCell>
-                        <TableCell>{getStatusChip(supplier.status)}</TableCell>
+                        <TableCell align="center">
+                          {getStatusChip(supplier.status)}
+                        </TableCell>
                         <TableCell>
                           <Stack
                             direction="row"

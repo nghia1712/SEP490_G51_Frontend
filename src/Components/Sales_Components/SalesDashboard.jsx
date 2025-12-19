@@ -96,6 +96,30 @@ const COLORS = [
   "#6f42c1",
 ];
 
+const STATUS_ENUM = {
+  Draft: 0,
+  Send: 1,
+  Approved: 2,
+  Rejected: 3,
+  PartiallyDelivered: 4,
+  Delivered: 5,
+  Complete: 6,
+  NotComplete: 7,
+  BackSalesOrder: 8,
+};
+
+const STATUS_DEFINITIONS = {
+  0: { label: "Nháp", color: "secondary" },
+  1: { label: "Chờ xử lý", color: "warning" },
+  2: { label: "Chấp thuận", color: "info" },
+  3: { label: "Từ chối", color: "danger" },
+  4: { label: "Xuất 1 phần", color: "primary" },
+  5: { label: "Đã giao hàng", color: "primary" },
+  6: { label: "Hoàn thành", color: "success" },
+  7: { label: "Không hoàn thành", color: "dark" },
+  8: { label: "Chờ hàng", color: "warning" },
+};
+
 function SalesDashboard() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [revenueData, setRevenueData] = useState([]);
@@ -156,12 +180,15 @@ function SalesDashboard() {
         return date.getFullYear() === year;
       });
       const statusMap = {
-        1: { label: "Chờ xử lý", color: "warning" },
-        2: { label: "Chấp thuận", color: "info" },
-        3: { label: "Từ chối", color: "danger" },
-        4: { label: "Đã giao hàng", color: "primary" },
-        5: { label: "Hoàn thành", color: "success" },
-        6: { label: "Chưa hoàn thành", color: "secondary" },
+        0: { label: "Nháp", color: "secondary" },
+        1: { label: "Chờ xử lý", color: "warning" }, // Send
+        2: { label: "Chấp thuận", color: "info" }, // Approved
+        3: { label: "Từ chối", color: "danger" }, // Rejected
+        4: { label: "Xuất 1 phần", color: "primary" }, // PartiallyDelivered
+        5: { label: "Đã giao hàng", color: "primary" }, // Delivered
+        6: { label: "Hoàn thành", color: "success" }, // Complete
+        7: { label: "Không hoàn thành", color: "dark" }, // NotComplete
+        8: { label: "Chờ hàng", color: "warning" }, // BackSalesOrder
       };
 
       const aggregated = ordersInYear.reduce((acc, order) => {
@@ -174,16 +201,7 @@ function SalesDashboard() {
 
         let status = rawStatus;
         if (typeof rawStatus === "string" && rawStatus !== "") {
-          const enumMap = {
-            Draft: 0,
-            Send: 1,
-            Approved: 2,
-            Rejected: 3,
-            Delivered: 4,
-            Complete: 5,
-            NotComplete: 6,
-          };
-          status = enumMap[rawStatus] ?? rawStatus;
+          status = STATUS_ENUM[rawStatus] ?? rawStatus;
         }
         if (typeof status !== "number") return acc;
         if (status === 0) return acc; // Bỏ nháp
@@ -331,64 +349,17 @@ function SalesDashboard() {
     () => productData.reduce((sum, p) => sum + (p.quantity || 0), 0),
     [productData]
   );
-
-  const getOrderStatusLabel = (status) => {
-    switch (status) {
-      case 0:
-        return "Nháp";
-      case 1:
-        return "Chờ xử lý";
-      case 2:
-        return "Chấp thuận";
-      case 3:
-        return "Từ chối";
-      case 4:
-        return "Đã giao hàng";
-      case 5:
-        return "Hoàn thành";
-      case 6:
-        return "Chưa hoàn thành";
-      default:
-        return "Không xác định";
-    }
-  };
-
-  const getOrderStatusBadge = (status) => {
-    const label = getOrderStatusLabel(status);
-    let color = "secondary";
-
-    switch (status) {
-      case 0: // Nháp
-        color = "secondary";
-        break;
-      case 1: // Chờ xử lý
-        color = "warning";
-        break;
-      case 2: // Chấp thuận
-        color = "info";
-        break;
-      case 3: // Từ chối
-        color = "danger";
-        break;
-      case 4: // Đã giao hàng
-        color = "primary";
-        break;
-      case 5: // Hoàn thành
-        color = "success";
-        break;
-      case 6: // Chưa hoàn thành
-        color = "dark";
-        break;
-      default:
-        color = "secondary";
-    }
-
-    return (
-      <Badge bg={color} pill className="px-3 py-2 fw-normal">
-        {label}
-      </Badge>
-    );
-  };
+  const getStatusLabel = (status) =>
+    STATUS_DEFINITIONS[status]?.label ?? "Không xác định";
+  const getStatusBadge = (status) => (
+    <Badge
+      bg={STATUS_DEFINITIONS[status]?.color ?? "secondary"}
+      pill
+      className="px-3 py-2 fw-normal"
+    >
+      {getStatusLabel(status)}
+    </Badge>
+  );
 
   if (loading && !revenueData.length && !productData.length) {
     return (
@@ -600,7 +571,12 @@ function SalesDashboard() {
                   </span>
                 </Badge>
               </Card.Header>
-              <Card.Body className="p-0">
+
+              {/* Giới hạn height và thêm scroll */}
+              <Card.Body
+                className="p-0"
+                style={{ maxHeight: "250px", overflowY: "auto" }}
+              >
                 <div className="table-responsive">
                   <table className="table table-borderless align-middle mb-0">
                     <thead className="bg-light text-muted">
@@ -631,9 +607,7 @@ function SalesDashboard() {
                               {formatCurrency(o.total)}
                             </td>
                             <td className="text-center">
-                              {typeof o.status === "number"
-                                ? getOrderStatusBadge(o.status)
-                                : "-"}
+                              {getStatusBadge(o.status)}
                             </td>
                           </tr>
                         ))
