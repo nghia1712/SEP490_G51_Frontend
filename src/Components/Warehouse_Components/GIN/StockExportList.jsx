@@ -547,7 +547,22 @@ export default function StockExportList() {
                         <TableCell align="center">
                           {item.stockExportOrderCode}
                         </TableCell>
-                        <TableCell>{item.salesOrderCode}</TableCell>
+                        <TableCell
+                          sx={{
+                            color: "primary.main",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/sales/orders", {
+                              state: { searchOrderCode: item.salesOrderCode },
+                            });
+                          }}
+                        >
+                          {item.salesOrderCode}
+                        </TableCell>
                         <TableCell align="center">
                           {item.requestDate
                             ? new Date(item.requestDate).toLocaleDateString(
