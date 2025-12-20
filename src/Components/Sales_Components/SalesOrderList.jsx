@@ -165,43 +165,6 @@ const SalesOrderList = () => {
     }
   };
 
-<<<<<<< HEAD
-  const [orders, setOrders] = useState([]);
-
-  const [loading, setLoading] = useState(false);
-  const isFetchingRef = useRef(false); // Flag để tránh gọi nhiều lần
-
-  const [error, setError] = useState(null);
-
-  const [sortConfig, setSortConfig] = useState({
-    key: "code",
-    direction: "desc",
-  }); // Mặc định sort theo mã đơn hàng từ mới nhất đến cũ nhất
-
-  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
-  const [searchOrderCode, setSearchOrderCode] = useState("");
-  const [searchCustomerName, setSearchCustomerName] = useState("");
-
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-
-  const [detailLoading, setDetailLoading] = useState(false);
-
-  const [detailError, setDetailError] = useState(null);
-
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
-
-  const [orderDetails, setOrderDetails] = useState(null);
-
-  const [page, setPage] = useState(1);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectOrderId, setRejectOrderId] = useState(null);
-  const [rejectLoading, setRejectLoading] = useState(false);
-  const [rejectError, setRejectError] = useState(null);
-
-  const pageSize = 5;
-
   const fetchOrders = useCallback(async (showLoading = true) => {
     // Tránh gọi nhiều lần cùng lúc
     if (isFetchingRef.current) {

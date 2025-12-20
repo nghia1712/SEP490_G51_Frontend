@@ -67,10 +67,6 @@ const InvoiceList = () => {
   });
   const [page, setPage] = useState(1);
   const pageSize = 5;
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("3");
-  const [paymentAmount, setPaymentAmount] = useState("");
   const [creatingPaymentRemain, setCreatingPaymentRemain] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [invoiceDetail, setInvoiceDetail] = useState(null);
@@ -83,8 +79,13 @@ const InvoiceList = () => {
       
       // Apply status filter
       if (statusFilter !== "all") {
-        const filterStatus = Number(statusFilter);
-        filtered = filtered.filter((invoice) => invoice.status === filterStatus);
+        if (statusFilter === "paid") {
+          // Filter for paid invoices
+          filtered = filtered.filter((invoice) => invoice.isPaid === true);
+        } else {
+          const filterStatus = Number(statusFilter);
+          filtered = filtered.filter((invoice) => invoice.status === filterStatus);
+        }
       }
       
       // Apply search filter
@@ -112,27 +113,37 @@ const InvoiceList = () => {
       const invoiceList = response.data?.data || response.data || [];
 
       if (Array.isArray(invoiceList)) {
-        const mappedInvoices = invoiceList.map((invoice) => ({
-          id: invoice.id || invoice.Id,
-          invoiceCode: invoice.invoiceCode || invoice.InvoiceCode || "-",
-          customerCode: invoice.customerCode || invoice.CustomerCode || "-", // Cần lấy từ SalesOrder
-          orderCode:
-            invoice.salesOrderCode ||
-            invoice.SalesOrderCode ||
-            `SO-${invoice.salesOrderId || invoice.SalesOrderId}`,
-          status:
-            invoice.status !== undefined
-              ? invoice.status
-              : invoice.Status !== undefined
-              ? invoice.Status
-              : 0,
-          createdAt:
-            invoice.createdAt ||
-            invoice.CreatedAt ||
-            invoice.createAt ||
-            invoice.CreateAt,
-          totalAmount: invoice.totalAmount || invoice.TotalAmount || 0,
-        }));
+        const mappedInvoices = invoiceList.map((invoice) => {
+          const totalAmount = invoice.totalAmount || invoice.TotalAmount || 0;
+          const totalPaid = invoice.totalPaid || invoice.TotalPaid || 0;
+          const totalRemain = invoice.totalRemain || invoice.TotalRemain || totalAmount;
+          const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+          
+          return {
+            id: invoice.id || invoice.Id,
+            invoiceCode: invoice.invoiceCode || invoice.InvoiceCode || "-",
+            customerCode: invoice.customerCode || invoice.CustomerCode || "-", // Cần lấy từ SalesOrder
+            orderCode:
+              invoice.salesOrderCode ||
+              invoice.SalesOrderCode ||
+              `SO-${invoice.salesOrderId || invoice.SalesOrderId}`,
+            status:
+              invoice.status !== undefined
+                ? invoice.status
+                : invoice.Status !== undefined
+                ? invoice.Status
+                : 0,
+            createdAt:
+              invoice.createdAt ||
+              invoice.CreatedAt ||
+              invoice.createAt ||
+              invoice.CreateAt,
+            totalAmount,
+            totalPaid,
+            totalRemain,
+            isPaid,
+          };
+        });
         
         // Remove duplicates dựa trên id hoặc invoiceCode
         const uniqueInvoices = mappedInvoices.reduce((acc, current) => {
@@ -229,7 +240,14 @@ const InvoiceList = () => {
     }));
   };
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (invoice) => {
+    // Check if invoice is paid first
+    if (invoice.isPaid) {
+      return "Đã thanh toán";
+    }
+    
+    // Otherwise, use invoice status
+    const status = invoice.status;
     switch (status) {
       case 0:
         return "Nháp"; // Draft
@@ -242,7 +260,14 @@ const InvoiceList = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (invoice) => {
+    // Check if invoice is paid first
+    if (invoice.isPaid) {
+      return { backgroundColor: "#2e7d32", color: "#fff" }; // Paid - Green
+    }
+    
+    // Otherwise, use invoice status
+    const status = invoice.status;
     switch (status) {
       case 0:
         return { backgroundColor: "#9e9e9e", color: "#fff" }; // Draft - Gray
@@ -329,36 +354,20 @@ const InvoiceList = () => {
     navigate("/accountant/invoices/create");
   };
 
-  const handleOpenPaymentRemainDialog = (invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentMethod("3");
-    setPaymentAmount("");
-    setPaymentDialogOpen(true);
-  };
-
-  const handleClosePaymentRemainDialog = () => {
-    if (creatingPaymentRemain) return;
-    setPaymentDialogOpen(false);
-    setSelectedInvoice(null);
-  };
-
-  const handleCreatePaymentRemain = async () => {
-    if (!selectedInvoice) return;
+  const handleCreatePaymentRemainDirect = async (invoice) => {
+    if (!invoice) return;
     setCreatingPaymentRemain(true);
     try {
+      // Tạo yêu cầu thanh toán với số tiền đầy đủ (totalRemain)
       const payload = {
-        invoiceId: selectedInvoice.id,
-        paymentMethod: Number(paymentMethod),
+        invoiceId: invoice.id,
+        paymentMethod: 3, // Chuyển khoản (mặc định)
         paymentType: 1,
+        // Không truyền amount để thu hết phần còn lại
       };
-      if (paymentAmount !== "") {
-        payload.amount = Number(paymentAmount);
-      }
       await paymentRemainAPI.createPaymentRemainRequest(payload);
       setSnackbarMessage("Đã tạo yêu cầu thanh toán phần còn lại");
       setSnackbarOpen(true);
-      setPaymentDialogOpen(false);
-      setSelectedInvoice(null);
       fetchInvoices();
       navigate("/payment-remain");
     } catch (err) {
@@ -410,12 +419,14 @@ const InvoiceList = () => {
           </IconButton>
         </Tooltip>
       );
-    } else if (invoice.status === 1) {
+    } else if (invoice.status === 1 && !invoice.isPaid) {
+      // Only show payment remain button if invoice is sent but not paid yet
       actions.push(
         <Tooltip key="payment-remain" title="Tạo yêu cầu thanh toán">
           <IconButton
             size="small"
-            onClick={() => handleOpenPaymentRemainDialog(invoice)}
+            onClick={() => handleCreatePaymentRemainDirect(invoice)}
+            disabled={creatingPaymentRemain}
             sx={{ color: "#2e7d32" }}
           >
             <PaidIcon fontSize="small" />
@@ -497,9 +508,9 @@ const InvoiceList = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <MenuItem value="all">Tất cả</MenuItem>
-                    <MenuItem value="0">Nháp</MenuItem>
                     <MenuItem value="1">Đã Gửi</MenuItem>
                     <MenuItem value="2">Đã Hủy</MenuItem>
+                    <MenuItem value="paid">Đã thanh toán</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -678,9 +689,9 @@ const InvoiceList = () => {
                         <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                         <TableCell>
                           <Chip
-                            label={getStatusLabel(invoice.status)}
+                            label={getStatusLabel(invoice)}
                             size="small"
-                            sx={getStatusColor(invoice.status)}
+                            sx={getStatusColor(invoice)}
                           />
                         </TableCell>
                         <TableCell
@@ -723,64 +734,6 @@ const InvoiceList = () => {
           )}
         </CardContent>
       </Card>
-      <Dialog
-        open={paymentDialogOpen}
-        onClose={handleClosePaymentRemainDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Tạo yêu cầu thanh toán phần còn lại</DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
-            Hóa đơn: <strong>{selectedInvoice?.invoiceCode}</strong>
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Tổng tiền:{" "}
-            {selectedInvoice
-              ? formatCurrency(selectedInvoice.totalAmount)
-              : "-"}
-          </Typography>
-          <FormControl fullWidth margin="dense">
-            <InputLabel id="payment-method-label">
-              Phương thức thanh toán
-            </InputLabel>
-            <Select
-              labelId="payment-method-label"
-              value={paymentMethod}
-              label="Phương thức thanh toán"
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            >
-              <MenuItem value="1">VNPAY</MenuItem>
-              <MenuItem value="2">Tiền mặt</MenuItem>
-              <MenuItem value="3">Chuyển khoản</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label="Số tiền yêu cầu (để trống nếu thu hết phần còn lại)"
-            type="number"
-            fullWidth
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-            inputProps={{ min: 0 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleClosePaymentRemainDialog}
-            disabled={creatingPaymentRemain}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleCreatePaymentRemain}
-            variant="contained"
-            disabled={creatingPaymentRemain}
-          >
-            {creatingPaymentRemain ? "Đang tạo..." : "Tạo yêu cầu"}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Dialog Chi tiết hóa đơn */}
       <Dialog
@@ -906,21 +859,41 @@ const InvoiceList = () => {
                   >
                     <Typography color="text.secondary">Trạng thái:</Typography>
                     <Chip
-                      label={getStatusLabel(
-                        invoiceDetail.status !== undefined
+                      label={(() => {
+                        const totalAmount = invoiceDetail.totalAmount || invoiceDetail.TotalAmount || 0;
+                        const totalPaid = invoiceDetail.totalPaid || invoiceDetail.TotalPaid || 0;
+                        const totalRemain = invoiceDetail.totalRemain || invoiceDetail.TotalRemain || totalAmount;
+                        const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+                        
+                        if (isPaid) {
+                          return "Đã thanh toán";
+                        }
+                        
+                        const status = invoiceDetail.status !== undefined
                           ? invoiceDetail.status
                           : invoiceDetail.Status !== undefined
                           ? invoiceDetail.Status
-                          : 0
-                      )}
+                          : 0;
+                        return getStatusLabel({ status, isPaid: false });
+                      })()}
                       size="small"
-                      sx={getStatusColor(
-                        invoiceDetail.status !== undefined
+                      sx={(() => {
+                        const totalAmount = invoiceDetail.totalAmount || invoiceDetail.TotalAmount || 0;
+                        const totalPaid = invoiceDetail.totalPaid || invoiceDetail.TotalPaid || 0;
+                        const totalRemain = invoiceDetail.totalRemain || invoiceDetail.TotalRemain || totalAmount;
+                        const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+                        
+                        if (isPaid) {
+                          return { backgroundColor: "#2e7d32", color: "#fff" };
+                        }
+                        
+                        const status = invoiceDetail.status !== undefined
                           ? invoiceDetail.status
                           : invoiceDetail.Status !== undefined
                           ? invoiceDetail.Status
-                          : 0
-                      )}
+                          : 0;
+                        return getStatusColor({ status, isPaid: false });
+                      })()}
                     />
                   </Box>
                   <Box

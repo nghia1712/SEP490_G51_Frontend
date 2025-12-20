@@ -156,6 +156,8 @@ const CustomerOrderList = () => {
 
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
 
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
@@ -3193,6 +3195,8 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
         'Vui lòng thanh toán theo hướng dẫn: Chuyển khoản đến tài khoản 4619300024210402 - chủ sở hữu NGUYEN QUANG TRUNG - Ngân hàng Timo. Sau khi thanh toán thành công, vui lòng chờ nhân viên xác nhận hoặc liên hệ 0398233047.'
 
       );
+
+      setSnackbarSeverity('success');
 
       setSnackbarOpen(true);
 
@@ -6484,16 +6488,15 @@ const getPaymentStatusLabelByContext = (paymentStatus, orderStatus, depositInfo,
 
 
       <Snackbar
-
         open={snackbarOpen}
-
         autoHideDuration={6000}
-
         onClose={() => setSnackbarOpen(false)}
-
-        message={snackbarMessage}
-
-      />
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }} variant="filled">
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
 
     </Container>
 

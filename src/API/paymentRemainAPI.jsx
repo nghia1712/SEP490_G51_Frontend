@@ -26,6 +26,10 @@ const paymentRemainAPI = {
   // 🔹 6. Init VNPay for Invoice
   initVnPayForInvoice: (invoiceId, data) =>
     authorApi.post(`${API_URL}/invoices/${invoiceId}/vnpay/init`, data),
+
+  // 🔹 7. Create bank transfer check request for Invoice
+  createBankTransferCheckRequest: (invoiceId, data) =>
+    authorApi.post(`${API_URL}/invoices/${invoiceId}/bank-transfer/check-request`, data),
 };
 
 export default paymentRemainAPI;

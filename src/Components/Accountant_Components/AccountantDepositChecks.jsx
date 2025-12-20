@@ -472,7 +472,7 @@ const AccountantDepositChecks = () => {
                   <Typography color="text.secondary">Khách hàng:</Typography>
                   <Typography fontWeight={500}>
                     {selectedItem.customerName || "-"}
-                  </Typography>
+              </Typography>
                 </Box>
                 <Box
                   sx={{
@@ -484,10 +484,10 @@ const AccountantDepositChecks = () => {
                 >
                   <Typography color="text.secondary">
                     Số tiền khách báo đã thanh toán:
-                  </Typography>
+              </Typography>
                   <Typography fontWeight={500}>
-                    {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
-                  </Typography>
+                {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
+              </Typography>
                 </Box>
                 <Box
                   sx={{
@@ -511,10 +511,10 @@ const AccountantDepositChecks = () => {
                 >
                   <Typography color="text.secondary">Thời gian yêu cầu:</Typography>
                   <Typography fontWeight={500}>
-                    {formatDateTime(selectedItem.requestedAt)}
-                  </Typography>
+                {formatDateTime(selectedItem.requestedAt)}
+              </Typography>
                 </Box>
-                {selectedItem.customerNote && (
+              {selectedItem.customerNote && (
                   <Box
                     sx={{
                       display: "flex",
@@ -527,11 +527,11 @@ const AccountantDepositChecks = () => {
                       Ghi chú của khách hàng:
                     </Typography>
                     <Typography fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
-                      {selectedItem.customerNote}
-                    </Typography>
+                  {selectedItem.customerNote}
+                </Typography>
                   </Box>
-                )}
-                {selectedItem.Reason && (
+              )}
+              {selectedItem.Reason && (
                   <Box
                     sx={{
                       display: "flex",
@@ -543,9 +543,9 @@ const AccountantDepositChecks = () => {
                     <Typography color="error">Lý do từ chối:</Typography>
                     <Typography color="error" fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
                       {selectedItem.Reason}
-                    </Typography>
+                </Typography>
                   </Box>
-                )}
+              )}
             </Stack>
           )}
         </DialogContent>
