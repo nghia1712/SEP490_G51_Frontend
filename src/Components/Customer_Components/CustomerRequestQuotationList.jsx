@@ -60,7 +60,7 @@ const CustomerRequestQuotationList = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'sentDate', direction: 'desc' }); // Mặc định sort theo ngày gửi từ mới nhất đến cũ nhất
+  const [sortConfig, setSortConfig] = useState({ key: 'createdDate', direction: 'desc' }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequestDetails, setSelectedRequestDetails] = useState(null);
   const [pendingRsqId, setPendingRsqId] = useState(null);
@@ -559,10 +559,10 @@ const CustomerRequestQuotationList = () => {
   // Sort requests based on sortConfig
   const sortedRequests = React.useMemo(() => {
     const baseData = filteredRequests;
-    // Nếu không có sortConfig.key, mặc định sort theo sentDate từ mới nhất đến cũ nhất
+    // Nếu không có sortConfig.key, mặc định sort theo createdDate từ mới nhất đến cũ nhất
     const effectiveSortConfig = sortConfig.key 
       ? sortConfig 
-      : { key: 'sentDate', direction: 'desc' };
+      : { key: 'createdDate', direction: 'desc' };
 
     const sorted = [...baseData].sort((a, b) => {
       let aValue, bValue;

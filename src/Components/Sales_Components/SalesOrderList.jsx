@@ -1056,10 +1056,10 @@ const SalesOrderList = () => {
   // Sort orders
 
   const sortedOrders = useMemo(() => {
-    // Nếu không có sortConfig.key, mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
+    // Nếu không có sortConfig.key, mặc định sort theo mã đơn hàng từ mới nhất đến cũ nhất
     const effectiveSortConfig = sortConfig.key
       ? sortConfig
-      : { key: "createdAt", direction: "desc" };
+      : { key: "code", direction: "desc" };
 
     return [...filteredOrders].sort((a, b) => {
       let aValue = a[effectiveSortConfig.key];
@@ -2011,7 +2011,7 @@ const SalesOrderList = () => {
                         direction={
                           sortConfig.key === "code"
                             ? sortConfig.direction
-                            : "asc"
+                            : "desc"
                         }
                         onClick={() => handleSort("code")}
                         hideSortIcon

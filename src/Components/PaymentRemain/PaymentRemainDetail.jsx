@@ -6,11 +6,10 @@ import {
   DialogActions,
   Button,
   Chip,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-  Tooltip,
+  Typography,
+  Box,
+  Stack,
+  Paper,
 } from "@mui/material";
 
 const PaymentRemainDetail = ({ open, onClose, data }) => {
@@ -51,79 +50,126 @@ const PaymentRemainDetail = ({ open, onClose, data }) => {
   const formatDateTime = (date) =>
     date ? new Date(date).toLocaleDateString("vi-VN") : "-";
 
-  // ====== Detail Rows ======
-  const detailRows = [
-    ["Mã đơn hàng", data.salesOrderCode || data.salesOrderId],
-    ["Mã hóa đơn", data.invoiceCode || "-"],
-    [
-      "Tổng giá trị đơn hàng",
-      formatCurrency(data.salesOrderTotalPrice),
-      "text.secondary",
-      true, // in đậm
-    ],
-    [
-      "Số tiền đã thanh toán",
-      formatCurrency(data.salesOrderPaidAmount),
-      "success.main",
-    ],
-    [
-      "Số tiền cần thanh toán",
-      formatCurrency(data.amount),
-      data.amount > 0 ? "warning.main" : "text.primary",
-    ],
-    ["Trạng thái đơn hàng", renderStatus(data.vnPayStatus)],
-    ["Ngày tạo yêu cầu", formatDateTime(data.requestCreatedAt)],
-    ["Ngày thanh toán", formatDateTime(data.paidAt)],
-  ];
-
   return (
-    <Dialog className="payment-remain-detail-dialog" open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle className="payment-remain-detail-dialog-title"
-        sx={{ textAlign: "center", fontSize: "1.5rem", fontWeight: "bold" }}
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        fontWeight={"bold"}
+        sx={{ textAlign: "center", fontSize: "1.4rem" }}
       >
         Chi tiết yêu cầu thanh toán
       </DialogTitle>
-      <DialogContent className="payment-remain-detail-dialog-content" dividers sx={{ p: 2 }}>
-        <Table size="small">
-          <TableBody>
-            {detailRows.map(([label, value, color, bold], idx) => (
-              <TableRow key={idx} sx={{ borderBottom: "1px solid #eee" }}>
-                <TableCell
-                  sx={{
-                    width: "30%",
-                    fontWeight: "bold",
-                    backgroundColor: "#f9f9f9",
-                    p: 1,
-                    textAlign: "left",
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  {label}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    p: 1,
-                    textAlign: "right",
-                    color: color || "text.primary",
-                    fontWeight: bold ? "bold" : "normal",
-                    fontSize: "1rem",
-                  }}
-                >
-                  {typeof value === "string" && value.length > 50 ? (
-                    <Tooltip title={value}>{value.slice(0, 50)}...</Tooltip>
-                  ) : (
-                    value
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <DialogContent dividers>
+        <Stack spacing={1.2}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Mã đơn hàng:</Typography>
+            <Typography fontWeight={500}>
+              {data.salesOrderCode || data.salesOrderId || "-"}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Mã hóa đơn:</Typography>
+            <Typography fontWeight={500}>
+              {data.invoiceCode || "-"}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Tổng giá trị đơn hàng:</Typography>
+            <Typography fontWeight={500}>
+              {formatCurrency(data.salesOrderTotalPrice)}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Số tiền đã thanh toán:</Typography>
+            <Typography fontWeight={500} color="success.main">
+              {formatCurrency(data.salesOrderPaidAmount)}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Số tiền cần thanh toán:</Typography>
+            <Typography
+              fontWeight={500}
+              color={data.amount > 0 ? "warning.main" : "text.primary"}
+            >
+              {formatCurrency(data.amount)}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Typography color="text.secondary">Trạng thái đơn hàng:</Typography>
+            {renderStatus(data.vnPayStatus)}
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Ngày tạo yêu cầu:</Typography>
+            <Typography fontWeight={500}>
+              {formatDateTime(data.requestCreatedAt)}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography color="text.secondary">Ngày thanh toán:</Typography>
+            <Typography fontWeight={500}>
+              {formatDateTime(data.paidAt)}
+            </Typography>
+          </Box>
+        </Stack>
       </DialogContent>
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontSize: "1rem" }}>
-          Đóng
-        </Button>
+        <Button onClick={onClose}>Đóng</Button>
       </DialogActions>
     </Dialog>
   );

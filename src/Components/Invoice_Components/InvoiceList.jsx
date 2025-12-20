@@ -67,11 +67,11 @@ const InvoiceList = () => {
   });
   const [page, setPage] = useState(1);
   const pageSize = 5;
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("3");
-  const [paymentAmount, setPaymentAmount] = useState("");
   const [creatingPaymentRemain, setCreatingPaymentRemain] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -79,8 +79,13 @@ const InvoiceList = () => {
       
       // Apply status filter
       if (statusFilter !== "all") {
-        const filterStatus = Number(statusFilter);
-        filtered = filtered.filter((invoice) => invoice.status === filterStatus);
+        if (statusFilter === "paid") {
+          // Filter for paid invoices
+          filtered = filtered.filter((invoice) => invoice.isPaid === true);
+        } else {
+          const filterStatus = Number(statusFilter);
+          filtered = filtered.filter((invoice) => invoice.status === filterStatus);
+        }
       }
       
       // Apply search filter
@@ -108,29 +113,53 @@ const InvoiceList = () => {
       const invoiceList = response.data?.data || response.data || [];
 
       if (Array.isArray(invoiceList)) {
-        const mappedInvoices = invoiceList.map((invoice) => ({
-          id: invoice.id || invoice.Id,
-          invoiceCode: invoice.invoiceCode || invoice.InvoiceCode || "-",
-          customerCode: invoice.customerCode || invoice.CustomerCode || "-", // Cần lấy từ SalesOrder
-          orderCode:
-            invoice.salesOrderCode ||
-            invoice.SalesOrderCode ||
-            `SO-${invoice.salesOrderId || invoice.SalesOrderId}`,
-          status:
-            invoice.status !== undefined
-              ? invoice.status
-              : invoice.Status !== undefined
-              ? invoice.Status
-              : 0,
-          createdAt:
-            invoice.createdAt ||
-            invoice.CreatedAt ||
-            invoice.createAt ||
-            invoice.CreateAt,
-          totalAmount: invoice.totalAmount || invoice.TotalAmount || 0,
-        }));
-        setAllInvoices(mappedInvoices);
-        setInvoices(applyStatusFilter(mappedInvoices));
+        const mappedInvoices = invoiceList.map((invoice) => {
+          const totalAmount = invoice.totalAmount || invoice.TotalAmount || 0;
+          const totalPaid = invoice.totalPaid || invoice.TotalPaid || 0;
+          const totalRemain = invoice.totalRemain || invoice.TotalRemain || totalAmount;
+          const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+          
+          return {
+            id: invoice.id || invoice.Id,
+            invoiceCode: invoice.invoiceCode || invoice.InvoiceCode || "-",
+            customerCode: invoice.customerCode || invoice.CustomerCode || "-", // Cần lấy từ SalesOrder
+            orderCode:
+              invoice.salesOrderCode ||
+              invoice.SalesOrderCode ||
+              `SO-${invoice.salesOrderId || invoice.SalesOrderId}`,
+            status:
+              invoice.status !== undefined
+                ? invoice.status
+                : invoice.Status !== undefined
+                ? invoice.Status
+                : 0,
+            createdAt:
+              invoice.createdAt ||
+              invoice.CreatedAt ||
+              invoice.createAt ||
+              invoice.CreateAt,
+            totalAmount,
+            totalPaid,
+            totalRemain,
+            isPaid,
+          };
+        });
+        
+        // Remove duplicates dựa trên id hoặc invoiceCode
+        const uniqueInvoices = mappedInvoices.reduce((acc, current) => {
+          const existing = acc.find(
+            (item) =>
+              item.id === current.id ||
+              item.invoiceCode === current.invoiceCode
+          );
+          if (!existing) {
+            acc.push(current);
+          }
+          return acc;
+        }, []);
+        
+        setAllInvoices(uniqueInvoices);
+        setInvoices(applyStatusFilter(uniqueInvoices));
       } else {
         setAllInvoices([]);
         setInvoices([]);
@@ -211,7 +240,14 @@ const InvoiceList = () => {
     }));
   };
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (invoice) => {
+    // Check if invoice is paid first
+    if (invoice.isPaid) {
+      return "Đã thanh toán";
+    }
+    
+    // Otherwise, use invoice status
+    const status = invoice.status;
     switch (status) {
       case 0:
         return "Nháp"; // Draft
@@ -224,7 +260,14 @@ const InvoiceList = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (invoice) => {
+    // Check if invoice is paid first
+    if (invoice.isPaid) {
+      return { backgroundColor: "#2e7d32", color: "#fff" }; // Paid - Green
+    }
+    
+    // Otherwise, use invoice status
+    const status = invoice.status;
     switch (status) {
       case 0:
         return { backgroundColor: "#9e9e9e", color: "#fff" }; // Draft - Gray
@@ -241,11 +284,10 @@ const InvoiceList = () => {
     if (!dateString) return "-";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch {
       return dateString;
     }
@@ -253,15 +295,40 @@ const InvoiceList = () => {
 
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return "0 ₫";
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
+    // Format với dấu phẩy (,) thay vì dấu chấm (.)
+    const formatted = new Intl.NumberFormat("vi-VN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
+    // Thay dấu chấm thành dấu phẩy và thêm ký hiệu ₫
+    return formatted.replace(/\./g, ",") + " ₫";
   };
 
-  const handleView = (invoiceId) => {
-    // Navigate to invoice detail page
-    navigate(`/accountant/invoices/${invoiceId}`);
+  const handleView = async (invoiceId) => {
+    setDetailDialogOpen(true);
+    setDetailLoading(true);
+    setDetailError(null);
+    setInvoiceDetail(null);
+    
+    try {
+      const response = await invoiceAPI.getInvoiceById(invoiceId);
+      const data = response?.data?.data || response?.data;
+      setInvoiceDetail(data);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Không thể tải chi tiết hóa đơn";
+      setDetailError(errorMessage);
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDetailDialog = () => {
+    setDetailDialogOpen(false);
+    setInvoiceDetail(null);
+    setDetailError(null);
   };
 
   const handleEdit = (invoiceId) => {
@@ -287,36 +354,20 @@ const InvoiceList = () => {
     navigate("/accountant/invoices/create");
   };
 
-  const handleOpenPaymentRemainDialog = (invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentMethod("3");
-    setPaymentAmount("");
-    setPaymentDialogOpen(true);
-  };
-
-  const handleClosePaymentRemainDialog = () => {
-    if (creatingPaymentRemain) return;
-    setPaymentDialogOpen(false);
-    setSelectedInvoice(null);
-  };
-
-  const handleCreatePaymentRemain = async () => {
-    if (!selectedInvoice) return;
+  const handleCreatePaymentRemainDirect = async (invoice) => {
+    if (!invoice) return;
     setCreatingPaymentRemain(true);
     try {
+      // Tạo yêu cầu thanh toán với số tiền đầy đủ (totalRemain)
       const payload = {
-        invoiceId: selectedInvoice.id,
-        paymentMethod: Number(paymentMethod),
+        invoiceId: invoice.id,
+        paymentMethod: 3, // Chuyển khoản (mặc định)
         paymentType: 1,
+        // Không truyền amount để thu hết phần còn lại
       };
-      if (paymentAmount !== "") {
-        payload.amount = Number(paymentAmount);
-      }
       await paymentRemainAPI.createPaymentRemainRequest(payload);
       setSnackbarMessage("Đã tạo yêu cầu thanh toán phần còn lại");
       setSnackbarOpen(true);
-      setPaymentDialogOpen(false);
-      setSelectedInvoice(null);
       fetchInvoices();
       navigate("/payment-remain");
     } catch (err) {
@@ -368,13 +419,15 @@ const InvoiceList = () => {
           </IconButton>
         </Tooltip>
       );
-    } else if (invoice.status === 1) {
+    } else if (invoice.status === 1 && !invoice.isPaid) {
+      // Only show payment remain button if invoice is sent but not paid yet
       actions.push(
         <Tooltip key="payment-remain" title="Tạo yêu cầu thanh toán">
           <IconButton
             size="small"
-            onClick={() => handleOpenPaymentRemainDialog(invoice)}
-            sx={{ color: "#0288d1" }}
+            onClick={() => handleCreatePaymentRemainDirect(invoice)}
+            disabled={creatingPaymentRemain}
+            sx={{ color: "#2e7d32" }}
           >
             <PaidIcon fontSize="small" />
           </IconButton>
@@ -383,7 +436,7 @@ const InvoiceList = () => {
     }
 
     actions.push(
-      <Tooltip key="view" title="Xem">
+      <Tooltip key="view" title="Xem chi tiết">
         <IconButton
           size="small"
           onClick={() => handleView(invoice.id)}
@@ -455,9 +508,9 @@ const InvoiceList = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <MenuItem value="all">Tất cả</MenuItem>
-                    <MenuItem value="0">Nháp</MenuItem>
                     <MenuItem value="1">Đã Gửi</MenuItem>
                     <MenuItem value="2">Đã Hủy</MenuItem>
+                    <MenuItem value="paid">Đã thanh toán</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -568,7 +621,7 @@ const InvoiceList = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      sx={{ width: "18%", py: 1.5, px: 2, textAlign: "right" }}
+                      sx={{ width: "18%", py: 1.5, px: 2, textAlign: "center" }}
                     >
                       <TableSortLabel
                         active={sortConfig.key === "totalAmount"}
@@ -636,14 +689,14 @@ const InvoiceList = () => {
                         <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                         <TableCell>
                           <Chip
-                            label={getStatusLabel(invoice.status)}
+                            label={getStatusLabel(invoice)}
                             size="small"
-                            sx={getStatusColor(invoice.status)}
+                            sx={getStatusColor(invoice)}
                           />
                         </TableCell>
                         <TableCell
                           sx={{
-                            textAlign: "right",
+                            textAlign: "center",
                             fontWeight: 500,
                             textTransform: "none",
                           }}
@@ -681,62 +734,275 @@ const InvoiceList = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog Chi tiết hóa đơn */}
       <Dialog
-        open={paymentDialogOpen}
-        onClose={handleClosePaymentRemainDialog}
-        maxWidth="sm"
+        open={detailDialogOpen}
+        onClose={handleCloseDetailDialog}
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Tạo yêu cầu thanh toán phần còn lại</DialogTitle>
+        <DialogTitle
+          fontWeight={"bold"}
+          sx={{ textAlign: "center", fontSize: "1.4rem" }}
+        >
+          Chi tiết hóa đơn
+        </DialogTitle>
         <DialogContent dividers>
-          <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
-            Hóa đơn: <strong>{selectedInvoice?.invoiceCode}</strong>
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Tổng tiền:{" "}
-            {selectedInvoice
-              ? formatCurrency(selectedInvoice.totalAmount)
-              : "-"}
-          </Typography>
-          <FormControl fullWidth margin="dense">
-            <InputLabel id="payment-method-label">
-              Phương thức thanh toán
-            </InputLabel>
-            <Select
-              labelId="payment-method-label"
-              value={paymentMethod}
-              label="Phương thức thanh toán"
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            >
-              <MenuItem value="1">VNPAY</MenuItem>
-              <MenuItem value="2">Tiền mặt</MenuItem>
-              <MenuItem value="3">Chuyển khoản</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            margin="dense"
-            label="Số tiền yêu cầu (để trống nếu thu hết phần còn lại)"
-            type="number"
-            fullWidth
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-            inputProps={{ min: 0 }}
-          />
+          {detailLoading ? (
+            <Stack alignItems="center" mt={3}>
+              <CircularProgress />
+            </Stack>
+          ) : detailError ? (
+            <Alert severity="error">{detailError}</Alert>
+          ) : invoiceDetail ? (
+            <>
+              {/* Thông tin hóa đơn */}
+              <Paper
+                variant="outlined"
+                sx={{ p: 2.5, borderRadius: 2, mb: 3 }}
+              >
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  gutterBottom
+                  sx={{ mb: 2 }}
+                >
+                  Thông tin hóa đơn
+                </Typography>
+                <Stack spacing={1.2}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Mã hóa đơn:</Typography>
+                    <Typography fontWeight={500}>
+                      {invoiceDetail.invoiceCode || invoiceDetail.InvoiceCode || "-"}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Mã đơn hàng:</Typography>
+                    <Typography fontWeight={500}>
+                      {invoiceDetail.salesOrderCode ||
+                        invoiceDetail.SalesOrderCode ||
+                        "-"}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Khách hàng:</Typography>
+                    <Typography fontWeight={500}>
+                      {invoiceDetail.customerName ||
+                        invoiceDetail.CustomerName ||
+                        "-"}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Ngày tạo:</Typography>
+                    <Typography fontWeight={500}>
+                      {formatDate(
+                        invoiceDetail.createdAt ||
+                          invoiceDetail.CreatedAt ||
+                          invoiceDetail.createAt ||
+                          invoiceDetail.CreateAt
+                      )}
+                    </Typography>
+                  </Box>
+                  {(invoiceDetail.issuedAt || invoiceDetail.IssuedAt) && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography color="text.secondary">Ngày phát hành:</Typography>
+                      <Typography fontWeight={500}>
+                        {formatDate(
+                          invoiceDetail.issuedAt || invoiceDetail.IssuedAt
+                        )}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Trạng thái:</Typography>
+                    <Chip
+                      label={(() => {
+                        const totalAmount = invoiceDetail.totalAmount || invoiceDetail.TotalAmount || 0;
+                        const totalPaid = invoiceDetail.totalPaid || invoiceDetail.TotalPaid || 0;
+                        const totalRemain = invoiceDetail.totalRemain || invoiceDetail.TotalRemain || totalAmount;
+                        const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+                        
+                        if (isPaid) {
+                          return "Đã thanh toán";
+                        }
+                        
+                        const status = invoiceDetail.status !== undefined
+                          ? invoiceDetail.status
+                          : invoiceDetail.Status !== undefined
+                          ? invoiceDetail.Status
+                          : 0;
+                        return getStatusLabel({ status, isPaid: false });
+                      })()}
+                      size="small"
+                      sx={(() => {
+                        const totalAmount = invoiceDetail.totalAmount || invoiceDetail.TotalAmount || 0;
+                        const totalPaid = invoiceDetail.totalPaid || invoiceDetail.TotalPaid || 0;
+                        const totalRemain = invoiceDetail.totalRemain || invoiceDetail.TotalRemain || totalAmount;
+                        const isPaid = totalRemain === 0 || totalPaid >= totalAmount;
+                        
+                        if (isPaid) {
+                          return { backgroundColor: "#2e7d32", color: "#fff" };
+                        }
+                        
+                        const status = invoiceDetail.status !== undefined
+                          ? invoiceDetail.status
+                          : invoiceDetail.Status !== undefined
+                          ? invoiceDetail.Status
+                          : 0;
+                        return getStatusColor({ status, isPaid: false });
+                      })()}
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">Tổng tiền:</Typography>
+                    <Typography fontWeight={500}>
+                      {formatCurrency(
+                        invoiceDetail.totalAmount ||
+                          invoiceDetail.TotalAmount ||
+                          0
+                      )}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+              {/* Chi tiết phiếu xuất kho */}
+              {invoiceDetail.details &&
+                Array.isArray(invoiceDetail.details) &&
+                invoiceDetail.details.length > 0 && (
+                  <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                    <Typography
+                      variant="h6"
+                      fontWeight="bold"
+                      gutterBottom
+                      sx={{ mb: 2 }}
+                    >
+                      Chi tiết phiếu xuất kho
+                    </Typography>
+                    <Table size="small">
+                      <TableHead
+                        sx={{
+                          backgroundColor: "#f5f5f5",
+                          "& .MuiTableCell-root": { fontWeight: "bold" },
+                        }}
+                      >
+                        <TableRow>
+                          <TableCell>STT</TableCell>
+                          <TableCell>Mã phiếu xuất kho</TableCell>
+                          <TableCell>Ngày xuất kho</TableCell>
+                          <TableCell align="right">Số tiền</TableCell>
+                          <TableCell align="right">Cọc đã phân bổ</TableCell>
+                          <TableCell align="right">Đã thanh toán</TableCell>
+                          <TableCell align="right">Còn lại</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {invoiceDetail.details.map((detail, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>
+                              {detail.exportIndex || idx + 1}
+                            </TableCell>
+                            <TableCell>
+                              {detail.goodsIssueNoteCode ||
+                                detail.GoodsIssueNoteCode ||
+                                `GIN-${detail.goodsIssueNoteId || detail.GoodsIssueNoteId || ""}`}
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(
+                                detail.goodsIssueDate ||
+                                  detail.GoodsIssueDate
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(
+                                detail.goodsIssueAmount ||
+                                  detail.GoodsIssueAmount ||
+                                  0
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(
+                                detail.allocatedDeposit ||
+                                  detail.AllocatedDeposit ||
+                                  0
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(
+                                detail.totalPaidForNote ||
+                                  detail.TotalPaidForNote ||
+                                  0
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              {formatCurrency(
+                                detail.noteBalance ||
+                                  detail.NoteBalance ||
+                                  0
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Paper>
+                )}
+            </>
+          ) : (
+            <Typography>Không có dữ liệu</Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={handleClosePaymentRemainDialog}
-            disabled={creatingPaymentRemain}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleCreatePaymentRemain}
-            variant="contained"
-            disabled={creatingPaymentRemain}
-          >
-            {creatingPaymentRemain ? "Đang tạo..." : "Tạo yêu cầu"}
-          </Button>
+          <Button onClick={handleCloseDetailDialog}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

@@ -28,6 +28,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Pagination,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
@@ -42,10 +43,13 @@ const formatCurrency = (value) => {
   if (value === null || value === undefined) return "-";
   const number = Number(value);
   if (Number.isNaN(number)) return "-";
-  return number.toLocaleString("vi-VN", {
-    style: "currency",
-    currency: "VND",
+  // Format với dấu phẩy (,) thay vì dấu chấm (.)
+  const formatted = number.toLocaleString("vi-VN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
+  // Thay dấu chấm thành dấu phẩy và thêm ký hiệu ₫
+  return formatted.replace(/\./g, ",") + " ₫";
 };
 
 const formatDateTime = (value) => {
@@ -63,9 +67,9 @@ const getStatusChip = (status) => {
     case 0:
       return <Chip label="Chờ xử lý" size="small" color="warning" />;
     case 1:
-      return <Chip label="Đã chấp nhận" size="small" color="success" />;
+      return <Chip label="Chấp nhận" size="small" color="success" />;
     case 2:
-      return <Chip label="Đã từ chối" size="small" color="error" />;
+      return <Chip label="Từ chối" size="small" color="error" />;
     default:
       return <Chip label="Không rõ" size="small" />;
   }
@@ -96,6 +100,8 @@ const AccountantDepositChecks = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 7;
 
   const fetchData = async () => {
     setLoading(true);
@@ -238,6 +244,18 @@ const AccountantDepositChecks = () => {
     })
     .sort((a, b) => (b.id || 0) - (a.id || 0));
 
+  // Phân trang
+  const totalPages = Math.ceil(filteredItems.length / pageSize);
+  const paginatedItems = filteredItems.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  // Reset về trang 1 khi filter thay đổi
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, search]);
+
   return (
     <Box sx={{ p: 3 }}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
@@ -301,8 +319,8 @@ const AccountantDepositChecks = () => {
                     >
                       <MenuItem value="">Tất cả</MenuItem>
                       <MenuItem value="pending">Chờ xử lý</MenuItem>
-                      <MenuItem value="1">Đã chấp nhận</MenuItem>
-                      <MenuItem value="2">Đã từ chối</MenuItem>
+                      <MenuItem value="1">Chấp nhận</MenuItem>
+                      <MenuItem value="2">Từ chối</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -320,7 +338,7 @@ const AccountantDepositChecks = () => {
               <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>STT</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Khách hàng</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Số tiền yêu cầu</TableCell>
@@ -345,9 +363,9 @@ const AccountantDepositChecks = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredItems.map((item, index) => (
+              paginatedItems.map((item, index) => (
                 <TableRow key={item.id || index} hover>
-                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
                   <TableCell>{item.salesOrderCode || "-"}</TableCell>
                   <TableCell>{item.customerName || "-"}</TableCell>
                   <TableCell>
@@ -398,6 +416,18 @@ const AccountantDepositChecks = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+            {/* PAGINATION */}
+            {filteredItems.length > 0 && totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Container>
@@ -409,39 +439,114 @@ const AccountantDepositChecks = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Chi tiết yêu cầu xác nhận thanh toán</DialogTitle>
+        <DialogTitle
+          fontWeight={"bold"}
+          sx={{ textAlign: "center", fontSize: "1.4rem" }}
+        >
+          Chi tiết yêu cầu xác nhận thanh toán
+        </DialogTitle>
         <DialogContent dividers>
           {selectedItem && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Typography>
-                <strong>Mã đơn hàng:</strong> {selectedItem.salesOrderCode || "-"}
+            <Stack spacing={1.2}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Mã đơn hàng:</Typography>
+                  <Typography fontWeight={500}>
+                    {selectedItem.salesOrderCode || "-"}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Khách hàng:</Typography>
+                  <Typography fontWeight={500}>
+                    {selectedItem.customerName || "-"}
               </Typography>
-              <Typography>
-                <strong>Khách hàng:</strong> {selectedItem.customerName || "-"}
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">
+                    Số tiền khách báo đã thanh toán:
               </Typography>
-              <Typography>
-                <strong>Số tiền khách báo đã thanh toán:</strong>{" "}
+                  <Typography fontWeight={500}>
                 {formatCurrency(selectedItem.requestedAmount ?? selectedItem.amount)}
               </Typography>
-              <Typography>
-                <strong>Trạng thái:</strong> {getStatusChip(selectedItem.status)}
-              </Typography>
-              <Typography>
-                <strong>Thời gian yêu cầu:</strong>{" "}
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography color="text.secondary">Trạng thái:</Typography>
+                  {getStatusChip(selectedItem.status)}
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography color="text.secondary">Thời gian yêu cầu:</Typography>
+                  <Typography fontWeight={500}>
                 {formatDateTime(selectedItem.requestedAt)}
               </Typography>
+                </Box>
               {selectedItem.customerNote && (
-                <Typography>
-                  <strong>Ghi chú của khách hàng:</strong>{" "}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="text.secondary">
+                      Ghi chú của khách hàng:
+                    </Typography>
+                    <Typography fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
                   {selectedItem.customerNote}
                 </Typography>
+                  </Box>
               )}
               {selectedItem.Reason && (
-                <Typography color="error">
-                  <strong>Lý do từ chối:</strong> {selectedItem.Reason}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography color="error">Lý do từ chối:</Typography>
+                    <Typography color="error" fontWeight={500} sx={{ textAlign: "right", maxWidth: "60%" }}>
+                      {selectedItem.Reason}
                 </Typography>
+                  </Box>
               )}
-            </Box>
+            </Stack>
           )}
         </DialogContent>
         <DialogActions>

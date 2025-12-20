@@ -60,7 +60,7 @@ const CustomerInvoiceList = () => {
   const [vnPayInitError, setVnPayInitError] = useState('');
   const [vnPayInitLoading, setVnPayInitLoading] = useState(false);
   const [redirectingPayment, setRedirectingPayment] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay'); // 'vnpay', 'transfer', 'cash'
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay'); // 'vnpay', 'manual'
   const paymentWindowRef = useRef(null); // Reference đến tab thanh toán VNPay
 
   const applyStatusFilter = useCallback(
@@ -563,10 +563,36 @@ const CustomerInvoiceList = () => {
     if (selectedPaymentMethod === 'vnpay') {
       handleVnPayCheckout();
     } else {
-      // Với Chuyển khoản và Tiền mặt, hiển thị thông báo
-      const methodName = selectedPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
-      setSnackbarMessage(`Vui lòng liên hệ với nhân viên để xác nhận thanh toán bằng ${methodName}.`);
-    setSnackbarOpen(true);
+      // Với Chuyển khoản / Tiền mặt, tạo bank transfer check request
+      try {
+        setPaymentLoading(true);
+        const payload = {
+          amount: null, // null = thanh toán hết phần còn lại
+          customerNote: null,
+        };
+        await paymentRemainAPI.createBankTransferCheckRequest(paymentInvoiceDetails.id, payload);
+        setSnackbarMessage('Vui lòng thanh toán theo hướng dẫn: Chuyển khoản đến tài khoản 4619300024210402 - chủ sở hữu NGUYEN QUANG TRUNG - Ngân hàng Timo. Sau khi thanh toán thành công, vui lòng chờ nhân viên xác nhận hoặc liên hệ 0398233047.');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        setPaymentDialogOpen(false);
+        
+        // Đợi backend commit xong trước khi refresh (tăng delay để đảm bảo)
+        // Refresh nhiều lần để đảm bảo cập nhật status
+        setTimeout(() => {
+          fetchInvoices(); // Refresh lần 1
+        }, 500);
+        
+        setTimeout(() => {
+          fetchInvoices(); // Refresh lần 2 để đảm bảo
+        }, 1500);
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || 'Không thể tạo yêu cầu thanh toán';
+        setSnackbarMessage(errorMessage);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      } finally {
+        setPaymentLoading(false);
+      }
     }
   };
 
@@ -870,9 +896,9 @@ const CustomerInvoiceList = () => {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }} variant="filled">
           {snackbarMessage}
         </Alert>
       </Snackbar>
@@ -947,13 +973,12 @@ const CustomerInvoiceList = () => {
                         onChange={(e) => handlePaymentMethodChange(e.target.value)}
                       >
                         <MenuItem value="vnpay">VNPay</MenuItem>
-                        <MenuItem value="transfer">Chuyển khoản</MenuItem>
-                        <MenuItem value="cash">Tiền mặt</MenuItem>
+                        <MenuItem value="manual">Chuyển khoản / Tiền mặt</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
 
-                  <Box sx={{ minHeight: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ minHeight: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {selectedPaymentMethod === 'vnpay' ? (
                       <>
                         {vnPayInitLoading ? (
@@ -967,41 +992,28 @@ const CustomerInvoiceList = () => {
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                 {formatCurrency(vnPayInitData?.amount ?? paymentInvoiceDetails.totalRemain)}
-                </Typography>
-              </Box>
+                              </Typography>
+                            </Box>
                             <Typography variant="body2" color="text.secondary" textAlign="center">
                               Nhấn nút thanh toán để chuyển đến cổng VNPay
                             </Typography>
                           </>
                         )}
                       </>
-                    ) : selectedPaymentMethod === 'transfer' ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                        <Alert severity="info">
-                          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Chuyển khoản
-                          </Typography>
-                          <Typography variant="body2">
-                            Vui lòng chuyển khoản số tiền{' '}
-                            <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong> đến tài khoản của chúng tôi.
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Sau khi chuyển khoản, vui lòng liên hệ với nhân viên để xác nhận thanh toán.
-                          </Typography>
-                        </Alert>
-                      </Box>
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                         <Alert severity="info">
                           <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Tiền mặt
+                            Thanh toán bằng Chuyển khoản / Tiền mặt
                           </Typography>
                           <Typography variant="body2">
-                            Số tiền cần thanh toán: <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong>
+                            Vui lòng chuyển khoản số tiền{' '}
+                            <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong> đến tài khoản{' '}
+                            <strong>4619300024210402</strong> - chủ sở hữu <strong>NGUYEN QUANG TRUNG</strong> - Ngân hàng <strong>Timo</strong>.
                           </Typography>
                           <Typography variant="body2" sx={{ mt: 1 }}>
-                            Vui lòng liên hệ với nhân viên để thực hiện thanh toán bằng tiền mặt.
-                </Typography>
+                            Sau khi thanh toán thành công, vui lòng chờ nhân viên để xác nhận thanh toán hoặc liên hệ với nhân viên qua số điện thoại <strong>0398233047</strong>.
+                          </Typography>
                         </Alert>
                       </Box>
                     )}
@@ -1027,10 +1039,8 @@ const CustomerInvoiceList = () => {
             {redirectingPayment 
               ? 'Đang chuyển hướng...' 
               : selectedPaymentMethod === 'vnpay' 
-                ? 'THANH TOÁN VNPAY' 
-                : selectedPaymentMethod === 'transfer'
-                  ? 'Xác nhận Chuyển khoản'
-                  : 'Xác nhận Tiền mặt'}
+                ? 'Thanh toán VNPay' 
+                : 'Xác nhận thanh toán'}
           </Button>
         </DialogActions>
       </Dialog>
