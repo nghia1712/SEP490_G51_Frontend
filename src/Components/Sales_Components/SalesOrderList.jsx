@@ -58,6 +58,7 @@ const headerTextSx = {
 
 const SalesOrderList = () => {
   const location = useLocation();
+  const { state } = location;
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
 
@@ -70,6 +71,16 @@ const SalesOrderList = () => {
     key: "createdAt",
     direction: "desc",
   }); // Mặc định sort theo ngày tạo từ mới nhất đến cũ nhất
+
+  useEffect(() => {
+    if (state?.searchOrderCode) {
+      setSearchOrderCode(state.searchOrderCode);
+      setPage(1);
+
+      // clear state sau khi dùng
+      window.history.replaceState({}, document.title);
+    }
+  }, [state]);
 
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");

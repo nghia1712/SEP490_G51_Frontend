@@ -200,12 +200,8 @@ const ConditionalHome = () => {
     if (roleFromToken === "purchases_staff") {
       return <Navigate to="/purchases-dashboard" replace />;
     } else if (roleFromToken === "customer") {
-      // Customer: hiển thị LandingPage với Simple Header
-      return (
-        <GuestPageWithSimpleHeader>
-          <LandingPage />
-        </GuestPageWithSimpleHeader>
-      );
+      // Customer: redirect về /customer (có header đầy đủ)
+      return <Navigate to="/customer" replace />;
     } else if (roleFromToken === "sales_staff") {
       // Nhân viên bán hàng vào thẳng trang tổng quan bán hàng
       return <Navigate to="/sales-dashboard" replace />;
@@ -215,7 +211,8 @@ const ConditionalHome = () => {
       // Accountant vào thẳng màn tổng quan kế toán
       return <Navigate to="/accountant-dashboard" replace />;
     } else if (roleFromToken === "manager") {
-      return <Navigate to="/manager" replace />;
+      // Manager chuyển hướng đến màn quản lý tài khoản khách hàng
+      return <Navigate to="/admin/users/customer" replace />;
     }
 
     // Fallback: redirect về landing page
@@ -365,9 +362,20 @@ function App() {
             <Route
               path="/search-medicine"
               element={
-                <GuestPageWithSimpleHeader>
-                  <SearchMedicine />
-                </GuestPageWithSimpleHeader>
+                (() => {
+                  const token = localStorage.getItem("authToken");
+                  const role = getUserRoleFromToken();
+                  // Nếu customer đã đăng nhập, redirect về /search-medicines (có header đầy đủ)
+                  if (token && role === "customer") {
+                    return <Navigate to="/search-medicines" replace />;
+                  }
+                  // Guest: dùng SimpleHeader
+                  return (
+                    <GuestPageWithSimpleHeader>
+                      <SearchMedicine />
+                    </GuestPageWithSimpleHeader>
+                  );
+                })()
               }
             />
             <Route path="/login" element={<LoginWithSimpleHeader />} />
@@ -444,11 +452,24 @@ function App() {
                         element={
                           <ProtectedRoute allowedRoles={["customer"]}>
                             <CustomerStatusCheck>
+                              <LandingPage />
+                            </CustomerStatusCheck>
+                          </ProtectedRoute>
+                        }
+                      />
+                      
+                      {/* Search Medicines route với header đầy đủ cho customer */}
+                      <Route
+                        path="/search-medicines"
+                        element={
+                          <ProtectedRoute allowedRoles={["customer"]}>
+                            <CustomerStatusCheck>
                               <SearchMedicine />
                             </CustomerStatusCheck>
                           </ProtectedRoute>
                         }
                       />
+                      
                       {/* Đường dẫn cũ /sales-staff được chuyển hướng về dashboard bán hàng */}
                       <Route
                         path="/sales-staff"
@@ -461,7 +482,6 @@ function App() {
                           <Navigate to="/accountant-dashboard" replace />
                         }
                       />
-                      <Route path="/manager" element={<Landing />} />
 
                       {/* Customer Additional Info Route */}
                       <Route

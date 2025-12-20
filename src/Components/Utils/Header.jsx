@@ -368,6 +368,11 @@ function Header() {
       allowedRoles: ["manager"],
     },
     {
+      label: "Tìm kiếm thuốc",
+      path: "/search-medicines",
+      allowedRoles: ["customer"],
+    },
+    {
       label: "Yêu cầu báo giá",
       path: "/customer/request-quotation",
       allowedRoles: ["customer"],
@@ -548,7 +553,8 @@ function Header() {
       sx={{
         top: 0,
         zIndex: 1100,
-        backgroundColor: palette.medium,
+        backgroundColor:
+          userRole === "customer" ? "#5A9B7F" : palette.medium,
         color: palette.white,
       }}
     >
@@ -1226,6 +1232,44 @@ function Header() {
                   )}
                 </Menu>
               </>
+            ) : userRole === "customer" ? (
+              <>
+                {/* Customer Navigation - Special Style */}
+                {visibleNavItems.map((item) => (
+                  <Button
+                    key={item.path}
+                    color="inherit"
+                    onClick={() => handleNavigate(item.path)}
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: "0.95rem",
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: "8px",
+                      ...(isActiveNavItem(item.path)
+                        ? {
+                            backgroundColor: "#1B6B6F",
+                            color: palette.white,
+                            "&:hover": {
+                              backgroundColor: "#155E64",
+                              color: palette.white,
+                            },
+                          }
+                        : {
+                            color: palette.white,
+                            "&:hover": {
+                              backgroundColor: palette.dark,
+                              color: palette.white,
+                            },
+                          }),
+                    }}
+                  >
+                    {item.label.toUpperCase()}
+                  </Button>
+                ))}
+              </>
             ) : (
               visibleNavItems.map((item) => (
                 <Button
@@ -1844,6 +1888,19 @@ function Header() {
                     )}
                   </List>
                 )}
+              </>
+            ) : userRole === "customer" ? (
+              <>
+                {visibleNavItems.map((item) => (
+                  <ListItem key={item.path} disablePadding>
+                    <ListItemButton
+                      onClick={() => handleMobileNavigate(item.path)}
+                      selected={isActiveNavItem(item.path)}
+                    >
+                      <ListItemText primary={item.label.toUpperCase()} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
               </>
             ) : (
               visibleNavItems.map((item) => (
