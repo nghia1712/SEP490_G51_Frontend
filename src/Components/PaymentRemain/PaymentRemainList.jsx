@@ -129,34 +129,40 @@ const PaymentRemainList = () => {
       const data = res.data?.data || [];
 
       // Chuẩn hóa dữ liệu và loại bỏ bản ghi trùng (theo invoiceCode/invoiceId/salesOrderCode/salesOrderId) cho customer
-      const normalized = data.map((item) => ({
-        ...item,
-        invoiceCode: item.invoiceCode ?? item.InvoiceCode ?? "",
-        salesOrderCode: item.salesOrderCode ?? item.SalesOrderCode ?? "",
-        requestCreatedAt:
-          item.requestCreatedAt ??
-          item.RequestCreatedAt ??
-          item.createdAt ??
-          item.CreatedAt ??
-          null,
-        paymentDate:
-          item.paymentDate ??
-          item.PaymentDate ??
-          item.paidAt ??
-          item.PaidAt ??
-          null,
-        invoiceId: item.invoiceId ?? item.InvoiceId ?? null,
-        salesOrderId: item.salesOrderId ?? item.SalesOrderId ?? null,
-      }));
+      const normalized = data.map((item) => {
+        // PaymentMethod enum: None=0, VnPay=1, Cash=2, BankTransfer=3
+        const paymentMethod = item.paymentMethod ?? item.PaymentMethod ?? null;
+        const paymentMethodNum = paymentMethod !== null ? Number(paymentMethod) : null;
+        
+        return {
+          ...item,
+          invoiceCode: item.invoiceCode ?? item.InvoiceCode ?? "",
+          salesOrderCode: item.salesOrderCode ?? item.SalesOrderCode ?? "",
+          requestCreatedAt:
+            item.requestCreatedAt ??
+            item.RequestCreatedAt ??
+            item.createdAt ??
+            item.CreatedAt ??
+            null,
+          paymentDate:
+            item.paymentDate ??
+            item.PaymentDate ??
+            item.paidAt ??
+            item.PaidAt ??
+            null,
+          invoiceId: item.invoiceId ?? item.InvoiceId ?? null,
+          salesOrderId: item.salesOrderId ?? item.SalesOrderId ?? null,
+          paymentMethod: paymentMethodNum,
+        };
+      });
 
       // Dedupe theo invoiceCode/invoiceId/salesOrderCode/salesOrderId cho mọi role
       const map = new Map();
       // Hàm xếp hạng trạng thái để ưu tiên bản ghi đã thanh toán
       const rankStatus = (s) => {
-        if (s === 3) return 4; // Đã thanh toán
-        if (s === 2) return 3; // Thanh toán một phần
-        if (s === 1) return 2; // Đã đặt cọc / Success
-        if (s === 0) return 1; // Chờ thanh toán / Pending
+        if (s === 1) return 2; // Success - Đã thanh toán
+        if (s === 0) return 1; // Pending - Chưa thanh toán / Chờ xác nhận
+        if (s === 2) return 0; // Failed - Thanh toán thất bại
         return 0;
       };
 
@@ -189,8 +195,32 @@ const PaymentRemainList = () => {
           return;
         }
 
-        // Nếu cùng hạng, ưu tiên bản ghi có thời gian request mới hơn
+        // Nếu cùng hạng, ưu tiên bản ghi có paymentMethod = 3 (BankTransfer) - đã tạo request
         if (rNew === rOld) {
+          const pmNew = item.paymentMethod ?? null;
+          const pmOld = existing.paymentMethod ?? null;
+          
+          // Nếu bản ghi mới có paymentMethod = 3 (BankTransfer) và bản ghi cũ không có thì ưu tiên bản ghi mới
+          if (pmNew === 3 && pmOld !== 3) {
+            map.set(key, item);
+            return;
+          }
+          // Nếu bản ghi cũ có paymentMethod = 3 và bản ghi mới không có thì giữ nguyên
+          if (pmOld === 3 && pmNew !== 3) {
+            return;
+          }
+          
+          // Nếu cả 2 đều có paymentMethod = 3, ưu tiên bản ghi có thời gian request mới hơn
+          if (pmNew === 3 && pmOld === 3) {
+            const t1 = new Date(item.requestCreatedAt || 0).getTime();
+            const t2 = new Date(existing.requestCreatedAt || 0).getTime();
+            if (t1 > t2) {
+              map.set(key, item);
+            }
+            return;
+          }
+          
+          // Nếu cả 2 đều không có paymentMethod = 3, ưu tiên bản ghi có thời gian request mới hơn
           const t1 = new Date(item.requestCreatedAt || 0).getTime();
           const t2 = new Date(existing.requestCreatedAt || 0).getTime();
           if (t1 > t2) {
@@ -268,40 +298,49 @@ const PaymentRemainList = () => {
   }, [filters, fullList, pageSize]);
 
 
-  // Hàm lấy màu cho trạng thái thanh toán (giống CustomerOrderList)
-  const getPaymentStatusColor = (status) => {
-    // VNPayStatus enum: NotPaymentYet=0, Deposited=1, PartiallyPaid=2, Paid=3, Refunded=4
+  // Hàm lấy màu cho trạng thái thanh toán (giống CustomerInvoiceList)
+  const getPaymentStatusColor = (status, paymentMethod) => {
+    // VNPayStatus enum: Pending=0, Success=1, Failed=2
     switch (status) {
-      case 0: // Chờ thanh toán (NotPaymentYet)
-        return { backgroundColor: '#fff3cd', color: '#856404' };
-      case 1: // Đã đặt cọc (Deposited)
-        return { backgroundColor: '#9c27b0', color: '#ffffff' };
-      case 2: // Đã thanh toán 1 phần (PartiallyPaid)
-        return { backgroundColor: '#fff9c4', color: '#f57f17' };
-      case 3: // Đã thanh toán toàn bộ (Paid)
-        return { backgroundColor: '#c8e6c9', color: '#1b5e20' };
-      case 4: // Đã hoàn tiền (Refunded)
-        return { backgroundColor: '#f8bbd0', color: '#880e4f' };
+      case 0: // Pending
+        // Nếu paymentMethod = 3 (BankTransfer) thì là "Chờ xác nhận" (vàng nhạt)
+        // Nếu không thì là "Chưa thanh toán" (cam)
+        if (paymentMethod === 3) {
+          return { backgroundColor: '#fff3cd', color: '#856404' }; // Vàng nhạt - Chờ xác nhận
+        }
+        return { backgroundColor: '#ff9800', color: '#fff' }; // Cam - Chưa thanh toán
+      case 1: // Success - Đã thanh toán thành công
+        return { backgroundColor: '#4caf50', color: '#fff' }; // Xanh lá - giống CustomerInvoiceList
+      case 2: // Failed - Thanh toán thất bại
+        return { backgroundColor: '#f44336', color: '#fff' }; // Đỏ
       default:
         return { backgroundColor: '#e3f2fd', color: '#1976d2' };
     }
   };
 
   // Các hàm render
-  const renderStatus = (vnPayStatus) => {
-    const statusLabels = {
-      0: 'Chờ thanh toán',
-      1: 'Đã đặt cọc',
-      2: 'Thanh toán một phần',
-      3: 'Đã thanh toán',
-      4: 'Đã hoàn tiền',
-    };
+  const renderStatus = (vnPayStatus, paymentMethod) => {
+    // VNPayStatus enum: Pending=0, Success=1, Failed=2
+    // Nếu vnPayStatus = 0 (Pending) và paymentMethod = 3 (BankTransfer) thì là "Chờ xác nhận" (đã tạo request, đợi accountant duyệt)
+    // Nếu vnPayStatus = 0 (Pending) và không phải BankTransfer thì là "Chưa thanh toán"
+    let label = 'Không xác định';
+    
+    if (vnPayStatus === 0) {
+      // Pending
+      label = paymentMethod === 3 ? 'Chờ xác nhận' : 'Chưa thanh toán'; // 3 = BankTransfer
+    } else if (vnPayStatus === 1) {
+      // Success
+      label = 'Đã thanh toán';
+    } else if (vnPayStatus === 2) {
+      // Failed
+      label = 'Thanh toán thất bại';
+    }
     
     return (
       <Chip
-        label={statusLabels[vnPayStatus] || 'Không xác định'}
+        label={label}
         size="small"
-        sx={getPaymentStatusColor(vnPayStatus)}
+        sx={getPaymentStatusColor(vnPayStatus, paymentMethod)}
       />
     );
   };
@@ -534,13 +573,52 @@ const PaymentRemainList = () => {
   const handleConfirmPayment = async () => {
     if (selectedPaymentMethod === 'vnpay') {
       handleVnPayCheckout();
-    } else {
-      const methodName = selectedPaymentMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+      return;
+    }
+
+    if (!paymentInvoiceDetails?.id) {
       setSnack({
         open: true,
-        message: `Vui lòng liên hệ với nhân viên để xác nhận thanh toán bằng ${methodName}.`,
-        severity: "info",
+        message: 'Không tìm thấy thông tin hóa đơn để xác nhận thanh toán.',
+        severity: "error",
       });
+      return;
+    }
+
+    try {
+      setPaymentLoading(true);
+      // Tạo bank transfer check request
+      const payload = {
+        amount: null, // null = thanh toán hết phần còn lại
+        customerNote: null,
+      };
+      const response = await paymentRemainAPI.createBankTransferCheckRequest(paymentInvoiceDetails.id, payload);
+      
+      setSnack({
+        open: true,
+        message: 'Vui lòng thanh toán theo hướng dẫn: Chuyển khoản đến tài khoản 4619300024210402 - chủ sở hữu NGUYEN QUANG TRUNG - Ngân hàng Timo. Sau khi thanh toán thành công, vui lòng chờ nhân viên xác nhận hoặc liên hệ 0398233047.',
+        severity: "success",
+      });
+      setPaymentDialogOpen(false);
+      
+      // Đợi backend commit xong trước khi refresh (tăng delay để đảm bảo)
+      // Refresh nhiều lần để đảm bảo lấy được paymentMethod = 3
+      setTimeout(() => {
+        getList(); // Refresh lần 1
+      }, 500);
+      
+      setTimeout(() => {
+        getList(); // Refresh lần 2 để đảm bảo
+      }, 1500);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Không thể tạo yêu cầu thanh toán';
+      setSnack({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -728,11 +806,8 @@ const PaymentRemainList = () => {
                       }}
                     >
                       <MenuItem value="all">Tất cả</MenuItem>
-                      <MenuItem value={0}>Chờ thanh toán</MenuItem>
-                      <MenuItem value={1}>Đã đặt cọc</MenuItem>
-                      <MenuItem value={2}>Thanh toán một phần</MenuItem>
+                      <MenuItem value={0}>Chưa thanh toán</MenuItem>
                       <MenuItem value={3}>Đã thanh toán</MenuItem>
-                      <MenuItem value={4}>Hoàn tiền</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -776,7 +851,7 @@ const PaymentRemainList = () => {
                         <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
                         <TableCell>{formatDate(item.paymentDate)}</TableCell>
                         <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
-                        <TableCell>{renderStatus(item.vnPayStatus)}</TableCell>
+                        <TableCell>{renderStatus(item.vnPayStatus, item.paymentMethod)}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
                             <Tooltip title="Xem chi tiết">
@@ -872,10 +947,7 @@ const PaymentRemainList = () => {
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
                   <MenuItem value={0}>Chờ thanh toán</MenuItem>
-                  <MenuItem value={1}>Đã đặt cọc</MenuItem>
-                  <MenuItem value={2}>Thanh toán một phần</MenuItem>
                   <MenuItem value={3}>Đã thanh toán</MenuItem>
-                  <MenuItem value={4}>Hoàn tiền</MenuItem>
                 </Select>
               </FormControl>
 
@@ -988,7 +1060,7 @@ const PaymentRemainList = () => {
                               {formatCurrency(item.amount)}
                             </TableCell>
                             <TableCell>
-                              {renderStatus(item.vnPayStatus)}
+                              {renderStatus(item.vnPayStatus, item.paymentMethod)}
                             </TableCell>
                             <TableCell align="right">
                               <Stack
@@ -1130,13 +1202,12 @@ const PaymentRemainList = () => {
                         onChange={(e) => handlePaymentMethodChange(e.target.value)}
                       >
                         <MenuItem value="vnpay">VNPay</MenuItem>
-                        <MenuItem value="transfer">Chuyển khoản</MenuItem>
-                        <MenuItem value="cash">Tiền mặt</MenuItem>
+                        <MenuItem value="manual">Chuyển khoản / Tiền mặt</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
 
-                  <Box sx={{ minHeight: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ minHeight: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {selectedPaymentMethod === 'vnpay' ? (
                       <>
                         {vnPayInitLoading ? (
@@ -1158,32 +1229,19 @@ const PaymentRemainList = () => {
                           </>
                         )}
                       </>
-                    ) : selectedPaymentMethod === 'transfer' ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-                        <Alert severity="info">
-                          <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Chuyển khoản
-                          </Typography>
-                          <Typography variant="body2">
-                            Vui lòng chuyển khoản số tiền{' '}
-                            <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong> đến tài khoản của chúng tôi.
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1 }}>
-                            Sau khi chuyển khoản, vui lòng liên hệ với nhân viên để xác nhận thanh toán.
-                          </Typography>
-                        </Alert>
-                      </Box>
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
                         <Alert severity="info">
                           <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                            Thanh toán bằng Tiền mặt
+                            Thanh toán bằng Chuyển khoản / Tiền mặt
                           </Typography>
                           <Typography variant="body2">
-                            Số tiền cần thanh toán: <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong>
+                            Vui lòng chuyển khoản số tiền{' '}
+                            <strong>{formatCurrency(paymentInvoiceDetails.totalRemain)}</strong> đến tài khoản{' '}
+                            <strong>4619300024210402</strong> - chủ sở hữu <strong>NGUYEN QUANG TRUNG</strong> - Ngân hàng <strong>Timo</strong>.
                           </Typography>
                           <Typography variant="body2" sx={{ mt: 1 }}>
-                            Vui lòng liên hệ với nhân viên để thực hiện thanh toán bằng tiền mặt.
+                            Sau khi thanh toán thành công, vui lòng chờ nhân viên để xác nhận thanh toán hoặc liên hệ với nhân viên qua số điện thoại <strong>0398233047</strong>.
                           </Typography>
                         </Alert>
                       </Box>
@@ -1210,10 +1268,8 @@ const PaymentRemainList = () => {
             {redirectingPayment 
               ? 'Đang chuyển hướng...' 
               : selectedPaymentMethod === 'vnpay' 
-                ? 'THANH TOÁN VNPAY' 
-                : selectedPaymentMethod === 'transfer'
-                  ? 'Xác nhận Chuyển khoản'
-                  : 'Xác nhận Tiền mặt'}
+                ? 'Thanh toán VNPay' 
+                : 'Xác nhận thanh toán'}
           </Button>
         </DialogActions>
       </Dialog>
