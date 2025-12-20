@@ -53,6 +53,7 @@ import {
   Business as BusinessIcon,
   Inventory as InventoryIcon,
   Close as CloseIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { green, red, orange, blue } from "@mui/material/colors";
 import { useNavigate } from "react-router-dom";
@@ -879,13 +880,15 @@ const SupplierList = () => {
                   </Box>
 
                   {/* Nút xóa bộ lọc */}
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handleClearFilters}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={handleClearFilters}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 {/* Nút thêm nhà cung cấp (bên phải) */}
@@ -1160,7 +1163,7 @@ const SupplierList = () => {
                         <Typography variant="h6" color="textSecondary">
                           Không tìm thấy nhà cung cấp nào
                         </Typography>
-                        {(search || activeFiltersCount > 0) && (
+                        {/* {(search || activeFiltersCount > 0) && (
                           <Button
                             variant="outlined"
                             onClick={handleClearFilters}
@@ -1168,7 +1171,7 @@ const SupplierList = () => {
                           >
                             Xóa bộ lọc
                           </Button>
-                        )}
+                        )} */}
                       </Box>
                     </TableCell>
                   </TableRow>

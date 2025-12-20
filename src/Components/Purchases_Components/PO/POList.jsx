@@ -46,6 +46,7 @@ import PODialogs from "./PODialogs";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 import { useEffect } from "react";
 import { useRef } from "react";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 export default function POList() {
   const navigate = useNavigate();
@@ -79,39 +80,6 @@ export default function POList() {
     poList,
   } = usePO();
   const idleTimerRef = useRef(null);
-  const IDLE_TIME = 10000;
-
-  const resetIdleTimer = () => {
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-    }
-
-    idleTimerRef.current = setTimeout(() => {
-      fetchPOs();
-    }, IDLE_TIME);
-  };
-  useEffect(() => {
-    const events = [
-      "mousemove",
-      "mousedown",
-      "keydown",
-      "scroll",
-      "touchstart",
-    ];
-
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
-
-    resetIdleTimer();
-
-    return () => {
-      events.forEach((event) =>
-        window.removeEventListener(event, resetIdleTimer)
-      );
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-      }
-    };
-  }, []);
 
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
@@ -141,10 +109,10 @@ export default function POList() {
   const paginatedPOs = sortedPOs.slice((page - 1) * pageSize, page * pageSize);
 
   const handleClearFilters = () => {
+    fetchPOs();
     setSearch("");
     setReceivingStatusFilter("");
     setOrderStatusFilter("");
-    setPage(1);
   };
 
   const renderStatus = (status) => {
@@ -250,13 +218,15 @@ export default function POList() {
                   </FormControl>
 
                   {/* Button xóa lọc */}
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handleClearFilters}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={handleClearFilters}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 {/* Right group: upload button */}
@@ -358,22 +328,22 @@ export default function POList() {
                           {new Date(po.orderDate).toLocaleDateString("vi-VN")}
                         </TableCell>
                         <TableCell align="center">
-                          {po.status !== 7 && (
-                            <Chip
-                              label={po.receivingStatus}
-                              color={
-                                po.receivingStatus === "Đã nhận đủ"
-                                  ? "success"
-                                  : po.receivingStatus === "Nhận một phần" ||
-                                    po.receivingStatus === "Chờ xác nhận"
-                                  ? "warning"
-                                  : po.receivingStatus === "Chưa nhận"
-                                  ? "info"
-                                  : "default"
-                              }
-                              size="small"
-                            />
-                          )}
+                          {![6, 7].includes(po.status) &&
+                            po.receivingStatus && (
+                              <Chip
+                                label={po.receivingStatus}
+                                color={
+                                  po.receivingStatus === "Đã nhận đủ"
+                                    ? "success"
+                                    : po.receivingStatus === "Nhận một phần"
+                                    ? "warning"
+                                    : po.receivingStatus === "Chưa nhận"
+                                    ? "info"
+                                    : "default"
+                                }
+                                size="small"
+                              />
+                            )}
                         </TableCell>
                         <TableCell align="center">
                           {renderStatus(po.status)}

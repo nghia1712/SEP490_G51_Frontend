@@ -140,6 +140,7 @@ export default function CreatePOFromPQ() {
         <FormControl fullWidth size="small" sx={{ mb: 3, width: 200 }}>
           <InputLabel>Chọn báo giá</InputLabel>
           <Select
+            disabled={sending}
             value={selectedPQId}
             label="Chọn báo giá"
             onChange={(e) => handleSelectPQ(e.target.value)}
@@ -174,7 +175,7 @@ export default function CreatePOFromPQ() {
             <Button
               color="info"
               onClick={() => openCreatePO(quotationToCreatePo.quotationId)}
-              disabled={disableReload}
+              disabled={sending}
             >
               <RefreshIcon />
             </Button>
@@ -233,6 +234,7 @@ export default function CreatePOFromPQ() {
                         type="number"
                         value={item.quantity === 0 ? "" : item.quantity}
                         onChange={(e) => {
+                          if (sending) return;
                           const val = e.target.value;
                           const newQty = val === "" ? "" : Number(val);
 
@@ -282,7 +284,11 @@ export default function CreatePOFromPQ() {
                     <TableCell align="center">{item.maxQty ?? "-"}</TableCell>
                     <TableCell align="center">{item.productDate}</TableCell>
                     <TableCell align="center">
-                      <IconButton color="error" onClick={() => removeItem(i)}>
+                      <IconButton
+                        color="error"
+                        onClick={() => removeItem(i)}
+                        disabled={sending}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -309,7 +315,7 @@ export default function CreatePOFromPQ() {
             onClick={() => handleCreatePO(7)}
             disabled={!quotationToCreatePo?.items?.length || sending}
           >
-            {sending ? <CircularProgress size={20} /> : "Lưu nháp"}
+            Lưu nháp
           </Button>
           <Button
             variant="contained"

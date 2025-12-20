@@ -31,6 +31,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGIN, { mapGINStatus } from "../../../Hooks/useGIN";
 import {
@@ -363,20 +364,23 @@ export default function GRNList() {
                     />
                   </LocalizationProvider>
 
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      isUserFilteringRef.current = true;
-                      setSearch("");
-                      setStatusFilter("");
-                      setStartDate(null);
-                      setEndDate(null);
-                    }}
-                    sx={{ whiteSpace: "nowrap" }}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => {
+                        isUserFilteringRef.current = true;
+                        fetchList();
+                        setSearch("");
+                        setStatusFilter("");
+                        setStartDate(null);
+                        setEndDate(null);
+                      }}
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 {role === "accountant_staff" && (

@@ -1,6 +1,7 @@
 // File: ListCategory.js
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   Container,
   Box,
@@ -585,20 +586,20 @@ function ListCategory() {
                   </FormGroup>
                 </FormControl>
                 {/* CLEAR FILTER */}
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => {
-                    setFilterText("");
-                    setStatusFilter({
-                      "Còn cung cấp": false,
-                      "Ngừng cung cấp": false,
-                    });
-                  }}
-                  sx={{ width: { xs: "100%", sm: "auto" } }}
-                >
-                  Xóa lọc
-                </Button>
+                <Tooltip title="Tải lại">
+                  <IconButton
+                    color="secondary"
+                    onClick={() => {
+                      setFilterText("");
+                      setStatusFilter({
+                        "Còn cung cấp": false,
+                        "Ngừng cung cấp": false,
+                      });
+                    }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
               </Stack>
 
               {/* RIGHT: Nút thêm danh mục */}

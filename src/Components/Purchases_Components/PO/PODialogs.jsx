@@ -269,7 +269,7 @@ export default function PODialogs({
             onClick={() => setPreviewOpen(false)}
             disabled={sending}
           >
-            {sending ? <CircularProgress size={20} /> : "Đóng"}
+            Đóng
           </Button>
           <Button
             variant="contained"

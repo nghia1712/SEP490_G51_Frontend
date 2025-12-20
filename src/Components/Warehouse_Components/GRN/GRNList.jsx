@@ -35,6 +35,7 @@ import {
 import { Visibility, Search, Download, ReceiptLong } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import useGRNList from "../../../Hooks/useGRNList";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { vi as viLocale } from "date-fns/locale";
@@ -170,18 +171,20 @@ export default function GRNListPage() {
                       minDate={startDate || undefined}
                     />
                   </LocalizationProvider>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      setSearch("");
-                      setStartDate(null);
-                      setEndDate(null);
-                    }}
-                    sx={{ whiteSpace: "nowrap" }}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => {
+                        setSearch("");
+                        setStartDate(null);
+                        setEndDate(null);
+                      }}
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 <Button

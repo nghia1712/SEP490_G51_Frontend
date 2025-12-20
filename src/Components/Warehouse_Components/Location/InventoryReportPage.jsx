@@ -34,6 +34,7 @@ import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
   Inventory as InventoryIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import warehouseAPI from "../../../API/warehouseAPI";
 import warehouseLocationAPI from "../../../API/warehouseLocationAPI";
@@ -378,19 +379,21 @@ export default function InventoryReportPage() {
                 />
               </LocalizationProvider>
 
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedWarehouse("");
-                  setSelectedLocation("");
-                  setDateFrom("");
-                  setDateTo("");
-                }}
-              >
-                Xóa lọc
-              </Button>
+              <Tooltip title="Tải lại">
+                <IconButton
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedWarehouse("");
+                    setSelectedLocation("");
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
             </Stack>
           </Paper>
 

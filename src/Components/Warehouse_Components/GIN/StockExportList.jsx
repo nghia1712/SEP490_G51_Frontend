@@ -54,6 +54,7 @@ import useGIN from "../../../Hooks/useGIN";
 import StockExportModal from "./StockExportModal";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 import { useRef } from "react";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 export default function StockExportList() {
   const {
@@ -69,17 +70,7 @@ export default function StockExportList() {
   const isUserFilteringRef = useRef(false);
 
   const idleTimerRef = useRef(null);
-  const IDLE_TIME = 10000;
 
-  const resetIdleTimer = () => {
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-    }
-
-    idleTimerRef.current = setTimeout(() => {
-      refetch();
-    }, IDLE_TIME);
-  };
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
   const location = useLocation();
@@ -329,29 +320,6 @@ export default function StockExportList() {
     setNotEnoughMap(saved);
   }, []);
 
-  useEffect(() => {
-    const events = [
-      "mousemove",
-      "mousedown",
-      "keydown",
-      "scroll",
-      "touchstart",
-    ];
-
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
-
-    resetIdleTimer();
-
-    return () => {
-      events.forEach((event) =>
-        window.removeEventListener(event, resetIdleTimer)
-      );
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-      }
-    };
-  }, []);
-
   return (
     <Box p={3}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
@@ -441,21 +409,24 @@ export default function StockExportList() {
                   </FormControl>
 
                   {/* ✅ NÚT XÓA LỌC */}
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      isUserFilteringRef.current = true;
-                      setSearch("");
-                      setStatusFilter("");
-                    }}
-                    sx={{
-                      whiteSpace: "nowrap",
-                      width: { xs: "100%", sm: "auto" },
-                    }}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => {
+                        refetch();
+                        isUserFilteringRef.current = true;
+                        setSearch("");
+                        setStatusFilter("");
+                      }}
+                      sx={{
+                        whiteSpace: "nowrap",
+                        width: { xs: "100%", sm: "auto" },
+                      }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 {/* BÊN PHẢI - nút tạo, full width trên mobile giống trang thuốc */}
@@ -549,13 +520,19 @@ export default function StockExportList() {
                         </TableCell>
                         <TableCell
                           sx={{
-                            color: "primary.main",
+                            color:
+                              userRole === "sales_staff"
+                                ? "primary.main"
+                                : "text.secondary",
                             fontWeight: 600,
-                            cursor: "pointer",
-                            textDecoration: "underline",
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
+
+                            if (userRole !== "sales_staff") {
+                              return;
+                            }
+
                             navigate("/sales/orders", {
                               state: { searchOrderCode: item.salesOrderCode },
                             });

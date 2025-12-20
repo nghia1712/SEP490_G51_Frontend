@@ -26,6 +26,7 @@ import {
   CardContent,
   Container,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { AccountBalanceWallet } from "@mui/icons-material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import useCustomerDebt from "../../Hooks/useCustomerDebt";
@@ -149,17 +150,18 @@ export default function CustomerDebtList() {
                     <MenuItem value={4}>Quá hạn</MenuItem>
                   </Select>
                 </FormControl>
-
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => {
-                    setStatusFilter("");
-                    setSearchText("");
-                  }}
-                >
-                  Xóa lọc
-                </Button>
+                <Tooltip title="Tải lại">
+                  <IconButton
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      setStatusFilter("");
+                      setSearchText("");
+                    }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
               </Stack>
             </Paper>
 

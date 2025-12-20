@@ -8,7 +8,7 @@ export const statusMap = {
   1: { label: "Từ chối", color: "error" },
   3: { label: "Đã đặt cọc", color: "info" },
   4: { label: "Thanh toán một phần", color: "primary" },
-  5: { label: "Hoàn thành", color: "secondary" },
+  5: { label: "Thanh toán đủ", color: "secondary" },
   6: { label: "Chờ xử lý", color: "warning" },
   7: { label: "Nháp", color: "default" },
 };
@@ -241,14 +241,6 @@ export default function usePO() {
     setSending(true);
     try {
       const res = await prfqApi.convertToPo({ excelKey, details, status: 6 });
-      if (!res?.success) {
-        setSnackbar({
-          open: true,
-          message: res?.data?.message || "Có lỗi xảy ra.",
-          severity: "error",
-        });
-        return;
-      }
       setSnackbar({
         open: true,
         message: "Gửi đơn hàng thành công!",

@@ -264,19 +264,21 @@ export default function PQList() {
                     </Select>
                   </FormControl>
 
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      setSearch("");
-                      setDateFrom("");
-                      setDateTo("");
-                      setStatusFilter("");
-                      setPage(1);
-                    }}
-                  >
-                    Xóa lọc
-                  </Button>
+                  <Tooltip title="Tải lại">
+                    <IconButton
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => {
+                        setSearch("");
+                        setDateFrom("");
+                        setDateTo("");
+                        setStatusFilter("");
+                        setPage(1);
+                      }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
 
                 {/* Right: Nút tải báo giá */}
@@ -641,13 +643,13 @@ export default function PQList() {
                       <TableCell>{item.productName}</TableCell>
                       <TableCell
                         sx={{
-                          maxWidth: 200, // giới hạn chiều rộng cột
+                          maxWidth: 200,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           cursor: "pointer",
                         }}
-                        title={item.productDescription} // tooltip khi hover
+                        title={item.productDescription}
                       >
                         {item.productDescription}
                       </TableCell>
@@ -743,7 +745,7 @@ export default function PQList() {
             disabled={processing}
             variant="outlined"
           >
-            {processing ? <CircularProgress size={20} /> : "Hủy"}
+            Hủy
           </Button>
           <Button
             variant="outlined"
@@ -751,7 +753,7 @@ export default function PQList() {
             onClick={() => handleCreatePO(7)}
             disabled={processing}
           >
-            {processing ? <CircularProgress size={20} /> : "Tạo nháp"}
+            Tạo nháp
           </Button>
           <Button
             variant="contained"

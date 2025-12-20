@@ -34,6 +34,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -480,14 +481,16 @@ const ListProduct = () => {
                   </Box>
                 </FormControl>
                 {/* CLEAR FILTER */}
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleClearFilters}
-                  sx={{ width: { xs: "100%", sm: "auto" } }}
-                >
-                  Xóa lọc
-                </Button>
+                <Tooltip title="Tải lại">
+                  <IconButton
+                    variant="outlined"
+                    color="secondary"
+                    onClick={handleClearFilters}
+                    sx={{ width: { xs: "100%", sm: "auto" } }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
               </Stack>
 
               {/* RIGHT: Nút thêm thuốc */}
