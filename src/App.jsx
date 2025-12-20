@@ -30,6 +30,7 @@ import ChangePassword from "./Components/User_Components/ChangePassword";
 import ViewProfile from "./Components/User_Components/ViewProfile";
 import EditProfile from "./Components/User_Components/EditProfile";
 import SearchMedicine from "./Components/Guest_Components/SearchMedicine";
+import LandingPage from "./Components/Guest_Components/LandingPage";
 import useAuth from "./Hooks/useAuth";
 import ListAllUsers from "./Components/Admin_Components/ListAllUsers";
 import CreateStaff from "./Components/Admin_Components/CreateStaff";
@@ -178,10 +179,10 @@ const ConditionalHome = () => {
 
   // Đơn giản hóa logic: chỉ kiểm tra token, không phụ thuộc vào useAuthContext
   if (!currentToken) {
-    // Guest: hiển thị SearchMedicine với Simple Header
+    // Guest: hiển thị LandingPage với Simple Header
     return (
       <GuestPageWithSimpleHeader>
-        <SearchMedicine />
+        <LandingPage />
       </GuestPageWithSimpleHeader>
     );
   }
@@ -199,8 +200,12 @@ const ConditionalHome = () => {
     if (roleFromToken === "purchases_staff") {
       return <Navigate to="/purchases-dashboard" replace />;
     } else if (roleFromToken === "customer") {
-      // Customer: kiểm tra status và redirect phù hợp
-      return <CustomerHomeRedirect />;
+      // Customer: hiển thị LandingPage với Simple Header
+      return (
+        <GuestPageWithSimpleHeader>
+          <LandingPage />
+        </GuestPageWithSimpleHeader>
+      );
     } else if (roleFromToken === "sales_staff") {
       // Nhân viên bán hàng vào thẳng trang tổng quan bán hàng
       return <Navigate to="/sales-dashboard" replace />;
@@ -221,7 +226,7 @@ const ConditionalHome = () => {
     localStorage.removeItem("authToken");
     return (
       <GuestPageWithSimpleHeader>
-        <SearchMedicine />
+        <LandingPage />
       </GuestPageWithSimpleHeader>
     );
   }
@@ -349,6 +354,14 @@ function App() {
 
             {/* Routes cho Guest và Auth - sử dụng SimpleHeader riêng (giống forgot-password) */}
             <Route path="/" element={<ConditionalHome />} />
+            <Route
+              path="/home"
+              element={
+                <GuestPageWithSimpleHeader>
+                  <LandingPage />
+                </GuestPageWithSimpleHeader>
+              }
+            />
             <Route
               path="/search-medicine"
               element={

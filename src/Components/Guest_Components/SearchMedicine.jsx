@@ -48,6 +48,7 @@ const SearchMedicine = () => {
   const [openImageDialog, setOpenImageDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const isAuthenticated = useMemo(() => {
     try {
@@ -127,14 +128,32 @@ const SearchMedicine = () => {
         .filter((img) => typeof img === "string" && img.trim() !== "")
     : [];
 
-  // Filter search
+  // Filter search và category
   useEffect(() => {
     const filtered = allProducts.filter((product) => {
+      // Filter theo categories nếu có chọn
+      if (selectedCategories.length > 0) {
+        const productCategoryId = product.categoryID || product.CategoryID;
+        const isInSelectedCategories = selectedCategories.some((cat) => {
+          const categoryId = cat.categoryID || cat.CategoryID;
+          return categoryId === productCategoryId;
+        });
+        if (!isInSelectedCategories) {
+          return false;
+        }
+      }
+
+      // Filter theo search term
       const productName = product.productName || product.ProductName || "";
       const description =
         product.productDescription || product.ProductDescription || "";
       const categoryName = product.categoryName || "";
       const searchLower = searchTerm.toLowerCase();
+      
+      if (searchTerm.trim() === "") {
+        return true; // Hiển thị tất cả nếu không có search term
+      }
+      
       return (
         productName.toLowerCase().includes(searchLower) ||
         description.toLowerCase().includes(searchLower) ||
@@ -142,7 +161,26 @@ const SearchMedicine = () => {
       );
     });
     setSearchResults(filtered);
-  }, [searchTerm, allProducts]);
+  }, [searchTerm, allProducts, selectedCategories]);
+
+  const handleCategoryClick = (category) => {
+    const categoryId = category.categoryID || category.CategoryID;
+    const isSelected = selectedCategories.some(
+      (cat) => (cat.categoryID || cat.CategoryID) === categoryId
+    );
+
+    if (isSelected) {
+      // Nếu đã chọn thì bỏ chọn
+      setSelectedCategories((prev) =>
+        prev.filter(
+          (cat) => (cat.categoryID || cat.CategoryID) !== categoryId
+        )
+      );
+    } else {
+      // Nếu chưa chọn thì thêm vào
+      setSelectedCategories((prev) => [...prev, category]);
+    }
+  };
 
   const handleMedicineClick = (medicine) => {
     setSelectedMedicine(medicine);
@@ -271,91 +309,200 @@ const SearchMedicine = () => {
           )}
         </Box>
 
-        {/* Danh mục sản phẩm */}
-        {categories.length > 0 && (
-          <Box
-            sx={{
-              mb: { xs: 2, sm: 3, md: 4 },
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                mb: 1.5,
-                textTransform: "uppercase",
-                color: "#155E64",
-              }}
-            >
-              Danh mục sản phẩm
-            </Typography>
-            <Grid container spacing={2}>
-              {categories.map((cat) => {
-                const name = cat.name || cat.Name || "";
-                return (
-                  <Grid
-                    item
-                    xs={6}
-                    sm={4}
-                    md={3}
-                    key={cat.categoryID || cat.CategoryID || name}
+        {/* Layout 2 cột: Danh mục trái, Search + Results phải */}
+        <Grid container spacing={3}>
+          {/* Sidebar - Danh mục sản phẩm */}
+          {categories.length > 0 && (
+            <Grid item xs={12} md={3}>
+              <Box
+                sx={{
+                  position: { md: "sticky" },
+                  top: { md: 100 },
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  backdropFilter: "blur(10px)",
+                  borderRadius: 3,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  maxHeight: { md: "calc(100vh - 100px)" },
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header - Fixed */}
+                <Box
+                  sx={{
+                    p: 3,
+                    pb: 2,
+                    flexShrink: 0,
+                    borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 2,
+                      textTransform: "uppercase",
+                      color: "#155E64",
+                      fontSize: { xs: "1rem", md: "1.1rem" },
+                    }}
                   >
-                    <Paper
-                      elevation={1}
+                    Danh mục sản phẩm
+                  </Typography>
+                  
+                  {/* Button xóa filter */}
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      onClick={() => setSelectedCategories([])}
                       sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        border: "1px solid #e0e0e0",
+                        mb: 0,
+                        borderColor: "#48C1A6",
+                        color: "#48C1A6",
                         "&:hover": {
-                          borderColor: "#2e7d32",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                          transform: "translateY(-2px)",
+                          borderColor: "#3a9d8a",
+                          backgroundColor: "rgba(72, 193, 166, 0.1)",
                         },
-                        transition: "all 0.2s ease",
-                        backgroundColor: "#ffffff",
                       }}
                     >
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: "#2e7d32",
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 500 }}
-                        noWrap
-                        title={name}
-                      >
-                        {name}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          </Box>
-        )}
+                      Xóa tất cả ({selectedCategories.length})
+                    </Button>
+                  )}
+                </Box>
 
-        {/* Search Input */}
-        <Box
-          className="search-medicine-search-container"
-          sx={{
-            mb: { xs: 2, sm: 3, md: 4 },
-            p: { xs: 2, sm: 3, md: 4 },
-            borderRadius: 3,
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
-            backdropFilter: "blur(5px)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
-          }}
-        >
+                {/* Scrollable Content */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    p: 3,
+                    pt: 2,
+                    pb: 3,
+                    "&::-webkit-scrollbar": {
+                      width: "8px",
+                    },
+                    "&::-webkit-scrollbar-track": {
+                      backgroundColor: "rgba(0,0,0,0.05)",
+                      borderRadius: "4px",
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      backgroundColor: "rgba(72, 193, 166, 0.3)",
+                      borderRadius: "4px",
+                      "&:hover": {
+                        backgroundColor: "rgba(72, 193, 166, 0.5)",
+                      },
+                    },
+                  }}
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    {categories.map((cat) => {
+                    const name = cat.name || cat.Name || "";
+                    const categoryId = cat.categoryID || cat.CategoryID;
+                    const isSelected = selectedCategories.some(
+                      (selectedCat) => 
+                        (selectedCat.categoryID || selectedCat.CategoryID) === categoryId
+                    );
+                    
+                    // Đếm số sản phẩm trong danh mục này
+                    const productCount = allProducts.filter((product) => {
+                      const productCategoryId = product.categoryID || product.CategoryID;
+                      return categoryId === productCategoryId;
+                    }).length;
+                    
+                    return (
+                      <Paper
+                        key={categoryId || name}
+                        elevation={isSelected ? 3 : 1}
+                        onClick={() => handleCategoryClick(cat)}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1.5,
+                          border: isSelected ? "2px solid #48C1A6" : "1px solid #e0e0e0",
+                          backgroundColor: isSelected ? "rgba(72, 193, 166, 0.1)" : "#ffffff",
+                          "&:hover": {
+                            borderColor: "#48C1A6",
+                            boxShadow: "0 4px 12px rgba(72, 193, 166, 0.2)",
+                            transform: "translateX(4px)",
+                            backgroundColor: isSelected ? "rgba(72, 193, 166, 0.15)" : "rgba(72, 193, 166, 0.05)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            backgroundColor: isSelected ? "#48C1A6" : "#2e7d32",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          sx={{ 
+                            fontWeight: isSelected ? 600 : 500,
+                            color: isSelected ? "#155E64" : "inherit",
+                            flex: 1,
+                            minWidth: 0, // Cho phép text wrap
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            lineHeight: 1.4,
+                          }}
+                          title={name}
+                        >
+                          {name}
+                        </Typography>
+                        <Chip
+                          label={productCount}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            minWidth: 32,
+                            fontSize: "0.7rem",
+                            backgroundColor: isSelected ? "#48C1A6" : "rgba(0,0,0,0.08)",
+                            color: isSelected ? "#fff" : "inherit",
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Paper>
+                    );
+                  })}
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
+          )}
+
+          {/* Main Content - Search + Results */}
+          <Grid item xs={12} md={categories.length > 0 ? 9 : 12}>
+            {/* Search Input */}
+            <Box
+              className="search-medicine-search-container"
+              sx={{
+                mb: { xs: 2, sm: 3, md: 4 },
+                p: { xs: 2, sm: 3, md: 4 },
+                borderRadius: 3,
+                backgroundColor: "rgba(255, 255, 255, 0.8)",
+                backdropFilter: "blur(5px)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                // Đảm bảo width 100% để căn chỉnh
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
           <Box
             className="search-medicine-search-box"
             sx={{
@@ -409,14 +556,82 @@ const SearchMedicine = () => {
               }}
             />
           </Box>
+            </Box>
 
-          {/* Loading */}
-          <Box sx={{ textAlign: "center", mt: 4 }}>
+            {/* Thông báo filter */}
+            {selectedCategories.length > 0 && (
+              <Box sx={{ mb: 2, width: "100%" }}>
+                <Alert
+                  severity="info"
+                  sx={{
+                    backgroundColor: "rgba(72, 193, 166, 0.1)",
+                    border: "1px solid rgba(72, 193, 166, 0.3)",
+                    borderRadius: 2,
+                    width: "100%",
+                  }}
+                  action={
+                    <Button
+                      size="small"
+                      onClick={() => setSelectedCategories([])}
+                      sx={{ color: "#48C1A6" }}
+                    >
+                      Xóa tất cả
+                    </Button>
+                  }
+                >
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: selectedCategories.length > 1 ? 1 : 0 }}>
+                      Đang lọc theo {selectedCategories.length} danh mục:
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: selectedCategories.length > 1 ? 1 : 0 }}>
+                      {selectedCategories.map((cat, index) => (
+                        <Chip
+                          key={cat.categoryID || cat.CategoryID || index}
+                          label={cat.name || cat.Name}
+                          size="small"
+                          onDelete={() => {
+                            const categoryId = cat.categoryID || cat.CategoryID;
+                            setSelectedCategories((prev) =>
+                              prev.filter(
+                                (c) => (c.categoryID || c.CategoryID) !== categoryId
+                              )
+                            );
+                          }}
+                          sx={{
+                            backgroundColor: "#48C1A6",
+                            color: "#fff",
+                            fontWeight: 600,
+                            "& .MuiChip-deleteIcon": {
+                              color: "#fff",
+                              "&:hover": {
+                                color: "#e0e0e0",
+                              },
+                            },
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                </Alert>
+              </Box>
+            )}
+
+            {/* Loading và Results */}
+            <Box 
+              sx={{ 
+                width: "100%", 
+                boxSizing: "border-box",
+                // Padding = outer container padding + inner box padding để căn với TextField
+                // Outer: { xs: 2, sm: 3, md: 4 } + Inner: { xs: 2, sm: 2.5, md: 3 }
+                // px: { xs: 4, sm: 5.5, md: 7 },
+              }}
+            >
             {loading ? (
               <Box
                 sx={{
                   textAlign: "center",
                   py: 4,
+                  px: { xs: 4, sm: 5.5, md: 7 },
                   backgroundColor: "rgba(255, 255, 255, 0.7)",
                   backdropFilter: "blur(5px)",
                   borderRadius: "16px",
@@ -436,7 +651,24 @@ const SearchMedicine = () => {
             ) : (
               <>
                 {searchResults.length > 0 ? (
-                  <Grid className="search-medicine-results-grid" container spacing={{ xs: 2, sm: 2, md: 3 }}>
+                  <Grid 
+                    className="search-medicine-results-grid" 
+                    container 
+                    gap={2}
+                    sx={{
+                      width: "100%",
+                      margin: 0,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      // Đảm bảo Grid items không bị wrap sớm
+                      "& > .MuiGrid-item": {
+                        flexBasis: { xs: "100%", sm: "calc(50% - 8px)", md: "calc(33.333% - 16px)" },
+                        maxWidth: { xs: "100%", sm: "calc(50% - 8px)", md: "calc(33.333% - 16px)" },
+                        flexGrow: 0,
+                        flexShrink: 0,
+                      },
+                    }}
+                  >
                     {searchResults.map((product) => {
                       const productName =
                         product.productName ||
@@ -456,10 +688,22 @@ const SearchMedicine = () => {
                       const firstImage = images[0] || productImage || "";
 
                       return (
-                        <Grid item xs={12} sm={6} md={4} key={productId}>
+                        <Grid 
+                          item 
+                          xs={12} 
+                          sm={6} 
+                          md={4} 
+                          key={productId}
+                          sx={{
+                            // Đảm bảo không bị shrink và luôn hiển thị đủ 3 trên desktop
+                            display: "flex",
+                            minWidth: 0,
+                          }}
+                        >
                           <Card
                             className="search-medicine-product-card"
                             sx={{
+                              width: "100%",
                               height: "100%",
                               display: "flex",
                               flexDirection: { xs: "column", sm: "row" },
@@ -468,6 +712,7 @@ const SearchMedicine = () => {
                               backgroundColor: "rgba(255, 255, 255, 0.8)",
                               backdropFilter: "blur(5px)",
                               border: "1px solid rgba(255, 255, 255, 0.3)",
+                              boxSizing: "border-box",
                               "&:hover": {
                                 transform: "translateY(-4px)",
                                 boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
@@ -582,6 +827,7 @@ const SearchMedicine = () => {
                     sx={{
                       textAlign: "center",
                       py: 4,
+                      px: { xs: 4, sm: 5.5, md: 7 },
                       backgroundColor: "rgba(255, 255, 255, 0.7)",
                       backdropFilter: "blur(5px)",
                       borderRadius: "16px",
@@ -611,8 +857,9 @@ const SearchMedicine = () => {
                 )}
               </>
             )}
-          </Box>
-        </Box>
+            </Box>
+          </Grid>
+        </Grid>
 
         {/* Dialog phóng to ảnh */}
         <Dialog
