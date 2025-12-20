@@ -1203,7 +1203,7 @@ const CustomerOrderList = () => {
         return "Hoàn thành"; // Complete
 
       case 7:
-        return "Chưa hoàn thành"; // NotComplete
+        return "Không hoàn thành"; // NotComplete
 
       default:
         return "Không xác định";
@@ -3815,7 +3815,7 @@ const CustomerOrderList = () => {
 
               <MenuItem value="6">Hoàn Thành</MenuItem>
 
-              <MenuItem value="7">Chưa Hoàn Thành</MenuItem>
+              <MenuItem value="7">Không Hoàn Thành</MenuItem>
             </Select>
           </FormControl>
 
@@ -4134,9 +4134,7 @@ const CustomerOrderList = () => {
                               variant="body2"
                               color="text.secondary"
                               sx={{ textAlign: "left" }}
-                            >
-                              -
-                            </Typography>
+                            ></Typography>
                           ) : order.paymentStatus !== undefined &&
                             order.paymentStatus !== null ? (
                             (() => {

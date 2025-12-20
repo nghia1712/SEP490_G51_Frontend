@@ -695,7 +695,7 @@ const SalesOrderList = () => {
       case 6:
         return "Hoàn thành"; // Complete
       case 7:
-        return "Chưa hoàn thành"; // NotComplete
+        return "Không hoàn thành"; // NotComplete
       default:
         return "Không xác định";
     }
@@ -1944,7 +1944,7 @@ const SalesOrderList = () => {
                   <MenuItem value="4">Giao Hàng 1 Phần</MenuItem>
                   <MenuItem value="5">Giao Toàn Bộ Hàng</MenuItem>
                   <MenuItem value="6">Hoàn Thành</MenuItem>
-                  <MenuItem value="7">Chưa Hoàn Thành</MenuItem>
+                  <MenuItem value="7">Không Hoàn Thành</MenuItem>
                 </Select>
               </FormControl>
               <FormControl
