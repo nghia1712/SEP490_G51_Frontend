@@ -26,6 +26,7 @@ import {
   IconButton,
   Link,
 } from "@mui/material";
+import { Pagination } from "@mui/material";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import SearchIcon from "@mui/icons-material/Search";
@@ -48,6 +49,15 @@ const SearchMedicine = () => {
   const [openImageDialog, setOpenImageDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 9;
+  const paginatedResults = searchResults.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const totalPages = Math.ceil(searchResults.length / rowsPerPage);
 
   const isAuthenticated = useMemo(() => {
     try {
@@ -175,7 +185,16 @@ const SearchMedicine = () => {
         },
       }}
     >
-      <Container className="search-medicine-container" maxWidth="lg" sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 1, sm: 2, md: 3 }, position: "relative", zIndex: 2 }}>
+      <Container
+        className="search-medicine-container"
+        maxWidth="lg"
+        sx={{
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 1, sm: 2, md: 3 },
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
         {/* Header */}
         <Box
           className="search-medicine-header"
@@ -202,8 +221,19 @@ const SearchMedicine = () => {
             }}
           >
             {/* Icon + Tiêu đề chính */}
-            <Box className="search-medicine-title-container" sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
-              <LocalHospitalIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 }, color: "#48C1A6" }} />
+            <Box
+              className="search-medicine-title-container"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <LocalHospitalIcon
+                sx={{ fontSize: { xs: 30, sm: 35, md: 40 }, color: "#48C1A6" }}
+              />
               <Typography
                 variant="h4"
                 component="h1"
@@ -411,7 +441,15 @@ const SearchMedicine = () => {
           </Box>
 
           {/* Loading */}
-          <Box sx={{ textAlign: "center", mt: 4 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              mt: 4,
+              pr: 2,
+              pl: 1,
+              overflowX: "hidden",
+            }}
+          >
             {loading ? (
               <Box
                 sx={{
@@ -424,7 +462,7 @@ const SearchMedicine = () => {
                   boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
                 }}
               >
-                <CircularProgress size={60} sx={{ color: "#48C1A6", mb: 2 }} />
+                <CircularProgress size={60} sx={{ color: "#48C1A6" }} />
                 <Typography
                   variant="h6"
                   color="text.secondary"
@@ -436,8 +474,12 @@ const SearchMedicine = () => {
             ) : (
               <>
                 {searchResults.length > 0 ? (
-                  <Grid className="search-medicine-results-grid" container spacing={{ xs: 2, sm: 2, md: 3 }}>
-                    {searchResults.map((product) => {
+                  <Grid
+                    className="search-medicine-results-grid"
+                    container
+                    spacing={{ xs: 2, sm: 2, md: 3 }}
+                  >
+                    {paginatedResults.map((product) => {
                       const productName =
                         product.productName ||
                         product.ProductName ||
@@ -611,6 +653,16 @@ const SearchMedicine = () => {
                 )}
               </>
             )}
+            {searchResults.length > 0 && totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(_, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -643,9 +695,24 @@ const SearchMedicine = () => {
           fullWidth
         >
           <DialogTitle className="search-medicine-detail-dialog-title">
-            <Box className="search-medicine-detail-title-container" sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-              <LocalHospitalIcon color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
-              <Typography className="search-medicine-detail-title" variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}>
+            <Box
+              className="search-medicine-detail-title-container"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              <LocalHospitalIcon
+                color="primary"
+                sx={{ fontSize: { xs: 20, sm: 24 } }}
+              />
+              <Typography
+                className="search-medicine-detail-title"
+                variant="h6"
+                sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
+              >
                 {selectedMedicine?.productName ||
                   selectedMedicine?.ProductName ||
                   "Tên không xác định"}
@@ -654,7 +721,11 @@ const SearchMedicine = () => {
           </DialogTitle>
           <DialogContent className="search-medicine-detail-dialog-content">
             {selectedMedicine && (
-              <Grid className="search-medicine-detail-grid" container spacing={{ xs: 2, sm: 3 }}>
+              <Grid
+                className="search-medicine-detail-grid"
+                container
+                spacing={{ xs: 2, sm: 3 }}
+              >
                 <Grid item xs={12} md={4}>
                   <Box
                     sx={{
@@ -765,20 +836,53 @@ const SearchMedicine = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight="bold"
-                      gutterBottom
-                    >
-                      Mô tả sản phẩm
+                  <Box sx={{ mt: 3 }}>
+                    {/* Mô tả */}
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Mô tả
                     </Typography>
-                    <Typography variant="body1">
+                    <Typography variant="body2" sx={{ mb: 1 }}>
                       {selectedMedicine.productDescription ||
                         selectedMedicine.ProductDescription ||
                         "Không có mô tả"}
                     </Typography>
+
+                    {/* Thành phần */}
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Thành phần
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {selectedMedicine.productIngredients ||
+                        selectedMedicine.ProductIngredients ||
+                        "Không có thông tin"}
+                    </Typography>
+
+                    {/* Công dụng */}
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Công dụng
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {selectedMedicine.productUses ||
+                        selectedMedicine.ProductUses ||
+                        selectedMedicine.ProductlUses ||
+                        "Không có thông tin"}
+                    </Typography>
+
+                    {/* Khối lượng */}
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Khối lượng
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {selectedMedicine.productWeight ||
+                      selectedMedicine.ProductWeight
+                        ? `${
+                            selectedMedicine.productWeight ||
+                            selectedMedicine.ProductWeight
+                          } g`
+                        : "Không có thông tin"}
+                    </Typography>
                   </Box>
+
                   {selectedMedicine && !isAuthenticated && (
                     <Alert
                       severity="info"

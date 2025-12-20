@@ -309,13 +309,13 @@ export default function GRNListPage() {
             <FormControl fullWidth>
               <InputLabel>Kho</InputLabel>
               <Select
-                value={selectedWarehouse}
+                value={Number(selectedWarehouse) || ""}
                 label="Kho"
-                onChange={(e) => setSelectedWarehouse(e.target.value)}
+                onChange={(e) => setSelectedWarehouse(Number(e.target.value))}
               >
                 {warehouses.length > 0 ? (
                   warehouses.map((w) => (
-                    <MenuItem key={w.id} value={w.id}>
+                    <MenuItem key={w.id} value={Number(w.id)}>
                       {w.name}
                     </MenuItem>
                   ))

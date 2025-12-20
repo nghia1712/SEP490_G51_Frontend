@@ -53,6 +53,7 @@ import useStockExport from "../../../Hooks/useStockExport";
 import useGIN from "../../../Hooks/useGIN";
 import StockExportModal from "./StockExportModal";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
+import { useRef } from "react";
 
 export default function StockExportList() {
   const {
@@ -65,6 +66,20 @@ export default function StockExportList() {
     awaitStockExport,
     cancelStockExport,
   } = useStockExport();
+  const isUserFilteringRef = useRef(false);
+
+  const idleTimerRef = useRef(null);
+  const IDLE_TIME = 10000;
+
+  const resetIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+
+    idleTimerRef.current = setTimeout(() => {
+      refetch();
+    }, IDLE_TIME);
+  };
   const { createGIN, notEnoughGIN } = useGIN();
   const navigate = useNavigate();
   const location = useLocation();
@@ -234,6 +249,11 @@ export default function StockExportList() {
     })
     .sort((a, b) => Number(b.id) - Number(a.id));
   const totalPages = Math.ceil(filteredList.length / pageSize);
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages || 1);
+    }
+  }, [totalPages, page]);
 
   const paginatedData = filteredList.slice(
     (page - 1) * pageSize,
@@ -241,7 +261,10 @@ export default function StockExportList() {
   );
 
   useEffect(() => {
-    setPage(1);
+    if (isUserFilteringRef.current) {
+      setPage(1);
+      isUserFilteringRef.current = false;
+    }
   }, [search, statusFilter]);
 
   const handleViewDetail = (item) => {
@@ -306,6 +329,29 @@ export default function StockExportList() {
     setNotEnoughMap(saved);
   }, []);
 
+  useEffect(() => {
+    const events = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+
+    resetIdleTimer();
+
+    return () => {
+      events.forEach((event) =>
+        window.removeEventListener(event, resetIdleTimer)
+      );
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Box p={3}>
       <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
@@ -351,7 +397,10 @@ export default function StockExportList() {
                     placeholder="Tìm kiếm..."
                     size="small"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      isUserFilteringRef.current = true;
+                      setSearch(e.target.value);
+                    }}
                     sx={{
                       width: { xs: "100%", sm: 240 },
                     }}
@@ -375,7 +424,10 @@ export default function StockExportList() {
                     <Select
                       value={statusFilter}
                       label="Trạng thái"
-                      onChange={(e) => setStatusFilter(e.target.value)}
+                      onChange={(e) => {
+                        isUserFilteringRef.current = true;
+                        setStatusFilter(e.target.value);
+                      }}
                     >
                       <MenuItem value="">Tất cả</MenuItem>
                       <MenuItem value={0}>Nháp</MenuItem>
@@ -393,6 +445,7 @@ export default function StockExportList() {
                     variant="outlined"
                     color="secondary"
                     onClick={() => {
+                      isUserFilteringRef.current = true;
                       setSearch("");
                       setStatusFilter("");
                     }}

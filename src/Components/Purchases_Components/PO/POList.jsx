@@ -45,6 +45,7 @@ import usePO from "../../../Hooks/usePO";
 import PODialogs from "./PODialogs";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 import { useEffect } from "react";
+import { useRef } from "react";
 
 export default function POList() {
   const navigate = useNavigate();
@@ -77,6 +78,40 @@ export default function POList() {
     fetchPOs,
     poList,
   } = usePO();
+  const idleTimerRef = useRef(null);
+  const IDLE_TIME = 10000;
+
+  const resetIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+
+    idleTimerRef.current = setTimeout(() => {
+      fetchPOs();
+    }, IDLE_TIME);
+  };
+  useEffect(() => {
+    const events = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+
+    resetIdleTimer();
+
+    return () => {
+      events.forEach((event) =>
+        window.removeEventListener(event, resetIdleTimer)
+      );
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    };
+  }, []);
 
   const [page, setPage] = React.useState(1);
   const pageSize = 5;

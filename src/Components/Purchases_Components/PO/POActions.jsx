@@ -529,7 +529,7 @@ export default function POActions({ poId, fetchPOs }) {
           {poDetail && (
             <>
               <Typography>
-                <strong>Mã đơn hàng:</strong> {poDetail.poid}
+                <strong>Mã đơn hàng:</strong> PO-{poDetail.poid}
               </Typography>
               <Typography>
                 <strong>Người tạo:</strong> {poDetail.userName}

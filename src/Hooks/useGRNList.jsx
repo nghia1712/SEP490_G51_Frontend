@@ -96,7 +96,11 @@ export default function useGRNList({ poId, autoOpenCreate }) {
     const fetchWarehouses = async () => {
       try {
         const res = await warehouseApi.getAllWarehouses();
-        setWarehouses(res.data?.data ?? []);
+        const allWarehouses = res.data?.data ?? [];
+        const activeWarehouses = allWarehouses.filter(
+          (wh) => wh.status == true
+        );
+        setWarehouses(activeWarehouses);
       } catch (err) {
         console.error(err);
       }
@@ -110,7 +114,12 @@ export default function useGRNList({ poId, autoOpenCreate }) {
       setLocationsLoading(true);
       try {
         const res = await warehouseApi.getWarehouseDetails(selectedWarehouse);
-        setLocations(res.data?.data?.warehouseLocations ?? []);
+        const allLocations = res.data?.data?.warehouseLocations ?? [];
+        const activeLocations = allLocations.filter(
+          (loc) => loc.status === true
+        );
+
+        setLocations(activeLocations);
         setSelectedLocation("");
       } catch (err) {
         console.error(err);

@@ -46,13 +46,14 @@ import stockExportApi from "../../../API/stockExportAPI";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { vi as viLocale } from "date-fns/locale";
+import { useRef } from "react";
 
 export default function GRNList() {
   const navigate = useNavigate();
   const location = useLocation();
   const [statusFilter, setStatusFilter] = useState("");
   const role = getUserRoleFromToken();
-
+  const isUserFilteringRef = useRef(false);
   const {
     data,
     loading,
@@ -88,9 +89,6 @@ export default function GRNList() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
-  // =========================
-  // Filter search
-  // =========================
   useEffect(() => {
     const keyword = search.toLowerCase();
 
@@ -116,7 +114,11 @@ export default function GRNList() {
       .sort((a, b) => Number(b.id) - Number(a.id));
 
     setFiltered(filteredData);
-    setPage(1);
+
+    if (isUserFilteringRef.current) {
+      setPage(1);
+      isUserFilteringRef.current = false;
+    }
   }, [search, statusFilter, startDate, endDate, data]);
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
@@ -139,17 +141,17 @@ export default function GRNList() {
 
         console.log("GINList - GIN detail response:", {
           detail,
-          salesOrderCodeFromDetail: detail?.salesOrderCode || detail?.SalesOrderCode,
-          stockExportOrder: detail?.stockExportOrder || detail?.StockExportOrder,
+          salesOrderCodeFromDetail:
+            detail?.salesOrderCode || detail?.SalesOrderCode,
+          stockExportOrder:
+            detail?.stockExportOrder || detail?.StockExportOrder,
         });
 
         // Ưu tiên lấy SalesOrderCode từ GIN detail (backend đã map sẵn trong GoodsIssueNoteListDTO)
         // GoodsIssueNoteWithDetailsDTO kế thừa từ GoodsIssueNoteListDTO nên có SalesOrderCode
         if (!salesOrderCode) {
           salesOrderCode =
-            detail?.salesOrderCode ||
-            detail?.SalesOrderCode ||
-            "";
+            detail?.salesOrderCode || detail?.SalesOrderCode || "";
         }
 
         // Nếu vẫn không có, thử lấy từ nested objects
@@ -296,7 +298,10 @@ export default function GRNList() {
                     placeholder="Tìm kiếm..."
                     size="small"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      isUserFilteringRef.current = true;
+                      setSearch(e.target.value);
+                    }}
                     sx={{
                       flexGrow: 1,
                       maxWidth: { xs: "100%", md: 400 },
@@ -315,7 +320,10 @@ export default function GRNList() {
                     <Select
                       value={statusFilter}
                       label="Trạng thái"
-                      onChange={(e) => setStatusFilter(e.target.value)}
+                      onChange={(e) => {
+                        isUserFilteringRef.current = true;
+                        setStatusFilter(e.target.value);
+                      }}
                     >
                       <MenuItem value="">Tất cả</MenuItem>
                       <MenuItem value={1}>Chờ xử lý</MenuItem>
@@ -330,7 +338,10 @@ export default function GRNList() {
                     <DatePicker
                       label="Ngày tạo từ"
                       value={startDate}
-                      onChange={(newValue) => setStartDate(newValue)}
+                      onChange={(newValue) => {
+                        isUserFilteringRef.current = true;
+                        setStartDate(newValue);
+                      }}
                       slotProps={{
                         textField: { size: "small", sx: { width: 180 } },
                       }}
@@ -340,7 +351,10 @@ export default function GRNList() {
                     <DatePicker
                       label="Ngày tạo đến"
                       value={endDate}
-                      onChange={(newValue) => setEndDate(newValue)}
+                      onChange={(newValue) => {
+                        isUserFilteringRef.current = true;
+                        setEndDate(newValue);
+                      }}
                       slotProps={{
                         textField: { size: "small", sx: { width: 180 } },
                       }}
@@ -353,6 +367,7 @@ export default function GRNList() {
                     variant="outlined"
                     color="secondary"
                     onClick={() => {
+                      isUserFilteringRef.current = true;
                       setSearch("");
                       setStatusFilter("");
                       setStartDate(null);
