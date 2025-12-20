@@ -314,6 +314,7 @@ const ProductLotLookup = () => {
                                             }}
                                           >
                                             <TableCell>Kho</TableCell>
+                                            <TableCell>Vị trí kho</TableCell>
                                             <TableCell align="center">
                                               Ngày nhập
                                             </TableCell>
@@ -330,6 +331,9 @@ const ProductLotLookup = () => {
                                             );
                                             return (
                                               <TableRow key={i}>
+                                                <TableCell>
+                                                  {d.warehouseName2}
+                                                </TableCell>
                                                 <TableCell>
                                                   {d.warehouseName}
                                                 </TableCell>
