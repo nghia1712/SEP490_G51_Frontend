@@ -34,6 +34,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate } from "react-router-dom";
 import guestAPI from "../../API/guestAPI";
 import getUserRoleFromToken from "../../Utils/getUserRoleFromToken";
+import Footer from "../Utils/Footer";
 
 const SearchMedicine = () => {
   const navigate = useNavigate();
@@ -123,9 +124,17 @@ const SearchMedicine = () => {
 
   // Lấy danh sách ảnh hợp lệ
   const images = selectedMedicine
-    ? ["image", "imageA", "imageB", "imageC", "imageD", "imageE"]
+    ? [
+        "image", "Image",
+        "imageA", "ImageA",
+        "imageB", "ImageB",
+        "imageC", "ImageC",
+        "imageD", "ImageD",
+        "imageE", "ImageE"
+      ]
         .map((key) => selectedMedicine[key])
         .filter((img) => typeof img === "string" && img.trim() !== "")
+        .filter((img, index, self) => self.indexOf(img) === index) // Loại bỏ duplicate
     : [];
 
   // Filter search và category
@@ -241,7 +250,16 @@ const SearchMedicine = () => {
           >
             {/* Icon + Tiêu đề chính */}
             <Box className="search-medicine-title-container" sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
-              <LocalHospitalIcon sx={{ fontSize: { xs: 30, sm: 35, md: 40 }, color: "#48C1A6" }} />
+              <Box
+                component="img"
+                src="/images/login_image.png"
+                alt="Nhà thuốc số 17"
+                sx={{
+                  width: { xs: 40, sm: 50, md: 60 },
+                  height: { xs: 40, sm: 50, md: 60 },
+                  objectFit: "contain",
+                }}
+              />
               <Typography
                 variant="h4"
                 component="h1"
@@ -399,7 +417,13 @@ const SearchMedicine = () => {
                   }}
                 >
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    {categories.map((cat) => {
+                    {categories
+                      .filter((cat) => {
+                        // Chỉ hiển thị danh mục có trạng thái hoạt động
+                        const status = cat.status || cat.Status;
+                        return status === true || status === "Active" || status === 1;
+                      })
+                      .map((cat) => {
                     const name = cat.name || cat.Name || "";
                     const categoryId = cat.categoryID || cat.CategoryID;
                     const isSelected = selectedCategories.some(
@@ -558,63 +582,6 @@ const SearchMedicine = () => {
           </Box>
             </Box>
 
-            {/* Thông báo filter */}
-            {selectedCategories.length > 0 && (
-              <Box sx={{ mb: 2, width: "100%" }}>
-                <Alert
-                  severity="info"
-                  sx={{
-                    backgroundColor: "rgba(72, 193, 166, 0.1)",
-                    border: "1px solid rgba(72, 193, 166, 0.3)",
-                    borderRadius: 2,
-                    width: "100%",
-                  }}
-                  action={
-                    <Button
-                      size="small"
-                      onClick={() => setSelectedCategories([])}
-                      sx={{ color: "#48C1A6" }}
-                    >
-                      Xóa tất cả
-                    </Button>
-                  }
-                >
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: selectedCategories.length > 1 ? 1 : 0 }}>
-                      Đang lọc theo {selectedCategories.length} danh mục:
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: selectedCategories.length > 1 ? 1 : 0 }}>
-                      {selectedCategories.map((cat, index) => (
-                        <Chip
-                          key={cat.categoryID || cat.CategoryID || index}
-                          label={cat.name || cat.Name}
-                          size="small"
-                          onDelete={() => {
-                            const categoryId = cat.categoryID || cat.CategoryID;
-                            setSelectedCategories((prev) =>
-                              prev.filter(
-                                (c) => (c.categoryID || c.CategoryID) !== categoryId
-                              )
-                            );
-                          }}
-                          sx={{
-                            backgroundColor: "#48C1A6",
-                            color: "#fff",
-                            fontWeight: 600,
-                            "& .MuiChip-deleteIcon": {
-                              color: "#fff",
-                              "&:hover": {
-                                color: "#e0e0e0",
-                              },
-                            },
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                </Alert>
-              </Box>
-            )}
 
             {/* Loading và Results */}
             <Box 
@@ -684,8 +651,22 @@ const SearchMedicine = () => {
                         product.ProductID ||
                         product.id ||
                         product._id;
-                      const productImage = product.image || product.Image;
-                      const firstImage = images[0] || productImage || "";
+                      // Lấy tất cả ảnh của sản phẩm này
+                      const productImages = [
+                        "image", "Image",
+                        "imageA", "ImageA",
+                        "imageB", "ImageB",
+                        "imageC", "ImageC",
+                        "imageD", "ImageD",
+                        "imageE", "ImageE"
+                      ]
+                        .map((key) => product[key])
+                        .filter((img) => typeof img === "string" && img.trim() !== "")
+                        .filter((img, index, self) => self.indexOf(img) === index); // Loại bỏ duplicate
+                      // Lấy ảnh đầu tiên để hiển thị trong danh sách
+                      const firstImage = productImages.length > 0 
+                        ? productImages[0] 
+                        : (product.image || product.Image || "");
 
                       return (
                         <Grid 
@@ -748,15 +729,6 @@ const SearchMedicine = () => {
                                   objectFit: "contain",
                                   cursor: "pointer",
                                 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedImage(
-                                    firstImage.startsWith("http")
-                                      ? firstImage
-                                      : `https://api.bbpharmacy.site${firstImage}`
-                                  );
-                                  setOpenImageDialog(true);
-                                }}
                                 onError={(e) => {
                                   e.target.src = "/images/login_image.png";
                                 }}
@@ -802,6 +774,10 @@ const SearchMedicine = () => {
                                   variant="contained"
                                   startIcon={<InfoIcon />}
                                   fullWidth
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMedicineClick(product);
+                                  }}
                                   sx={{
                                     background:
                                       "linear-gradient(90deg, #48C1A6 0%, #75B39C 100%)",
@@ -886,8 +862,13 @@ const SearchMedicine = () => {
           className="search-medicine-detail-dialog"
           open={openDialog}
           onClose={handleCloseDialog}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
+          sx={{
+            "& .MuiDialog-paper": {
+              overflowX: "hidden",
+            }
+          }}
         >
           <DialogTitle className="search-medicine-detail-dialog-title">
             <Box className="search-medicine-detail-title-container" sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
@@ -899,114 +880,231 @@ const SearchMedicine = () => {
               </Typography>
             </Box>
           </DialogTitle>
-          <DialogContent className="search-medicine-detail-dialog-content">
+          <DialogContent className="search-medicine-detail-dialog-content" sx={{ overflowX: "hidden" }}>
             {selectedMedicine && (
-              <Grid className="search-medicine-detail-grid" container spacing={{ xs: 2, sm: 3 }}>
-                <Grid item xs={12} md={4}>
+              <Grid className="search-medicine-detail-grid" container spacing={{ xs: 2, sm: 3 }} sx={{ width: "100%", margin: 0 }}>
+                <Grid item xs={12} md={4} sx={{ width: "100%", boxSizing: "border-box" }}>
                   <Box
                     sx={{
                       position: "relative",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "flex-start",
                       backgroundColor: "#f5f5f5",
                       borderRadius: 2,
                       p: 2,
-                      minHeight: "300px",
+                      minHeight: "400px",
+                      maxHeight: "400px",
+                      height: "400px",
+                      width: "100%",
+                      maxWidth: "100%",
+                      overflow: "hidden",
                     }}
                   >
-                    {images.length > 0 && (
+                    {images.length > 0 ? (
                       <>
-                        {images.length > 1 && (
-                          <IconButton
-                            onClick={() =>
-                              setCurrentImageIndex(
-                                (prev) =>
-                                  (prev - 1 + images.length) % images.length
-                              )
+                        <Box
+                          sx={{
+                            width: "100%",
+                            height: "300px",
+                            minHeight: "300px",
+                            maxHeight: "300px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            mb: images.length > 1 ? 2 : 0,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CardMedia
+                            component="img"
+                            image={
+                              images[currentImageIndex]
+                                ? images[currentImageIndex].startsWith("http")
+                                  ? images[currentImageIndex]
+                                  : `https://api.bbpharmacy.site${images[currentImageIndex]}`
+                                : "/images/login_image.png"
                             }
+                            alt={selectedMedicine?.productName || ""}
                             sx={{
-                              position: "absolute",
-                              left: 0,
-                              color: "rgba(0,0,0,0.5)",
+                              maxWidth: "100%",
+                              maxHeight: "300px",
+                              width: "auto",
+                              height: "auto",
+                              objectFit: "contain",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => {
+                              const current = images[currentImageIndex];
+                              if (current)
+                                setSelectedImage(
+                                  current.startsWith("http")
+                                    ? current
+                                    : `https://api.bbpharmacy.site${current}`
+                                );
+                              setOpenImageDialog(true);
+                            }}
+                            onError={(e) => {
+                              e.target.src = "/images/login_image.png";
+                            }}
+                          />
+                        </Box>
+                        {/* Hiển thị tất cả các ảnh thumbnail dưới ảnh chính */}
+                        {images.length > 0 && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1.5,
+                              flexWrap: "wrap",
+                              justifyContent: "center",
+                              mt: 1,
                             }}
                           >
-                            <ArrowBackIosIcon />
-                          </IconButton>
+                            {images.map((img, index) => {
+                              const imageUrl = img.startsWith("http")
+                                ? img
+                                : `https://api.bbpharmacy.site${img}`;
+                              return (
+                                <Box
+                                  key={index}
+                                  onClick={() => setCurrentImageIndex(index)}
+                                  sx={{
+                                    width: { xs: 50, sm: 60 },
+                                    height: { xs: 50, sm: 60 },
+                                    border: currentImageIndex === index ? "3px solid #48C1A6" : "2px solid #e0e0e0",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                    cursor: "pointer",
+                                    backgroundColor: "#ffffff",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    transition: "all 0.3s ease",
+                                    boxShadow: currentImageIndex === index 
+                                      ? "0 4px 12px rgba(72, 193, 166, 0.4)" 
+                                      : "0 2px 4px rgba(0,0,0,0.1)",
+                                    "&:hover": {
+                                      borderColor: "#48C1A6",
+                                      transform: "translateY(-2px) scale(1.05)",
+                                      boxShadow: "0 6px 16px rgba(72, 193, 166, 0.5)",
+                                    },
+                                  }}
+                                >
+                                  <Box
+                                    component="img"
+                                    src={imageUrl}
+                                    alt={`${selectedMedicine?.productName || ""} - Ảnh ${index + 1}`}
+                                    sx={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "contain",
+                                      padding: 0.5,
+                                    }}
+                                    onError={(e) => {
+                                      e.target.src = "/images/login_image.png";
+                                    }}
+                                  />
+                                </Box>
+                              );
+                            })}
+                          </Box>
                         )}
-                        <CardMedia
+                      </>
+                    ) : (
+                      <Box
+                        sx={{
+                          width: "100%",
+                          height: "300px",
+                          minHeight: "300px",
+                          maxHeight: "300px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Box
                           component="img"
-                          image={
-                            images[currentImageIndex]
-                              ? images[currentImageIndex].startsWith("http")
-                                ? images[currentImageIndex]
-                                : `https://api.bbpharmacy.site${images[currentImageIndex]}`
-                              : "/images/login_image.png"
-                          }
+                          src="/images/login_image.png"
                           alt={selectedMedicine?.productName || ""}
                           sx={{
                             maxWidth: "100%",
                             maxHeight: "300px",
+                            width: "auto",
+                            height: "auto",
                             objectFit: "contain",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => {
-                            const current = images[currentImageIndex];
-                            if (current)
-                              setSelectedImage(
-                                current.startsWith("http")
-                                  ? current
-                                  : `https://api.bbpharmacy.site${current}`
-                              );
-                            setOpenImageDialog(true);
-                          }}
-                          onError={(e) => {
-                            e.target.src = "/images/login_image.png";
                           }}
                         />
-                        {images.length > 1 && (
-                          <IconButton
-                            onClick={() =>
-                              setCurrentImageIndex(
-                                (prev) => (prev + 1) % images.length
-                              )
-                            }
-                            sx={{
-                              position: "absolute",
-                              right: 0,
-                              color: "rgba(0,0,0,0.5)",
-                            }}
-                          >
-                            <ArrowForwardIosIcon />
-                          </IconButton>
-                        )}
-                      </>
+                      </Box>
                     )}
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={8}>
+                <Grid item xs={12} md={8} sx={{ width: "100%", boxSizing: "border-box" }}>
                   <Typography variant="h5" color="primary" gutterBottom>
                     Thông tin sản phẩm
                   </Typography>
-                  <TableContainer component={Paper} sx={{ mb: 3 }}>
-                    <Table size="small">
+                  <TableContainer component={Paper} sx={{ mb: 3, maxWidth: "700px", width: "100%", overflow: "hidden" }}>
+                    <Table size="small" sx={{ width: "100%", tableLayout: "auto" }}>
                       <TableBody>
                         <TableRow>
-                          <TableCell>
+                          <TableCell sx={{ whiteSpace: "nowrap", width: "auto" }}>
                             <strong>Đơn vị:</strong>
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
                             {selectedMedicine.unit ||
                               selectedMedicine.Unit ||
                               "Đơn vị"}
                           </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>
+                          <TableCell sx={{ whiteSpace: "nowrap", width: "auto" }}>
                             <strong>Danh mục:</strong>
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
                             {selectedMedicine.categoryName || "Không có"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ whiteSpace: "nowrap", width: "auto" }}>
+                            <strong>Thành phần:</strong>
+                          </TableCell>
+                          <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
+                            {selectedMedicine.productIngredients ||
+                              selectedMedicine.ProductIngredients ||
+                              "Không có thông tin"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ whiteSpace: "nowrap", width: "auto" }}>
+                            <strong>Công dụng:</strong>
+                          </TableCell>
+                          <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
+                            {selectedMedicine.productUses ||
+                              selectedMedicine.ProductUses ||
+                              selectedMedicine.ProductlUses ||
+                              "Không có thông tin"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ whiteSpace: "nowrap", width: "auto" }}>
+                            <strong>Khối lượng:</strong>
+                          </TableCell>
+                          <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
+                            {(() => {
+                              const weight =
+                                selectedMedicine.productWeight ||
+                                selectedMedicine.ProductWeight;
+                              if (!weight && weight !== 0)
+                                return "Không có thông tin";
+                              const weightNum =
+                                typeof weight === "string"
+                                  ? parseFloat(weight)
+                                  : weight;
+                              if (isNaN(weightNum))
+                                return weight || "Không có thông tin";
+                              return `${weightNum} g`;
+                            })()}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -1065,6 +1163,9 @@ const SearchMedicine = () => {
           </DialogActions>
         </Dialog>
       </Container>
+      <Box sx={{ position: "relative", zIndex: 3 }}>
+        <Footer />
+      </Box>
     </Box>
   );
 };

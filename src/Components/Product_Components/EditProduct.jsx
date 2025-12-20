@@ -279,6 +279,13 @@ const EditProduct = ({
       tempErrors.minQuantity =
         "Số lượng tối thiểu không được lớn hơn số lượng tối đa.";
 
+    // Validate images - must have at least 4 images
+    if (!imagePreviews || imagePreviews.length < 4) {
+      tempErrors.productImage = "Phải có ít nhất 4 ảnh.";
+    } else {
+      tempErrors.productImage = "";
+    }
+
     setErrors(tempErrors);
     return Object.values(tempErrors).every((x) => x === "");
   };

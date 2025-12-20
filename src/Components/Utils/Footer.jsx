@@ -16,8 +16,8 @@ const Footer = () => {
   const userRole = getUserRoleFromToken();
   const location = useLocation();
 
-  // Ẩn footer khi user có vai trò manager, trừ route /manager
-  if (userRole === "manager" && location.pathname !== "/manager") {
+  // Ẩn footer khi user có vai trò manager
+  if (userRole === "manager") {
     return null;
   }
 
@@ -33,6 +33,11 @@ const Footer = () => {
         color: palette.white,
         pt: 3,
         pb: 1.5,
+        position: "relative",
+        zIndex: 10,
+        "&::before": {
+          display: "none",
+        },
       }}
     >
       <Container
