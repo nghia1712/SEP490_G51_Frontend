@@ -153,7 +153,11 @@ export default function useGRNList({ poId, autoOpenCreate }) {
   }, [poId, openCreate]);
 
   useEffect(() => {
-    if (autoOpenCreate) setOpenCreate(true);
+    if (autoOpenCreate) {
+      setOpenCreate(true);
+
+      window.history.replaceState({}, "");
+    }
   }, [autoOpenCreate]);
 
   /** ===================== Create GRN ===================== */

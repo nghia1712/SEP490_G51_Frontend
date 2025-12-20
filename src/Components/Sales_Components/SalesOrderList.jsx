@@ -1956,8 +1956,8 @@ const SalesOrderList = () => {
                   <MenuItem value="waiting_deposit">Chờ Cọc</MenuItem>
                   <MenuItem value="0">Chờ Thanh Toán</MenuItem>
                   <MenuItem value="1">Đã Cọc</MenuItem>
-                  <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
-                  <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
+                  <MenuItem value="2">Thanh Toán 1 Phần</MenuItem>
+                  <MenuItem value="3">Hoàn thành</MenuItem>
                   <MenuItem value="5">Trả Lại Cọc</MenuItem>
                   <MenuItem value="transaction_stopped">
                     Ngừng Giao Dịch

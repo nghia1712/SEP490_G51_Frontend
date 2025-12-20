@@ -734,7 +734,7 @@ const CustomerInvoiceList = () => {
                     Ngày tạo
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '15%', py: 1.5, px: 2 }}>
+                <TableCell align='center' sx={{ width: '15%', py: 1.5, px: 2 }}>
                   <TableSortLabel
                     active={sortConfig.key === 'status'}
                     direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
@@ -810,7 +810,7 @@ const CustomerInvoiceList = () => {
                     </TableCell>
                     <TableCell>{invoice.orderCode}</TableCell>
                     <TableCell>{formatDate(invoice.createdAt)}</TableCell>
-                    <TableCell>
+                    <TableCell align='center'>
                       <Chip label={getStatusLabel(invoice)} size="small" sx={getStatusColor(invoice)} />
                     </TableCell>
                     <TableCell sx={{ textAlign: 'right', pr: 4, fontWeight: 500, textTransform: 'none' }}>
