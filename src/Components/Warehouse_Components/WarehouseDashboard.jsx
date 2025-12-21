@@ -161,7 +161,7 @@ export default function WarehouseDashboard() {
   useEffect(() => {
     const fetchAllDiscrepancyProducts = async () => {
       try {
-        // 1️⃣ Lấy tất cả phiên kiểm kê
+        //  Lấy tất cả phiên kiểm kê
         const allSessionsRes = await warehouseAPI.getAllSession();
         const allSessions = allSessionsRes.data?.data || [];
 
@@ -170,26 +170,27 @@ export default function WarehouseDashboard() {
           return;
         }
 
+        // CHỈ LẤY SESSION ĐÃ HOÀN THÀNH
+        const completedSessions = allSessions.filter(
+          (session) => session.endDate !== null
+        );
+
         const allProducts = [];
 
-        // 2️⃣ Duyệt từng session để lấy danh sách chênh lệch
-        for (const session of allSessions) {
+        // Duyệt từng session đã hoàn thành để lấy danh sách chênh lệch
+        for (const session of completedSessions) {
           const compRes = await warehouseAPI.getHistoriesBySessionId(
             session.inventorySessionID
           );
+
           const products = compRes.data?.data || [];
-          console.log(
-            "Fetched products for session",
-            session.inventorySessionID,
-            products
-          );
+
           const filtered = products
             .map((p) => ({
               ...p,
-              complete: p.endDate ?? null,
               discrepancy: p.diff ?? 0,
             }))
-            .filter((p) => p.discrepancy !== 0 && !complete);
+            .filter((p) => p.discrepancy !== 0);
 
           allProducts.push(...filtered);
         }
@@ -276,7 +277,10 @@ export default function WarehouseDashboard() {
 
   return (
     <Container>
-      <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+      <Card
+        className="border-0 shadow-sm rounded-4 mb-5"
+        style={{ marginTop: "20px" }}
+      >
         <Card.Header className="bg-white border-0 pt-4 px-4 pb-3">
           <h2 className="fw-bold text-dark mb-1">Thống kê kho</h2>
           <h4 className="text-muted mb-0">

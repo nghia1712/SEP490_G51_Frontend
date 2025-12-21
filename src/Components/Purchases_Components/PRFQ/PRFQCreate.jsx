@@ -750,7 +750,7 @@ export default function PRFQCreate() {
                       <TableCell>Nhà thuốc dược phẩm số 17</TableCell>
                       <TableCell>Mã yêu cầu:</TableCell>
                       <TableCell>{id || "-"}</TableCell>
-                      <TableCell>Tên NCC:</TableCell>
+                      <TableCell>Người nhận:</TableCell>
                       <TableCell>{selectedSupplier?.name || "-"}</TableCell>
                       <TableCell>Email:</TableCell>
                       <TableCell>{selectedSupplier?.email || "-"}</TableCell>
@@ -759,7 +759,7 @@ export default function PRFQCreate() {
                     <TableRow>
                       <TableCell>Mã số thuế:</TableCell>
                       <TableCell>030203002865</TableCell>
-                      <TableCell>SDT:</TableCell>
+                      <TableCell>Số điện thoại:</TableCell>
                       <TableCell>0398233047</TableCell>
                       <TableCell>Địa chỉ:</TableCell>
                       <TableCell>{selectedSupplier?.address || "-"}</TableCell>
