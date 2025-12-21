@@ -202,65 +202,69 @@ export default function ManagerDashboard() {
   /* ===================== UI ===================== */
   return (
     <Container>
-      {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-5 mt-4">
-        <div>
-          <h2 className="fw-bold mb-1">Thống kê tài chính</h2>
-          <h5 className="text-muted mb-0">
-            Tổng quan doanh thu & chi phí năm {selectedYear}
-          </h5>
-        </div>
-        <div style={{ width: "150px" }}>
-          <Form.Select
-            size="sm"
-            className="border-0 bg-light fw-bold text-secondary"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-          >
-            {Array.from({ length: 5 }, (_, i) => {
-              const year = new Date().getFullYear() - i;
-              return (
-                <option key={year} value={year}>
-                  Năm {year}
-                </option>
-              );
-            })}
-          </Form.Select>
-        </div>
-      </div>
+      {/* HEADER & SUMMARY */}
+      <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+        <Card.Header className="bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+          <div>
+            <h2 className="fw-bold mb-1">Thống kê tài chính</h2>
+            <h5 className="text-muted mb-0">
+              Tổng quan doanh thu & chi phí năm {selectedYear}
+            </h5>
+          </div>
+          <div style={{ width: "150px" }}>
+            <Form.Select
+              size="sm"
+              className="border-0 bg-light fw-bold text-secondary"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+            >
+              {Array.from({ length: 5 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <option key={year} value={year}>
+                    Năm {year}
+                  </option>
+                );
+              })}
+            </Form.Select>
+          </div>
+        </Card.Header>
 
-      {/* SUMMARY */}
-      <Row className="g-4 mb-5">
-        <Col md={6} lg={4}>
-          <StatCard
-            title="Doanh thu cả năm"
-            value={formatCurrency(totalRevenue)}
-            icon={<TrendingUp />}
-            color="success"
-            subText={`Năm ${selectedYear}`}
-          />
-        </Col>
+        <Card.Body className="p-4 pt-0">
+          {/* SUMMARY */}
+          <Row className="g-4">
+            <Col md={6} lg={4}>
+              <StatCard
+                title="Doanh thu cả năm"
+                value={formatCurrency(totalRevenue)}
+                icon={<TrendingUp />}
+                color="success"
+                subText={`Năm ${selectedYear}`}
+              />
+            </Col>
 
-        <Col md={6} lg={4}>
-          <StatCard
-            title="Tổng chi phí"
-            value={formatCurrency(totalCost)}
-            icon={<TrendingDown />}
-            color="primary"
-            subText="Chi phí mua hàng"
-          />
-        </Col>
+            <Col md={6} lg={4}>
+              <StatCard
+                title="Tổng chi phí"
+                value={formatCurrency(totalCost)}
+                icon={<TrendingDown />}
+                color="primary"
+                subText="Chi phí mua hàng"
+              />
+            </Col>
 
-        <Col md={6} lg={4}>
-          <StatCard
-            title="Lợi nhuận"
-            value={formatCurrency(totalProfit)}
-            icon={<Savings />}
-            color={totalProfit >= 0 ? "success" : "danger"}
-            subText={`Biên lợi nhuận: ${formatPercent(profitMargin)}`}
-          />
-        </Col>
-      </Row>
+            <Col md={6} lg={4}>
+              <StatCard
+                title="Lợi nhuận"
+                value={formatCurrency(totalProfit)}
+                icon={<Savings />}
+                color={totalProfit >= 0 ? "success" : "danger"}
+                subText={`Biên lợi nhuận: ${formatPercent(profitMargin)}`}
+              />
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
       {/* CHART */}
       <Paper className="p-4 rounded-4 mb-5">

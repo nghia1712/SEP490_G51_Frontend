@@ -259,7 +259,7 @@ const SalesOrderList = () => {
                       Paid: 2,
                       Success: 3,
                       Failed: 4,
-                      Refunded: 5,
+                      Refunded: 4,
                     };
                     return nameMap[order.PaymentStatusName] ?? null;
                   })()
@@ -273,7 +273,7 @@ const SalesOrderList = () => {
                       Paid: 2,
                       Success: 3,
                       Failed: 4,
-                      Refunded: 5,
+                      Refunded: 4,
                     };
                     return nameMap[order.paymentStatusName] ?? null;
                   })()
@@ -289,7 +289,7 @@ const SalesOrderList = () => {
                 Paid: 2,
                 Success: 3,
                 Failed: 4,
-                Refunded: 5,
+                Refunded: 4,
               };
               paymentStatus = paymentMap[paymentStatusRaw] ?? paymentStatusRaw;
             }
@@ -537,8 +537,8 @@ const SalesOrderList = () => {
       normalizedPayment === 1 || // Deposited
       normalizedPayment === 2 || // PartiallyPaid
       normalizedPayment === 3 || // Paid
-      normalizedPayment === 4 || // Failed
-      normalizedPayment === 5 // Refunded
+      normalizedPayment === 4 || // Refunded
+      normalizedPayment === 5 // Late
     ) {
       return normalizedPayment;
     }
@@ -844,10 +844,10 @@ const SalesOrderList = () => {
         return { backgroundColor: "#fff9c4", color: "#f57f17" }; // Màu vàng nhạt để phân biệt với đã cọc
       case 3: // Đã thanh toán toàn bộ (Paid)
         return { backgroundColor: "#c8e6c9", color: "#1b5e20" };
-      case 4: // Thất bại (Failed)
-        return { backgroundColor: "#ffcdd2", color: "#b71c1c" };
-      case 5: // Trả lại cọc (Refunded)
+      case 4: // Trả lại cọc (Refunded)
         return { backgroundColor: "#f8bbd0", color: "#880e4f" };
+      case 5: // Thanh toán trễ (Late)
+        return { backgroundColor: "#ffcdd2", color: "#b71c1c" };
       default:
         return { backgroundColor: "#e3f2fd", color: "#1976d2" };
     }
@@ -952,9 +952,15 @@ const SalesOrderList = () => {
     // Lọc theo trạng thái đơn hàng
     if (orderStatusFilter !== "all") {
       const filterOrderStatus = Number(orderStatusFilter);
-      filtered = filtered.filter(
-        (order) => order.orderStatus === filterOrderStatus
-      );
+      filtered = filtered.filter((order) => {
+        // Sử dụng effective order status để filter (giống như hiển thị trên màn hình)
+        const effectiveStatus = getEffectiveOrderStatus(
+          order.orderStatus,
+          order.paymentStatus,
+          order
+        );
+        return effectiveStatus === filterOrderStatus;
+      });
     }
 
     // Lọc theo trạng thái thanh toán
@@ -1288,7 +1294,44 @@ const SalesOrderList = () => {
                 item.lotExpiredDate ?? item.LotExpiredDate ?? null,
 
               unitPriceBeforeTax: item.unitPrice ?? item.UnitPrice ?? null,
+
+              supplierName: item.supplierName ?? item.SupplierName ?? null,
             });
+          }
+        });
+
+        // Also add from quotationDetailView if not already in map
+        quotationDetailView.forEach((item) => {
+          const lotKey = item?.lotId ?? item?.LotId ?? null;
+
+          if (lotKey !== null && lotKey !== undefined) {
+            const existing = quotationDetailsMap.get(Number(lotKey));
+            if (existing) {
+              // Update existing entry with supplierName if not already set
+              if (!existing.supplierName) {
+                existing.supplierName =
+                  item.supplierName ??
+                  item.SupplierName ??
+                  item.Supplier?.Name ??
+                  item.supplier?.name ??
+                  null;
+              }
+            } else {
+              // Add new entry if not exists
+              quotationDetailsMap.set(Number(lotKey), {
+                productName: item.productName ?? item.ProductName ?? "-",
+                productUnit: item.productUnit ?? item.ProductUnit ?? "",
+                lotExpiredDate:
+                  item.lotExpiredDate ?? item.LotExpiredDate ?? null,
+                unitPriceBeforeTax: item.unitPrice ?? item.UnitPrice ?? null,
+                supplierName:
+                  item.supplierName ??
+                  item.SupplierName ??
+                  item.Supplier?.Name ??
+                  item.supplier?.name ??
+                  null,
+              });
+            }
           }
         });
 
@@ -1435,8 +1478,9 @@ const SalesOrderList = () => {
             null;
 
           // If still no product name, try to get from quotation details by matching lotId
+          let matchingQuotationDetail = null;
           if (!productName && lotId !== null) {
-            const matchingQuotationDetail = quotationDetailView.find(
+            matchingQuotationDetail = quotationDetailView.find(
               (qd) =>
                 (qd.lotId ?? qd.LotId) === lotId ||
                 (qd.LotId ?? qd.lotId) === lotId
@@ -1452,6 +1496,40 @@ const SalesOrderList = () => {
           // Fallback to '-' if still no product name
           if (!productName) {
             productName = "-";
+          }
+
+          // Get supplierName from multiple sources
+          let supplierName =
+            detail.supplierName ??
+            detail.SupplierName ??
+            quotationMatch?.supplierName ??
+            null;
+
+          // If not found, try to get from matchingQuotationDetail
+          if (!supplierName && matchingQuotationDetail) {
+            supplierName =
+              matchingQuotationDetail.supplierName ??
+              matchingQuotationDetail.SupplierName ??
+              matchingQuotationDetail.Supplier?.Name ??
+              matchingQuotationDetail.supplier?.name ??
+              null;
+          }
+
+          // If still not found, try to find from quotationDetailView by lotId
+          if (!supplierName && lotId !== null) {
+            const supplierMatch = quotationDetailView.find(
+              (qd) =>
+                (qd.lotId ?? qd.LotId) === lotId ||
+                (qd.LotId ?? qd.lotId) === lotId
+            );
+            if (supplierMatch) {
+              supplierName =
+                supplierMatch.supplierName ??
+                supplierMatch.SupplierName ??
+                supplierMatch.Supplier?.Name ??
+                supplierMatch.supplier?.name ??
+                null;
+            }
           }
           const taxKey = buildTaxKey(productName, formattedExpiredDate);
 
@@ -1535,6 +1613,8 @@ const SalesOrderList = () => {
 
             unitPrice: unitPriceBeforeTax,
 
+            supplierName: supplierName ?? "-",
+
             unitPriceAfterTax,
 
             subtotal,
@@ -1548,6 +1628,8 @@ const SalesOrderList = () => {
             taxRate: normalizedTaxRate,
 
             productName,
+
+            supplierName: supplierName ?? "-",
           };
         });
 
@@ -1968,8 +2050,8 @@ const SalesOrderList = () => {
                   <MenuItem value="0">Chờ Thanh Toán</MenuItem>
                   <MenuItem value="1">Đã Cọc</MenuItem>
                   <MenuItem value="2">Thanh Toán 1 Phần</MenuItem>
-                  <MenuItem value="3">Hoàn thành</MenuItem>
-                  <MenuItem value="5">Trả Lại Cọc</MenuItem>
+                  <MenuItem value="3">Thanh Toán Toàn Bộ</MenuItem>
+                  <MenuItem value="4">Trả Lại Cọc</MenuItem>
                   <MenuItem value="transaction_stopped">
                     Ngừng Giao Dịch
                   </MenuItem>
@@ -2770,6 +2852,17 @@ const SalesOrderList = () => {
                             whiteSpace: "nowrap",
                           }}
                         >
+                          Nhà cung cấp
+                        </TableCell>
+
+                        <TableCell
+                          sx={{
+                            textAlign: "center",
+                            backgroundColor: "#f5f5f5",
+                            minWidth: "120px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           Ngày hết hạn
                         </TableCell>
 
@@ -2907,6 +3000,17 @@ const SalesOrderList = () => {
                             detail.UomName ??
                             "-";
 
+                          const supplierName =
+                            detail.supplierName ??
+                            detail.SupplierName ??
+                            quotationMatch?.SupplierName ??
+                            quotationMatch?.supplierName ??
+                            quotationMatch?.Supplier?.Name ??
+                            quotationMatch?.supplier?.name ??
+                            detail.Supplier?.Name ??
+                            detail.supplier?.name ??
+                            "-";
+
                           const expiredDate =
                             detail.expiredDisplay ??
                             detail.expiredDate ??
@@ -2957,6 +3061,10 @@ const SalesOrderList = () => {
                               </TableCell>
 
                               <TableCell sx={{ textAlign: "center" }}>
+                                {supplierName}
+                              </TableCell>
+
+                              <TableCell sx={{ textAlign: "center" }}>
                                 {expiredDate}
                               </TableCell>
 
@@ -3000,7 +3108,7 @@ const SalesOrderList = () => {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={11} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               Không có sản phẩm
                             </Typography>

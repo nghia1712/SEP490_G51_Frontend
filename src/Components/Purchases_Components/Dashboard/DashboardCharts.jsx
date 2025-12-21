@@ -60,25 +60,8 @@ export const DashboardCharts = ({
         {/* ===================== YEARLY BAR CHART (8 COLUMNS) ===================== */}
         <Col xs={12} lg={7}>
           <Card className="border-0 shadow-sm rounded-4 mb-4">
-            <Card.Header className="bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+            <Card.Header className="bg-white border-0 pt-4 px-4">
               <h5 className="fw-bold mb-0">Biểu đồ chi phí</h5>
-              <div style={{ width: "150px" }}>
-                <Form.Select
-                  size="sm"
-                  className="border-0 bg-light fw-bold text-secondary"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                >
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return (
-                      <option key={year} value={year}>
-                        Năm {year}
-                      </option>
-                    );
-                  })}
-                </Form.Select>
-              </div>
             </Card.Header>
 
             <Card.Body className="px-4 pb-4" style={{ height: "350px" }}>

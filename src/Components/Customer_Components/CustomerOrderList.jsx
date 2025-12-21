@@ -462,9 +462,15 @@ const CustomerOrderList = () => {
       if (orderStatusFilter !== "all") {
         const filterOrderStatus = Number(orderStatusFilter);
 
-        filtered = filtered.filter(
-          (order) => order.orderStatus === filterOrderStatus
-        );
+        filtered = filtered.filter((order) => {
+          // Sử dụng effective order status để filter (giống như hiển thị trên màn hình)
+          const effectiveStatus = getEffectiveOrderStatus(
+            order.orderStatus,
+            order.paymentStatus,
+            order
+          );
+          return effectiveStatus === filterOrderStatus;
+        });
       }
 
       // Lọc theo trạng thái thanh toán
@@ -696,7 +702,7 @@ const CustomerOrderList = () => {
 
                     Failed: 4,
 
-                    Refunded: 5,
+                    Refunded: 4,
                   };
 
                   return nameMap[order.PaymentStatusName] ?? null;
@@ -715,7 +721,7 @@ const CustomerOrderList = () => {
 
                     Failed: 4,
 
-                    Refunded: 5,
+                    Refunded: 4,
                   };
 
                   return nameMap[order.paymentStatusName] ?? null;
@@ -739,7 +745,7 @@ const CustomerOrderList = () => {
 
               Failed: 4,
 
-              Refunded: 5,
+              Refunded: 4,
             };
 
             paymentStatus = paymentMap[paymentStatusRaw] ?? paymentStatusRaw;
@@ -1400,8 +1406,8 @@ const CustomerOrderList = () => {
       normalizedPayment === 1 || // Deposited
       normalizedPayment === 2 || // PartiallyPaid
       normalizedPayment === 3 || // Paid
-      normalizedPayment === 4 || // Failed
-      normalizedPayment === 5 // Refunded
+      normalizedPayment === 4 || // Refunded
+      normalizedPayment === 5 // Late
     ) {
       return normalizedPayment;
     }
@@ -1602,11 +1608,11 @@ const CustomerOrderList = () => {
       case 3: // Đã thanh toán toàn bộ (Paid)
         return { backgroundColor: "#c8e6c9", color: "#1b5e20" };
 
-      case 4: // Thất bại (Failed)
-        return { backgroundColor: "#ffcdd2", color: "#b71c1c" };
-
-      case 5: // Trả lại cọc (Refunded)
+      case 4: // Trả lại cọc (Refunded)
         return { backgroundColor: "#f8bbd0", color: "#880e4f" };
+
+      case 5: // Thanh toán trễ (Late)
+        return { backgroundColor: "#ffcdd2", color: "#b71c1c" };
 
       default:
         return { backgroundColor: "#e3f2fd", color: "#1976d2" };
@@ -1932,6 +1938,20 @@ const CustomerOrderList = () => {
           detail.Id ??
           null;
 
+        // Get supplier name from multiple sources
+        const supplierName =
+          detail.supplierName ??
+          detail.SupplierName ??
+          matchedQuotationDetail?.SupplierName ??
+          matchedQuotationDetail?.supplierName ??
+          matchedQuotationDetail?.Supplier?.Name ??
+          matchedQuotationDetail?.supplier?.name ??
+          detail.lot?.SupplierName ??
+          detail.Lot?.SupplierName ??
+          detail.lot?.supplierName ??
+          detail.Lot?.supplierName ??
+          "-";
+
         return {
           id: index + 1,
           salesOrderDetailId,
@@ -1945,6 +1965,7 @@ const CustomerOrderList = () => {
           taxRate,
           expiredDate: detail.expiredDisplay,
           unitName: unitName || "-",
+          supplierName: supplierName || "-",
           subtotal: quantityValue * unitPriceBeforeTax,
           subtotalAfterTax: quantityValue * unitPriceAfterTax,
         };
@@ -2286,7 +2307,7 @@ const CustomerOrderList = () => {
 
             Failed: 4,
 
-            Refunded: 5,
+            Refunded: 4,
           };
 
           paymentStatus = paymentMap[paymentStatusRaw] ?? null;
@@ -2860,6 +2881,17 @@ const CustomerOrderList = () => {
             detail.Lot?.unitName ??
             "-";
 
+          const supplierName =
+            detail.supplierName ??
+            detail.SupplierName ??
+            detail.Supplier?.Name ??
+            detail.supplier?.name ??
+            detail.lot?.SupplierName ??
+            detail.Lot?.SupplierName ??
+            detail.lot?.supplierName ??
+            detail.Lot?.supplierName ??
+            "-";
+
           return {
             ...detail,
 
@@ -2884,6 +2916,8 @@ const CustomerOrderList = () => {
             expiredDisplay,
 
             unitName,
+
+            supplierName,
           };
         });
 
@@ -2933,6 +2967,8 @@ const CustomerOrderList = () => {
           let subtotalAfterTax = detail.subtotalAfterTax;
 
           let expiredDisplay = detail.expiredDisplay;
+
+          let supplierName = detail.supplierName;
 
           if (matchedQuotationDetail) {
             const quotationUnit =
@@ -3014,6 +3050,17 @@ const CustomerOrderList = () => {
             if (quotationExpired && quotationExpired !== "-") {
               expiredDisplay = quotationExpired;
             }
+
+            const quotationSupplierName =
+              matchedQuotationDetail.SupplierName ??
+              matchedQuotationDetail.supplierName ??
+              matchedQuotationDetail.Supplier?.Name ??
+              matchedQuotationDetail.supplier?.name ??
+              null;
+
+            if (quotationSupplierName) {
+              supplierName = quotationSupplierName;
+            }
           }
 
           return {
@@ -3034,6 +3081,8 @@ const CustomerOrderList = () => {
             subtotalAfterTax,
 
             expiredDisplay,
+
+            supplierName: detail.supplierName ?? supplierName ?? "-",
           };
         });
 
@@ -3651,7 +3700,7 @@ const CustomerOrderList = () => {
 
         Failed: 4,
 
-        Refunded: 5,
+        Refunded: 4,
       };
 
       if (statusValue in paymentMap) {
@@ -3838,11 +3887,11 @@ const CustomerOrderList = () => {
 
               <MenuItem value="1">Đã Cọc</MenuItem>
 
-              <MenuItem value="2">Đã Thanh Toán 1 Phần</MenuItem>
+              <MenuItem value="2">Thanh Toán 1 Phần</MenuItem>
 
-              <MenuItem value="3">Đã Thanh Toán Toàn Bộ</MenuItem>
+              <MenuItem value="3">Thanh Toán Toàn Bộ</MenuItem>
 
-              <MenuItem value="5">Trả Lại Cọc</MenuItem>
+              <MenuItem value="4">Trả Lại Cọc</MenuItem>
               <MenuItem value="transaction_stopped">Ngừng Giao Dịch</MenuItem>
             </Select>
           </FormControl>
@@ -4582,6 +4631,17 @@ const CustomerOrderList = () => {
                             whiteSpace: "nowrap",
                           }}
                         >
+                          Nhà cung cấp
+                        </TableCell>
+
+                        <TableCell
+                          sx={{
+                            textAlign: "center",
+                            backgroundColor: "#f5f5f5",
+                            minWidth: "120px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           Ngày hết hạn
                         </TableCell>
 
@@ -4672,6 +4732,13 @@ const CustomerOrderList = () => {
 
                           const unitName = detail.unitName ?? "-";
 
+                          const supplierName =
+                            detail.supplierName ??
+                            detail.SupplierName ??
+                            detail.Supplier?.Name ??
+                            detail.supplier?.name ??
+                            "-";
+
                           const expiredDisplay =
                             detail.expiredDisplay ??
                             (detail.expiredDate
@@ -4727,6 +4794,10 @@ const CustomerOrderList = () => {
                               </TableCell>
 
                               <TableCell sx={{ textAlign: "center" }}>
+                                {supplierName}
+                              </TableCell>
+
+                              <TableCell sx={{ textAlign: "center" }}>
                                 {expiredDisplay}
                               </TableCell>
 
@@ -4770,7 +4841,7 @@ const CustomerOrderList = () => {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={10} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={11} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               Không có sản phẩm
                             </Typography>
@@ -5287,6 +5358,14 @@ const CustomerOrderList = () => {
                             backgroundColor: "#f5f5f5",
                           }}
                         >
+                          Nhà cung cấp
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            textAlign: "center",
+                            backgroundColor: "#f5f5f5",
+                          }}
+                        >
                           Ngày hết hạn
                         </TableCell>
                         <TableCell
@@ -5373,6 +5452,9 @@ const CustomerOrderList = () => {
                             </TableCell>
                             <TableCell sx={{ textAlign: "center" }}>
                               {row.unitName || "-"}
+                            </TableCell>
+                            <TableCell sx={{ textAlign: "center" }}>
+                              {row.supplierName || "-"}
                             </TableCell>
                             <TableCell sx={{ textAlign: "center" }}>
                               {row.expiredDate || "-"}

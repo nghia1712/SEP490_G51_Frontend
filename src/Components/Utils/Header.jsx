@@ -141,6 +141,7 @@ function Header() {
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const [supplierMenuAnchor, setSupplierMenuAnchor] = useState(null);
   const [customerMenuAnchor, setCustomerMenuAnchor] = useState(null);
+  const [overviewMenuAnchor, setOverviewMenuAnchor] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileProductMenuOpen, setMobileProductMenuOpen] = useState(false);
   const [mobileOrderMenuOpen, setMobileOrderMenuOpen] = useState(false);
@@ -150,6 +151,7 @@ function Header() {
   const [mobileExportMenuOpen, setMobileExportMenuOpen] = useState(false);
   const [mobileSupplierMenuOpen, setMobileSupplierMenuOpen] = useState(false);
   const [mobileCustomerMenuOpen, setMobileCustomerMenuOpen] = useState(false);
+  const [mobileOverviewMenuOpen, setMobileOverviewMenuOpen] = useState(false);
 
   const { getProfile } = useUser();
 
@@ -507,6 +509,18 @@ function Header() {
     },
   };
 
+  // Menu items cho MANAGER với dropdown
+  const managerMenuItems = {
+    overview: {
+      label: "Tổng quan",
+      items: [
+        { label: "Tổng quan bán hàng", path: "/sales-dashboard" },
+        { label: "Tổng quan mua hàng", path: "/purchases-dashboard" },
+        { label: "Tổng quan kho", path: "/warehouse-dashboard" },
+      ],
+    },
+  };
+
   const handleProductMenuOpen = (e) => setProductMenuAnchor(e.currentTarget);
   const handleProductMenuClose = () => setProductMenuAnchor(null);
   const handleOrderMenuOpen = (e) => setOrderMenuAnchor(e.currentTarget);
@@ -524,6 +538,8 @@ function Header() {
   const handleSupplierMenuClose = () => setSupplierMenuAnchor(null);
   const handleCustomerMenuOpen = (e) => setCustomerMenuAnchor(e.currentTarget);
   const handleCustomerMenuClose = () => setCustomerMenuAnchor(null);
+  const handleOverviewMenuOpen = (e) => setOverviewMenuAnchor(e.currentTarget);
+  const handleOverviewMenuClose = () => setOverviewMenuAnchor(null);
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -539,6 +555,7 @@ function Header() {
     setMobileExportMenuOpen(false);
     setMobileSupplierMenuOpen(false);
     setMobileCustomerMenuOpen(false);
+    setMobileOverviewMenuOpen(false);
   };
 
   const handleMobileNavigate = (path) => {
@@ -1232,6 +1249,106 @@ function Header() {
                   )}
                 </Menu>
               </>
+            ) : userRole === "manager" ? (
+              <>
+                {/* Tài khoản khách hàng */}
+                <Button
+                  color="inherit"
+                  onClick={() => handleNavigate("/admin/users/customer")}
+                  sx={
+                    isActiveNavItem("/admin/users/customer")
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  Tài khoản khách hàng
+                </Button>
+
+                {/* Thống kê */}
+                <Button
+                  color="inherit"
+                  onClick={() => handleNavigate("/manager-dashboard")}
+                  sx={
+                    isActiveNavItem("/manager-dashboard")
+                      ? activeNavStyle
+                      : navButtonHoverStyle
+                  }
+                >
+                  Thống kê
+                </Button>
+
+                {/* Tổng quan - Dropdown */}
+                <Button
+                  color="inherit"
+                  onClick={handleOverviewMenuOpen}
+                  endIcon={<ArrowDropDownIcon />}
+                  sx={{
+                    ...(managerMenuItems.overview.items.some((item) =>
+                      isActiveNavItem(item.path)
+                    )
+                      ? activeNavStyle
+                      : navButtonHoverStyle),
+                    width: "250px",
+                    minWidth: "250px",
+                    fontSize: "1rem",
+                    px: 3,
+                  }}
+                >
+                  {managerMenuItems.overview.label}
+                </Button>
+                <Menu
+                  anchorEl={overviewMenuAnchor}
+                  open={Boolean(overviewMenuAnchor)}
+                  onClose={handleOverviewMenuClose}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  transformOrigin={{
+                    vertical: "top",
+                    horizontal: "left",
+                  }}
+                  PaperProps={{
+                    sx: {
+                      width: "250px",
+                      minWidth: "250px",
+                      mt: 1,
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                      borderRadius: 2,
+                      "& .MuiMenuItem-root": {
+                        px: 3,
+                        py: 2,
+                        fontSize: "1rem",
+                        minHeight: "48px",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: "#e3f2fd",
+                          color: "#1976d2",
+                          fontWeight: 500,
+                          "&:hover": {
+                            backgroundColor: "#e3f2fd",
+                          },
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {managerMenuItems.overview.items.map((item) => (
+                    <MenuItem
+                      key={item.path}
+                      onClick={() => {
+                        handleNavigate(item.path);
+                        handleOverviewMenuClose();
+                      }}
+                      selected={isActiveNavItem(item.path)}
+                    >
+                      {item.label}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
             ) : userRole === "customer" ? (
               <>
                 {/* Customer Navigation - Special Style */}
@@ -1886,6 +2003,63 @@ function Header() {
                         </ListItem>
                       )
                     )}
+                  </List>
+                )}
+              </>
+            ) : userRole === "manager" ? (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleMobileNavigate("/admin/users/customer")}
+                    selected={isActiveNavItem("/admin/users/customer")}
+                  >
+                    <ListItemText primary="Tài khoản khách hàng" />
+                  </ListItemButton>
+                </ListItem>
+
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleMobileNavigate("/manager-dashboard")}
+                    selected={isActiveNavItem("/manager-dashboard")}
+                  >
+                    <ListItemText primary="Thống kê" />
+                  </ListItemButton>
+                </ListItem>
+
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() =>
+                      setMobileOverviewMenuOpen(!mobileOverviewMenuOpen)
+                    }
+                    selected={managerMenuItems.overview.items.some((item) =>
+                      isActiveNavItem(item.path)
+                    )}
+                  >
+                    <ListItemText
+                      primary={managerMenuItems.overview.label}
+                    />
+                    <ArrowDropDownIcon
+                      sx={{
+                        transform: mobileOverviewMenuOpen
+                          ? "rotate(180deg)"
+                          : "none",
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                {mobileOverviewMenuOpen && (
+                  <List component="div" disablePadding>
+                    {managerMenuItems.overview.items.map((item) => (
+                      <ListItem key={item.path} disablePadding>
+                        <ListItemButton
+                          sx={{ pl: 4 }}
+                          onClick={() => handleMobileNavigate(item.path)}
+                          selected={isActiveNavItem(item.path)}
+                        >
+                          <ListItemText primary={item.label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
                   </List>
                 )}
               </>

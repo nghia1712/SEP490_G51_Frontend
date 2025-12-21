@@ -66,8 +66,8 @@ const LandingPage = () => {
     },
     {
       icon: <ReceiptIcon sx={{ fontSize: 50 }} />,
-      title: "Hóa đơn điện tử",
-      description: "Xem và tải hóa đơn mua hàng dễ dàng",
+      title: "Hóa đơn mua hàng",
+      description: "Xem và tải xuống hóa đơn mua hàng dễ dàng",
       path: isCustomer ? "/customer/invoices" : "/login",
       color: "#7b1fa2",
     },

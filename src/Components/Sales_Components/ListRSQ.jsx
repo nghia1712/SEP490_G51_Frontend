@@ -592,20 +592,7 @@ const ListRSQ = () => {
     setGenerateLoading(true);
     setQuotationError(null);
     try {
-      // Load danh sách supplier - xử lý lỗi nếu không có quyền
-      try {
-        const supplierResponse = await supplierAPI.getAll();
-        const supplierList =
-          supplierResponse?.data?.data?.data ||
-          supplierResponse?.data?.data ||
-          [];
-        setSuppliers(Array.isArray(supplierList) ? supplierList : []);
-      } catch (supplierError) {
-        console.warn("Không thể load danh sách nhà cung cấp:", supplierError);
-        // Nếu không có quyền, để danh sách supplier rỗng
-        setSuppliers([]);
-      }
-
+      // Chỉ dùng generateForm, không load supplier
       const response = await salesQuotationAPI.generateForm(rsqId);
       if (response.data && response.data.data) {
         const formData = response.data.data;
@@ -638,91 +625,7 @@ const ListRSQ = () => {
           )
         );
 
-        // Gọi API SearchLotProductByproductId cho mỗi product để lấy supplier info
-        const lotDataByProductId = {};
-        const supplierIdSet = new Set();
-        await Promise.all(
-          uniqueProductIds.map(async (productId) => {
-            try {
-              const lotResponse = await productAPI.searchLotByProductId(
-                productId
-              );
-              const lots = lotResponse?.data?.data || [];
-              const mappedLots = lots.map((lot) => {
-                const supplierId = lot.supplierID || lot.SupplierID || null;
-                if (supplierId) {
-                  supplierIdSet.add(supplierId);
-                }
-                return {
-                  lotId: lot.lotID || lot.LotID || null,
-                  supplierId: supplierId,
-                  supplierName: lot.supplierName || lot.SupplierName || "",
-                  expiredDate: lot.expiredDate || lot.ExpiredDate || null,
-                  salePrice: lot.salePrice || lot.SalePrice || 0,
-                  lotQuantity: lot.lotQuantity || lot.LotQuantity || 0,
-                  inputPrice: lot.inputPrice || lot.InputPrice || 0,
-                };
-              });
-              lotDataByProductId[productId] = mappedLots;
-            } catch (err) {
-              console.warn(`Không thể lấy lot cho product ${productId}:`, err);
-              lotDataByProductId[productId] = [];
-            }
-          })
-        );
-
-        // Lấy supplier names từ API supplier
-        const supplierNameMap = new Map();
-
-        // Thử lấy từ suppliers state đã load trước đó
-        if (suppliers.length > 0) {
-          suppliers.forEach((supplier) => {
-            const id = supplier.id || supplier.Id;
-            const name = supplier.name || supplier.Name || "";
-            if (id) {
-              supplierNameMap.set(id, name);
-            }
-          });
-        }
-
-        // Lấy supplier names cho các supplier IDs chưa có trong map
-        const missingSupplierIds = Array.from(supplierIdSet).filter(
-          (id) => !supplierNameMap.has(id)
-        );
-
-        // Gọi API để lấy tên cho các supplier IDs còn thiếu
-        if (missingSupplierIds.length > 0) {
-          await Promise.all(
-            missingSupplierIds.map(async (supplierId) => {
-              try {
-                const supplierResponse = await supplierAPI.getById(supplierId);
-                const supplierData =
-                  supplierResponse?.data?.data || supplierResponse?.data || {};
-                const supplierName =
-                  supplierData.name || supplierData.Name || "";
-                if (supplierName) {
-                  supplierNameMap.set(supplierId, supplierName);
-                }
-              } catch (err) {
-                console.warn(`Không thể lấy tên supplier ${supplierId}:`, err);
-                // Nếu không lấy được, dùng fallback
-                supplierNameMap.set(supplierId, `NCC ${supplierId}`);
-              }
-            })
-          );
-        }
-
-        // Cập nhật supplierName cho tất cả các lot
-        Object.keys(lotDataByProductId).forEach((productId) => {
-          lotDataByProductId[productId].forEach((lot) => {
-            if (lot.supplierId) {
-              lot.supplierName =
-                supplierNameMap.get(lot.supplierId) || `NCC ${lot.supplierId}`;
-            }
-          });
-        });
-
-        // Map lot products by productId (merge với supplier info từ SearchLotProductByproductId)
+        // Map lot products by productId từ generateForm
         const lotsByProduct = lotProducts.reduce((acc, lot) => {
           const productId = lot.productID || lot.ProductID;
           if (!acc[productId]) {
@@ -733,16 +636,7 @@ const ListRSQ = () => {
             ? formatDate(expiredLabelRaw)
             : null;
 
-          // Tìm supplier info từ lotDataByProductId dựa trên lotId
           const lotId = lot.lotID || lot.LotID || null;
-          const lotData = lotDataByProductId[productId] || [];
-          const matchingLotData = lotData.find((l) => l.lotId === lotId);
-
-          const finalSupplierId = matchingLotData?.supplierId || null;
-          const finalSupplierName =
-            matchingLotData?.supplierName ||
-            (finalSupplierId ? supplierNameMap.get(finalSupplierId) : null) ||
-            "";
 
           // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
           let displayLabel;
@@ -766,69 +660,14 @@ const ListRSQ = () => {
             lotQuantity: lot.lotQuantity || lot.LotQuantity || 1,
             unit: lot.unit || lot.Unit || "",
             note: lot.note || lot.Note || "",
-            supplierId: finalSupplierId,
-            supplierName:
-              finalSupplierName ||
-              (finalSupplierId ? `NCC ${finalSupplierId}` : ""),
+            supplierName: lot.supplierName || lot.SupplierName || "",
+            supplierId: lot.supplierName || lot.SupplierName || null, // Dùng supplierName làm ID vì API không trả về supplierID
             displayLabel: displayLabel,
             taxRate: 0,
           });
           return acc;
         }, {});
 
-        // Thêm các lot từ SearchLotProductByproductId mà chưa có trong lotProducts
-        Object.keys(lotDataByProductId).forEach((productId) => {
-          const apiLots = lotDataByProductId[productId];
-          if (!lotsByProduct[productId]) {
-            lotsByProduct[productId] = [];
-          }
-          apiLots.forEach((apiLot) => {
-            // Chỉ thêm nếu lot chưa có trong lotsByProduct
-            const exists = lotsByProduct[productId].some(
-              (l) => l.lotId === apiLot.lotId
-            );
-            if (!exists && apiLot.lotId) {
-              const expiredLabelRaw = apiLot.expiredDate || null;
-              const formattedExpired = expiredLabelRaw
-                ? formatDate(expiredLabelRaw)
-                : null;
-
-              const apiSupplierId = apiLot.supplierId || null;
-              const apiSupplierName =
-                apiLot.supplierName ||
-                (apiSupplierId ? supplierNameMap.get(apiSupplierId) : null) ||
-                (apiSupplierId ? `NCC ${apiSupplierId}` : "");
-
-              // Xác định displayLabel: nếu có lotId thì hiển thị ngày hết hạn, nếu không có lotId thì "Hết hàng"
-              let displayLabel;
-              if (apiLot.lotId === null || apiLot.lotId === undefined) {
-                displayLabel = "Hết hàng";
-              } else if (expiredLabelRaw) {
-                // Nếu có expiredDate thì luôn hiển thị (dù format có thành công hay không)
-                displayLabel =
-                  formattedExpired && formattedExpired !== "-"
-                    ? formattedExpired
-                    : expiredLabelRaw; // Nếu format không thành công, hiển thị giá trị gốc
-              } else {
-                // Nếu không có expiredDate thì hiển thị "Không có ngày hết hạn"
-                displayLabel = "Không có ngày hết hạn";
-              }
-
-              lotsByProduct[productId].push({
-                lotId: apiLot.lotId,
-                salePrice: apiLot.salePrice || 0,
-                expiredDate: apiLot.expiredDate || null,
-                lotQuantity: apiLot.lotQuantity || 0,
-                unit: "", // Sẽ lấy từ lotProducts nếu có
-                note: "",
-                supplierId: apiSupplierId,
-                supplierName: apiSupplierName,
-                displayLabel: displayLabel,
-                taxRate: 0,
-              });
-            }
-          });
-        });
 
         Object.keys(lotsByProduct).forEach((productId) => {
           lotsByProduct[productId].sort((a, b) => {
@@ -847,8 +686,8 @@ const ListRSQ = () => {
             salePrice: 0,
             lotQuantity: 0,
             unit: "",
-            note: "Hết lô hàng",
-            displayLabel: "Hết lô hàng",
+            note: "Hết hàng",
+            displayLabel: "Hết hàng",
             expiredDate: null,
             taxRate: 0,
           });
@@ -865,31 +704,9 @@ const ListRSQ = () => {
           const productId = detail.productId || detail.ProductId;
           const productName = detail.productName || detail.ProductName || "";
           const productLots = lotsByProduct[productId] || [];
-          // Supplier options
-          const supplierOptions = Array.from(
-            new Map(
-              productLots
-                .filter((l) => l.supplierId)
-                .map((l) => [
-                  l.supplierId,
-                  {
-                    id: l.supplierId,
-                    name: l.supplierName || `NCC ${l.supplierId}`,
-                  },
-                ])
-            ).values()
-          );
-
-          // Default supplier: nếu chỉ có 1 NCC thì chọn luôn, nếu không thì để null
-          const defaultSupplierId =
-            supplierOptions.length === 1 ? supplierOptions[0].id : null;
-
-          // Filter lô theo supplier nếu đã có defaultSupplierId
-          const filteredLots = defaultSupplierId
-            ? productLots.filter((l) => l.supplierId === defaultSupplierId)
-            : [];
-          const defaultLot = filteredLots[0] || null;
-          // Lấy unit từ lotProducts - tìm lot đầu tiên có unit (không phải lot "Hết lô hàng")
+          // Dùng tất cả lot từ generateForm, không filter theo supplier
+          const defaultLot = productLots[0] || null;
+          // Lấy unit từ lotProducts - tìm lot đầu tiên có unit (không phải lot "Hết hàng")
           let productUnit = "-";
           const lotWithUnit = lotProducts.find(
             (lot) =>
@@ -920,11 +737,9 @@ const ListRSQ = () => {
             productId,
             productName,
             productUnit: productUnit,
-            supplierId: defaultSupplierId, // Nhà cung cấp, sẽ được chọn sau
-            supplierOptions,
+            supplierName: defaultLot?.supplierName || "", // Tự động lấy từ lot
             lotId: defaultLot?.lotId || null,
-            lotOptions: filteredLots, // Lô đã filter theo supplier (nếu có)
-            allLotOptions: productLots, // Lưu tất cả lô để filter sau
+            lotOptions: productLots, // Dùng tất cả lot từ generateForm
             taxId: defaultTaxId, // Đảm bảo luôn có taxId hợp lệ
             taxOptions: taxes,
             note: "",
@@ -1002,58 +817,6 @@ const ListRSQ = () => {
     setQuotationRows(initialQuotationRows);
   };
 
-  const handleSupplierChange = (rowId, supplierId) => {
-    const normalizedSupplierId =
-      supplierId === "" || supplierId === "NONE" ? null : Number(supplierId);
-    setQuotationRows(
-      quotationRows.map((row) => {
-        if (row.id !== rowId) return row;
-
-        const defaultTax = getDefaultTaxInfo(row.taxOptions || []);
-        // Filter lotOptions theo supplier - so sánh chính xác supplierId
-        const filteredLotOptions = normalizedSupplierId
-          ? (row.allLotOptions || []).filter((lot) => {
-              const lotSupplierId = lot.supplierId;
-              return (
-                lotSupplierId !== null &&
-                lotSupplierId !== undefined &&
-                Number(lotSupplierId) === normalizedSupplierId
-              );
-            })
-          : [];
-
-        // Tự động chọn lot đầu tiên nếu có lot hợp lệ (không phải "Hết lô hàng")
-        const validLots = filteredLotOptions.filter(
-          (lot) => lot.lotId !== null && lot.lotId !== undefined
-        );
-        const defaultLot = validLots.length > 0 ? validLots[0] : null;
-        const selectedLotId = defaultLot ? defaultLot.lotId : null;
-
-        const minQuantity = 1;
-        const unitPrice = defaultLot ? defaultLot.salePrice ?? 0 : 0;
-        const taxRate = defaultTax.rate || 0;
-        const { beforeTax, afterTax } = calculateTotals(
-          minQuantity,
-          unitPrice,
-          taxRate
-        );
-
-        return {
-          ...row,
-          supplierId: normalizedSupplierId,
-          lotId: selectedLotId, // Tự động chọn lot đầu tiên nếu có
-          lotOptions: filteredLotOptions,
-          minQuantity,
-          unitPrice,
-          totalBeforeTax: beforeTax,
-          totalAfterTax: afterTax,
-          taxId: defaultTax.id,
-          taxRate: taxRate,
-          productUnit: defaultLot?.unit || row.productUnit || "-",
-        };
-      })
-    );
-  };
 
   const handleLotChange = (rowId, lotId) => {
     const normalizedLotId = lotId === "NONE" ? null : Number(lotId);
@@ -1066,6 +829,7 @@ const ListRSQ = () => {
           return {
             ...row,
             lotId: null,
+            supplierName: "", // Xóa supplierName khi chọn "Hết hàng"
             minQuantity: 1,
             unitPrice: 0,
             productUnit: row.productUnit || "-",
@@ -1073,6 +837,7 @@ const ListRSQ = () => {
             totalAfterTax: 0,
             taxId: null, // Thuế sẽ null khi chọn "Hết hàng"
             taxRate: 0,
+            note: "Hết hàng", // Tự động fill ghi chú "Hết hàng"
           };
         }
 
@@ -1090,14 +855,19 @@ const ListRSQ = () => {
             unitPrice,
             currentTaxRate
           );
+          // Nếu ghi chú hiện tại là "Hết hàng", xóa nó đi khi chọn lô khác
+          const currentNote = row.note || "";
+          const newNote = currentNote.trim() === "Hết hàng" ? "" : currentNote;
           return {
             ...row,
             lotId: normalizedLotId,
+            supplierName: selectedLot.supplierName || "", // Tự động lấy supplierName từ lot
             minQuantity,
             unitPrice,
             productUnit: selectedLot.unit || row.productUnit || "-",
             totalBeforeTax: beforeTax,
             totalAfterTax: afterTax,
+            note: newNote, // Xóa "Hết hàng" nếu có
           };
         }
 
@@ -1208,38 +978,46 @@ const ListRSQ = () => {
       return;
     }
 
-    // Validate details - phải có ít nhất một sản phẩm với nhà cung cấp, lô và thuế hợp lệ
+    // Tạo detailPayload - cho phép cả "Hết hàng" (lotId = null)
+    // Đảm bảo productId luôn có giá trị hợp lệ
     const detailPayload = quotationRows
-      .filter((row) => {
-        // Phải chọn nhà cung cấp
-        const hasValidSupplier =
-          row.supplierId !== null && row.supplierId !== undefined;
-        // Lọc các row có lotId hợp lệ (không null, undefined, hoặc 'NONE')
-        const hasValidLot =
-          row.lotId !== null && row.lotId !== undefined && row.lotId !== "NONE";
-        // Lọc các row có taxId hợp lệ (phải là số > 0)
+      .filter((row) => row.productId != null && row.productId !== undefined) // Chỉ lấy các row có productId hợp lệ
+      .map((row) => {
+        // Nếu chọn "Hết hàng" (lotId = null), các giá trị sẽ là null nhưng productId vẫn có
+        if (row.lotId === null || row.lotId === undefined || row.lotId === "NONE") {
+          return {
+            productId: row.productId, // productId luôn có giá trị
+            supplierName: null, // null khi "Hết hàng"
+            lotId: null, // null khi "Hết hàng"
+            taxId: null, // null khi "Hết hàng"
+            note: row.note || "",
+          };
+        }
+        // Nếu có lot hợp lệ, lấy giá trị bình thường
         const taxIdNum = Number(row.taxId);
         const hasValidTax = !isNaN(taxIdNum) && taxIdNum > 0;
-        return hasValidSupplier && hasValidLot && hasValidTax;
-      })
-      .map((row) => ({
-        productId: row.productId,
-        supplierId: row.supplierId,
-        lotId: row.lotId,
-        taxId: Number(row.taxId),
-        note: row.note || "",
-      }));
+        return {
+          productId: row.productId, // productId luôn có giá trị
+          supplierName: row.supplierName || "",
+          lotId: row.lotId,
+          taxId: hasValidTax ? taxIdNum : null,
+          note: row.note || "",
+        };
+      });
 
-    // Không cho phép cùng 1 sản phẩm chọn trùng lô hàng
-    // và không cho phép cùng 1 sản phẩm có nhiều loại thuế khác nhau
-    if (detailPayload.length > 0) {
+    // Không cho phép cùng 1 sản phẩm chọn trùng lô hàng (chỉ validate cho lot hợp lệ, không null)
+    // và không cho phép cùng 1 sản phẩm có nhiều loại thuế khác nhau (chỉ validate cho lot hợp lệ)
+    const validDetails = detailPayload.filter(
+      (item) => item.lotId !== null && item.lotId !== undefined
+    );
+    if (validDetails.length > 0) {
       const seenLots = new Set();
       let hasDuplicateLot = false;
 
       const productTaxMap = new Map();
       let hasInconsistentTax = false;
 
-      for (const item of detailPayload) {
+      for (const item of validDetails) {
         const lotKey = `${item.productId ?? ""}-${item.lotId ?? ""}`;
         if (seenLots.has(lotKey)) {
           hasDuplicateLot = true;
@@ -1277,44 +1055,6 @@ const ListRSQ = () => {
         setSnackbarOpen(true);
         return;
       }
-    }
-
-    // Validate: Nếu đã chọn lô hàng mà cả giá trước thuế và giá sau thuế đều là 0
-    for (const row of quotationRows) {
-      const lotIdValue = row.lotId;
-      let hasValidLot = false;
-      if (
-        lotIdValue === null ||
-        lotIdValue === undefined ||
-        lotIdValue === "NONE" ||
-        lotIdValue === ""
-      ) {
-        hasValidLot = false;
-      } else {
-        const lotIdNum = Number(lotIdValue);
-        hasValidLot = !isNaN(lotIdNum) && lotIdNum > 0;
-      }
-
-      if (hasValidLot) {
-        const totalBeforeTax = Number(row.totalBeforeTax) || 0;
-        const totalAfterTax = Number(row.totalAfterTax) || 0;
-        if (totalBeforeTax === 0 && totalAfterTax === 0) {
-          const message = "Vui lòng kiểm tra lại giá bán của sản phẩm";
-          setQuotationError(message);
-          setSnackbarMessage(message);
-          setSnackbarOpen(true);
-          return;
-        }
-      }
-    }
-
-    if (detailPayload.length === 0) {
-      const message =
-        "Không thể tạo / lưu nháp báo giá vì tất cả sản phẩm đều chưa chọn nhà cung cấp, không có lô hàng hoặc không có thuế hợp lệ. Vui lòng kiểm tra lại yêu cầu báo giá.";
-      setQuotationError(message);
-      setSnackbarMessage(message);
-      setSnackbarOpen(true);
-      return;
     }
 
     setQuotationAction(shouldSend ? "send" : "draft");
@@ -2409,8 +2149,8 @@ const ListRSQ = () => {
                         </TableCell>
                         <TableCell>Tên sản phẩm</TableCell>
                         <TableCell>Đơn vị</TableCell>
-                        <TableCell>Nhà cung cấp</TableCell>
                         <TableCell>Lô hàng (chọn theo ngày hết hạn)</TableCell>
+                        <TableCell>Nhà cung cấp</TableCell>
                         <TableCell>Thuế</TableCell>
                         <TableCell align="right">Giá trước thuế</TableCell>
                         <TableCell align="right">Giá sau thuế</TableCell>
@@ -2421,7 +2161,7 @@ const ListRSQ = () => {
                     <TableBody>
                       {quotationRows.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                          <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                             <Typography variant="body2" color="text.secondary">
                               Không có sản phẩm
                             </Typography>
@@ -2448,48 +2188,8 @@ const ListRSQ = () => {
                               </TableCell>
                               <TableCell>{row.productName || "-"}</TableCell>
                               <TableCell>{row.productUnit || "-"}</TableCell>
-                              <TableCell sx={{ minWidth: 180 }}>
-                                <FormControl fullWidth size="small">
-                                  <Select
-                                    value={row.supplierId || ""}
-                                    onChange={(e) =>
-                                      handleSupplierChange(
-                                        row.id,
-                                        e.target.value
-                                      )
-                                    }
-                                    displayEmpty
-                                  >
-                                    <MenuItem value="">
-                                      <em>Chọn nhà cung cấp</em>
-                                    </MenuItem>
-                                    {(row.supplierOptions || []).map(
-                                      (supplier) => (
-                                        <MenuItem
-                                          key={supplier.id}
-                                          value={supplier.id}
-                                        >
-                                          {supplier.name ||
-                                            `NCC ${supplier.id}`}
-                                        </MenuItem>
-                                      )
-                                    )}
-                                  </Select>
-                                </FormControl>
-                              </TableCell>
                               <TableCell sx={{ minWidth: 200 }}>
                                 {(() => {
-                                  // Chỉ hiển thị lô hàng nếu đã chọn nhà cung cấp
-                                  if (!row.supplierId) {
-                                    return (
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                      >
-                                        Vui lòng chọn nhà cung cấp trước
-                                      </Typography>
-                                    );
-                                  }
 
                                   const validLotOptions = (
                                     row.lotOptions || []
@@ -2499,15 +2199,14 @@ const ListRSQ = () => {
                                       lot.lotId !== undefined
                                   );
 
-                                  // Tìm option "Hết hàng" hoặc "Hết lô hàng"
+                                  // Tìm option "Hết hàng"
                                   const outOfStockOption = (
                                     row.lotOptions || []
                                   ).find(
                                     (lot) =>
                                       (lot.lotId === null ||
                                         lot.lotId === undefined) &&
-                                      (lot.displayLabel === "Hết hàng" ||
-                                        lot.displayLabel === "Hết lô hàng")
+                                      lot.displayLabel === "Hết hàng"
                                   );
 
                                   if (
@@ -2559,6 +2258,9 @@ const ListRSQ = () => {
                                     </FormControl>
                                   );
                                 })()}
+                              </TableCell>
+                              <TableCell>
+                                {row.supplierName || "-"}
                               </TableCell>
                               <TableCell sx={{ minWidth: 150 }}>
                                 {(() => {

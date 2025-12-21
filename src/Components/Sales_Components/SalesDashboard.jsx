@@ -7,12 +7,17 @@ import {
   Badge,
   Form,
   Spinner,
+  Modal,
+  Button,
+  Table,
+  InputGroup,
 } from "react-bootstrap";
 import {
   ShoppingCart,
   TrendingUp,
   Inventory,
   AttachMoney,
+  Search,
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -48,19 +53,25 @@ const formatChartCurrency = (value) => {
 };
 
 // ================= UI HELPER =================
-const StatCard = ({ title, value, icon, color, subText }) => (
+const StatCard = ({ title, value, icon, color, subText, onClick }) => (
   <Card
     className="border-0 shadow-sm h-100"
+    onClick={onClick}
     style={{
+      cursor: onClick ? "pointer" : "default",
       transition: "transform 0.2s, box-shadow 0.2s",
     }}
     onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-4px)";
-      e.currentTarget.style.boxShadow = "0 .5rem 1rem rgba(0,0,0,.15)";
+      if (onClick) {
+        e.currentTarget.style.transform = "translateY(-4px)";
+        e.currentTarget.style.boxShadow = "0 .5rem 1rem rgba(0,0,0,.15)";
+      }
     }}
     onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow = "0 .125rem .25rem rgba(0,0,0,.075)";
+      if (onClick) {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 .125rem .25rem rgba(0,0,0,.075)";
+      }
     }}
   >
     <Card.Body className="d-flex align-items-center p-4">
@@ -129,6 +140,10 @@ function SalesDashboard() {
   const [statusChartData, setStatusChartData] = useState([]);
   const [ordersForTable, setOrdersForTable] = useState([]);
   const [topCustomers, setTopCustomers] = useState([]);
+  const [showProductsModal, setShowProductsModal] = useState(false);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("vi-VN", {
@@ -155,13 +170,40 @@ function SalesDashboard() {
         orders: item.orderCount ?? item.ordersCount ?? item.totalOrders ?? 0,
       }));
 
+      // API trả về dữ liệu theo tháng, mỗi tháng có danh sách sản phẩm
       const rawProducts = productRes?.data?.data ?? productRes?.data ?? [];
-      const normalizedProducts = (rawProducts || []).map((p) => ({
-        name: p.productName ?? p.name ?? "Không rõ",
-        quantity:
-          p.totalQuantity ?? p.quantity ?? p.soldQuantity ?? p.sold ?? 0,
-        revenue: Number(p.totalRevenue ?? p.revenue ?? p.amount ?? 0),
-      }));
+      
+      // Gộp tất cả sản phẩm từ tất cả các tháng lại
+      const productMap = {};
+      (rawProducts || []).forEach((monthData) => {
+        const products = monthData.products || monthData.Products || [];
+        products.forEach((product) => {
+          const productName = 
+            product.product?.productName ?? 
+            product.Product?.ProductName ?? 
+            product.productName ?? 
+            product.ProductName ?? 
+            "Không rõ";
+          const quantity = 
+            product.quantity ?? 
+            product.Quantity ?? 
+            0;
+          
+          if (!productMap[productName]) {
+            productMap[productName] = {
+              name: productName,
+              quantity: 0,
+              revenue: 0,
+            };
+          }
+          productMap[productName].quantity += Number(quantity) || 0;
+        });
+      });
+      
+      // Chuyển đổi map thành array và sắp xếp theo quantity giảm dần
+      const normalizedProducts = Object.values(productMap)
+        .filter(p => p.quantity > 0) // Chỉ lấy sản phẩm có số lượng > 0
+        .sort((a, b) => b.quantity - a.quantity);
 
       // ===== Aggregated data from sales orders (for charts & tables) =====
       const rawOrders = ordersRes?.data?.data ?? ordersRes?.data ?? [];
@@ -276,7 +318,7 @@ function SalesDashboard() {
         };
       });
 
-      // Top 5 khách hàng tiềm năng theo tổng doanh thu trong năm
+      // Top 5 khách hàng tiềm năng theo tổng doanh thu đã thanh toán trong năm
       const customerMap = {};
       (ordersInYear || []).forEach((order) => {
         const name =
@@ -287,12 +329,14 @@ function SalesDashboard() {
           "-";
         if (!name || name === "-") return;
 
-        const totalValue =
-          order.TotalAmount ??
-          order.totalAmount ??
-          order.TotalPrice ??
-          order.totalPrice ??
+        // Chỉ tính số tiền đã thanh toán (PaidAmount)
+        const paidAmount =
+          order.PaidAmount ??
+          order.paidAmount ??
           0;
+
+        // Chỉ tính những đơn hàng đã có thanh toán
+        if (Number(paidAmount) <= 0) return;
 
         if (!customerMap[name]) {
           customerMap[name] = {
@@ -302,7 +346,7 @@ function SalesDashboard() {
           };
         }
         customerMap[name].orderCount += 1;
-        customerMap[name].total += Number(totalValue) || 0;
+        customerMap[name].total += Number(paidAmount) || 0;
       });
 
       const topCustomersList = Object.values(customerMap)
@@ -375,80 +419,90 @@ function SalesDashboard() {
   return (
     <div>
       <Container fluid style={{ maxWidth: "1500px", padding: "20px" }}>
-        {/* Header */}
-        <div
-          style={{ marginTop: "20px" }}
-          className="d-flex justify-content-between align-items-center mb-5"
-        >
-          <div>
-            <h2 className="fw-bold text-dark mb-1">
-              <ShoppingCart
-                className="me-2 text-primary"
-                style={{ fontSize: "32px" }}
-              />
-              Thống kê Bán hàng
-            </h2>
-            <h4 className="text-muted mb-0">
-              Tổng quan doanh thu và sản phẩm bán ra
-            </h4>
-          </div>
-          <div style={{ width: "150px" }}>
-            <Form.Select
-              size="sm"
-              className="border-0 bg-light fw-bold text-secondary"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            >
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - i;
-                return (
-                  <option key={year} value={year}>
-                    Năm {year}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
-        </div>
+        {/* Header & KPI Cards */}
+        <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+          <Card.Header className="bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+            <div>
+              <h2 className="fw-bold text-dark mb-1">
+                <ShoppingCart
+                  className="me-2 text-primary"
+                  style={{ fontSize: "32px" }}
+                />
+                Thống kê Bán hàng
+              </h2>
+              <h4 className="text-muted mb-0">
+                Tổng quan doanh thu và sản phẩm bán ra
+              </h4>
+            </div>
+            <div style={{ width: "150px" }}>
+              <Form.Select
+                size="sm"
+                className="border-0 bg-light fw-bold text-secondary"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <option key={year} value={year}>
+                      Năm {year}
+                    </option>
+                  );
+                })}
+              </Form.Select>
+            </div>
+          </Card.Header>
 
-        {error && (
-          <div className="mb-4">
-            <Card className="border-0 shadow-sm">
-              <Card.Body className="text-danger">{error}</Card.Body>
-            </Card>
-          </div>
-        )}
+          {error && (
+            <Card.Body className="px-4">
+              <div className="text-danger">{error}</div>
+            </Card.Body>
+          )}
 
-        {/* KPI Cards */}
-        <Row className="g-4 mb-5">
-          <Col md={6} lg={4}>
-            <StatCard
-              title="Doanh thu tháng hiện tại"
-              value={formatCurrency(currentMonthRevenue)}
-              icon={<AttachMoney />}
-              color="primary"
-              subText="Tổng doanh thu của tháng"
-            />
-          </Col>
-          <Col md={6} lg={4}>
-            <StatCard
-              title="Doanh thu cả năm"
-              value={formatCurrency(totalYearRevenue)}
-              icon={<TrendingUp />}
-              color="success"
-              subText="Tổng doanh thu các tháng"
-            />
-          </Col>
-          <Col md={6} lg={4}>
-            <StatCard
-              title="Tổng số lượng đã bán"
-              value={totalQuantitySold.toLocaleString("vi-VN")}
-              icon={<Inventory />}
-              color="warning"
-              subText="Tổng số lượng sản phẩm bán ra"
-            />
-          </Col>
-        </Row>
+          <Card.Body className="p-4 pt-0">
+            {/* KPI Cards */}
+            <Row className="g-4">
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Doanh thu tháng hiện tại"
+                  value={formatCurrency(currentMonthRevenue)}
+                  icon={<AttachMoney />}
+                  color="primary"
+                  subText="Tổng doanh thu của tháng"
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Doanh thu cả năm"
+                  value={formatCurrency(totalYearRevenue)}
+                  icon={<TrendingUp />}
+                  color="success"
+                  subText="Tổng doanh thu các tháng"
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Tổng số lượng đã bán"
+                  value={totalQuantitySold.toLocaleString("vi-VN")}
+                  icon={<Inventory />}
+                  color="warning"
+                  subText="Tổng số lượng sản phẩm bán ra"
+                  onClick={() => setShowProductsModal(true)}
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Tổng số lượng đơn hàng"
+                  value={ordersForTable.length.toLocaleString("vi-VN")}
+                  icon={<ShoppingCart />}
+                  color="info"
+                  subText={`Đơn hàng trong năm ${selectedYear}`}
+                  onClick={() => setShowOrdersModal(true)}
+                />
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
 
         {/* Charts */}
         <Row className="g-4 mb-5">
@@ -562,14 +616,35 @@ function SalesDashboard() {
           {/* LEFT: Chi tiết đơn hàng */}
           <Col lg={8} className="d-flex">
             <Card className="border-0 shadow-sm rounded-4 flex-fill overflow-hidden">
-              <Card.Header className="bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+              <Card.Header className="bg-white border-0 pt-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 className="fw-bold mb-0">Đơn hàng trong năm</h5>
-                <Badge bg="light" text="dark">
-                  Tổng số đơn:{" "}
-                  <span className="fw-bold">
-                    {ordersForTable.length.toLocaleString("vi-VN")}
-                  </span>
-                </Badge>
+                <div className="d-flex gap-2 align-items-center">
+                  <InputGroup size="sm" style={{ width: "250px" }}>
+                    <InputGroup.Text className="bg-light border-0">
+                      <Search fontSize="small" />
+                    </InputGroup.Text>
+                    <Form.Control
+                      className="bg-light border-0"
+                      placeholder="Tìm kiếm..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </InputGroup>
+                  <Form.Select
+                    size="sm"
+                    className="bg-light border-0"
+                    style={{ width: "150px" }}
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="all">Tất cả</option>
+                    {Object.entries(STATUS_DEFINITIONS).map(([key, val]) => (
+                      <option key={key} value={val.label.toLowerCase()}>
+                        {val.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </div>
               </Card.Header>
 
               {/* Giới hạn height và thêm scroll */}
@@ -589,38 +664,58 @@ function SalesDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ordersForTable.length ? (
-                        ordersForTable.map((o, idx) => (
-                          <tr key={idx}>
-                            <td className="ps-4 fw-bold text-primary">
-                              {o.code || "-"}
-                            </td>
-                            <td>{o.customer || "-"}</td>
-                            <td className="text-muted">
-                              {o.createdAt
-                                ? new Date(o.createdAt).toLocaleDateString(
-                                    "vi-VN"
-                                  )
-                                : "-"}
-                            </td>
-                            <td className="text-end fw-bold">
-                              {formatCurrency(o.total)}
-                            </td>
-                            <td className="text-center">
-                              {getStatusBadge(o.status)}
+                      {(() => {
+                        const filteredOrders = ordersForTable.filter((order) => {
+                          const code = order.code || "";
+                          const customer = order.customer || "";
+                          
+                          const matchesSearch =
+                            code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            customer.toLowerCase().includes(searchTerm.toLowerCase());
+                          
+                          const statusLabel = getStatusLabel(order.status).toLowerCase();
+                          const matchesFilter =
+                            filterStatus === "all" ||
+                            statusLabel === filterStatus.toLowerCase();
+                          
+                          return matchesSearch && matchesFilter;
+                        });
+                        
+                        return filteredOrders.length ? (
+                          filteredOrders.map((o, idx) => (
+                            <tr key={idx}>
+                              <td className="ps-4 fw-bold text-primary">
+                                {o.code || "-"}
+                              </td>
+                              <td>{o.customer || "-"}</td>
+                              <td className="text-muted">
+                                {o.createdAt
+                                  ? new Date(o.createdAt).toLocaleDateString(
+                                      "vi-VN"
+                                    )
+                                  : "-"}
+                              </td>
+                              <td className="text-end fw-bold">
+                                {formatCurrency(o.total)}
+                              </td>
+                              <td className="text-center">
+                                {getStatusBadge(o.status)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="text-center py-4 text-muted"
+                            >
+                              {searchTerm || filterStatus !== "all"
+                                ? "Không tìm thấy đơn hàng phù hợp."
+                                : "Không có đơn hàng trong năm."}
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={5}
-                            className="text-center py-4 text-muted"
-                          >
-                            Không có đơn hàng trong năm.
-                          </td>
-                        </tr>
-                      )}
+                        );
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -672,6 +767,124 @@ function SalesDashboard() {
             </Card>
           </Col>
         </Row>
+
+        {/* Modal Sản phẩm đã bán */}
+        <Modal
+          show={showProductsModal}
+          onHide={() => setShowProductsModal(false)}
+          size="lg"
+          centered
+          contentClassName="border-0 rounded-4 shadow-lg"
+        >
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold">
+              Sản phẩm đã bán năm {selectedYear}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
+            {productData.length > 0 ? (
+              <>
+                <Table striped hover responsive className="table-borderless align-middle">
+                  <thead className="bg-light text-muted">
+                    <tr>
+                      <th>#</th>
+                      <th>Sản phẩm</th>
+                      <th className="text-end">Số lượng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productData.map((product, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td className="fw-semibold text-primary">
+                          {product.name}
+                        </td>
+                        <td className="text-end">
+                          {product.quantity.toLocaleString("vi-VN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                  <span className="fw-bold text-dark">Tổng số lượng:</span>
+                  <span className="fw-bold text-primary fs-5">
+                    {productData.reduce((sum, p) => sum + (p.quantity || 0), 0).toLocaleString("vi-VN")}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted py-3">
+                Không có dữ liệu sản phẩm
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0">
+            <Button variant="secondary" onClick={() => setShowProductsModal(false)}>
+              Đóng
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Modal Đơn hàng */}
+        <Modal
+          show={showOrdersModal}
+          onHide={() => setShowOrdersModal(false)}
+          size="lg"
+          centered
+          contentClassName="border-0 rounded-4 shadow-lg"
+        >
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold">
+              Đơn hàng năm {selectedYear}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ maxHeight: "60vh", overflowY: "auto" }}>
+            {ordersForTable.length > 0 ? (
+              <Table striped hover responsive className="table-borderless align-middle">
+                <thead className="bg-light text-muted">
+                  <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Ngày tạo</th>
+                    <th className="text-end">Tổng tiền</th>
+                    <th className="text-center">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordersForTable.map((order, index) => (
+                    <tr key={index}>
+                      <td className="fw-bold text-primary">
+                        {order.code || "-"}
+                      </td>
+                      <td>{order.customer || "-"}</td>
+                      <td className="text-muted">
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString("vi-VN")
+                          : "-"}
+                      </td>
+                      <td className="text-end fw-bold">
+                        {formatCurrency(order.total)}
+                      </td>
+                      <td className="text-center">
+                        {getStatusBadge(order.status)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <div className="text-center text-muted py-3">
+                Không có đơn hàng
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0">
+            <Button variant="secondary" onClick={() => setShowOrdersModal(false)}>
+              Đóng
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Container>
     </div>
   );

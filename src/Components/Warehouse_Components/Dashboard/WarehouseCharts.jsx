@@ -14,10 +14,23 @@ import useGRNList from "../../../Hooks/useGRNList";
 import useGIN from "../../../Hooks/useGIN";
 import { Button } from "@mui/material";
 
-export const WarehouseCharts = () => {
+export const WarehouseCharts = ({ selectedYear: propSelectedYear }) => {
   const [modalTotal, setModalTotal] = useState(0);
-  const { importStats, statsLoading, selectedYear, setSelectedYear } =
+  
+  // Sử dụng selectedYear từ props, mặc định là năm hiện tại
+  const selectedYear = propSelectedYear !== undefined ? propSelectedYear : new Date().getFullYear();
+  
+  const { importStats, statsLoading, setSelectedYear, fetchImportStats } =
     useGRNList({ poId: null, autoOpenCreate: false });
+  
+  // Đồng bộ selectedYear từ props với hook useGRNList
+  useEffect(() => {
+    if (propSelectedYear !== undefined) {
+      setSelectedYear(propSelectedYear);
+      fetchImportStats(propSelectedYear);
+    }
+  }, [propSelectedYear, setSelectedYear, fetchImportStats]);
+  
   const {
     exportedStats,
     fetchExportedStats,
@@ -30,8 +43,6 @@ export const WarehouseCharts = () => {
   const [selectedMonthProducts, setSelectedMonthProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalMonth, setModalMonth] = useState("");
-
-  const handleYearChange = (e) => setSelectedYear(Number(e.target.value));
 
   // Chuẩn hóa dữ liệu cho chart (NHẬP + XUẤT)
   const chartData = Array.from({ length: 12 }, (_, i) => {
@@ -84,28 +95,11 @@ export const WarehouseCharts = () => {
   return (
     <>
       <Card className="border-0 shadow-sm rounded-4 mb-4">
-        <Card.Header className="bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+        <Card.Header className="bg-white border-0 pt-4 px-4">
           <h5 className="fw-bold mb-0 d-flex align-items-center">
             <LocalShipping className="me-2" />
             Thống kê nhập & xuất kho theo tháng
           </h5>
-
-          <div style={{ width: "120px" }}>
-            <Form.Select
-              size="sm"
-              value={selectedYear}
-              onChange={handleYearChange}
-            >
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - i;
-                return (
-                  <option key={year} value={year}>
-                    Năm {year}
-                  </option>
-                );
-              })}
-            </Form.Select>
-          </div>
         </Card.Header>
 
         <Card.Body style={{ height: "350px" }}>

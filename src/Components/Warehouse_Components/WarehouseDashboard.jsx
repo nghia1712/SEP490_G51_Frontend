@@ -275,57 +275,55 @@ export default function WarehouseDashboard() {
 
   return (
     <Container>
-      <div
-        className="d-flex justify-content-between align-items-center mb-5"
-        style={{ marginTop: "20px" }}
-      >
-        <div>
+      <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+        <Card.Header className="bg-white border-0 pt-4 px-4 pb-3">
           <h2 className="fw-bold text-dark mb-1">Thống kê kho</h2>
           <h4 className="text-muted mb-0">
             Tổng quan hoạt động nhập và xuất kho
           </h4>
-        </div>
-      </div>
+        </Card.Header>
+        <Card.Body className="p-4 pt-0">
+          <Row className="g-4">
+            <Col md={6} lg={3}>
+              <StatCard
+                title="Phiếu xuất chờ xử lý"
+                value={pendingGINCount}
+                icon={<Inventory />}
+                color="warning"
+                onClick={() => setShowPendingGINModal(true)}
+              />
+            </Col>
+            <Col md={6} lg={3}>
+              <StatCard
+                title="Đơn hàng chờ nhập kho"
+                value={pendingPOCount}
+                icon={<ShoppingCart />}
+                color="info"
+                onClick={() => setShowPendingPOModal(true)}
+              />
+            </Col>
+            <Col md={6} lg={3}>
+              <StatCard
+                title="Sản phẩm chờ nhập"
+                value={pendingProductQty}
+                icon={<LocalShipping />}
+                color="primary"
+                onClick={() => setShowPendingReceivingModal(true)}
+              />
+            </Col>
 
-      <Row className="g-4 mb-5">
-        <Col md={6} lg={3}>
-          <StatCard
-            title="Phiếu xuất chờ xử lý"
-            value={pendingGINCount}
-            icon={<Inventory />}
-            color="warning"
-            onClick={() => setShowPendingGINModal(true)}
-          />
-        </Col>
-        <Col md={6} lg={3}>
-          <StatCard
-            title="Đơn hàng chờ nhập kho"
-            value={pendingPOCount}
-            icon={<ShoppingCart />}
-            color="info"
-            onClick={() => setShowPendingPOModal(true)}
-          />
-        </Col>
-        <Col md={6} lg={3}>
-          <StatCard
-            title="Sản phẩm chờ nhập"
-            value={pendingProductQty}
-            icon={<LocalShipping />}
-            color="primary"
-            onClick={() => setShowPendingReceivingModal(true)}
-          />
-        </Col>
-
-        <Col md={6} lg={3}>
-          <StatCard
-            title="Sản phẩm chờ xuất"
-            value={pendingGINQty}
-            icon={<Storage />}
-            color="secondary"
-            onClick={() => setShowPendingExportProductModal(true)}
-          />
-        </Col>
-      </Row>
+            <Col md={6} lg={3}>
+              <StatCard
+                title="Sản phẩm chờ xuất"
+                value={pendingGINQty}
+                icon={<Storage />}
+                color="secondary"
+                onClick={() => setShowPendingExportProductModal(true)}
+              />
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
       <Row className="g-4 mb-5 align-items-stretch">
         <Col lg={8}>

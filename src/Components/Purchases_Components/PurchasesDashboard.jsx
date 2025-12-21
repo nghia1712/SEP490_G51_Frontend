@@ -141,32 +141,8 @@ function PurchasesDashboard() {
     }
   };
 
-  useEffect(() => {
-    if (!poList || !poList.length) return;
-
-    const filteredPOs = poList.filter((po) => po.status !== 7);
-    const statusGroups = filteredPOs.reduce((acc, po) => {
-      const label = statusMap[po.status]?.label || "Khác";
-
-      if (!acc[label]) {
-        acc[label] = {
-          name: label,
-          value: 0,
-          orders: [],
-          color:
-            Object.values(statusMap).find((s) => s.label === label)?.color ||
-            "secondary",
-        };
-      }
-
-      acc[label].value += 1;
-      acc[label].orders.push(po);
-
-      return acc;
-    }, {});
-
-    setStatusChartData(Object.values(statusGroups));
-  }, [poList]);
+  // StatusChartData và PurchasesData giờ được tính trong loadYearChart dựa trên năm được chọn
+  // useEffect này chỉ dùng cho các tính toán không phụ thuộc vào năm (nếu có)
 
   // ================== DATA FETCHING ==================
   useEffect(() => {
@@ -198,8 +174,82 @@ function PurchasesDashboard() {
   }, []);
 
   const loadYearChart = async () => {
+    // Reset dữ liệu trước khi fetch để tránh hiển thị dữ liệu cũ
+    setYearlyChartData([]);
+    setStatusChartData([]);
+    setPurchasesData({
+      monthlySpending: 0,
+      pendingOrders: 0,
+      suppliers: 0,
+      lowStockProducts: [],
+      recentOrders: [],
+    });
+    
     const data = await fetchPOByYear(selectedYear);
-    if (!data || !Array.isArray(data)) return;
+    if (!data || !Array.isArray(data)) {
+      setYearlyChartData([]);
+      return;
+    }
+
+    // Tính toán purchasesData từ dữ liệu năm được chọn
+    const allOrders = data.flatMap((monthData) => monthData.orders || []);
+    const approvedStatuses = [0, 3, 4, 5];
+    
+    const monthlySpending = allOrders
+      .filter((order) => approvedStatuses.includes(order.status))
+      .reduce((sum, order) => sum + Number(order.total || 0), 0);
+
+    const pendingOrders = allOrders.filter((order) => order.status === 6).length;
+    const suppliersSet = new Set(allOrders.map((order) => order.supname).filter(Boolean));
+    const suppliersCount = suppliersSet.size;
+
+    // Tính statusChartData từ dữ liệu năm được chọn
+    const filteredPOs = allOrders.filter((po) => po.status !== 7);
+    const statusGroups = filteredPOs.reduce((acc, po) => {
+      const label = statusMap[po.status]?.label || "Khác";
+
+      if (!acc[label]) {
+        acc[label] = {
+          name: label,
+          value: 0,
+          orders: [],
+          color:
+            Object.values(statusMap).find((s) => s.label === label)?.color ||
+            "secondary",
+        };
+      }
+
+      acc[label].value += 1;
+      acc[label].orders.push(po);
+
+      return acc;
+    }, {});
+
+    setStatusChartData(Object.values(statusGroups));
+
+    // Map tên nhà cung cấp cho recentOrders
+    const recentOrdersRaw = allOrders
+      .filter((po) => po.status !== 7)
+      .sort((a, b) => new Date(b.orderDate || 0) - new Date(a.orderDate || 0))
+      .slice(0, 10);
+
+    const recentOrders = await Promise.all(
+      recentOrdersRaw.map(async (order) => {
+        const supplierName = await getSupplierName(order.supname);
+        return {
+          ...order,
+          supplierName: supplierName,
+        };
+      })
+    );
+
+    setPurchasesData({
+      monthlySpending,
+      pendingOrders,
+      suppliers: suppliersCount,
+      lowStockProducts: [],
+      recentOrders,
+    });
 
     const monthlyData = await Promise.all(
       Array.from({ length: 12 }, async (_, i) => {
@@ -241,50 +291,8 @@ function PurchasesDashboard() {
     loadYearChart();
   }, [selectedYear]);
 
-  useEffect(() => {
-    if (!poList || !poList.length) return;
-
-    // Chỉ tính các đơn đã được duyệt (status = 0, 3, 4, 5)
-    const approvedStatuses = [0, 3, 4, 5];
-
-    const monthlySpending = poList
-      .filter((po) => approvedStatuses.includes(po.status))
-      .reduce((sum, po) => sum + (po.total || 0), 0);
-
-    const pendingOrders = poList.filter((po) => po.status === 6).length;
-    const suppliersCount = new Set(poList.map((po) => po.supplierName)).size;
-
-    const lowStockList = [];
-    poList.forEach((po) => {
-      po.details?.forEach((item) => {
-        if (item.quantityCurrent <= item.minQuantity) {
-          lowStockList.push({
-            id: item.productId,
-            name: item.productName,
-            min: item.minQuantity,
-            totalCurrentQuantity: item.quantityCurrent,
-          });
-        }
-      });
-    });
-
-    const uniqueLowStock = [
-      ...new Map(lowStockList.map((item) => [item.name, item])).values(),
-    ];
-
-    const recentOrders = poList
-      .filter((po) => po.status !== 7)
-      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
-      .slice(0, 10);
-
-    setPurchasesData({
-      monthlySpending,
-      pendingOrders,
-      suppliers: suppliersCount,
-      lowStockProducts: uniqueLowStock,
-      recentOrders,
-    });
-  }, [poList]);
+  // PurchasesData giờ được tính trong loadYearChart dựa trên năm được chọn
+  // useEffect này chỉ dùng cho các tính toán không phụ thuộc vào năm (nếu có)
 
   // ================== FILTERING ==================
   const filteredOrders = purchasesData.recentOrders.filter((order) => {
@@ -367,72 +375,90 @@ function PurchasesDashboard() {
   return (
     <div className="">
       <Container fluid style={{ maxWidth: "1500px", padding: "20px" }}>
-        {/* ===== Header ===== */}
-        <div
-          style={{ marginTop: "20px" }}
-          className="d-flex justify-content-between align-items-center mb-5"
-        >
-          <div>
-            <h2 className="fw-bold text-dark mb-1">
-              <ShoppingBag
-                className="me-2 text-primary"
-                style={{ fontSize: "32px" }}
-              />
-              Thống kê Mua hàng
-            </h2>
-            <h4 className="text-muted mb-0">
-              Tổng quan hoạt động mua hàng và nhà cung cấp
-            </h4>
-          </div>
-        </div>
+        {/* ===== Header & KPI Cards ===== */}
+        <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+          <Card.Header className="bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+            <div>
+              <h2 className="fw-bold text-dark mb-1">
+                <ShoppingBag
+                  className="me-2 text-primary"
+                  style={{ fontSize: "32px" }}
+                />
+                Thống kê Mua hàng
+              </h2>
+              <h4 className="text-muted mb-0">
+                Tổng quan hoạt động mua hàng và nhà cung cấp
+              </h4>
+            </div>
+            <div style={{ width: "150px" }}>
+              <Form.Select
+                size="sm"
+                className="border-0 bg-light fw-bold text-secondary"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return (
+                    <option key={year} value={year}>
+                      Năm {year}
+                    </option>
+                  );
+                })}
+              </Form.Select>
+            </div>
+          </Card.Header>
 
-        {/* ===== KPI Cards ===== */}
-        <Row className="g-4 mb-5">
-          <Col md={6} lg={3}>
-            <StatCard
-              title="Chi phí dự kiến tháng này"
-              value={formatCurrency(purchasesData.monthlySpending)}
-              icon={<AttachMoney />}
-              color="primary"
-              onClick={() => setShowMonthlyOrdersModal(true)}
-              subText="Tổng chi dự kiến trong tháng"
-            />
-          </Col>
-          <Col md={6} lg={3}>
-            <StatCard
-              title="Đơn hàng chờ xử lý"
-              value={purchasesData.pendingOrders}
-              icon={<Inventory />}
-              color="warning"
-              onClick={() => setShowPendingOrdersModal(true)}
-              subText="Cần phê duyệt"
-            />
-          </Col>
-          <Col md={6} lg={3}>
-            <StatCard
-              title="Nhà cung cấp"
-              value={suppliers.filter((s) => s.status === 1).length}
-              icon={<LocalShipping />}
-              color="info"
-              onClick={() => setShowSupplierModal(true)}
-              subText="Đang hoạt động"
-            />
-          </Col>
-          <Col md={6} lg={3}>
-            <StatCard
-              title="Sản phẩm tồn kho thấp"
-              value={
-                lowStockProducts.length > 0
-                  ? lowStockProducts.length
-                  : purchasesData.lowStockProducts.length
-              }
-              icon={<Warning />}
-              color="danger"
-              subText="Cần nhập thêm"
-              onClick={() => setShowLowStockModal(true)}
-            />
-          </Col>
-        </Row>
+          <Card.Body className="p-4 pt-0">
+            {/* ===== KPI Cards ===== */}
+            <Row className="g-4">
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Chi phí dự kiến tháng này"
+                  value={formatCurrency(purchasesData.monthlySpending)}
+                  icon={<AttachMoney />}
+                  color="primary"
+                  onClick={() => setShowMonthlyOrdersModal(true)}
+                  subText="Tổng chi dự kiến trong tháng"
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Đơn hàng chờ xử lý"
+                  value={purchasesData.pendingOrders}
+                  icon={<Inventory />}
+                  color="warning"
+                  onClick={() => setShowPendingOrdersModal(true)}
+                  subText="Cần phê duyệt"
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Nhà cung cấp"
+                  value={suppliers.filter((s) => s.status === 1).length}
+                  icon={<LocalShipping />}
+                  color="info"
+                  onClick={() => setShowSupplierModal(true)}
+                  subText="Đang hoạt động"
+                />
+              </Col>
+              <Col md={6} lg={3}>
+                <StatCard
+                  title="Sản phẩm tồn kho thấp"
+                  value={
+                    lowStockProducts.length > 0
+                      ? lowStockProducts.length
+                      : purchasesData.lowStockProducts.length
+                  }
+                  icon={<Warning />}
+                  color="danger"
+                  subText="Cần nhập thêm"
+                  onClick={() => setShowLowStockModal(true)}
+                />
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
 
         <Row className="g-4 mb-5">
           <Col lg={12}>
@@ -521,7 +547,7 @@ function PurchasesDashboard() {
                             style={{ borderBottom: "1px solid #f0f0f0" }}
                           >
                             <td className="ps-4 fw-bold text-primary">{`PO-${order.poid}`}</td>
-                            <td>{order.supplierName}</td>
+                            <td>{order.supplierName || "-"}</td>
                             <td className="text-muted small">
                               {order.orderDate
                                 ? new Date(order.orderDate).toLocaleDateString(
@@ -548,7 +574,7 @@ function PurchasesDashboard() {
                       ) : (
                         <tr>
                           <td
-                            colSpan={5}
+                            colSpan={7}
                             className="text-center py-4 text-muted"
                           >
                             Không tìm thấy đơn hàng

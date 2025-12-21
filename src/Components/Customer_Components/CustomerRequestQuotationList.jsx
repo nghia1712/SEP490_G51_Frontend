@@ -1348,8 +1348,11 @@ const CustomerRequestQuotationList = () => {
           const parsedProductId = Number(productIdRaw);
           const parsedLotId = Number(lotId);
 
+          // Lọc bỏ sản phẩm "Hết hàng" (lotId = null/undefined hoặc không hợp lệ)
           if (
             !Number.isFinite(parsedProductId) ||
+            lotId === null ||
+            lotId === undefined ||
             !Number.isFinite(parsedLotId)
           ) {
             return null;
@@ -1368,8 +1371,21 @@ const CustomerRequestQuotationList = () => {
               : 1;
           const unitPrice = detail.UnitPrice ?? detail.unitPrice ?? 0;
 
-          // Get tax info from quotation details by index
+          // Lọc bỏ sản phẩm "Hết hàng" (lotId = null/undefined hoặc unitPrice = 0)
+          // Kiểm tra note từ quotationDetailsList để xác định "Hết hàng"
           const quotationDetail = quotationDetailsList[index];
+          const note = quotationDetail?.Note ?? quotationDetail?.note ?? "";
+          const isOutOfStock = 
+            lotId === null || 
+            lotId === undefined || 
+            unitPrice === 0 || 
+            (note && note.trim().toLowerCase() === "hết hàng");
+          
+          if (isOutOfStock) {
+            return null;
+          }
+
+          // Get tax info from quotation details by index
           const taxText =
             quotationDetail?.TaxText ?? quotationDetail?.taxText ?? "-";
           const taxRate = taxText !== "-" ? getTaxRateFromText(taxText) : 0;
@@ -1397,11 +1413,22 @@ const CustomerRequestQuotationList = () => {
             quotationDetail?.unit ??
             "-";
 
+          // Get supplier name
+          const supplierName =
+            detail.SupplierName ??
+            detail.supplierName ??
+            quotationDetail?.SupplierName ??
+            quotationDetail?.supplierName ??
+            quotationDetail?.Supplier?.Name ??
+            quotationDetail?.supplier?.name ??
+            "-";
+
           return {
             id: index + 1,
             productId: parsedProductId,
             productName: detail.ProductName ?? detail.productName ?? "-",
             productUnit: productUnit,
+            supplierName: supplierName,
             lotId: parsedLotId,
             quantity,
             unitPrice,
@@ -1688,33 +1715,27 @@ const CustomerRequestQuotationList = () => {
   };
 
   const handleSend = async (id) => {
-    if (
-      window.confirm(
-        "Bạn có chắc muốn gửi yêu cầu báo giá này? Sau khi gửi, bạn sẽ không thể sửa hoặc xóa yêu cầu này."
-      )
-    ) {
-      setLoading(true);
-      try {
-        const response = await requestSalesQuotationAPI.sendRequest(id);
-        if (response.data) {
-          setSnackbarMessage(
-            "Gửi yêu cầu thành công! Yêu cầu đã được gửi đến bộ phận bán hàng."
-          );
-          setSnackbarOpen(true);
-          // Refresh list để cập nhật trạng thái từ Nháp (0) sang Đã gửi (1)
-          setTimeout(() => {
-            fetchRequests();
-          }, 500);
-        }
-      } catch (err) {
-        const errorMessage =
-          err.response?.data?.message || "Không thể gửi yêu cầu báo giá";
-        setError(errorMessage);
-        setSnackbarMessage(errorMessage);
+    setLoading(true);
+    try {
+      const response = await requestSalesQuotationAPI.sendRequest(id);
+      if (response.data) {
+        setSnackbarMessage(
+          "Gửi yêu cầu thành công! Yêu cầu đã được gửi đến bộ phận bán hàng."
+        );
         setSnackbarOpen(true);
-      } finally {
-        setLoading(false);
+        // Refresh list để cập nhật trạng thái từ Nháp (0) sang Đã gửi (1)
+        setTimeout(() => {
+          fetchRequests();
+        }, 500);
       }
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Không thể gửi yêu cầu báo giá";
+      setError(errorMessage);
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -3069,6 +3090,9 @@ const CustomerRequestQuotationList = () => {
                           Đơn vị
                         </TableCell>
                         <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
+                          Nhà cung cấp
+                        </TableCell>
+                        <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
                           Ngày hết hạn
                         </TableCell>
                         <TableCell sx={{ backgroundColor: "#f5f5f5" }}>
@@ -3149,6 +3173,12 @@ const CustomerRequestQuotationList = () => {
                                 ? detail.itemTotal
                                 : null;
                             const note = detail.Note || detail.note || "-";
+                            const supplierName =
+                              detail.SupplierName ||
+                              detail.supplierName ||
+                              detail.Supplier?.Name ||
+                              detail.supplier?.name ||
+                              "-";
 
                             // Calculate tax rate and total before tax
                             const taxRate = taxText
@@ -3168,6 +3198,7 @@ const CustomerRequestQuotationList = () => {
                                 </TableCell>
                                 <TableCell>{productName}</TableCell>
                                 <TableCell>{productUnit}</TableCell>
+                                <TableCell>{supplierName}</TableCell>
                                 <TableCell>{expiredDisplay}</TableCell>
                                 <TableCell>{taxText || "-"}</TableCell>
                                 <TableCell sx={{ textAlign: "right" }}>
@@ -3198,7 +3229,7 @@ const CustomerRequestQuotationList = () => {
                           return (
                             <TableRow>
                               <TableCell
-                                colSpan={8}
+                                colSpan={9}
                                 align="center"
                                 sx={{ py: 3 }}
                               >
@@ -3554,6 +3585,14 @@ const CustomerRequestQuotationList = () => {
                             backgroundColor: "#f5f5f5",
                           }}
                         >
+                          Nhà cung cấp
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            textAlign: "center",
+                            backgroundColor: "#f5f5f5",
+                          }}
+                        >
                           Ngày hết hạn
                         </TableCell>
                         <TableCell
@@ -3632,6 +3671,9 @@ const CustomerRequestQuotationList = () => {
                           </TableCell>
                           <TableCell sx={{ textAlign: "center" }}>
                             {row.productUnit || "-"}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center" }}>
+                            {row.supplierName || "-"}
                           </TableCell>
                           <TableCell sx={{ textAlign: "center" }}>
                             {row.expiredDate || "-"}
