@@ -1026,7 +1026,7 @@ function Header() {
                     )
                       ? activeNavStyle
                       : navButtonHoverStyle),
-                    minWidth: "150px",
+                    minWidth: "160px",
                   }}
                 >
                   {warehouseStaffMenuItems.exportManagement.label}
