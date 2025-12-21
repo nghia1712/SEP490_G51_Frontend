@@ -184,7 +184,7 @@ export const DashboardModals = ({
                   <th>Tên nhà cung cấp</th>
                   <th>Liên hệ</th>
                   <th>Địa chỉ</th>
-                  <th className="text-end">Trạng thái</th>
+                  {/* <th className="text-end">Trạng thái</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -200,11 +200,11 @@ export const DashboardModals = ({
                         <small className="text-muted">{s.phoneNumber}</small>
                       </td>
                       <td>{s.address}</td>
-                      <td className="text-end">
+                      {/* <td className="text-end">
                         <Badge bg="success" pill>
                           Hoạt động
                         </Badge>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
               </tbody>

@@ -279,6 +279,8 @@ export default function InventoryReportPage() {
     (page - 1) * rowsPerPage + rowsPerPage
   );
 
+  const commonInfo = histories?.[0];
+
   return (
     <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
       <Card elevation={3} sx={{ borderRadius: 2 }}>
@@ -501,49 +503,73 @@ export default function InventoryReportPage() {
               <CircularProgress />
             </Box>
           ) : histories.length > 0 ? (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table size="small">
-                <TableHead
-                  sx={{
-                    backgroundColor: "#f5f5f5",
-                    "& .MuiTableCell-root": { fontWeight: "bold" },
-                  }}
+            <>
+              {/* 🔹 THÔNG TIN CHUNG */}
+              {commonInfo && (
+                <Stack
+                  direction="row"
+                  spacing={3}
+                  sx={{ mb: 1.5, color: "text.secondary" }}
                 >
-                  <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Sản phẩm</TableCell>
-                    <TableCell align="right">Tồn hệ thống</TableCell>
-                    <TableCell align="right">Thực tế</TableCell>
-                    <TableCell align="right">Chênh lệch</TableCell>
-                    <TableCell>Ghi chú</TableCell>
-                    <TableCell>Người kiểm kê</TableCell>
-                    <TableCell>Cập nhật</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {histories.map((h, idx) => (
-                    <TableRow key={h.inventoryHistoryID}>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell>{h.productName}</TableCell>
-                      <TableCell align="right">{h.systemQuantity}</TableCell>
-                      <TableCell align="right">{h.actualQuantity}</TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color: h.diff < 0 ? "error.main" : "success.main",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {h.diff}
+                  <Typography variant="body2">
+                    <strong>Người phụ trách:</strong> {commonInfo.inventoryBy}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    <strong>Cập nhật:</strong>{" "}
+                    {formatDate(commonInfo.lastUpdated)}
+                  </Typography>
+                </Stack>
+              )}
+
+              {/* 🔹 TABLE CHI TIẾT */}
+              <TableContainer component={Paper}>
+                <Table size="small">
+                  <TableHead
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      "& .MuiTableCell-root": { fontWeight: "bold" },
+                    }}
+                  >
+                    <TableRow>
+                      <TableCell>#</TableCell>
+                      <TableCell>Sản phẩm</TableCell>
+                      <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                        Tồn hệ thống
                       </TableCell>
-                      <TableCell>{h.note || "-"}</TableCell>
-                      <TableCell>{h.inventoryBy}</TableCell>
-                      <TableCell>{formatDate(h.lastUpdated)}</TableCell>
+                      <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                        Thực tế
+                      </TableCell>
+                      <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                        Chênh lệch
+                      </TableCell>
+                      <TableCell>Ghi chú</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+
+                  <TableBody>
+                    {histories.map((h, idx) => (
+                      <TableRow key={h.inventoryHistoryID}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{h.productName}</TableCell>
+                        <TableCell align="right">{h.systemQuantity}</TableCell>
+                        <TableCell align="right">{h.actualQuantity}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: h.diff < 0 ? "error.main" : "success.main",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {h.diff}
+                        </TableCell>
+                        <TableCell>{h.note || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
           ) : (
             <Typography align="center" sx={{ py: 3 }}>
               Không có dữ liệu chi tiết
