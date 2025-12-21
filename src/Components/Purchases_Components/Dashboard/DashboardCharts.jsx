@@ -150,7 +150,7 @@ export const DashboardCharts = ({
               {statusChartData.length === 0 ? (
                 <div className="h-100 d-flex justify-content-center align-items-center text-muted">
                   <Inventory style={{ fontSize: 48, opacity: 0.2 }} />
-                  <span>Không có dữ liệu</span>
+                  <span>Không có dữ liệu năm {selectedYear}</span>
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -161,7 +161,7 @@ export const DashboardCharts = ({
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={90}
                       labelLine={false}
                       onClick={(data) => {
                         // data = { name, value, color, orders }

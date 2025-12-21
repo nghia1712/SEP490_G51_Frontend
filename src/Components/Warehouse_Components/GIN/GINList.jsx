@@ -39,6 +39,7 @@ import {
   Search,
   ReceiptLong,
   CheckCircle,
+  Download,
 } from "@mui/icons-material";
 import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialog";
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
@@ -76,6 +77,7 @@ export default function GRNList() {
     handleSnackClose,
     renderGINStatus,
     exportedLotProduct,
+    handleDownloadPDF,
   } = useGIN();
 
   useEffect(() => {
@@ -487,7 +489,7 @@ export default function GRNList() {
                     <TableCell>#</TableCell>
                     <TableCell>Phiếu xuất kho</TableCell>
                     <TableCell>Kho</TableCell>
-                    <TableCell>Mã đơn hàng</TableCell>
+                    <TableCell>Mã yêu cầu</TableCell>
                     <TableCell>Đơn hàng</TableCell>
                     <TableCell>Người tạo</TableCell>
                     <TableCell>Ngày tạo</TableCell>
@@ -625,7 +627,7 @@ export default function GRNList() {
       >
         <DialogTitle
           fontWeight={"bold"}
-          sx={{ textAlign: "center", fontSize: "1.4rem" }}
+          sx={{ textAlign: "left", fontSize: "1.4rem" }}
         >
           Chi tiết phiếu xuất kho
         </DialogTitle>
@@ -638,6 +640,17 @@ export default function GRNList() {
             selectedExport && (
               <>
                 {/* Thông tin phiếu xuất kho */}
+                          {
+            (role === "warehouse_staff" && (
+              <IconButton
+                sx={{ position: "absolute", top: 8, right: 8 }}
+                color="primary"
+                onClick={() => handleDownloadPDF(selectedExport.id)}
+              >
+                <Download />
+              </IconButton>
+            ))
+          }
                 <Paper
                   variant="outlined"
                   sx={{ p: 2.5, borderRadius: 2, mb: 3 }}
@@ -675,7 +688,7 @@ export default function GRNList() {
                       }}
                     >
                       <Typography color="text.secondary">
-                        Mã đơn hàng:
+                        Mã yêu cầu:
                       </Typography>
                       <Typography fontWeight={500}>
                         {selectedExport.stockExportOrderCode || "-"}

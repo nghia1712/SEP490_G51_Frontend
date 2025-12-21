@@ -100,7 +100,9 @@ export const DashboardModals = ({
       >
         <Modal.Header className="border-0 pb-0">
           <Modal.Title className="fw-bold">
-            Các đơn hàng dự kiến trong tháng này
+            {selectedMonth
+              ? `Các đơn hàng tháng ${selectedMonth}`
+              : `Các đơn hàng trong năm`}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={modalBodyStyle}>
@@ -119,8 +121,8 @@ export const DashboardModals = ({
               </tr>
             </thead>
             <tbody>
-              {poList.length > 0 ? (
-                poList
+              {monthlyOrders.length > 0 ? (
+                monthlyOrders
                   .filter((order) => [0, 3, 4, 5].includes(order.status))
                   .map((order) => (
                     <tr key={order.poid}>
@@ -239,7 +241,7 @@ export const DashboardModals = ({
               <thead className="bg-light text-muted">
                 <tr>
                   <th className="ps-4 fw-semibold text-nowrap">Mã Đơn</th>
-                  <th className="fw-semibold text-nowrap">Nhà cung cấp</th>
+                  {/* <th className="fw-semibold text-nowrap">Nhà cung cấp</th> */}
                   <th className="fw-semibold text-nowrap text-end">
                     Tổng tiền
                   </th>
@@ -258,7 +260,7 @@ export const DashboardModals = ({
                     return (
                       <tr key={order.poid || index}>
                         <td className="ps-4 fw-bold text-primary">{`PO-${order.poid}`}</td>
-                        <td>{order.supname}</td>
+                        {/* <td>{order.supname}</td> */}
                         <td className="fw-bold text-end">
                           {formatCurrency(order.total)}
                         </td>
@@ -266,7 +268,7 @@ export const DashboardModals = ({
                           {formatCurrency(order.deposit)}
                         </td>
                         <td className="fw-bold text-end text-danger">
-                          {formatCurrency(order.debt)}
+                          {formatCurrency(order.total - order.deposit)}
                         </td>
                         <td className="pe-4 text-center">
                           {getStatusBadge(order.status)}

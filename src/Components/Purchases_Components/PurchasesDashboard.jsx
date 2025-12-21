@@ -117,6 +117,15 @@ function PurchasesDashboard() {
   const [statusChartData, setStatusChartData] = useState([]);
 
   const { poList, loading, secretLoading, fetchPOByYear } = usePO();
+  const filteredPOByYear = React.useMemo(() => {
+    if (!poList || !selectedYear) return [];
+
+    return poList.filter((po) => {
+      if (!po.orderDate) return false;
+      return new Date(po.orderDate).getFullYear() === selectedYear;
+    });
+  }, [poList, selectedYear]);
+
   const { fetchProductsBelowMinQuantity, fetchProductsWithNearestLot } =
     useProduct();
   const {
@@ -127,16 +136,21 @@ function PurchasesDashboard() {
   } = useSupplier();
   const supplierCache = {};
 
+  const supplierCacheRef = React.useRef({});
+
   const getSupplierName = async (id) => {
     if (!id) return "Unknown";
-    if (supplierCache[id]) return supplierCache[id];
+
+    if (supplierCacheRef.current[id]) {
+      return supplierCacheRef.current[id];
+    }
+
     try {
       const data = await fetchSupplierById(id);
       const name = data?.name || "Unknown";
-      supplierCache[id] = name;
+      supplierCacheRef.current[id] = name;
       return name;
-    } catch (err) {
-      console.error("Failed to fetch supplier", err);
+    } catch {
       return "Unknown";
     }
   };
@@ -174,94 +188,27 @@ function PurchasesDashboard() {
   }, []);
 
   const loadYearChart = async () => {
-    // Reset dữ liệu trước khi fetch để tránh hiển thị dữ liệu cũ
-    setYearlyChartData([]);
-    setStatusChartData([]);
-    setPurchasesData({
-      monthlySpending: 0,
-      pendingOrders: 0,
-      suppliers: 0,
-      lowStockProducts: [],
-      recentOrders: [],
-    });
-    
     const data = await fetchPOByYear(selectedYear);
-    if (!data || !Array.isArray(data)) {
-      setYearlyChartData([]);
-      return;
-    }
 
-    // Tính toán purchasesData từ dữ liệu năm được chọn
-    const allOrders = data.flatMap((monthData) => monthData.orders || []);
-    const approvedStatuses = [0, 3, 4, 5];
-    
-    const monthlySpending = allOrders
-      .filter((order) => approvedStatuses.includes(order.status))
-      .reduce((sum, order) => sum + Number(order.total || 0), 0);
+    console.log("RAW API fetchPOByYear:", data);
 
-    const pendingOrders = allOrders.filter((order) => order.status === 6).length;
-    const suppliersSet = new Set(allOrders.map((order) => order.supname).filter(Boolean));
-    const suppliersCount = suppliersSet.size;
-
-    // Tính statusChartData từ dữ liệu năm được chọn
-    const filteredPOs = allOrders.filter((po) => po.status !== 7);
-    const statusGroups = filteredPOs.reduce((acc, po) => {
-      const label = statusMap[po.status]?.label || "Khác";
-
-      if (!acc[label]) {
-        acc[label] = {
-          name: label,
-          value: 0,
-          orders: [],
-          color:
-            Object.values(statusMap).find((s) => s.label === label)?.color ||
-            "secondary",
-        };
-      }
-
-      acc[label].value += 1;
-      acc[label].orders.push(po);
-
-      return acc;
-    }, {});
-
-    setStatusChartData(Object.values(statusGroups));
-
-    // Map tên nhà cung cấp cho recentOrders
-    const recentOrdersRaw = allOrders
-      .filter((po) => po.status !== 7)
-      .sort((a, b) => new Date(b.orderDate || 0) - new Date(a.orderDate || 0))
-      .slice(0, 10);
-
-    const recentOrders = await Promise.all(
-      recentOrdersRaw.map(async (order) => {
-        const supplierName = await getSupplierName(order.supname);
-        return {
-          ...order,
-          supplierName: supplierName,
-        };
-      })
-    );
-
-    setPurchasesData({
-      monthlySpending,
-      pendingOrders,
-      suppliers: suppliersCount,
-      lowStockProducts: [],
-      recentOrders,
-    });
+    if (!data || !Array.isArray(data)) return;
 
     const monthlyData = await Promise.all(
       Array.from({ length: 12 }, async (_, i) => {
         const monthItem = data.find((m) => m.month === i + 1);
 
+        console.log(`Month ${i + 1} raw item:`, monthItem);
+
         const ordersWithName = await Promise.all(
           (monthItem?.orders || []).map(async (order) => {
+            console.log("Raw order from API:", order);
+
             const name = await getSupplierName(order.supname);
-            console.log("Order POID:", order.poid, "Supplier Name:", name);
+
             return {
               ...order,
-              supname: name,
+              supplierName: name,
             };
           })
         );
@@ -273,7 +220,7 @@ function PurchasesDashboard() {
             0
           ),
           debt: ordersWithName.reduce(
-            (sum, o) => sum + Number((o.total || 0) - (o.deposit || 0)),
+            (sum, o) => sum + (Number(o.total || 0) - Number(o.deposit || 0)),
             0
           ),
           orders: ordersWithName,
@@ -281,18 +228,88 @@ function PurchasesDashboard() {
       })
     );
 
+    console.table(monthlyData);
     setYearlyChartData(monthlyData);
-
-    // Hoặc log toàn bộ monthlyData
-    console.log("Monthly data with supplier names:", monthlyData);
   };
 
   useEffect(() => {
     loadYearChart();
   }, [selectedYear]);
 
+  useEffect(() => {
+    if (!filteredPOByYear.length) {
+      setPurchasesData({
+        monthlySpending: 0,
+        pendingOrders: 0,
+        suppliers: 0,
+        lowStockProducts: [],
+        recentOrders: [],
+      });
+      return;
+    }
+
+    const approvedStatuses = [0, 3, 4, 5];
+
+    const monthlySpending = filteredPOByYear
+      .filter((po) => approvedStatuses.includes(po.status))
+      .reduce((sum, po) => sum + (po.total || 0), 0);
+
+    const pendingOrders = filteredPOByYear.filter(
+      (po) => po.status === 6
+    ).length;
+
+    const suppliersCount = new Set(
+      filteredPOByYear.map((po) => po.supplierName)
+    ).size;
+
+    const excludedStatuses = [6, 7];
+
+    const recentOrders = filteredPOByYear
+      .filter((po) => !excludedStatuses.includes(po.status))
+      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+      .slice(0, 10);
+
+    setPurchasesData({
+      monthlySpending,
+      pendingOrders,
+      suppliers: suppliersCount,
+      lowStockProducts: [],
+      recentOrders,
+    });
+  }, [filteredPOByYear]);
+
   // PurchasesData giờ được tính trong loadYearChart dựa trên năm được chọn
   // useEffect này chỉ dùng cho các tính toán không phụ thuộc vào năm (nếu có)
+  // ================== BUILD STATUS CHART DATA (THEO NĂM) ==================
+  useEffect(() => {
+    if (!filteredPOByYear || filteredPOByYear.length === 0) {
+      setStatusChartData([]);
+      return;
+    }
+
+    const filteredPOs = filteredPOByYear.filter((po) => po.status !== 7);
+
+    const statusGroups = filteredPOs.reduce((acc, po) => {
+      const statusInfo = statusMap[po.status];
+      const label = statusInfo?.label || "Khác";
+
+      if (!acc[label]) {
+        acc[label] = {
+          name: label,
+          value: 0,
+          orders: [],
+          color: statusInfo?.color || "secondary",
+        };
+      }
+
+      acc[label].value += 1;
+      acc[label].orders.push(po);
+
+      return acc;
+    }, {});
+
+    setStatusChartData(Object.values(statusGroups));
+  }, [filteredPOByYear]);
 
   // ================== FILTERING ==================
   const filteredOrders = purchasesData.recentOrders.filter((order) => {
@@ -312,7 +329,7 @@ function PurchasesDashboard() {
     return matchesSearch && matchesFilter;
   });
 
-  const pendingOrdersList = poList?.filter((po) => po.status === 6) || [];
+  const pendingOrdersList = filteredPOByYear.filter((po) => po.status === 6);
 
   // ================== HELPERS ==================
   const formatCurrency = (amount) =>
@@ -376,7 +393,10 @@ function PurchasesDashboard() {
     <div className="">
       <Container fluid style={{ maxWidth: "1500px", padding: "20px" }}>
         {/* ===== Header & KPI Cards ===== */}
-        <Card className="border-0 shadow-sm rounded-4 mb-5" style={{ marginTop: "20px" }}>
+        <Card
+          className="border-0 shadow-sm rounded-4 mb-5"
+          style={{ marginTop: "20px" }}
+        >
           <Card.Header className="bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
             <div>
               <h2 className="fw-bold text-dark mb-1">
@@ -414,12 +434,16 @@ function PurchasesDashboard() {
             <Row className="g-4">
               <Col md={6} lg={3}>
                 <StatCard
-                  title="Chi phí dự kiến tháng này"
+                  title={`Chi phí dự kiến năm ${selectedYear}`}
                   value={formatCurrency(purchasesData.monthlySpending)}
                   icon={<AttachMoney />}
                   color="primary"
-                  onClick={() => setShowMonthlyOrdersModal(true)}
-                  subText="Tổng chi dự kiến trong tháng"
+                  onClick={() => {
+                    setMonthlyOrders(filteredPOByYear);
+                    setSelectedMonth(null);
+                    setShowMonthlyOrdersModal(true);
+                  }}
+                  subText="Tổng chi dự kiến trong năm"
                 />
               </Col>
               <Col md={6} lg={3}>
