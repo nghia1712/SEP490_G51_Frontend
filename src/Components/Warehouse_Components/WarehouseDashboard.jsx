@@ -211,20 +211,24 @@ export default function WarehouseDashboard() {
     });
   }, [discrepancyProducts, selectedMonth]);
 
-  useEffect(() => {
-    const loadProductKPIs = async () => {
-      try {
-        const nearest = await fetchProductsWithNearestLot();
-        const filteredNearest = nearest.filter(
-          (lot) => (lot.lotQuantity || 0) > 0
-        );
-        setNearestLots(filteredNearest);
-      } catch (err) {
-        console.error("Failed to fetch product KPIs:", err);
-      }
-    };
-    loadProductKPIs();
-  }, []);
+useEffect(() => {
+  const loadProductKPIs = async () => {
+    try {
+      const nearest = await fetchProductsWithNearestLot();
+
+      const filteredNearest = nearest
+        .filter((lot) => (lot.lotQuantity || 0) > 0)
+        .slice(0, 5);
+
+      setNearestLots(filteredNearest);
+    } catch (err) {
+      console.error("Failed to fetch product KPIs:", err);
+    }
+  };
+
+  loadProductKPIs();
+}, []);
+
 
   // ================= DISCREPANCY PRODUCTS =================
   const productsWithDiscrepancy = useMemo(
