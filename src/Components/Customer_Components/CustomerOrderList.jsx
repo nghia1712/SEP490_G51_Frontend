@@ -153,8 +153,6 @@ const CustomerOrderList = () => {
 
   const quotationInfoCache = useRef(new Map());
 
-  const paymentWindowRef = useRef(null); // Reference đến tab thanh toán VNPay
-
   const [editQuantitiesDialogOpen, setEditQuantitiesDialogOpen] =
     useState(false);
   const [editQuantitiesLoading, setEditQuantitiesLoading] = useState(false);
@@ -1160,6 +1158,11 @@ const CustomerOrderList = () => {
           0
       ) ?? 0;
 
+    // Nếu orderStatus đã là Complete (6) hoặc NotComplete (7), giữ nguyên
+    if (orderStatus === 6 || orderStatus === 7) {
+      return orderStatus;
+    }
+
     // Nếu tổng tiền = tiền đã trả → "Giao toàn bộ hàng" (Delivered = 5)
 
     if (totalAmount > 0 && paidAmount >= totalAmount) {
@@ -1267,7 +1270,7 @@ const CustomerOrderList = () => {
         return "Thanh toán 1 phần"; // PartiallyPaid
 
       case 3:
-        return "Hoàn thành"; // Paid
+        return "Thanh toán toàn bộ"; // Paid
 
       case 4:
         return "Trả lại cọc"; // Refunded
@@ -1292,7 +1295,7 @@ const CustomerOrderList = () => {
         return "Thanh toán 1 phần"; // PartiallyPaid
 
       case 3:
-        return "Hoàn thành"; // Paid
+        return "Thanh toán toàn bộ"; // Paid
 
       case 4:
         return "Trả lại cọc"; // Refunded
@@ -2529,101 +2532,8 @@ const CustomerOrderList = () => {
 
     setRedirectingPayment(true);
 
-    // Mở cổng thanh toán VNPay ở tab mới để khách không mất màn hình đơn hàng
-
-    paymentWindowRef.current = window.open(
-      vnPayInitData.paymentUrl,
-      "_blank",
-      "noopener,noreferrer"
-    );
-
-    // Lắng nghe message từ tab thanh toán khi hoàn thành
-
-    const handleMessage = (event) => {
-      // Kiểm tra origin để đảm bảo an toàn (có thể điều chỉnh theo domain của bạn)
-
-      if (event.data && event.data.type === "VNPAY_PAYMENT_SUCCESS") {
-        // Đóng tab thanh toán nếu còn mở
-
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-
-        // Refresh danh sách đơn hàng
-
-        fetchOrders();
-
-        // Đóng dialog thanh toán
-
-        setPaymentDialogOpen(false);
-
-        setSnackbarMessage("Thanh toán thành công!");
-
-        setSnackbarOpen(true);
-
-        // Xóa listener
-
-        window.removeEventListener("message", handleMessage);
-
-        setRedirectingPayment(false);
-      } else if (event.data && event.data.type === "VNPAY_PAYMENT_FAILED") {
-        // Xử lý khi thanh toán thất bại
-
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-
-        setSnackbarMessage(event.data.message || "Thanh toán thất bại.");
-
-        setSnackbarOpen(true);
-
-        window.removeEventListener("message", handleMessage);
-
-        setRedirectingPayment(false);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    // Kiểm tra định kỳ xem tab đã đóng chưa (fallback nếu không nhận được message)
-
-    let checkCount = 0;
-
-    const checkInterval = setInterval(() => {
-      checkCount++;
-
-      if (paymentWindowRef.current && paymentWindowRef.current.closed) {
-        // Tab đã đóng, đợi một chút để đảm bảo backend đã xử lý xong
-
-        // Sau đó refresh danh sách đơn hàng
-
-        clearInterval(checkInterval);
-
-        window.removeEventListener("message", handleMessage);
-
-        // Đợi 2 giây để backend xử lý callback từ VNPay
-
-        setTimeout(() => {
-          fetchOrders();
-
-          setPaymentDialogOpen(false);
-
-          setRedirectingPayment(false);
-
-          paymentWindowRef.current = null;
-        }, 2000);
-      }
-
-      // Dừng kiểm tra sau 10 phút
-
-      if (checkCount >= 600) {
-        clearInterval(checkInterval);
-
-        window.removeEventListener("message", handleMessage);
-
-        setRedirectingPayment(false);
-      }
-    }, 1000);
+    // Chuyển hướng đến cổng thanh toán VNPay trên tab hiện tại
+    window.location.href = vnPayInitData.paymentUrl;
   };
 
   const handleConfirmPayment = async () => {
@@ -2798,6 +2708,9 @@ const CustomerOrderList = () => {
           data.SalesOrderDetails ??
           [];
 
+        console.log("Raw details from API:", rawDetails);
+        console.log("First detail supplierName:", rawDetails[0]?.supplierName);
+
         const processedDetails = rawDetails.map((detail) => {
           const quantity = detail.quantity ?? detail.Quantity ?? 0;
 
@@ -2892,6 +2805,8 @@ const CustomerOrderList = () => {
             detail.Lot?.supplierName ??
             "-";
 
+          console.log(`Processed detail ${detail.id}: supplierName =`, supplierName);
+
           return {
             ...detail,
 
@@ -2917,7 +2832,7 @@ const CustomerOrderList = () => {
 
             unitName,
 
-            supplierName,
+            supplierName: supplierName || detail.supplierName || "-",
           };
         });
 
@@ -2968,7 +2883,10 @@ const CustomerOrderList = () => {
 
           let expiredDisplay = detail.expiredDisplay;
 
-          let supplierName = detail.supplierName;
+          // Ưu tiên lấy supplierName từ detail (đã được xử lý trong processedDetails)
+          let supplierName = detail.supplierName ?? detail.SupplierName ?? "-";
+
+          console.log(`Merged detail ${detail.id}: initial supplierName =`, supplierName);
 
           if (matchedQuotationDetail) {
             const quotationUnit =
@@ -3060,8 +2978,12 @@ const CustomerOrderList = () => {
 
             if (quotationSupplierName) {
               supplierName = quotationSupplierName;
+              console.log(`Merged detail ${detail.id}: updated supplierName from quotation =`, supplierName);
             }
           }
+
+          const finalSupplierName = supplierName && supplierName !== "-" ? supplierName : (detail.supplierName ?? detail.SupplierName ?? "-");
+          console.log(`Merged detail ${detail.id}: final supplierName =`, finalSupplierName);
 
           return {
             ...detail,
@@ -3082,7 +3004,7 @@ const CustomerOrderList = () => {
 
             expiredDisplay,
 
-            supplierName: detail.supplierName ?? supplierName ?? "-",
+            supplierName: finalSupplierName,
           };
         });
 
@@ -3951,7 +3873,7 @@ const CustomerOrderList = () => {
                       #
                     </TableCell>
 
-                    <TableCell sx={{ width: "25%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ width: "20%", py: 1.5, px: 2 }}>
                       <TableSortLabel
                         active={sortConfig.key === "orderCode"}
                         direction={
@@ -3966,7 +3888,7 @@ const CustomerOrderList = () => {
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell sx={{ width: "18%", py: 1.5, px: 2 }}>
+                    <TableCell sx={{ width: "15%", py: 1.5, px: 2 }}>
                       <TableSortLabel
                         active={sortConfig.key === "createdAt"}
                         direction={
@@ -3984,7 +3906,7 @@ const CustomerOrderList = () => {
                     <TableCell
                       align="center"
                       sx={{
-                        width: "15%",
+                        width: "20%",
                         py: 1.5,
                         px: 2,
                         whiteSpace: "nowrap",
@@ -4004,7 +3926,7 @@ const CustomerOrderList = () => {
                           component="span"
                           sx={{ display: "block", lineHeight: 1.2 }}
                         >
-                          Trạng thái
+                          Trạng thái đơn hàng
                         </Box>
                       </TableSortLabel>
                     </TableCell>
@@ -4012,7 +3934,7 @@ const CustomerOrderList = () => {
                     <TableCell
                       align="center"
                       sx={{
-                        width: "15%",
+                        width: "25%",
                         py: 1.5,
                         px: 2,
                         whiteSpace: "nowrap",
@@ -4038,7 +3960,7 @@ const CustomerOrderList = () => {
                     </TableCell>
 
                     <TableCell
-                      sx={{ width: "15%", py: 1, px: 0, textAlign: "right" }}
+                      sx={{ width: "10%", py: 1, px: 0, textAlign: "right" }}
                     >
                       <TableSortLabel
                         active={sortConfig.key === "paidAmount"}
@@ -4117,7 +4039,7 @@ const CustomerOrderList = () => {
                   ) : (
                     paginatedOrders.map((order, index) => (
                       <TableRow
-                        key={order.id || index}
+                        key={`order_${order.id ?? order.salesOrderId ?? index}_${index}`}
                         hover
                         sx={{
                           "&:nth-of-type(even)": {
@@ -4173,7 +4095,7 @@ const CustomerOrderList = () => {
                             : "-"}
                         </TableCell>
 
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ overflow: 'visible' }}>
                           {/* Hiển thị "-" nếu trạng thái đơn hàng là Nháp (0), Đã gửi (1), hoặc Từ chối (3) */}
 
                           {order.orderStatus === 0 ||
@@ -4225,7 +4147,7 @@ const CustomerOrderList = () => {
                                   amount: order.depositAmount,
                                 },
                                 order,
-                                true
+                                false
                               );
 
                               const color = getPaymentStatusColor(
@@ -4236,9 +4158,17 @@ const CustomerOrderList = () => {
                               return (
                                 <Tooltip title={labelFull} arrow>
                                   <Chip
-                                    label={labelShort}
+                                    label={labelFull}
                                     size="small"
-                                    sx={color}
+                                    sx={{
+                                      ...color,
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: 'none',
+                                      '& .MuiChip-label': {
+                                        overflow: 'visible',
+                                        whiteSpace: 'nowrap',
+                                      }
+                                    }}
                                   />
                                 </Tooltip>
                               );
@@ -4444,11 +4374,19 @@ const CustomerOrderList = () => {
                           <Chip
                             label={label}
                             size="small"
-                            sx={getPaymentStatusColor(
-                              statusCode,
-                              effectiveStatus,
-                              orderDetails
-                            )}
+                            sx={{
+                              ...getPaymentStatusColor(
+                                statusCode,
+                                effectiveStatus,
+                                orderDetails
+                              ),
+                              whiteSpace: 'nowrap',
+                              maxWidth: 'none',
+                              '& .MuiChip-label': {
+                                overflow: 'visible',
+                                whiteSpace: 'nowrap',
+                              }
+                            }}
                           />
                           {/* Nút xem lý do từ chối thanh toán nếu có - chỉ hiển thị khi trạng thái là "Chờ cọc" */}
                           {orderDetails.depositCheckRejectReason &&
@@ -4775,9 +4713,18 @@ const CustomerOrderList = () => {
                             detail.TaxPolicyName ??
                             "-";
 
+                          // Tạo key duy nhất bằng cách kết hợp nhiều giá trị và luôn bao gồm index
+                          const uniqueKey = detail.salesOrderDetailId 
+                            ? `detail_${detail.salesOrderDetailId}_${index}`
+                            : detail.SalesOrderDetailId 
+                            ? `detail_${detail.SalesOrderDetailId}_${index}`
+                            : detail.id 
+                            ? `detail_${detail.id}_${index}`
+                            : `detail_${detail.productId ?? 'product'}_${detail.lotId ?? 'lot'}_${index}`;
+                          
                           return (
                             <TableRow
-                              key={detail.id ?? detail.productId ?? index}
+                              key={uniqueKey}
                             >
                               <TableCell sx={{ textAlign: "center" }}>
                                 {index + 1}
@@ -4977,7 +4924,8 @@ const CustomerOrderList = () => {
                             amount: paymentOrderDetails.depositAmount,
                           },
 
-                          paymentOrderDetails
+                          paymentOrderDetails,
+                          false
                         )}
                         size="small"
                         sx={{
@@ -4988,6 +4936,12 @@ const CustomerOrderList = () => {
                               null,
                             paymentOrderDetails
                           ),
+                          whiteSpace: 'nowrap',
+                          maxWidth: 'none',
+                          '& .MuiChip-label': {
+                            overflow: 'visible',
+                            whiteSpace: 'nowrap',
+                          },
                           fontWeight: 500,
                         }}
                       />
@@ -5422,9 +5376,12 @@ const CustomerOrderList = () => {
                     <TableBody>
                       {editQuantitiesRows.map((row, index) => {
                         const rowError = editQuantitiesErrors[`row_${row.id}`];
+                        // Tạo key duy nhất bằng cách kết hợp salesOrderDetailId, productId, lotId và index
+                        const uniqueKey = row.salesOrderDetailId 
+                          ?? `${row.productId ?? 'product'}_${row.lotId ?? 'lot'}_${row.id}_${index}`;
                         return (
                           <TableRow
-                            key={row.id}
+                            key={uniqueKey}
                             sx={rowError ? { backgroundColor: "#ffebee" } : {}}
                           >
                             <TableCell sx={{ textAlign: "center" }}>

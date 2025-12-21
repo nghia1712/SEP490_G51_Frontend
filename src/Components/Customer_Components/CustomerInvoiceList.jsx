@@ -61,7 +61,15 @@ const CustomerInvoiceList = () => {
   const [vnPayInitLoading, setVnPayInitLoading] = useState(false);
   const [redirectingPayment, setRedirectingPayment] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay'); // 'vnpay', 'manual'
-  const paymentWindowRef = useRef(null); // Reference đến tab thanh toán VNPay
+  // Track invoices that have payment remain requests created
+  const [invoicesWithPaymentRemain, setInvoicesWithPaymentRemain] = useState(() => {
+    try {
+      const saved = localStorage.getItem("customerInvoicesWithPaymentRemain");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -103,6 +111,45 @@ const CustomerInvoiceList = () => {
     },
     [statusFilter, searchCode],
   );
+
+  // Load payment remain requests
+  const loadPaymentRemains = useCallback(async () => {
+    try {
+      // Get customer ID from token
+      const token = localStorage.getItem('authToken');
+      let customerId = null;
+      if (token) {
+        try {
+          if (token.includes('.')) {
+            const [, payload] = token.split('.');
+            const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+            const padded = b64 + "===".slice((b64.length + 3) % 4);
+            const data = JSON.parse(atob(padded));
+            customerId = data.userId || data.id || data.sub || data.nameid || null;
+          }
+        } catch (e) {
+          console.warn('[Auth] Failed to decode token payload', e);
+        }
+      }
+
+      if (customerId) {
+        const response = await paymentRemainAPI.getList({ CustomerId: customerId });
+        if (response.data?.success && response.data?.data) {
+          const paymentRemains = response.data.data;
+          const invoiceIds = new Set(
+            paymentRemains
+              .map((pr) => pr.invoiceId || pr.InvoiceId)
+              .filter((id) => id != null)
+          );
+          setInvoicesWithPaymentRemain(invoiceIds);
+          localStorage.setItem("customerInvoicesWithPaymentRemain", JSON.stringify([...invoiceIds]));
+        }
+      }
+    } catch (err) {
+      // Silently fail - user can still create payment remain requests
+      console.error("Failed to load payment remain requests:", err);
+    }
+  }, []);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -186,9 +233,16 @@ const CustomerInvoiceList = () => {
     }
   }, [applyStatusFilter]);
 
+  // Load payment remain requests to sync with backend
+  useEffect(() => {
+    loadPaymentRemains();
+  }, [loadPaymentRemains]);
+
   useEffect(() => {
     fetchInvoices();
-  }, [fetchInvoices]);
+    // Reload payment remains when invoices are fetched
+    loadPaymentRemains();
+  }, [fetchInvoices, loadPaymentRemains]);
 
   useEffect(() => {
     setInvoices(applyStatusFilter(allInvoices));
@@ -294,7 +348,7 @@ const CustomerInvoiceList = () => {
     
     // Nếu invoice đã được gửi (status = 1) và chưa thanh toán
     if (invoice.status === 1) {
-      return { backgroundColor: '#ff9800', color: '#fff' }; // Cam - chưa thanh toán
+      return { backgroundColor: '#2196f3', color: '#fff' }; // Xanh dương - Đã gửi
     }
     
     // Trường hợp nháp
@@ -424,6 +478,18 @@ const CustomerInvoiceList = () => {
         setVnPayInitData(normalized);
         if (!normalized.paymentUrl) {
           setVnPayInitError('Không nhận được link thanh toán từ VNPay.');
+        } else {
+          // Mark this invoice as having a payment remain request immediately
+          // Reload payment remains after successfully creating payment remain request
+          if (invoiceId) {
+            setInvoicesWithPaymentRemain((prev) => {
+              const newSet = new Set(prev);
+              newSet.add(invoiceId);
+              localStorage.setItem("customerInvoicesWithPaymentRemain", JSON.stringify([...newSet]));
+              return newSet;
+            });
+          }
+          loadPaymentRemains();
         }
       } catch (error) {
         const message = error.response?.data?.message || error.response?.data?.Message || 'Không thể khởi tạo thanh toán VNPay.';
@@ -434,7 +500,7 @@ const CustomerInvoiceList = () => {
         setVnPayInitLoading(false);
       }
     },
-    [setSnackbarMessage, setSnackbarOpen],
+    [setSnackbarMessage, setSnackbarOpen, loadPaymentRemains],
   );
 
   const handlePayment = async (invoice) => {
@@ -477,10 +543,6 @@ const CustomerInvoiceList = () => {
   };
 
   const handleClosePaymentDialog = () => {
-    // Đóng tab thanh toán nếu còn mở
-    if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-      paymentWindowRef.current.close();
-    }
     setPaymentDialogOpen(false);
     setPaymentInvoiceDetails(null);
     setVnPayInitData(null);
@@ -511,52 +573,8 @@ const CustomerInvoiceList = () => {
       return;
     }
     setRedirectingPayment(true);
-    // Mở cổng thanh toán VNPay ở tab mới
-    paymentWindowRef.current = window.open(vnPayInitData.paymentUrl, '_blank', 'noopener,noreferrer');
-    
-    // Lắng nghe message từ tab thanh toán khi hoàn thành
-    const handleMessage = (event) => {
-      if (event.data && event.data.type === 'VNPAY_PAYMENT_SUCCESS') {
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-        fetchInvoices();
-        setPaymentDialogOpen(false);
-        setSnackbarMessage('Thanh toán thành công!');
-        setSnackbarOpen(true);
-        window.removeEventListener('message', handleMessage);
-        setRedirectingPayment(false);
-      } else if (event.data && event.data.type === 'VNPAY_PAYMENT_FAILED') {
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-        setSnackbarMessage(event.data.message || 'Thanh toán thất bại.');
-        setSnackbarOpen(true);
-        window.removeEventListener('message', handleMessage);
-        setRedirectingPayment(false);
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    
-    // Kiểm tra định kỳ xem tab đã đóng chưa
-    const checkInterval = setInterval(() => {
-      if (paymentWindowRef.current && paymentWindowRef.current.closed) {
-        clearInterval(checkInterval);
-        window.removeEventListener('message', handleMessage);
-        setTimeout(() => {
-          fetchInvoices();
-          setPaymentDialogOpen(false);
-          setRedirectingPayment(false);
-        }, 2000);
-      }
-    }, 1000);
-    
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      window.removeEventListener('message', handleMessage);
-      setRedirectingPayment(false);
-    }, 600000); // 10 minutes timeout
+    // Chuyển hướng đến cổng thanh toán VNPay trên tab hiện tại
+    window.location.href = vnPayInitData.paymentUrl;
   };
 
   const handleConfirmPayment = async () => {
@@ -635,13 +653,6 @@ const CustomerInvoiceList = () => {
           />
         </Box>
 
-        {/* Error */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
         {/* Loading / Table */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -718,17 +729,17 @@ const CustomerInvoiceList = () => {
                     onClick={() => handleSort('totalAmount')}
                     sx={headerTextSx}
                   >
-                    Tổng tiền
+                    Tổng tiền hóa đơn
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ width: '16%', py: 1, pr: 0.1, pl: 1, textAlign: 'right' }}>
+                <TableCell sx={{ width: '20%', py: 1, pr: 0.1, pl: 1, textAlign: 'right' }}>
                   <TableSortLabel
                     active={sortConfig.key === 'totalRemain'}
                     direction={sortConfig.key === 'totalRemain' ? sortConfig.direction : 'asc'}
                     onClick={() => handleSort('totalRemain')}
                     sx={headerTextSx}
                   >
-                    Còn lại
+                    Tiền cần thanh toán
                   </TableSortLabel>
                 </TableCell>
                 <TableCell
@@ -788,17 +799,6 @@ const CustomerInvoiceList = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Tooltip title="Tải hóa đơn PDF">
-                          <span>
-                            <IconButton
-                              size="medium"
-                              color="primary"
-                              onClick={() => handleDownloadPdf(invoice)}
-                            >
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
                         {/* Chỉ hiển thị button thanh toán khi chưa thanh toán và invoice đã được gửi */}
                         {(() => {
                           const paymentStatus = invoice.paymentStatus ?? invoice.PaymentStatus ?? 0;
@@ -806,9 +806,10 @@ const CustomerInvoiceList = () => {
                           const isCancelled = invoice.status === 2; // Đã hủy
                           const isDraft = invoice.status === 0; // Nháp
                           const hasRemain = (invoice.totalRemain ?? 0) > 0;
+                          const hasPaymentRemainRequest = invoicesWithPaymentRemain.has(invoice.id);
                           
-                          // Ẩn button nếu: đã thanh toán, đã hủy, là nháp, hoặc không còn tiền cần thanh toán
-                          if (isPaid || isCancelled || isDraft || !hasRemain) {
+                          // Ẩn button nếu: đã thanh toán, đã hủy, là nháp, không còn tiền cần thanh toán, hoặc đã có payment remain request
+                          if (isPaid || isCancelled || isDraft || !hasRemain || hasPaymentRemainRequest) {
                             return null;
                           }
                           
@@ -826,6 +827,17 @@ const CustomerInvoiceList = () => {
                             </Tooltip>
                           );
                         })()}
+                        <Tooltip title="Tải hóa đơn PDF">
+                          <span>
+                            <IconButton
+                              size="medium"
+                              color="primary"
+                              onClick={() => handleDownloadPdf(invoice)}
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>

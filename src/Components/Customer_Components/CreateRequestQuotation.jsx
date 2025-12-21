@@ -112,6 +112,23 @@ const CreateRequestQuotation = ({ onCancel, onSuccess }) => {
       const response = await requestSalesQuotationAPI.createRequest(payload);
       
       if (response.data) {
+        // Lưu createdDate vào localStorage nếu có RequestCode từ response
+        const responseData = response.data?.data || response.data;
+        const requestCode = responseData?.RequestCode || responseData?.requestCode || responseData?.code;
+        
+        if (requestCode) {
+          const currentDate = new Date();
+          try {
+            localStorage.setItem(
+              `rsq_created_${requestCode}`,
+              currentDate.toISOString()
+            );
+            console.log('Created date saved to localStorage for:', requestCode);
+          } catch (error) {
+            console.error('Error storing created date:', error);
+          }
+        }
+        
         setSnackbarMessage(status === 1 ? 'Gửi yêu cầu báo giá thành công!' : 'Lưu nháp yêu cầu thành công!');
         setSnackbarOpen(true);
         setRows([{ id: 1, productId: null, productCode: '', productName: '' }]);

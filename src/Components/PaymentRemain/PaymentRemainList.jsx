@@ -134,6 +134,10 @@ const PaymentRemainList = () => {
         const paymentMethod = item.paymentMethod ?? item.PaymentMethod ?? null;
         const paymentMethodNum = paymentMethod !== null ? Number(paymentMethod) : null;
         
+        // VNPayStatus enum: Pending=0, Success=1, Failed=2
+        const vnPayStatus = item.vnPayStatus ?? item.VnPayStatus ?? item.VNPayStatus ?? -1;
+        const vnPayStatusNum = vnPayStatus !== null && vnPayStatus !== undefined ? Number(vnPayStatus) : -1;
+        
         return {
           ...item,
           invoiceCode: item.invoiceCode ?? item.InvoiceCode ?? "",
@@ -153,6 +157,7 @@ const PaymentRemainList = () => {
           invoiceId: item.invoiceId ?? item.InvoiceId ?? null,
           salesOrderId: item.salesOrderId ?? item.SalesOrderId ?? null,
           paymentMethod: paymentMethodNum,
+          vnPayStatus: vnPayStatusNum,
         };
       });
 
@@ -161,7 +166,7 @@ const PaymentRemainList = () => {
       // Hàm xếp hạng trạng thái để ưu tiên bản ghi đã thanh toán
       const rankStatus = (s) => {
         if (s === 1) return 2; // Success - Đã thanh toán
-        if (s === 0) return 1; // Pending - Chưa thanh toán / Chờ xác nhận
+        if (s === 0) return 1; // Pending - Chưa thanh toán / Chờ thanh toán
         if (s === 2) return 0; // Failed - Thanh toán thất bại
         return 0;
       };
@@ -303,10 +308,10 @@ const PaymentRemainList = () => {
     // VNPayStatus enum: Pending=0, Success=1, Failed=2
     switch (status) {
       case 0: // Pending
-        // Nếu paymentMethod = 3 (BankTransfer) thì là "Chờ xác nhận" (vàng nhạt)
+        // Nếu paymentMethod = 3 (BankTransfer) thì là "Chờ thanh toán" (vàng nhạt)
         // Nếu không thì là "Chưa thanh toán" (cam)
         if (paymentMethod === 3) {
-          return { backgroundColor: '#fff3cd', color: '#856404' }; // Vàng nhạt - Chờ xác nhận
+          return { backgroundColor: '#fff3cd', color: '#856404' }; // Vàng nhạt - Chờ thanh toán
         }
         return { backgroundColor: '#ff9800', color: '#fff' }; // Cam - Chưa thanh toán
       case 1: // Success - Đã thanh toán thành công
@@ -321,13 +326,13 @@ const PaymentRemainList = () => {
   // Các hàm render
   const renderStatus = (vnPayStatus, paymentMethod) => {
     // VNPayStatus enum: Pending=0, Success=1, Failed=2
-    // Nếu vnPayStatus = 0 (Pending) và paymentMethod = 3 (BankTransfer) thì là "Chờ xác nhận" (đã tạo request, đợi accountant duyệt)
+    // Nếu vnPayStatus = 0 (Pending) và paymentMethod = 3 (BankTransfer) thì là "Chờ thanh toán" (đã tạo request, đợi accountant duyệt)
     // Nếu vnPayStatus = 0 (Pending) và không phải BankTransfer thì là "Chưa thanh toán"
     let label = 'Không xác định';
     
     if (vnPayStatus === 0) {
       // Pending
-      label = paymentMethod === 3 ? 'Chờ xác nhận' : 'Chưa thanh toán'; // 3 = BankTransfer
+      label = paymentMethod === 3 ? 'Chờ thanh toán' : 'Chưa thanh toán'; // 3 = BankTransfer
     } else if (vnPayStatus === 1) {
       // Success
       label = 'Đã thanh toán';
@@ -479,9 +484,6 @@ const PaymentRemainList = () => {
   };
 
   const handleClosePaymentDialog = () => {
-    if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-      paymentWindowRef.current.close();
-    }
     setPaymentDialogOpen(false);
     setPaymentInvoiceDetails(null);
     setVnPayInitData(null);
@@ -514,60 +516,8 @@ const PaymentRemainList = () => {
       return;
     }
     setRedirectingPayment(true);
-    paymentWindowRef.current = window.open(vnPayInitData.paymentUrl, '_blank', 'noopener,noreferrer');
-    
-    const handleMessage = (event) => {
-      if (event.data && event.data.type === 'VNPAY_PAYMENT_SUCCESS') {
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-        getList();
-        setPaymentDialogOpen(false);
-        setSnack({
-          open: true,
-          message: 'Thanh toán thành công!',
-          severity: "success",
-        });
-        window.removeEventListener('message', handleMessage);
-        setRedirectingPayment(false);
-      } else if (event.data && event.data.type === 'VNPAY_PAYMENT_FAILED') {
-        if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
-          paymentWindowRef.current.close();
-        }
-        setSnack({
-          open: true,
-          message: event.data.message || 'Thanh toán thất bại.',
-          severity: "error",
-        });
-        window.removeEventListener('message', handleMessage);
-        setRedirectingPayment(false);
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    
-    const checkInterval = setInterval(() => {
-      if (paymentWindowRef.current && paymentWindowRef.current.closed) {
-        clearInterval(checkInterval);
-        window.removeEventListener('message', handleMessage);
-        setTimeout(() => {
-          getList();
-          setPaymentDialogOpen(false);
-        setRedirectingPayment(false);
-        setSnack({
-          open: true,
-          message: 'Đã đóng cổng thanh toán. Vui lòng kiểm tra lại trạng thái thanh toán.',
-          severity: "info",
-        });
-      }, 2000);
-      }
-    }, 1000);
-    
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      window.removeEventListener('message', handleMessage);
-      setRedirectingPayment(false);
-    }, 600000);
+    // Chuyển hướng đến cổng thanh toán VNPay trên tab hiện tại
+    window.location.href = vnPayInitData.paymentUrl;
   };
 
   const handleConfirmPayment = async () => {
@@ -633,7 +583,6 @@ const PaymentRemainList = () => {
   const [vnPayInitLoading, setVnPayInitLoading] = useState(false);
   const [redirectingPayment, setRedirectingPayment] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vnpay');
-  const paymentWindowRef = useRef(null);
 
   // Tính toán remainingAmount và paymentButtonDisabled sau khi state đã được khai báo
   const remainingAmount = paymentInvoiceDetails?.totalRemain ?? 0;
@@ -759,7 +708,7 @@ const PaymentRemainList = () => {
                     >
                       <MenuItem value="all">Tất cả</MenuItem>
                       <MenuItem value={0}>Chưa thanh toán</MenuItem>
-                      <MenuItem value={3}>Đã thanh toán</MenuItem>
+                      <MenuItem value={1}>Đã thanh toán</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -776,7 +725,7 @@ const PaymentRemainList = () => {
                     <TableCell sx={{ fontWeight: 600 }}>Mã đơn hàng</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Ngày yêu cầu</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Ngày thanh toán</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Số tiền</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>Số tiền</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Thao tác</TableCell>
                   </TableRow>
@@ -802,7 +751,7 @@ const PaymentRemainList = () => {
                         <TableCell>{item.salesOrderCode || item.salesOrderId}</TableCell>
                         <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
                         <TableCell>{formatDate(item.paymentDate)}</TableCell>
-                        <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
+                        <TableCell align="center">{formatCurrency(item.amount)}</TableCell>
                         <TableCell>{renderStatus(item.vnPayStatus, item.paymentMethod)}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -899,7 +848,7 @@ const PaymentRemainList = () => {
                 >
                   <MenuItem value="all">Tất cả</MenuItem>
                   <MenuItem value={0}>Chờ thanh toán</MenuItem>
-                  <MenuItem value={3}>Đã thanh toán</MenuItem>
+                  <MenuItem value={1}>Đã thanh toán</MenuItem>
                 </Select>
               </FormControl>
 
@@ -965,7 +914,7 @@ const PaymentRemainList = () => {
                         <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
                           Ngày thanh toán
                         </TableCell>
-                        <TableCell sx={{ width: '15%', py: 1.5, px: 2, textAlign: 'right', ...headerTextSx }}>
+                        <TableCell sx={{ width: '15%', py: 1.5, px: 2, textAlign: 'center', ...headerTextSx }}>
                           Số tiền
                         </TableCell>
                         <TableCell sx={{ width: '12%', py: 1.5, px: 2, ...headerTextSx }}>
@@ -1008,7 +957,7 @@ const PaymentRemainList = () => {
                             </TableCell>
                             <TableCell>{formatDate(item.requestCreatedAt)}</TableCell>
                             <TableCell>{formatDate(item.paymentDate)}</TableCell>
-                            <TableCell align="right">
+                            <TableCell align="center">
                               {formatCurrency(item.amount)}
                             </TableCell>
                             <TableCell>

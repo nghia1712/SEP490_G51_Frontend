@@ -1082,7 +1082,9 @@ const SearchMedicine = () => {
                           <TableCell sx={{ wordBreak: "break-word", maxWidth: "500px" }}>
                             {selectedMedicine.productUses ||
                               selectedMedicine.ProductUses ||
+                              selectedMedicine.ProductIUses ||
                               selectedMedicine.ProductlUses ||
+                              selectedMedicine.productlUses ||
                               "Không có thông tin"}
                           </TableCell>
                         </TableRow>

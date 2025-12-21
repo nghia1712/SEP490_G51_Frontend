@@ -493,30 +493,32 @@ const ListProduct = () => {
                 </Tooltip>
               </Stack>
 
-              {/* RIGHT: Nút thêm thuốc */}
-              <Box
-                sx={{
-                  marginLeft: { xs: 0, md: "auto" },
-                  width: { xs: "100%", md: "auto" },
-                }}
-              >
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setShowAddProduct(true)}
-                  fullWidth={isMobile}
+              {/* RIGHT: Nút thêm thuốc - Ẩn cho sales_staff */}
+              {userRole !== "sales_staff" && (
+                <Box
                   sx={{
-                    backgroundColor: "#155E64",
-                    "&:hover": { backgroundColor: "#0D4F52" },
-                    borderRadius: "8px",
-                    px: { xs: 2, sm: 3 },
-                    py: 1.5,
-                    fontWeight: "600",
+                    marginLeft: { xs: 0, md: "auto" },
+                    width: { xs: "100%", md: "auto" },
                   }}
                 >
-                  {isMobile ? "THÊM THUỐC" : "THÊM THUỐC"}
-                </Button>
-              </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setShowAddProduct(true)}
+                    fullWidth={isMobile}
+                    sx={{
+                      backgroundColor: "#155E64",
+                      "&:hover": { backgroundColor: "#0D4F52" },
+                      borderRadius: "8px",
+                      px: { xs: 2, sm: 3 },
+                      py: 1.5,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {isMobile ? "THÊM THUỐC" : "THÊM THUỐC"}
+                  </Button>
+                </Box>
+              )}
             </Stack>
           </Paper>
 

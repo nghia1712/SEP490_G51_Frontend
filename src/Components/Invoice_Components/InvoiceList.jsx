@@ -73,6 +73,15 @@ const InvoiceList = () => {
   const [invoiceDetail, setInvoiceDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(null);
+  // Track invoices that have payment remain requests created
+  const [invoicesWithPaymentRemain, setInvoicesWithPaymentRemain] = useState(() => {
+    try {
+      const saved = localStorage.getItem("invoicesWithPaymentRemain");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   const applyStatusFilter = useCallback(
     (data) => {
@@ -83,6 +92,9 @@ const InvoiceList = () => {
         if (statusFilter === "paid") {
           // Filter for paid invoices
           filtered = filtered.filter((invoice) => invoice.isPaid === true);
+        } else if (statusFilter === "1") {
+          // Filter for "Đã Gửi" - chỉ lấy invoice có status = 1 VÀ chưa thanh toán
+          filtered = filtered.filter((invoice) => invoice.status === 1 && invoice.isPaid === false);
         } else {
           const filterStatus = Number(statusFilter);
           filtered = filtered.filter((invoice) => invoice.status === filterStatus);
@@ -178,6 +190,29 @@ const InvoiceList = () => {
     }
   }, [applyStatusFilter]);
 
+  // Load payment remain requests to sync with backend
+  useEffect(() => {
+    const loadPaymentRemains = async () => {
+      try {
+        const response = await paymentRemainAPI.getList({});
+        if (response.data?.success && response.data?.data) {
+          const paymentRemains = response.data.data;
+          const invoiceIds = new Set(
+            paymentRemains
+              .map((pr) => pr.invoiceId || pr.InvoiceId)
+              .filter((id) => id != null)
+          );
+          setInvoicesWithPaymentRemain(invoiceIds);
+          localStorage.setItem("invoicesWithPaymentRemain", JSON.stringify([...invoiceIds]));
+        }
+      } catch (err) {
+        // Silently fail - user can still create payment remain requests
+        console.error("Failed to load payment remain requests:", err);
+      }
+    };
+    loadPaymentRemains();
+  }, []);
+
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
@@ -253,7 +288,7 @@ const InvoiceList = () => {
       case 0:
         return "Nháp"; // Draft
       case 1:
-        return "Đã Gửi"; // Send
+        return "Đã gửi"; // Send
       case 2:
         return "Đã Hủy"; // Cancelled
       default:
@@ -367,6 +402,13 @@ const InvoiceList = () => {
         // Không truyền amount để thu hết phần còn lại
       };
       await paymentRemainAPI.createPaymentRemainRequest(payload);
+      // Mark this invoice as having a payment remain request
+      setInvoicesWithPaymentRemain((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(invoice.id);
+        localStorage.setItem("invoicesWithPaymentRemain", JSON.stringify([...newSet]));
+        return newSet;
+      });
       setSnackbarMessage("Đã tạo yêu cầu thanh toán phần còn lại");
       setSnackbarOpen(true);
       fetchInvoices();
@@ -446,8 +488,8 @@ const InvoiceList = () => {
           </IconButton>
         </Tooltip>
       );
-    } else if (invoice.status === 1 && !invoice.isPaid) {
-      // Only show payment remain button if invoice is sent but not paid yet
+    } else if (invoice.status === 1 && !invoice.isPaid && !invoicesWithPaymentRemain.has(invoice.id)) {
+      // Only show payment remain button if invoice is sent but not paid yet and hasn't created payment remain request
       actions.push(
         <Tooltip key="payment-remain" title="Tạo yêu cầu thanh toán">
           <IconButton
@@ -547,23 +589,13 @@ const InvoiceList = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <MenuItem value="all">Tất cả</MenuItem>
-                    <MenuItem value="1">Đã Gửi</MenuItem>
-                    <MenuItem value="2">Đã Hủy</MenuItem>
+                    <MenuItem value="1">Đã gửi</MenuItem>
                     <MenuItem value="paid">Đã thanh toán</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
             </Stack>
           </Paper>
-          {error && (
-            <Alert
-              severity="error"
-              sx={{ mb: 2 }}
-              onClose={() => setError(null)}
-            >
-              {error}
-            </Alert>
-          )}
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -750,7 +782,7 @@ const InvoiceList = () => {
                   )}
                 </TableBody>
               </Table>
-              {paginatedInvoices.length > 0 && (
+              {paginatedInvoices.length > 0 && totalPages > 1 && (
                 <Box
                   sx={{
                     pt: 2,

@@ -220,7 +220,7 @@ const InvoiceCreationDialog = ({
       
       const message =
         res.data?.message || "Tạo hóa đơn từ phiếu xuất kho thành công.";
-      onSuccess?.(message);
+      onSuccess?.(message, selectedGoodsCodes);
       onClose?.();
       
       // Điều hướng đến trang hóa đơn sau khi tạo thành công

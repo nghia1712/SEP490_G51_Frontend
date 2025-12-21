@@ -430,6 +430,11 @@ const SalesOrderList = () => {
           0
       ) ?? 0;
 
+    // Nếu orderStatus đã là Complete (6) hoặc NotComplete (7), giữ nguyên
+    if (orderStatus === 6 || orderStatus === 7) {
+      return orderStatus;
+    }
+
     // Nếu tổng tiền = tiền đã trả → "Giao toàn bộ hàng" (Delivered = 5)
     if (totalAmount > 0 && paidAmount >= totalAmount) {
       return 5; // Delivered
@@ -744,7 +749,7 @@ const SalesOrderList = () => {
       case 2:
         return "Thanh toán 1 phần"; // PartiallyPaid
       case 3:
-        return "Hoàn thành"; // Paid
+        return "Thanh toán toàn bộ"; // Paid
       case 4:
         return "Trả lại cọc"; // Refunded
       default:
@@ -763,7 +768,7 @@ const SalesOrderList = () => {
       case 2:
         return "Thanh toán 1 phần"; // PartiallyPaid
       case 3:
-        return "Hoàn thành"; // Paid
+        return "Thanh toán toàn bộ"; // Paid
       case 4:
         return "Trả lại cọc"; // Refunded
       default:
@@ -1433,15 +1438,12 @@ const SalesOrderList = () => {
           data.SalesOrderDetails ??
           [];
 
-        console.log("SalesOrderList - rawDetails:", rawDetails);
         const processedDetails = rawDetails.map((detail) => {
           const lotId =
             detail.lotId ??
             detail.LotId ??
             detail.lotID ??
             detail.LotID ??
-            detail.Lot?.LotId ??
-            detail.lot?.LotId ??
             null;
 
           const quotationMatch =
@@ -1456,8 +1458,6 @@ const SalesOrderList = () => {
             detail.UnitPriceAfterTax ??
             0;
 
-          // Get expired date from Lot
-
           const expiredDate =
             detail.Lot?.ExpiredDate ??
             detail.lot?.ExpiredDate ??
@@ -1470,67 +1470,21 @@ const SalesOrderList = () => {
             ? formatDate(expiredDate)
             : "-";
 
-          // Try to get product name from multiple sources
           let productName =
             detail.productName ??
             detail.ProductName ??
             quotationMatch?.productName ??
-            null;
+            "-";
 
-          // If still no product name, try to get from quotation details by matching lotId
-          let matchingQuotationDetail = null;
-          if (!productName && lotId !== null) {
-            matchingQuotationDetail = quotationDetailView.find(
-              (qd) =>
-                (qd.lotId ?? qd.LotId) === lotId ||
-                (qd.LotId ?? qd.lotId) === lotId
-            );
-            if (matchingQuotationDetail) {
-              productName =
-                matchingQuotationDetail.productName ??
-                matchingQuotationDetail.ProductName ??
-                null;
-            }
-          }
-
-          // Fallback to '-' if still no product name
-          if (!productName) {
-            productName = "-";
-          }
-
-          // Get supplierName from multiple sources
-          let supplierName =
+          // Get supplierName: ưu tiên từ API response (backend đã trả về supplierName)
+          const supplierName =
             detail.supplierName ??
             detail.SupplierName ??
+            detail.lot?.name ??
+            detail.Lot?.name ??
             quotationMatch?.supplierName ??
-            null;
-
-          // If not found, try to get from matchingQuotationDetail
-          if (!supplierName && matchingQuotationDetail) {
-            supplierName =
-              matchingQuotationDetail.supplierName ??
-              matchingQuotationDetail.SupplierName ??
-              matchingQuotationDetail.Supplier?.Name ??
-              matchingQuotationDetail.supplier?.name ??
-              null;
-          }
-
-          // If still not found, try to find from quotationDetailView by lotId
-          if (!supplierName && lotId !== null) {
-            const supplierMatch = quotationDetailView.find(
-              (qd) =>
-                (qd.lotId ?? qd.LotId) === lotId ||
-                (qd.LotId ?? qd.lotId) === lotId
-            );
-            if (supplierMatch) {
-              supplierName =
-                supplierMatch.supplierName ??
-                supplierMatch.SupplierName ??
-                supplierMatch.Supplier?.Name ??
-                supplierMatch.supplier?.name ??
-                null;
-            }
-          }
+            quotationMatch?.SupplierName ??
+            "-";
           const taxKey = buildTaxKey(productName, formattedExpiredDate);
 
           const taxData = quotationTaxMap.get(taxKey);
@@ -1606,31 +1560,22 @@ const SalesOrderList = () => {
               ? Math.max(0, Number(taxRate))
               : 0;
 
-          return {
+          // Đảm bảo supplierName được set đúng, không bị ghi đè
+          const result = {
             ...detail,
-
             quantity,
-
             unitPrice: unitPriceBeforeTax,
-
-            supplierName: supplierName ?? "-",
-
             unitPriceAfterTax,
-
             subtotal,
-
             subtotalAfterTax,
-
             expiredDate: formattedExpiredDate,
-
             taxText: taxText || "-",
-
             taxRate: normalizedTaxRate,
-
             productName,
-
-            supplierName: supplierName ?? "-",
+            supplierName,
           };
+
+          return result;
         });
 
         setOrderDetails({
@@ -1725,7 +1670,6 @@ const SalesOrderList = () => {
           quotationDetailsMap: quotationDetailsMap,
         });
 
-        console.log("SalesOrderList - Order details set:", orderDetails);
       } else {
         console.warn("SalesOrderList - No data in response");
         setOrderDetails(null);
@@ -2160,7 +2104,7 @@ const SalesOrderList = () => {
                     </TableCell>
 
                     <TableCell
-                      sx={{ width: "13%", py: 1.5, px: 2, textAlign: "center" }}
+                      sx={{ width: "18%", py: 1.5, px: 2, textAlign: "center" }}
                     >
                       <TableSortLabel
                         active={sortConfig.key === "paymentStatus"}
@@ -2268,7 +2212,7 @@ const SalesOrderList = () => {
                         amount: order.depositAmount,
                       },
                       order,
-                      true
+                      false
                     );
                     // Nút tạo yêu cầu xuất kho chỉ hiển thị khi:
                     // - Đơn đã được chấp thuận (status = 2)
@@ -2347,7 +2291,7 @@ const SalesOrderList = () => {
                           )}
                         </TableCell>
 
-                        <TableCell sx={{ textAlign: "center" }}>
+                        <TableCell sx={{ textAlign: "center", overflow: 'visible' }}>
                           {order.orderStatus === 0 ||
                           order.orderStatus === 1 ||
                           order.orderStatus === 3 ? (
@@ -2362,13 +2306,21 @@ const SalesOrderList = () => {
                             order.paymentStatus !== null ? (
                             <Tooltip title={labelFull} arrow>
                               <Chip
-                                label={labelShort}
+                                label={labelFull}
                                 size="small"
-                                sx={getPaymentStatusColor(
-                                  statusCode,
-                                  effectiveStatus,
-                                  order
-                                )}
+                                sx={{
+                                  ...getPaymentStatusColor(
+                                    statusCode,
+                                    effectiveStatus,
+                                    order
+                                  ),
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: 'none',
+                                  '& .MuiChip-label': {
+                                    overflow: 'visible',
+                                    whiteSpace: 'nowrap',
+                                  }
+                                }}
                               />
                             </Tooltip>
                           ) : (
@@ -2543,7 +2495,7 @@ const SalesOrderList = () => {
                 </TableBody>
               </Table>
 
-              {sortedOrders.length > 0 && (
+              {sortedOrders.length > 0 && totalPages > 1 && (
                 <Box
                   sx={{
                     pt: 2,
@@ -2702,11 +2654,19 @@ const SalesOrderList = () => {
                         <Chip
                           label={label}
                           size="small"
-                          sx={getPaymentStatusColor(
-                            statusCode,
-                            effectiveStatus,
-                            orderDetails
-                          )}
+                          sx={{
+                            ...getPaymentStatusColor(
+                              statusCode,
+                              effectiveStatus,
+                              orderDetails
+                            ),
+                            whiteSpace: 'nowrap',
+                            maxWidth: 'none',
+                            '& .MuiChip-label': {
+                              overflow: 'visible',
+                              whiteSpace: 'nowrap',
+                            }
+                          }}
                         />
                       );
                     })()}
@@ -2949,6 +2909,17 @@ const SalesOrderList = () => {
                       {Array.isArray(orderDetails.details) &&
                       orderDetails.details.length > 0 ? (
                         orderDetails.details.map((detail, index) => {
+                          // Debug: Kiểm tra detail khi hiển thị
+                          if (index === 0) {
+                            console.log("SalesOrderList - Display: First detail from orderDetails.details:", {
+                              'detail.id': detail.id,
+                              'detail.supplierName': detail.supplierName,
+                              'detail.SupplierName': detail.SupplierName,
+                              'detail keys': Object.keys(detail).filter(k => k.toLowerCase().includes('supplier')),
+                              'full detail': detail
+                            });
+                          }
+                          
                           const quantity =
                             detail.quantity ?? detail.Quantity ?? 0;
 
@@ -3000,15 +2971,12 @@ const SalesOrderList = () => {
                             detail.UomName ??
                             "-";
 
+                          // Lấy supplierName từ detail (backend đã trả về)
                           const supplierName =
                             detail.supplierName ??
                             detail.SupplierName ??
-                            quotationMatch?.SupplierName ??
-                            quotationMatch?.supplierName ??
-                            quotationMatch?.Supplier?.Name ??
-                            quotationMatch?.supplier?.name ??
-                            detail.Supplier?.Name ??
-                            detail.supplier?.name ??
+                            detail.lot?.name ??
+                            detail.Lot?.name ??
                             "-";
 
                           const expiredDate =
@@ -3044,7 +3012,7 @@ const SalesOrderList = () => {
 
                           return (
                             <TableRow
-                              key={detail.id ?? detail.productId ?? index}
+                              key={detail.salesOrderDetailId ?? detail.SalesOrderDetailId ?? detail.id ? `${detail.salesOrderDetailId ?? detail.SalesOrderDetailId ?? detail.id}_${index}` : `${detail.productId ?? 'product'}_${detail.lotId ?? 'lot'}_${index}`}
                             >
                               <TableCell sx={{ textAlign: "center" }}>
                                 {index + 1}

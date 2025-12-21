@@ -856,6 +856,17 @@ export default function NotificationMenu() {
       return;
     }
 
+    // Xử lý notification về hóa đơn đã được gửi (cho customer)
+    if (
+      userRole === "customer" &&
+      (/Hóa đơn.*đã được gửi/i.test(n.message || "") ||
+        /Hóa đơn.*đã được gửi tới email/i.test(n.message || ""))
+    ) {
+      handleClose();
+      navigate("/customer/invoices");
+      return;
+    }
+
     if (userRole === "warehouse_staff") {
       const match = n.message.match(
         /yêu cầu Tạo phiếu nhập kho cho đơn hàng[:\s]+(\d+)/i
