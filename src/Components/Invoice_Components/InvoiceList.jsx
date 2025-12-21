@@ -41,6 +41,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import PaidIcon from "@mui/icons-material/Paid";
 import DescriptionIcon from "@mui/icons-material/Description";
 import SearchIcon from "@mui/icons-material/Search";
+import DownloadIcon from "@mui/icons-material/Download";
 import invoiceAPI from "../../API/invoiceAPI";
 import paymentRemainAPI from "../../API/paymentRemainAPI";
 import { filterProps } from "framer-motion";
@@ -380,6 +381,32 @@ const InvoiceList = () => {
     }
   };
 
+  const handleDownloadPDF = async (invoiceId, invoiceCode) => {
+    try {
+      const response = await invoiceAPI.getInvoicePdf(invoiceId);
+      // Tạo blob từ response
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      // Tạo URL từ blob
+      const url = window.URL.createObjectURL(blob);
+      // Tạo link để download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${invoiceCode || `invoice-${invoiceId}`}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setSnackbarMessage("Tải PDF thành công");
+      setSnackbarOpen(true);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Không thể tải PDF hóa đơn";
+      setSnackbarMessage(errorMessage);
+      setSnackbarOpen(true);
+    }
+  };
+
   const renderActions = (invoice) => {
     const actions = [];
 
@@ -443,6 +470,18 @@ const InvoiceList = () => {
           sx={{ color: "#1976d2" }}
         >
           <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+
+    actions.push(
+      <Tooltip key="download" title="Tải PDF">
+        <IconButton
+          size="small"
+          onClick={() => handleDownloadPDF(invoice.id, invoice.invoiceCode)}
+          sx={{ color: "#1976d2" }}
+        >
+          <DownloadIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     );
