@@ -306,7 +306,7 @@ export default function PQList() {
                     <TableCell sx={{ fontWeight: "bold" }}>
                       Mã báo giá
                     </TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Ngày gửi</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Ngày nhận</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>
                       Nhà cung cấp
                     </TableCell>
@@ -435,7 +435,7 @@ export default function PQList() {
             <strong>Nhà cung cấp:</strong> {selectedQuotation?.supplierName}
           </Typography>
           <Typography>
-            <strong>Ngày gửi:</strong>{" "}
+            <strong>Ngày nhận:</strong>{" "}
             {new Date(selectedQuotation?.sentDate).toLocaleDateString("vi-EN")}
           </Typography>
           <Typography>
