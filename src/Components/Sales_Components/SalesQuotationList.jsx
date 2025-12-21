@@ -2255,7 +2255,7 @@ const SalesQuotationList = () => {
                     )}
                   </TableBody>
                 </Table>
-                {sortedQuotations.length > 0 && (
+                {sortedQuotations.length > 0 && totalPages > 1 && (
                   <Box
                     sx={{
                       pt: 2,

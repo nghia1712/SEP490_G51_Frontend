@@ -1635,7 +1635,7 @@ const ListRSQ = () => {
                   )}
                 </TableBody>
               </Table>
-              {sortedRequests.length > 0 && (
+              {sortedRequests.length > 0 && totalPages > 1 && (
                 <Box
                   sx={{
                     mt: 0,

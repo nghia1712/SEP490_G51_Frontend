@@ -1717,8 +1717,30 @@ const CustomerRequestQuotationList = () => {
   const handleSend = async (id) => {
     setLoading(true);
     try {
+      // Tìm requestCode từ request hiện tại trong danh sách để lưu createdDate
+      const currentRequest = requests.find(r => (r.id || r.Id) === id);
+      const requestCode = currentRequest?.code || currentRequest?.RequestCode || currentRequest?.requestCode;
+      
       const response = await requestSalesQuotationAPI.sendRequest(id);
       if (response.data) {
+        // Lưu createdDate vào localStorage nếu có requestCode
+        // Nếu chưa có createdDate trong localStorage, lưu ngày hiện tại
+        if (requestCode) {
+          const existingDate = getStoredCreatedDate(requestCode);
+          if (!existingDate) {
+            const currentDate = new Date();
+            try {
+              localStorage.setItem(
+                `rsq_created_${requestCode}`,
+                currentDate.toISOString()
+              );
+              console.log('Created date saved to localStorage for:', requestCode);
+            } catch (error) {
+              console.error('Error storing created date:', error);
+            }
+          }
+        }
+        
         setSnackbarMessage(
           "Gửi yêu cầu thành công! Yêu cầu đã được gửi đến bộ phận bán hàng."
         );
@@ -1895,7 +1917,7 @@ const CustomerRequestQuotationList = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{ width: "18%", py: 1.5, px: 2 }}
                     >
                       <TableSortLabel
@@ -1912,7 +1934,7 @@ const CustomerRequestQuotationList = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{ width: "18%", py: 1.5, px: 2 }}
                     >
                       <TableSortLabel
@@ -1929,7 +1951,7 @@ const CustomerRequestQuotationList = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="left"
                       sx={{ width: "18%", py: 1.5, px: 2 }}
                     >
                       <TableSortLabel
@@ -1985,13 +2007,13 @@ const CustomerRequestQuotationList = () => {
                       <TableCell sx={{ fontWeight: 500 }}>
                         {request.code}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="left">
                         {formatDate(request.createdDate)}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="left">
                         {formatDate(request.sentDate)}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="left">
                         {request.status !== undefined &&
                         request.status !== null ? (
                           <Chip

@@ -73,12 +73,14 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
           // Normalize field names for consistent access
           const normalizedProduct = {
             ...productData,
-            // Backend DTO/ProductDTOView dùng tên field bị typo: ProductlUses (chữ l)
-            // Nên cần map cả ProductlUses vào productUses để hiển thị đúng "Công dụng"
+            // Backend có thể trả về ProductIUses (chữ I), ProductUses, hoặc ProductlUses (chữ l)
+            // Nên cần map tất cả các biến thể vào productUses để hiển thị đúng "Công dụng"
             productUses:
               productData?.productUses ||
               productData?.ProductUses ||
+              productData?.ProductIUses ||
               productData?.productlUses ||
+              productData?.ProductlUses ||
               productData?.uses ||
               productData?.Uses ||
               "",
@@ -318,7 +320,9 @@ const ProductDetails = ({ show, handleClose, product, productId }) => {
                       {(
                         productDetail.productUses ||
                         productDetail.ProductUses ||
-                        productDetail.ProductlUses
+                        productDetail.ProductIUses ||
+                        productDetail.ProductlUses ||
+                        productDetail.productlUses
                       ) || "Không có thông tin"}
                     </Descriptions.Item>
                     <Descriptions.Item key="weight" label="Khối lượng">

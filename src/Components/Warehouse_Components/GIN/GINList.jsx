@@ -44,6 +44,7 @@ import InvoiceCreationDialog from "../../Invoice_Components/InvoiceCreationDialo
 import getUserRoleFromToken from "../../../Utils/getUserRoleFromToken";
 import ginApi from "../../../API/ginAPI";
 import stockExportApi from "../../../API/stockExportAPI";
+import invoiceAPI from "../../../API/invoiceAPI";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { vi as viLocale } from "date-fns/locale";
@@ -124,6 +125,61 @@ export default function GRNList() {
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceDialogContext, setInvoiceDialogContext] = useState(null);
+  // Track GINs that have invoices created successfully
+  // Load from localStorage on mount
+  const [ginsWithInvoice, setGinsWithInvoice] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ginsWithInvoice");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Load GINs with invoices from backend on mount
+  useEffect(() => {
+    const loadGinsWithInvoice = async () => {
+      try {
+        const invoiceRes = await invoiceAPI.getInvoiceList();
+        const invoices = invoiceRes.data?.data || [];
+        const ginCodesSet = new Set();
+        
+        // Extract all GIN codes from invoice details
+        invoices.forEach((invoice) => {
+          if (invoice.details && Array.isArray(invoice.details)) {
+            invoice.details.forEach((detail) => {
+              // Find GIN code from GIN ID
+              const ginId = detail.goodsIssueNoteId || detail.GoodsIssueNoteId;
+              if (ginId) {
+                // Find GIN code from data
+                const gin = data.find((g) => g.id === ginId || g.Id === ginId);
+                if (gin) {
+                  const ginCode = gin.goodsIssueNoteCode || gin.GoodsIssueNoteCode;
+                  if (ginCode) {
+                    ginCodesSet.add(ginCode);
+                  }
+                }
+              }
+            });
+          }
+        });
+        
+        // Merge with localStorage data
+        const saved = localStorage.getItem("ginsWithInvoice");
+        const savedSet = saved ? new Set(JSON.parse(saved)) : new Set();
+        const mergedSet = new Set([...ginCodesSet, ...savedSet]);
+        
+        setGinsWithInvoice(mergedSet);
+        localStorage.setItem("ginsWithInvoice", JSON.stringify([...mergedSet]));
+      } catch (err) {
+        console.warn("Failed to load GINs with invoices:", err);
+      }
+    };
+    
+    if (data.length > 0 && role === "accountant_staff") {
+      loadGinsWithInvoice();
+    }
+  }, [data, role]);
 
   const handleOpenInvoiceDialog = async (row) => {
     if (!row) {
@@ -233,11 +289,26 @@ export default function GRNList() {
     setInvoiceDialogContext(null);
   };
 
-  const handleInvoiceSuccess = (message) => {
+  const handleInvoiceSuccess = (message, goodsIssueNoteCodes) => {
     setSnack({
       open: true,
       severity: "success",
       message: message || "Tạo hóa đơn từ phiếu xuất kho thành công",
+    });
+    // Mark these GINs as having an invoice
+    setGinsWithInvoice((prev) => {
+      const newSet = new Set(prev);
+      if (goodsIssueNoteCodes && Array.isArray(goodsIssueNoteCodes)) {
+        goodsIssueNoteCodes.forEach((code) => {
+          if (code) newSet.add(code);
+        });
+      } else if (goodsIssueNoteCodes) {
+        // Handle single code (backward compatibility)
+        newSet.add(goodsIssueNoteCodes);
+      }
+      // Save to localStorage
+      localStorage.setItem("ginsWithInvoice", JSON.stringify([...newSet]));
+      return newSet;
     });
     fetchList();
     handleCloseInvoiceDialog();
@@ -507,9 +578,10 @@ export default function GRNList() {
                               </Tooltip>
                             )}
 
-                            {/* NÚT TẠO HÓA ĐƠN (chỉ cho kế toán và phiếu đã xuất kho) */}
+                            {/* NÚT TẠO HÓA ĐƠN (chỉ cho kế toán và phiếu đã xuất kho, chưa có invoice) */}
                             {role === "accountant_staff" &&
-                              row.status === 2 && (
+                              row.status === 2 &&
+                              !ginsWithInvoice.has(row.goodsIssueNoteCode) && (
                                 <Tooltip title="Tạo hóa đơn từ phiếu này">
                                   <IconButton
                                     color="primary"
