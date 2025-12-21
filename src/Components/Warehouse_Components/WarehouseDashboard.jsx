@@ -177,7 +177,7 @@ export default function WarehouseDashboard() {
           const compRes = await warehouseAPI.getHistoriesBySessionId(
             session.inventorySessionID
           );
-          const products = compRes.data?.data || []; // ✅ đảm bảo là array
+          const products = compRes.data?.data || [];
           console.log(
             "Fetched products for session",
             session.inventorySessionID,
@@ -186,9 +186,10 @@ export default function WarehouseDashboard() {
           const filtered = products
             .map((p) => ({
               ...p,
+              complete: p.endDate ?? null,
               discrepancy: p.diff ?? 0,
             }))
-            .filter((p) => p.discrepancy !== 0);
+            .filter((p) => p.discrepancy !== 0 && !complete);
 
           allProducts.push(...filtered);
         }

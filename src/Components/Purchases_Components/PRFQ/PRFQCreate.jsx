@@ -747,7 +747,7 @@ export default function PRFQCreate() {
 
                     <TableRow>
                       <TableCell>Người gửi:</TableCell>
-                      <TableCell>Nhà cung cấp</TableCell>
+                      <TableCell>Nhà thuốc dược phẩm số 17</TableCell>
                       <TableCell>Mã yêu cầu:</TableCell>
                       <TableCell>{id || "-"}</TableCell>
                       <TableCell>Tên NCC:</TableCell>

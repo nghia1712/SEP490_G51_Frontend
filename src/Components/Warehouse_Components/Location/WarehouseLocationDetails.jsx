@@ -61,21 +61,22 @@ export default function WarehouseLocationDetailPage() {
   const loadLocationData = async () => {
     setLoading(true);
     try {
-      const [lotsRes, locationRes] = await Promise.all([
-        warehouseApi.getLotsByLocation(id),
-        warehouseLocationAPI.getDetail(id),
-      ]);
-      const locData = locationRes.data.data || locationRes.data;
+      const res = await warehouseLocationAPI.getDetail(id);
+      const locData = res.data.data;
+
       setLocation({
-        locationID: id,
+        locationID: locData.id,
         locationName: locData.locationName,
-        lotProduct: lotsRes.data.data.map((lot) => ({
-          ...lot,
-          realQuantity: lot.lotQuantity,
-          note: lot.note || "",
-        })),
         status: locData.status,
+        lotProduct: Array.isArray(locData.lotProduct)
+          ? locData.lotProduct.map((lot) => ({
+              ...lot,
+              realQuantity: lot.lotQuantity,
+              note: lot.note || "",
+            }))
+          : [],
       });
+
       setError(null);
     } catch (err) {
       console.error(err);
