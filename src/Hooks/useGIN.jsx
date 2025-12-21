@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Chip } from "@mui/material";
 import ginApi from "../API/ginAPI";
+import ginAPI from "../API/ginAPI";
 
 // ==== map trạng thái ====
 const ginStatusMap = {
@@ -234,6 +235,26 @@ export default function useGIN() {
     }
   };
 
+    const handleDownloadPDF = async (ginId) => {
+      try {
+        const res = await ginAPI.exportPdf(ginId, { responseType: "blob" });
+        const blob = new Blob([res.data], { type: "application/pdf" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `GIN${ginId}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        setSnack({
+          open: true,
+          severity: "error",
+          message: "Không thể tải file PDF",
+        });
+      }
+    };
+
   return {
     data,
     loading,
@@ -263,5 +284,7 @@ export default function useGIN() {
     setSnack,
     snack,
     handleSnackClose,
+
+    handleDownloadPDF,
   };
 }

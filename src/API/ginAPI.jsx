@@ -52,6 +52,14 @@ const ginAPI = {
   // ✅ GET: Thống kê phiếu xuất kho chưa xuất
   notExportedStatistic: () =>
     authorApi.get(`${API_URL}/not-exported-statistic`),
+
+  // ✅ GET: Xuất GRN PDF → trả file blob
+exportPdf: (ginId) =>
+  authorApi.get(`${API_URL}/download-goods-issue-note`, {
+    params: { ginId },
+    responseType: "blob",
+  }),
+
 };
 
 export default ginAPI;
